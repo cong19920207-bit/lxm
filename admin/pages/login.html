@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .login-card {
+      width: 360px;
+      background: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+      padding: 40px 32px 32px;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+
+    .login-error {
+      display: none;
+      background: #fff2f0;
+      border: 1px solid #ffa39e;
+      color: #ff4d4f;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .login-error.show {
+      display: block;
+    }
+
+    .login-input {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    .login-input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    }
+
+    .login-input::placeholder {
+      color: var(--text-disabled);
+    }
+
+    .login-field {
+      margin-bottom: 20px;
+    }
+
+    .login-field label {
+      display: block;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .login-btn {
+      width: 100%;
+      height: 44px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      background: #40a9ff;
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-disabled);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-title">林小梦管理后台</div>
+  <div class="login-subtitle">Management Console</div>
+
+  <div class="login-error" id="loginError"></div>
+
+  <form id="loginForm" autocomplete="off">
+    <div class="login-field">
+      <label for="username">账号</label>
+      <input type="text" id="username" class="login-input" placeholder="请输入管理员账号" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label for="password">密码</label>
+      <input type="password" id="password" class="login-input" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button type="submit" class="login-btn" id="loginBtn">登录</button>
+  </form>
+
+  <div class="login-footer">
+    忘记密码？请联系超级管理员重置
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  (function () {
+    /* 已登录则直接跳转 */
+    if (getAdminToken()) {
+      window.location.href = '/admin/pages/dashboard.html';
+      return;
+    }
+
+    var form = document.getElementById('loginForm');
+    var btn = document.getElementById('loginBtn');
+    var errorEl = document.getElementById('loginError');
+    var usernameInput = document.getElementById('username');
+    var passwordInput = document.getElementById('password');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.add('show');
+    }
+
+    function hideError() {
+      errorEl.classList.remove('show');
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      hideError();
+
+      var username = usernameInput.value.trim();
+      var password = passwordInput.value;
+
+      if (!username) {
+        showError('请输入管理员账号');
+        usernameInput.focus();
+        return;
+      }
+      if (!password) {
+        showError('请输入密码');
+        passwordInput.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+
+      try {
+        var resp = await fetch(ADMIN_API_BASE + '/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username, password: password })
+        });
+        var result = await resp.json();
+
+        if (result.code === 0) {
+          var data = result.data;
+          saveAdminToken(data.token, data.username, data.role);
+
+          if (data.need_change_password) {
+            showToast('密码已过期，请尽快修改密码', 'warning');
+          }
+
+          window.location.href = '/admin/pages/dashboard.html';
+        } else {
+          showError(result.message || '登录失败，请检查账号和密码');
+          btn.disabled = false;
+          btn.textContent = '登录';
+        }
+      } catch (err) {
+        showError('网络请求失败，请检查网络连接');
+        btn.disabled = false;
+        btn.textContent = '登录';
+      }
+    });
+  })();
+</script>
+</body>
+</html>

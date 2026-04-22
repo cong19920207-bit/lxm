@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>内容安全规则 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .safety-tag-cloud {
+      min-height: 120px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .safety-kw-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #f5f5f5;
+      border: 1px solid #d9d9d9;
+      border-radius: 16px;
+      padding: 4px 10px;
+      margin: 4px;
+      font-size: 13px;
+    }
+    .safety-kw-remove {
+      border: none;
+      background: none;
+      cursor: pointer;
+      margin-left: 6px;
+      color: #999;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .safety-kw-remove:hover {
+      color: var(--danger);
+    }
+    .safety-actions-row {
+      margin-top: 16px;
+    }
+    .safety-input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    #safety-page-wrap.is-loading .safety-tag-cloud {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div id="safety-page-wrap" class="page-card is-loading">
+    <div class="tabs" id="safety-tabs">
+      <div class="tab-item active" data-target="pane-banned">违规关键词</div>
+      <div class="tab-item" data-target="pane-persona">人格禁区关键词</div>
+      <div class="tab-item" data-target="pane-style">语言风格禁忌词</div>
+    </div>
+
+    <!-- 违规关键词 -->
+    <div id="pane-banned" class="tab-pane active" data-tab="banned">
+      <div id="cloud-banned" class="safety-tag-cloud"></div>
+      <div class="flex-between safety-actions-row">
+        <div class="safety-input-group">
+          <input type="text" id="input-banned" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-banned">保存更新</button>
+        </div>
+        <div>
+          <button type="button" class="btn btn-default" id="btn-import-excel">批量导入 Excel</button>
+          <input type="file" id="file-import-excel" accept=".xlsx,.xls" style="display:none" aria-hidden="true">
+        </div>
+      </div>
+    </div>
+
+    <!-- 人格禁区关键词 -->
+    <div id="pane-persona" class="tab-pane" data-tab="persona">
+      <div id="cloud-persona" class="safety-tag-cloud"></div>
+      <div class="flex-between safety-actions-row">
+        <div class="safety-input-group">
+          <input type="text" id="input-persona" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-persona">保存更新</button>
+        </div>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- 语言风格禁忌词 -->
+    <div id="pane-style" class="tab-pane" data-tab="style">
+      <div id="cloud-style" class="safety-tag-cloud"></div>
+      <div class="flex-between safety-actions-row">
+        <div class="safety-input-group">
+          <input type="text" id="input-style" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-style">保存更新</button>
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+
+  // 与 GET /api/admin/safety-rules 字段对应
+  var bannedKeywords = [];
+  var personaKeywords = [];
+  var styleKeywords = [];
+
+  // 问题一：首次 GET 完成前禁止编辑，避免异步返回覆盖用户输入
+  var firstLoadFinished = false;
+  // 问题二：与上次成功同步（GET/保存）后的快照比较，用于导入前未保存提示
+  var lastSyncedSnapshot = null;
+
+  function setFormEnabled(enabled) {
+    var ids = [
+      'input-banned', 'input-persona', 'input-style',
+      'btn-save-banned', 'btn-save-persona', 'btn-save-style',
+      'btn-import-excel'
+    ];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.disabled = !enabled;
+    });
+  }
+
+  function saveSnapshot() {
+    lastSyncedSnapshot = JSON.stringify({
+      banned: bannedKeywords.slice(),
+      persona: personaKeywords.slice(),
+      style: styleKeywords.slice()
+    });
+  }
+
+  function isDirty() {
+    if (lastSyncedSnapshot === null) {
+      return bannedKeywords.length > 0 || personaKeywords.length > 0 || styleKeywords.length > 0;
+    }
+    return JSON.stringify({
+      banned: bannedKeywords,
+      persona: personaKeywords,
+      style: styleKeywords
+    }) !== lastSyncedSnapshot;
+  }
+
+  function renderTagCloud(containerId, listRef) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    var arr = listRef;
+    if (!arr.length) {
+      var hint = document.createElement('span');
+      hint.style.fontSize = '13px';
+      hint.style.color = 'var(--text-secondary)';
+      hint.textContent = '暂无关键词，输入后按 Enter 添加';
+      el.appendChild(hint);
+      return;
+    }
+    arr.forEach(function (kw) {
+      var wrap = document.createElement('span');
+      wrap.className = 'safety-kw-tag';
+      var text = document.createElement('span');
+      text.textContent = kw;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'safety-kw-remove';
+      btn.setAttribute('aria-label', '删除「' + kw + '」');
+      btn.textContent = '×';
+      btn.onclick = function () {
+        var i = arr.indexOf(kw);
+        if (i >= 0) arr.splice(i, 1);
+        renderTagCloud(containerId, listRef);
+      };
+      wrap.appendChild(text);
+      wrap.appendChild(btn);
+      el.appendChild(wrap);
+    });
+  }
+
+  function renderAllClouds() {
+    renderTagCloud('cloud-banned', bannedKeywords);
+    renderTagCloud('cloud-persona', personaKeywords);
+    renderTagCloud('cloud-style', styleKeywords);
+  }
+
+  function bindEnterInput(inputId, listRef, cloudId) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var v = (input.value || '').trim();
+      if (!v) return;
+      if (listRef.indexOf(v) >= 0) {
+        showToast('该关键词已存在', 'warning');
+        return;
+      }
+      listRef.push(v);
+      input.value = '';
+      renderTagCloud(cloudId, listRef);
+    });
+  }
+
+  async function loadSafetyRules() {
+    var wrap = document.getElementById('safety-page-wrap');
+    var pendingFirst = !firstLoadFinished;
+    if (wrap) wrap.classList.add('is-loading');
+    if (pendingFirst) setFormEnabled(false);
+
+    var res = await adminRequest('GET', '/api/admin/safety-rules');
+
+    if (res && res.code === 0 && res.data) {
+      var d = res.data;
+      // 原地替换，避免与 bindEnterInput 闭包中的数组引用脱节
+      function replaceInPlace(target, source) {
+        target.length = 0;
+        if (Array.isArray(source)) {
+          source.forEach(function (x) { target.push(String(x)); });
+        }
+      }
+      replaceInPlace(bannedKeywords, d.banned_keywords);
+      replaceInPlace(personaKeywords, d.persona_boundary_keywords);
+      replaceInPlace(styleKeywords, d.style_violation_keywords);
+      renderAllClouds();
+      saveSnapshot();
+    }
+
+    if (wrap) wrap.classList.remove('is-loading');
+    if (pendingFirst) {
+      setFormEnabled(true);
+      firstLoadFinished = true;
+    }
+  }
+
+  async function putKeywords(path, arr) {
+    if (!arr.length) {
+      showToast('关键词列表不能为空，请至少保留一个词后再保存', 'warning');
+      return;
+    }
+    var res = await adminRequest('PUT', path, { keywords: arr });
+    if (res && res.code === 0) {
+      showToast('保存成功', 'success');
+      saveSnapshot();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('safety');
+    document.getElementById('header-mount').innerHTML = renderHeader('内容安全规则');
+
+    initTabs('safety-tabs');
+
+    bindEnterInput('input-banned', bannedKeywords, 'cloud-banned');
+    bindEnterInput('input-persona', personaKeywords, 'cloud-persona');
+    bindEnterInput('input-style', styleKeywords, 'cloud-style');
+
+    document.getElementById('btn-save-banned').onclick = function () {
+      putKeywords('/api/admin/safety-rules/banned-keywords', bannedKeywords);
+    };
+    document.getElementById('btn-save-persona').onclick = function () {
+      putKeywords('/api/admin/safety-rules/persona-keywords', personaKeywords);
+    };
+    document.getElementById('btn-save-style').onclick = function () {
+      putKeywords('/api/admin/safety-rules/style-keywords', styleKeywords);
+    };
+
+    document.getElementById('btn-import-excel').onclick = function () {
+      function openFilePicker() {
+        document.getElementById('file-import-excel').click();
+      }
+      if (isDirty()) {
+        showConfirm('将重新加载全部关键词，未保存的修改会丢失，是否继续？', openFilePicker);
+      } else {
+        openFilePicker();
+      }
+    };
+
+    document.getElementById('file-import-excel').addEventListener('change', async function () {
+      var f = this.files && this.files[0];
+      this.value = '';
+      if (!f) return;
+      var fd = new FormData();
+      fd.append('file', f);
+      var res = await adminRequest('POST', '/api/admin/safety-rules/banned-keywords/import', fd, true);
+      if (res && res.code === 0 && res.data) {
+        var ic = res.data.imported_count != null ? res.data.imported_count : 0;
+        var tc = res.data.total_count != null ? res.data.total_count : 0;
+        showToast('成功导入' + ic + '个关键词，当前共' + tc + '个', 'success');
+        await loadSafetyRules();
+      }
+    });
+
+    loadSafetyRules();
+  });
+})();
+</script>
+</body>
+</html>

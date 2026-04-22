@@ -1,0 +1,67 @@
+# 本地开发：MySQL / Redis / Backend / Nginx。
+# backend 与 admin 代码在镜像内，改后需 build backend；经 80 的 H5 为 ./frontend 挂载，改文件即生效。
+# 库结构升级：先 alembic（见 docs/docker-admin-deploy.md），一般无需重建 mysql 容器或删数据卷。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: lxm_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lxm}
+      MYSQL_USER: ${MYSQL_USER:-lxm}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lxm123456}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$${MYSQL_ROOT_PASSWORD}\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: lxm_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: .
+    container_name: lxm_backend
+    restart: unless-stopped
+    ports:
+      # 可选：浏览器直连 FastAPI（管理后台 /admin、OpenAPI 等）；主入口仍建议走 nginx:80
+      - "8000:8000"
+    env_file: .env
+    environment:
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    container_name: lxm_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  redis_data:

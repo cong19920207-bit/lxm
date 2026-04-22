@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据看板 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .stat-card .stat-sub {
+      font-size: 12px;
+      color: var(--text-disabled);
+      margin-top: 4px;
+    }
+
+    /* 骨架屏卡片 */
+    .stat-card.is-skeleton .stat-icon { background: #f0f0f0; }
+    .stat-card.is-skeleton .skeleton-value {
+      width: 80px;
+      height: 28px;
+      margin: 8px 0;
+    }
+    .stat-card.is-skeleton .skeleton-label {
+      width: 100px;
+      height: 14px;
+    }
+    .stat-card.is-skeleton .skeleton-sub {
+      width: 60px;
+      height: 12px;
+      margin-top: 4px;
+    }
+
+    /* 告警区域 */
+    .alert-area {
+      margin-bottom: 16px;
+    }
+    .alert-area:empty {
+      display: none;
+    }
+    .alert-area .alert {
+      margin-bottom: 8px;
+    }
+    .alert-area .alert:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 图表区域 */
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .chart-box {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .chart-box-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 400px;
+    }
+
+    /* tech_ops 提示 */
+    .role-hint {
+      background: white;
+      border-radius: 8px;
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .chart-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>checkAdminLogin();</script>
+
+<script>
+  document.body.innerHTML =
+    renderSidebar('dashboard') +
+    renderHeader('数据看板') +
+    '<div class="admin-content" id="dashboardContent"></div>';
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+
+<script>
+(function () {
+  var role = getAdminRole();
+  var contentEl = document.getElementById('dashboardContent');
+
+  /* ─── 卡片配置 ─── */
+  var ALL_CARDS = [
+    { key: 'new_users',          label: '今日新增用户',     icon: '👤', bg: '#e6f7ff', color: '#1890ff', unit: '人' },
+    { key: 'active_users',       label: '今日活跃用户',     icon: '🔥', bg: '#fff7e6', color: '#fa8c16', unit: '人' },
+    { key: 'retention_1d',       label: '次日留存率',       icon: '📈', bg: '#f6ffed', color: '#52c41a', unit: '%', isPercent: true },
+    { key: 'retention_7d',       label: '7日留存率',        icon: '📊', bg: '#f9f0ff', color: '#722ed1', unit: '%', isPercent: true },
+    { key: 'llm_success_rate',   label: 'LLM成功率',       icon: '🤖', bg: '#e6fffb', color: '#13c2c2', unit: '%', isPercent: true },
+    { key: 'persona_risk_rate',  label: '人格偏离率',       icon: '🎭', bg: '#fff0f6', color: '#eb2f96', unit: '%', isPercent: true },
+    { key: 'agent_messages',     label: '今日主动消息',     icon: '💬', bg: '#f0f5ff', color: '#2f54eb', unit: '条' },
+    { key: 'agent_open_rate',    label: '主动消息打开率',   icon: '📬', bg: '#fcffe6', color: '#a0d911', unit: '%', isPercent: true }
+  ];
+
+  /* 按角色过滤卡片 */
+  var visibleCards = ALL_CARDS;
+  if (role === 'ai_trainer') {
+    visibleCards = ALL_CARDS.filter(function (c) {
+      return c.key === 'llm_success_rate' || c.key === 'persona_risk_rate';
+    });
+  }
+
+  var showCards = role !== 'tech_ops';
+  var showCharts = role !== 'ai_trainer';
+
+  /* 将接口嵌套 data 展平为卡片用字段（与 stats_service.get_dashboard_data 结构一致） */
+  function flattenDashboard(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    var u = raw.user || {};
+    var r = raw.retention || {};
+    var a = raw.agent || {};
+    var ai = raw.ai_performance || {};
+    return {
+      new_users: u.new_users_today,
+      active_users: u.active_users_today,
+      retention_1d: r.next_day_retention,
+      retention_7d: r.day7_retention,
+      llm_success_rate: ai.llm_success_rate,
+      persona_risk_rate: ai.persona_deviation_rate,
+      agent_messages: a.agent_sent_today,
+      agent_open_rate: a.agent_open_rate
+    };
+  }
+
+  /* 趋势接口 data 为 [{ date, value }] */
+  function trendListToAxes(list) {
+    if (!Array.isArray(list)) return { dates: [], values: [] };
+    return {
+      dates: list.map(function (x) { return x.date; }),
+      values: list.map(function (x) { return x.value; })
+    };
+  }
+
+  /* ─── 渲染骨架屏 ─── */
+  function renderSkeletonCards() {
+    var html = '';
+    for (var i = 0; i < visibleCards.length; i++) {
+      var c = visibleCards[i];
+      html +=
+        '<div class="stat-card is-skeleton">' +
+          '<div class="stat-icon" style="background:' + c.bg + '">' + c.icon + '</div>' +
+          '<div class="skeleton skeleton-value"></div>' +
+          '<div class="skeleton skeleton-label"></div>' +
+          '<div class="skeleton skeleton-sub"></div>' +
+        '</div>';
+    }
+    return html;
+  }
+
+  /* ─── 渲染真实卡片 ─── */
+  function renderCards(data) {
+    var html = '';
+    for (var i = 0; i < visibleCards.length; i++) {
+      var c = visibleCards[i];
+      var val = data[c.key];
+      var display = val !== undefined && val !== null ? val : '--';
+      if (c.isPercent && typeof val === 'number') {
+        display = val.toFixed(1);
+      }
+      html +=
+        '<div class="stat-card">' +
+          '<div class="stat-icon" style="background:' + c.bg + '">' + c.icon + '</div>' +
+          '<div class="stat-value" style="color:' + c.color + '">' + display + '<span style="font-size:14px;margin-left:2px">' + c.unit + '</span></div>' +
+          '<div class="stat-label">' + c.label + '</div>' +
+        '</div>';
+    }
+    return html;
+  }
+
+  /* ─── 渲染告警 ─── */
+  function renderAlerts(data) {
+    var alerts = [];
+
+    if (typeof data.persona_risk_rate === 'number') {
+      if (data.persona_risk_rate > 1) {
+        alerts.push({ level: 'error', msg: '⚠️ 人格偏离率 ' + data.persona_risk_rate.toFixed(2) + '% 超过 1%，请立即检查 Prompt 配置' });
+      } else if (data.persona_risk_rate > 0.5) {
+        alerts.push({ level: 'warning', msg: '⚠️ 人格偏离率 ' + data.persona_risk_rate.toFixed(2) + '% 超过 0.5% 基线，建议关注' });
+      }
+    }
+
+    if (typeof data.llm_success_rate === 'number' && data.llm_success_rate < 95) {
+      alerts.push({ level: 'error', msg: '⚠️ LLM 成功率降至 ' + data.llm_success_rate.toFixed(1) + '%，请检查第三方服务状态' });
+    }
+
+    if (typeof data.retention_1d === 'number' && data.retention_1d < 20) {
+      alerts.push({ level: 'warning', msg: '📉 次日留存率 ' + data.retention_1d.toFixed(1) + '% 偏低，建议优化新用户引导' });
+    }
+
+    if (!alerts.length) return '';
+
+    var html = '';
+    for (var i = 0; i < alerts.length; i++) {
+      html += '<div class="alert alert-' + alerts[i].level + '">' + alerts[i].msg + '</div>';
+    }
+    return html;
+  }
+
+  /* ─── 初始化页面结构 ─── */
+  function initLayout() {
+    var html = '';
+
+    if (showCards) {
+      html += '<div class="stat-grid" id="statCards">' + renderSkeletonCards() + '</div>';
+    } else {
+      html += '<div class="role-hint">当前角色为技术运维，统计卡片仅对运营和管理角色可见。请使用侧边栏的系统监控查看技术指标。</div>';
+    }
+
+    html += '<div class="alert-area" id="alertArea"></div>';
+
+    if (showCharts) {
+      html +=
+        '<div class="chart-row">' +
+          '<div class="chart-box">' +
+            '<div class="chart-box-title">近7天新增用户</div>' +
+            '<div class="chart-container" id="chartNewUsers"></div>' +
+          '</div>' +
+          '<div class="chart-box">' +
+            '<div class="chart-box-title">近7天活跃用户</div>' +
+            '<div class="chart-container" id="chartActiveUsers"></div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    contentEl.innerHTML = html;
+  }
+
+  /* ─── ECharts 实例 ─── */
+  var chartNew = null;
+  var chartActive = null;
+
+  function initCharts() {
+    if (!showCharts) return;
+    var newEl = document.getElementById('chartNewUsers');
+    var activeEl = document.getElementById('chartActiveUsers');
+    if (newEl) chartNew = echarts.init(newEl);
+    if (activeEl) chartActive = echarts.init(activeEl);
+
+    window.addEventListener('resize', function () {
+      if (chartNew) chartNew.resize();
+      if (chartActive) chartActive.resize();
+    });
+  }
+
+  function renderLineChart(chart, dates, values, color, areaColor) {
+    if (!chart) return;
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: 40, right: 20, top: 20, bottom: 30 },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLine: { lineStyle: { color: '#d9d9d9' } },
+        axisLabel: { color: '#666', fontSize: 12 }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { lineStyle: { color: '#f0f0f0' } },
+        axisLabel: { color: '#666', fontSize: 12 }
+      },
+      series: [{
+        type: 'line',
+        data: values,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: color, width: 2 },
+        itemStyle: { color: color },
+        areaStyle: { color: areaColor }
+      }]
+    });
+  }
+
+  /* ─── 数据加载 ─── */
+  async function loadDashboard() {
+    /* 加载卡片数据 */
+    if (showCards) {
+      var res = await adminRequest('GET', '/api/admin/stats/dashboard');
+      if (res && res.code === 0) {
+        var flat = flattenDashboard(res.data || {});
+        document.getElementById('statCards').innerHTML = renderCards(flat);
+        document.getElementById('alertArea').innerHTML = renderAlerts(flat);
+      }
+    }
+
+    /* 加载趋势图表 */
+    if (showCharts) {
+      var resNew = await adminRequest('GET', '/api/admin/stats/trend?metric=new_users&days=7');
+      if (resNew && resNew.code === 0) {
+        var ax = trendListToAxes(resNew.data);
+        renderLineChart(chartNew, ax.dates, ax.values, '#1890ff', 'rgba(24,144,255,0.15)');
+      }
+
+      var resActive = await adminRequest('GET', '/api/admin/stats/trend?metric=active_users&days=7');
+      if (resActive && resActive.code === 0) {
+        var ax2 = trendListToAxes(resActive.data);
+        renderLineChart(chartActive, ax2.dates, ax2.values, '#52c41a', 'rgba(82,196,26,0.15)');
+      }
+    }
+  }
+
+  /* ─── 启动 ─── */
+  initLayout();
+  initCharts();
+  loadDashboard();
+
+  setInterval(loadDashboard, 300000);
+})();
+</script>
+
+</body>
+</html>

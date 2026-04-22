@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI人格管理 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .persona-layout {
+      display: grid;
+      grid-template-columns: 55fr 45fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .persona-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .status-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .status-draft-hint {
+      color: var(--warning);
+      font-size: 14px;
+    }
+    .status-published-hint {
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+    .btn-publish-green {
+      background: #52c41a !important;
+      color: #fff !important;
+      border-color: #52c41a !important;
+    }
+    .btn-publish-green:hover:not([disabled]) {
+      background: #73d13d !important;
+      border-color: #73d13d !important;
+    }
+    .persona-edit-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .page-card-head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .page-card-head-row h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text);
+    }
+    #persona-edit-skeleton .skeleton-row {
+      height: 72px;
+      margin-bottom: 12px;
+    }
+    #persona-form-wrap.is-loading #persona-form-fields {
+      display: none;
+    }
+    #persona-form-wrap.is-loading #persona-edit-skeleton {
+      display: block;
+    }
+    #persona-edit-skeleton {
+      display: none;
+    }
+    .timeline-wrap {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline-wrap::before {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: #d9d9d9;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 20px;
+    }
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -20px;
+      top: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1890ff;
+      transform: translateX(-50%);
+    }
+    .timeline-body {
+      padding-left: 8px;
+    }
+    .timeline-ver {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .timeline-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .timeline-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    #history-collapse-body.collapsed {
+      display: none;
+    }
+    .test-score-bar {
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .test-score-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #1890ff, #52c41a);
+      transition: width 0.3s;
+    }
+    .test-case-row {
+      border: 1px solid #f0f0f0;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .test-case-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 13px;
+    }
+    @media (max-width: 560px) {
+      .test-case-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .test-case-label {
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .test-loading-box {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-secondary);
+    }
+    .test-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #f0f0f0;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: persona-spin 0.8s linear infinite;
+    }
+    @keyframes persona-spin {
+      to { transform: rotate(360deg); }
+    }
+    .modal-wide-640 {
+      max-width: 640px;
+      width: 92%;
+    }
+    .modal-wide-560 {
+      max-width: 560px;
+      width: 92%;
+    }
+    #dirty-alert {
+      display: none;
+    }
+    #dirty-alert.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <!-- 顶部状态栏 -->
+  <div class="page-card" style="margin-bottom:16px">
+    <div class="status-bar-inner">
+      <div id="persona-status-left" class="text-secondary">加载中…</div>
+      <div id="persona-status-right" class="flex flex-center gap-8"></div>
+    </div>
+  </div>
+
+  <div class="persona-layout">
+    <!-- 左侧编辑 -->
+    <div class="page-card">
+      <div class="page-card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">编辑人格配置</div>
+      <div id="dirty-alert" class="alert alert-warning mt-16" style="margin-bottom:16px">⚠️ 有未保存的修改</div>
+      <div id="persona-form-wrap" class="is-loading mt-16">
+        <div id="persona-edit-skeleton">
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+        </div>
+        <div id="persona-form-fields">
+          <div class="form-item">
+            <label for="persona-background">角色背景</label>
+            <textarea id="persona-background" class="form-control" rows="6" placeholder="林小梦的身份、来历、核心世界观"></textarea>
+          </div>
+          <div class="form-item">
+            <label for="persona-personality">性格特征</label>
+            <textarea id="persona-personality" class="form-control" rows="4" placeholder="核心性格特质，3-5个"></textarea>
+          </div>
+          <div class="form-item">
+            <label for="persona-emotion">情感偏好</label>
+            <textarea id="persona-emotion" class="form-control" rows="4" placeholder="林小梦的喜好、价值观"></textarea>
+          </div>
+          <div class="form-item">
+            <label for="persona-language">语言风格</label>
+            <textarea id="persona-language" class="form-control" rows="4" placeholder="说话方式、语气、句式"></textarea>
+          </div>
+          <div class="form-item" style="margin-bottom:0">
+            <label for="persona-behavior">行为模式</label>
+            <textarea id="persona-behavior" class="form-control" rows="4" placeholder="固定行为习惯、互动规则"></textarea>
+          </div>
+          <div class="persona-edit-actions">
+            <button type="button" class="btn btn-default" id="btn-save-draft">保存草稿</button>
+            <button type="button" class="btn btn-primary" id="btn-test">测试效果</button>
+            <button type="button" class="btn btn-publish-green" id="btn-publish" disabled>发布生效</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧版本历史 -->
+    <div class="page-card">
+      <div class="page-card-head-row">
+        <h2>版本历史</h2>
+        <button type="button" class="btn btn-default btn-sm" id="btn-history-toggle" aria-expanded="true">收起</button>
+      </div>
+      <div id="history-collapse-body">
+        <div id="persona-history-list" class="text-secondary">加载中…</div>
+        <div id="persona-history-pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 测试弹窗 -->
+<div id="persona-test-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide-640" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>测试人格配置效果</h3>
+      <button type="button" class="btn btn-link" id="persona-test-close">✕</button>
+    </div>
+    <div class="modal-body" id="persona-test-body">
+      <div class="test-loading-box" id="persona-test-loading">
+        <div class="test-spinner"></div>
+        <div>测试中，请稍候…</div>
+      </div>
+      <div id="persona-test-result" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 查看版本弹窗 -->
+<div id="persona-view-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide-560" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="persona-view-title">查看版本</h3>
+      <button type="button" class="btn btn-link" id="persona-view-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre id="persona-view-pre" class="form-control" style="white-space:pre-wrap;max-height:60vh;overflow:auto;margin:0;font-size:13px"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var FIELD_IDS = {
+    background: 'persona-background',
+    personality: 'persona-personality',
+    emotion_preference: 'persona-emotion',
+    language_style: 'persona-language',
+    behavior_pattern: 'persona-behavior'
+  };
+  var FIELD_LABELS = {
+    background: '角色背景',
+    personality: '性格特征',
+    emotion_preference: '情感偏好',
+    language_style: '语言风格',
+    behavior_pattern: '行为模式'
+  };
+
+  var savedSnapshot = '';
+  var testPassed = false;
+  var personaCurrent = null;
+  var historyPage = 1;
+  var historyTotal = 0;
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function getFieldContent() {
+    return {
+      background: (document.getElementById(FIELD_IDS.background).value || '').trim(),
+      personality: (document.getElementById(FIELD_IDS.personality).value || '').trim(),
+      emotion_preference: (document.getElementById(FIELD_IDS.emotion_preference).value || '').trim(),
+      language_style: (document.getElementById(FIELD_IDS.language_style).value || '').trim(),
+      behavior_pattern: (document.getElementById(FIELD_IDS.behavior_pattern).value || '').trim()
+    };
+  }
+
+  /** 与后端保存校验一致：非空（去空白后） */
+  function snapshotFromContent(c) {
+    return JSON.stringify({
+      background: c.background || '',
+      personality: c.personality || '',
+      emotion_preference: c.emotion_preference || '',
+      language_style: c.language_style || '',
+      behavior_pattern: c.behavior_pattern || ''
+    });
+  }
+
+  function fillFieldsFromContent(obj) {
+    var o = obj || {};
+    document.getElementById(FIELD_IDS.background).value = o.background != null ? String(o.background) : '';
+    document.getElementById(FIELD_IDS.personality).value = o.personality != null ? String(o.personality) : '';
+    document.getElementById(FIELD_IDS.emotion_preference).value = o.emotion_preference != null ? String(o.emotion_preference) : '';
+    document.getElementById(FIELD_IDS.language_style).value = o.language_style != null ? String(o.language_style) : '';
+    document.getElementById(FIELD_IDS.behavior_pattern).value = o.behavior_pattern != null ? String(o.behavior_pattern) : '';
+  }
+
+  function formatPersonaPre(obj) {
+    if (obj == null || typeof obj !== 'object') {
+      return String(obj == null ? '' : obj);
+    }
+    var parts = [];
+    ['background', 'personality', 'emotion_preference', 'language_style', 'behavior_pattern'].forEach(function (k) {
+      parts.push('【' + FIELD_LABELS[k] + '】\n' + (obj[k] != null ? String(obj[k]) : ''));
+    });
+    return parts.join('\n\n');
+  }
+
+  function updateDirtyAlert() {
+    var el = document.getElementById('dirty-alert');
+    if (snapshotFromContent(getFieldContent()) !== savedSnapshot) {
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  }
+
+  function setTestPassed(val) {
+    testPassed = !!val;
+    document.getElementById('btn-publish').disabled = !testPassed;
+  }
+
+  function onFieldInput() {
+    setTestPassed(false);
+    updateDirtyAlert();
+  }
+
+  function renderStatusBar() {
+    var left = document.getElementById('persona-status-left');
+    var right = document.getElementById('persona-status-right');
+    right.innerHTML = '';
+
+    if (!personaCurrent || !personaCurrent.content) {
+      left.textContent = '暂无生效版本';
+    } else {
+      left.textContent = '当前生效版本：V' + personaCurrent.version +
+        '  最后修改：' + formatDateTime(personaCurrent.updated_at) +
+        '  由 ' + (personaCurrent.updated_by || '-') + '';
+    }
+
+    var hasDraft = !!(personaCurrent && personaCurrent.has_draft);
+    if (hasDraft) {
+      var span = document.createElement('span');
+      span.className = 'status-draft-hint';
+      span.textContent = '📝 有未发布的草稿';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-default btn-sm';
+      btn.textContent = '丢弃草稿';
+      btn.onclick = function () {
+        showConfirm('确定丢弃当前人格草稿？丢弃后不可恢复。', function () {
+          discardDraftRequest();
+        });
+      };
+      right.appendChild(span);
+      right.appendChild(btn);
+    } else {
+      var pub = document.createElement('span');
+      pub.className = 'status-published-hint';
+      pub.textContent = '已发布';
+      right.appendChild(pub);
+    }
+  }
+
+  async function discardDraftRequest() {
+    var r = await adminRequest('DELETE', '/api/admin/persona/draft');
+    if (r && r.code === 0) {
+      showToast('草稿已丢弃', 'success');
+      window.location.reload();
+    }
+  }
+
+  /** @returns {Promise<boolean>} 是否成功刷新状态栏数据 */
+  async function refreshCurrentOnly() {
+    var r = await adminRequest('GET', '/api/admin/persona/current', null, false, { silentErrorToast: true });
+    if (r && r.code === 0) {
+      personaCurrent = r.data;
+      renderStatusBar();
+      return true;
+    }
+    return false;
+  }
+
+  function renderHistoryList(data) {
+    var box = document.getElementById('persona-history-list');
+    if (!data || !data.list || data.list.length === 0) {
+      box.textContent = '暂无版本历史';
+      document.getElementById('persona-history-pagination').innerHTML = '';
+      return;
+    }
+    historyTotal = data.total || 0;
+    var html = '<div class="timeline-wrap">';
+    data.list.forEach(function (row) {
+      var ver = row.version;
+      var activeTag = row.is_active ? ' <span class="tag tag-blue">生效中</span>' : '';
+      html += '<div class="timeline-item">';
+      html += '<div class="timeline-dot"></div>';
+      html += '<div class="timeline-body">';
+      html += '<div class="timeline-ver">V' + ver + activeTag + '</div>';
+      html += '<div class="timeline-meta">' + escapeHtml(row.updated_by || '-') + ' · ' + formatDateTime(row.updated_at) + '</div>';
+      html += '<div class="timeline-actions">';
+      html += '<button type="button" class="btn btn-link btn-sm" data-view-v="' + ver + '">查看</button>';
+      html += '<button type="button" class="btn btn-link btn-sm" data-rollback-v="' + ver + '">回滚</button>';
+      html += '</div></div></div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+    box.querySelectorAll('[data-view-v]').forEach(function (b) {
+      b.onclick = function () {
+        openViewVersion(parseInt(b.getAttribute('data-view-v'), 10));
+      };
+    });
+    box.querySelectorAll('[data-rollback-v]').forEach(function (b) {
+      b.onclick = function () {
+        var v = parseInt(b.getAttribute('data-rollback-v'), 10);
+        rollbackVersion(v);
+      };
+    });
+    renderPagination('persona-history-pagination', data.page || 1, historyTotal, 10, 'goPersonaHistoryPage');
+  }
+
+  window.goPersonaHistoryPage = function (p) {
+    historyPage = p;
+    loadHistoryPage();
+  };
+
+  async function loadHistoryPage() {
+    var r = await adminRequest('GET', '/api/admin/persona/history?page=' + historyPage + '&page_size=10');
+    if (r && r.code === 0 && r.data) {
+      renderHistoryList(r.data);
+    } else if (r && r.code === 0) {
+      renderHistoryList({ list: [], total: 0, page: 1 });
+    }
+  }
+
+  async function openViewVersion(version) {
+    var r = await adminRequest('GET', '/api/admin/persona/history/' + version);
+    if (!r || r.code !== 0 || !r.data) return;
+    document.getElementById('persona-view-title').textContent = '查看版本 V' + version;
+    var c = r.data.content;
+    document.getElementById('persona-view-pre').textContent = formatPersonaPre(c);
+    var overlay = document.getElementById('persona-view-modal');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeViewModal() {
+    var overlay = document.getElementById('persona-view-modal');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function rollbackVersion(version) {
+    showConfirmInput(
+      '回滚确认',
+      '将回滚至 V' + version + ' 版本，当前生效版本将成为历史记录。',
+      '确认回滚',
+      function () {
+        doRollback(version);
+      }
+    );
+  }
+
+  async function doRollback(version) {
+    var r = await adminRequest('POST', '/api/admin/persona/rollback', {
+      version: version,
+      confirm_text: 'CONFIRM'
+    });
+    if (r && r.code === 0) {
+      showToast('回滚成功', 'success');
+      window.location.reload();
+    }
+  }
+
+  function openTestModal() {
+    var overlay = document.getElementById('persona-test-modal');
+    var loading = document.getElementById('persona-test-loading');
+    var result = document.getElementById('persona-test-result');
+    loading.style.display = 'block';
+    result.style.display = 'none';
+    result.innerHTML = '';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeTestModalKeepState() {
+    document.getElementById('persona-test-loading').style.display = 'block';
+    document.getElementById('persona-test-result').style.display = 'none';
+    document.getElementById('persona-test-result').innerHTML = '';
+    var overlay = document.getElementById('persona-test-modal');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  async function runPersonaTest() {
+    var draft_content = getFieldContent();
+    // 新一轮测试前先关闭「可发布」，避免上次通过态在网络/校验失败时仍残留
+    setTestPassed(false);
+    openTestModal();
+    var r = await adminRequest('POST', '/api/admin/persona/test', { draft_content: draft_content });
+    var loading = document.getElementById('persona-test-loading');
+    var resultEl = document.getElementById('persona-test-result');
+    loading.style.display = 'none';
+    resultEl.style.display = 'block';
+
+    if (!r || r.code !== 0) {
+      resultEl.innerHTML = '<div class="alert alert-error">请求失败，请检查各字段已填写后再试。</div>';
+      setTestPassed(false);
+      return;
+    }
+
+    var d = r.data;
+    var details = d.details || [];
+    var total = d.total != null ? d.total : details.length;
+    var passed = d.passed != null ? d.passed : 0;
+    var canPublish = !!d.can_publish;
+
+    var html = '';
+    details.forEach(function (item) {
+      var score = item.total_score != null ? item.total_score : 0;
+      var isPass = item.passed === true;
+      var tagClass = isPass ? 'tag-success' : 'tag-error';
+      var tagText = isPass ? '通过' : '失败';
+      html += '<div class="test-case-row">';
+      html += '<div class="test-case-grid">';
+      html += '<div><div class="test-case-label">测试输入</div><div>' + escapeHtml(item.input || '') + '</div></div>';
+      html += '<div><div class="test-case-label">AI回复</div><div>' + escapeHtml(item.ai_reply || '') + '</div></div>';
+      html += '</div>';
+      html += '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+      html += '<div style="flex:1;min-width:120px">';
+      html += '<div class="test-case-label">综合得分 ' + score + '</div>';
+      html += '<div class="test-score-bar"><div class="test-score-bar-inner" style="width:' + Math.min(100, Math.max(0, score)) + '%"></div></div>';
+      html += '</div>';
+      html += '<span class="tag ' + tagClass + '">' + tagText + '</span>';
+      html += '</div>';
+      if (item.violations && item.violations.length) {
+        html += '<div class="mt-8 text-secondary" style="font-size:12px">违规提示：' + escapeHtml(item.violations.join('；')) + '</div>';
+      }
+      html += '</div>';
+    });
+
+    html += '<div class="mt-16 text-secondary" style="font-size:14px">' + passed + ' / ' + total + ' 条通过</div>';
+
+    if (d.message) {
+      html += '<div class="alert alert-info mt-8">' + escapeHtml(d.message) + '</div>';
+    }
+
+    if (canPublish) {
+      html += '<div class="alert alert-success mt-8">✅ 测试通过，可以发布</div>';
+      setTestPassed(true);
+    } else {
+      var failN = d.failed != null ? d.failed : Math.max(0, total - passed);
+      html += '<div class="alert alert-error mt-8">❌ 有 ' + failN + ' 条未通过，请检查后再发布</div>';
+      setTestPassed(false);
+    }
+
+    resultEl.innerHTML = html;
+  }
+
+  async function saveDraft() {
+    var content = getFieldContent();
+    var r = await adminRequest('PUT', '/api/admin/persona/draft', { content: content });
+    if (r && r.code === 0) {
+      showToast('草稿已保存', 'success');
+      savedSnapshot = snapshotFromContent(getFieldContent());
+      updateDirtyAlert();
+      var refreshed = await refreshCurrentOnly();
+      if (!refreshed) {
+        showToast('草稿已保存，但顶部状态刷新失败，请稍后手动刷新页面', 'warning');
+      }
+    }
+  }
+
+  function publishPersona() {
+    showConfirmInput(
+      '发布人格配置',
+      '发布后将立即影响所有用户对话，请确认已测试通过。',
+      '确认发布',
+      async function () {
+        var content = getFieldContent();
+        var r = await adminRequest('POST', '/api/admin/persona/publish', {
+          content: content,
+          test_passed: true,
+          confirm_text: 'CONFIRM'
+        });
+        if (r && r.code === 0) {
+          showToast('发布成功', 'success');
+          window.location.reload();
+        }
+      }
+    );
+  }
+
+  document.getElementById('btn-save-draft').onclick = saveDraft;
+  document.getElementById('btn-test').onclick = runPersonaTest;
+  document.getElementById('btn-publish').onclick = publishPersona;
+
+  document.getElementById('persona-test-close').onclick = closeTestModalKeepState;
+  document.getElementById('persona-test-modal').onclick = function (e) {
+    if (e.target === this) closeTestModalKeepState();
+  };
+  document.getElementById('persona-view-close').onclick = closeViewModal;
+  document.getElementById('persona-view-modal').onclick = function (e) {
+    if (e.target === this) closeViewModal();
+  };
+
+  Object.keys(FIELD_IDS).forEach(function (key) {
+    document.getElementById(FIELD_IDS[key]).addEventListener('input', onFieldInput);
+  });
+
+  document.getElementById('btn-history-toggle').onclick = function () {
+    var body = document.getElementById('history-collapse-body');
+    var expanded = !body.classList.contains('collapsed');
+    if (expanded) {
+      body.classList.add('collapsed');
+      this.textContent = '展开';
+      this.setAttribute('aria-expanded', 'false');
+    } else {
+      body.classList.remove('collapsed');
+      this.textContent = '收起';
+      this.setAttribute('aria-expanded', 'true');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('persona');
+    document.getElementById('header-mount').innerHTML = renderHeader('AI人格管理');
+
+    var wrap = document.getElementById('persona-form-wrap');
+    var results = await Promise.all([
+      adminRequest('GET', '/api/admin/persona/current'),
+      adminRequest('GET', '/api/admin/persona/draft'),
+      adminRequest('GET', '/api/admin/persona/history?page=1&page_size=10')
+    ]);
+
+    var curR = results[0];
+    var draftR = results[1];
+    var histR = results[2];
+
+    // current 成功：以服务端为准（含 has_draft、生效版本信息）
+    if (curR && curR.code === 0) {
+      personaCurrent = curR.data;
+    } else if (draftR && draftR.code === 0 && draftR.data) {
+      // 边界：current 失败但草稿拉取成功 — 仅合成状态栏用的占位，避免右侧误判「已发布」
+      personaCurrent = {
+        version: 0,
+        updated_by: null,
+        updated_at: null,
+        content: null,
+        has_draft: true
+      };
+    } else {
+      personaCurrent = null;
+    }
+
+    var initialContent = null;
+    if (draftR && draftR.code === 0 && draftR.data && draftR.data.config_value) {
+      initialContent = draftR.data.config_value;
+    } else if (personaCurrent && personaCurrent.content) {
+      initialContent = personaCurrent.content;
+    }
+
+    fillFieldsFromContent(initialContent);
+    savedSnapshot = snapshotFromContent(getFieldContent());
+    updateDirtyAlert();
+    setTestPassed(false);
+
+    // current 显示有草稿但 draft 接口未拉到：编辑区会退化为生效内容，避免静默误导
+    if (
+      curR && curR.code === 0 && curR.data && curR.data.has_draft &&
+      !(draftR && draftR.code === 0 && draftR.data)
+    ) {
+      showToast('草稿未能加载，当前展示为生效版本，请刷新页面', 'warning');
+    }
+
+    wrap.classList.remove('is-loading');
+    renderStatusBar();
+
+    if (histR && histR.code === 0 && histR.data) {
+      renderHistoryList(histR.data);
+    } else {
+      document.getElementById('persona-history-list').textContent = '加载失败，请刷新重试';
+    }
+  });
+})();
+</script>
+</body>
+</html>

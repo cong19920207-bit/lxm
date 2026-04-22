@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据报表 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .report-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .report-filter-row .form-control.date-input {
+      width: 150px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 1200px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    .chart-block {
+      width: 100%;
+      height: 280px;
+    }
+    .chart-block--pie {
+      height: 260px;
+    }
+    .stat-sub-today {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .stat-value--muted {
+      color: #bbb !important;
+    }
+    .chart-title-sub {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+    .feature-alert-td009 {
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .ai-footnote {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  checkAdminLogin();
+  (function () {
+    var role = getAdminRole();
+    if (role !== 'super_admin' && role !== 'ops_admin') {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+    document.body.innerHTML =
+      renderSidebar('report') +
+      renderHeader('数据报表') +
+      '<div class="admin-content" id="reportPage"></div>';
+  })();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+
+<script>
+(function () {
+  var chartInstances = {};
+
+  function getChart(domId) {
+    var el = document.getElementById(domId);
+    if (!el) return null;
+    if (!chartInstances[domId]) {
+      chartInstances[domId] = echarts.init(el);
+    }
+    return chartInstances[domId];
+  }
+
+  function resizeAllCharts() {
+    Object.keys(chartInstances).forEach(function (k) {
+      if (chartInstances[k]) chartInstances[k].resize();
+    });
+  }
+
+  var dashData = null;
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function ymdLocal(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function parseYMD(s) {
+    var p = s.split('-');
+    return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+  }
+
+  function initDefaultDates() {
+    var end = new Date();
+    var start = new Date();
+    start.setDate(start.getDate() - 29);
+    document.getElementById('end-date').value = ymdLocal(end);
+    document.getElementById('start-date').value = ymdLocal(start);
+  }
+
+  function validateDateRange() {
+    var s = document.getElementById('start-date').value;
+    var e = document.getElementById('end-date').value;
+    if (!s || !e) {
+      showToast('请选择完整日期范围', 'warning');
+      return null;
+    }
+    var sd = parseYMD(s);
+    var ed = parseYMD(e);
+    if (ed < sd) {
+      showToast('结束日期不能早于开始日期', 'error');
+      return null;
+    }
+    var diffDays = Math.round((ed - sd) / 86400000);
+    if (diffDays > 90) {
+      showToast('时间范围最大90天', 'error');
+      return null;
+    }
+    return { start: s, end: e };
+  }
+
+  function fmtDash(v) {
+    if (v === null || v === undefined) return '—';
+    return String(v);
+  }
+
+  function fmtPercent(v) {
+    if (v === null || v === undefined) return '—';
+    return typeof v === 'number' ? v.toFixed(1) + '%' : fmtDash(v);
+  }
+
+  function getActiveReportType() {
+    var active = document.querySelector('#report-tabs .tab-item.active');
+    return active ? (active.getAttribute('data-report-type') || 'user') : 'user';
+  }
+
+  function applyDashboardCards() {
+    if (!dashData) return;
+    var r = dashData.retention || {};
+    var c = dashData.conversation || {};
+    var ai = dashData.ai_performance || {};
+
+    var el;
+
+    el = document.getElementById('ur-ret-1d');
+    if (el) el.textContent = fmtPercent(r.next_day_retention);
+    el = document.getElementById('ur-ret-7d');
+    if (el) el.textContent = fmtPercent(r.day7_retention);
+
+    el = document.getElementById('cr-total-rounds');
+    if (el) el.textContent = fmtDash(c.total_conversation_rounds);
+    el = document.getElementById('cr-avg-today');
+    if (el) {
+      el.textContent = c.avg_rounds_today === null || c.avg_rounds_today === undefined
+        ? '—'
+        : String(c.avg_rounds_today);
+    }
+
+    el = document.getElementById('ai-llm-ms');
+    if (el) {
+      if (ai.llm_avg_response_ms === null || ai.llm_avg_response_ms === undefined) {
+        el.textContent = '—';
+      } else {
+        el.textContent = String(ai.llm_avg_response_ms) + ' ms';
+      }
+    }
+    el = document.getElementById('ai-llm-ok');
+    if (el) el.textContent = fmtPercent(ai.llm_success_rate);
+    el = document.getElementById('ai-persona');
+    if (el) el.textContent = fmtPercent(ai.persona_deviation_rate);
+    el = document.getElementById('ai-block');
+    if (el) el.textContent = fmtPercent(ai.content_block_rate);
+  }
+
+  function setTotalRegUsers(n) {
+    var el = document.getElementById('ur-total-reg');
+    if (el) el.textContent = n === null || n === undefined ? '—' : String(n);
+  }
+
+  async function loadDashboard() {
+    var res = await adminRequest('GET', '/api/admin/stats/dashboard');
+    if (res && res.code === 0) {
+      dashData = res.data || {};
+      applyDashboardCards();
+    }
+  }
+
+  async function loadTotalUsers() {
+    var res = await adminRequest('GET', '/api/admin/users?page=1&page_size=1');
+    if (res && res.code === 0 && res.data) {
+      setTotalRegUsers(res.data.total);
+    } else {
+      setTotalRegUsers(null);
+    }
+  }
+
+  function renderUserCharts(list, levelDist) {
+    var dates = list.map(function (x) { return x.date; });
+    var newUsers = list.map(function (x) { return x.new_users || 0; });
+    var activeUsers = list.map(function (x) { return x.active_users || 0; });
+
+    var line = getChart('chart-user-line');
+    if (line) {
+      line.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['新增用户', '活跃用户'] },
+        grid: { left: 48, right: 24, top: 24, bottom: 48 },
+        xAxis: { type: 'category', data: dates, boundaryGap: false },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [
+          { name: '新增用户', type: 'line', smooth: true, data: newUsers, itemStyle: { color: '#1890ff' }, lineStyle: { color: '#1890ff' } },
+          { name: '活跃用户', type: 'line', smooth: true, data: activeUsers, itemStyle: { color: '#52c41a' }, lineStyle: { color: '#52c41a' } }
+        ]
+      }, true);
+    }
+
+    var pieData = (levelDist || []).map(function (row) {
+      return {
+        name: row.name + '(' + row.level + '级)',
+        value: row.count || 0
+      };
+    });
+
+    var pie = getChart('chart-user-pie');
+    if (pie) {
+      pie.setOption({
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, type: 'scroll' },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          data: pieData.length ? pieData : [{ name: '暂无', value: 0 }]
+        }]
+      }, true);
+    }
+
+    var sumNew = list.reduce(function (a, x) { return a + (x.new_users || 0); }, 0);
+    var el = document.getElementById('ur-period-new');
+    if (el) el.textContent = String(sumNew);
+  }
+
+  function renderConvCharts(list, emotionDist) {
+    var dates = list.map(function (x) { return x.date; });
+    var rounds = list.map(function (x) { return x.conversation_rounds || 0; });
+
+    var line = getChart('chart-conv-line');
+    if (line) {
+      line.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['对话轮次'] },
+        grid: { left: 48, right: 24, top: 24, bottom: 40 },
+        xAxis: { type: 'category', data: dates, boundaryGap: false },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [{
+          name: '对话轮次',
+          type: 'line',
+          smooth: true,
+          data: rounds,
+          itemStyle: { color: '#1890ff' },
+          lineStyle: { color: '#1890ff' }
+        }]
+      }, true);
+    }
+
+    var pieData = (emotionDist || []).map(function (row) {
+      var label = row.emotion ? String(row.emotion) : '未标注';
+      return { name: label, value: row.count || 0 };
+    });
+
+    var pie = getChart('chart-conv-pie');
+    if (pie) {
+      pie.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { bottom: 0, type: 'scroll' },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          data: pieData.length ? pieData : [{ name: '暂无', value: 0 }]
+        }]
+      }, true);
+    }
+
+    var sumR = list.reduce(function (a, x) { return a + (x.conversation_rounds || 0); }, 0);
+    var el = document.getElementById('cr-period-rounds');
+    if (el) el.textContent = String(sumR);
+  }
+
+  function renderFeatureTableAndChart(list) {
+    var tbody = document.getElementById('feature-tbody');
+    if (!tbody) return;
+
+    if (!list.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="text-center text-disabled" style="padding:48px 0">暂无数据</td></tr>';
+    } else {
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var row = list[i];
+        var rr = row.reply_rate;
+        var rrStr = rr === null || rr === undefined ? '—' : String(rr) + '%';
+        html +=
+          '<tr>' +
+            '<td>' + fmtDash(row.date) + '</td>' +
+            '<td>' + fmtDash(row.agent_sent) + '</td>' +
+            '<td>' + fmtDash(row.agent_opened) + '</td>' +
+            '<td>' + rrStr + '</td>' +
+          '</tr>';
+      }
+      tbody.innerHTML = html;
+    }
+
+    var dates = list.map(function (x) { return x.date; });
+    var sent = list.map(function (x) { return x.agent_sent || 0; });
+    var opened = list.map(function (x) { return x.agent_opened || 0; });
+
+    var line = getChart('chart-feature-line');
+    if (line) {
+      line.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['发送数', '打开数'] },
+        grid: { left: 48, right: 24, top: 24, bottom: 48 },
+        xAxis: { type: 'category', data: dates, boundaryGap: false },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [
+          { name: '发送数', type: 'line', smooth: true, data: sent, itemStyle: { color: '#1890ff' }, lineStyle: { color: '#1890ff' } },
+          { name: '打开数', type: 'line', smooth: true, data: opened, itemStyle: { color: '#52c41a' }, lineStyle: { color: '#52c41a' } }
+        ]
+      }, true);
+    }
+  }
+
+  function renderAiChart(list) {
+    var dates = list.map(function (x) { return x.date; });
+    var rates = list.map(function (x) {
+      var v = x.deviation_rate;
+      return v === null || v === undefined ? 0 : v;
+    });
+
+    var line = getChart('chart-ai-line');
+    if (line) {
+      line.setOption({
+        tooltip: {
+          trigger: 'axis',
+          formatter: function (p) {
+            var x = p[0];
+            return x.name + ': ' + x.value + '%';
+          }
+        },
+        grid: { left: 48, right: 24, top: 24, bottom: 32 },
+        xAxis: { type: 'category', data: dates, boundaryGap: false },
+        yAxis: { type: 'value', min: 0 },
+        series: [{
+          type: 'line',
+          smooth: true,
+          data: rates,
+          itemStyle: { color: '#fa8c16' },
+          lineStyle: { color: '#fa8c16' }
+        }]
+      }, true);
+    }
+  }
+
+  async function onQuery() {
+    var range = validateDateRange();
+    if (!range) return;
+
+    var t = getActiveReportType();
+    var url =
+      '/api/admin/stats/report?report_type=' + encodeURIComponent(t) +
+      '&start_date=' + encodeURIComponent(range.start) +
+      '&end_date=' + encodeURIComponent(range.end) +
+      '&page=1&page_size=100';
+
+    var res = await adminRequest('GET', url);
+    if (!res || res.code !== 0) return;
+
+    var list = (res.data && res.data.list) ? res.data.list : [];
+    var extra = (res.data && res.data.extra) ? res.data.extra : {};
+
+    if (t === 'user') {
+      renderUserCharts(list, extra.level_distribution || []);
+    } else if (t === 'conversation') {
+      renderConvCharts(list, extra.emotion_distribution || []);
+    } else if (t === 'feature') {
+      renderFeatureTableAndChart(list);
+    } else if (t === 'ai_performance') {
+      renderAiChart(list);
+    }
+  }
+
+  function onExport() {
+    var range = validateDateRange();
+    if (!range) return;
+    var t = getActiveReportType();
+    var url =
+      '/api/admin/stats/report/export?report_type=' + encodeURIComponent(t) +
+      '&start_date=' + encodeURIComponent(range.start) +
+      '&end_date=' + encodeURIComponent(range.end);
+    adminRequest('POST', url);
+  }
+
+  function buildPageHtml() {
+    return (
+      '<div class="page-card" style="margin-bottom:16px">' +
+        '<div class="report-filter-row">' +
+          '<label style="color:#666;font-size:13px">开始日期</label>' +
+          '<input type="date" class="form-control date-input" id="start-date">' +
+          '<label style="color:#666;font-size:13px">结束日期</label>' +
+          '<input type="date" class="form-control date-input" id="end-date">' +
+          '<button type="button" class="btn btn-primary" id="btn-query">查询</button>' +
+          '<button type="button" class="btn btn-default" id="btn-export">导出 Excel</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="page-card" style="margin-bottom:16px;padding-bottom:8px">' +
+        '<div class="tabs" id="report-tabs">' +
+          '<div class="tab-item active" data-target="tab-user" data-report-type="user">用户报表</div>' +
+          '<div class="tab-item" data-target="tab-conv" data-report-type="conversation">对话报表</div>' +
+          '<div class="tab-item" data-target="tab-feature" data-report-type="feature">功能使用</div>' +
+          '<div class="tab-item" data-target="tab-ai" data-report-type="ai_performance">AI性能</div>' +
+        '</div>' +
+
+        '<div class="tab-pane active" id="tab-user">' +
+          '<div class="grid-4">' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">总注册用户数</div>' +
+              '<div class="stat-value" id="ur-total-reg">—</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">期间新增用户</div>' +
+              '<div class="stat-value" id="ur-period-new">—</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">次日留存率</div>' +
+              '<div class="stat-value" id="ur-ret-1d">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">7日留存率</div>' +
+              '<div class="stat-value" id="ur-ret-7d">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="page-card" style="margin-bottom:16px">' +
+            '<div style="font-weight:500;margin-bottom:12px">新增 vs 活跃用户趋势</div>' +
+            '<div id="chart-user-line" class="chart-block"></div>' +
+          '</div>' +
+          '<div class="page-card">' +
+            '<div style="font-weight:500;margin-bottom:12px">用户关系等级分布</div>' +
+            '<div class="chart-title-sub">以下为全量用户按关系等级统计，与上方日期筛选无关（同接口 extra.level_distribution）</div>' +
+            '<div id="chart-user-pie" class="chart-block chart-block--pie"></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="tab-pane" id="tab-conv">' +
+          '<div class="grid-4">' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">总对话轮次</div>' +
+              '<div class="stat-value" id="cr-total-rounds">—</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">人均对话轮次</div>' +
+              '<div class="stat-value" id="cr-avg-today">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+            '<div class="stat-card" title="暂不支持，待系统采集时长数据">' +
+              '<div class="stat-label">人均对话时长</div>' +
+              '<div class="stat-value stat-value--muted" id="cr-avg-duration">—</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">期间对话总量</div>' +
+              '<div class="stat-value" id="cr-period-rounds">—</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="page-card" style="margin-bottom:16px">' +
+            '<div style="font-weight:500;margin-bottom:12px">每日对话轮次趋势</div>' +
+            '<div id="chart-conv-line" class="chart-block"></div>' +
+          '</div>' +
+          '<div class="page-card">' +
+            '<div style="font-weight:500;margin-bottom:12px">情绪分布</div>' +
+            '<div id="chart-conv-pie" class="chart-block chart-block--pie"></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="tab-pane" id="tab-feature">' +
+          '<div class="alert alert-info feature-alert-td009">' +
+            'ℹ️ 打开率（open_rate）与回复数（agent_replied）字段待后端补充（TD-009）' +
+          '</div>' +
+          '<div class="page-card" style="margin-bottom:16px">' +
+            '<div id="feature-table-wrap">' +
+              '<table class="admin-table">' +
+                '<thead><tr><th>日期</th><th>发送数</th><th>打开数</th><th>回复率</th></tr></thead>' +
+                '<tbody id="feature-tbody"><tr><td colspan="4" class="text-center text-disabled" style="padding:48px 0">暂无数据</td></tr></tbody>' +
+              '</table>' +
+            '</div>' +
+          '</div>' +
+          '<div class="page-card">' +
+            '<div style="font-weight:500;margin-bottom:12px">主动消息趋势</div>' +
+            '<div id="chart-feature-line" class="chart-block"></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="tab-pane" id="tab-ai">' +
+          '<div class="grid-4">' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">平均响应时长</div>' +
+              '<div class="stat-value" id="ai-llm-ms">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">LLM成功率</div>' +
+              '<div class="stat-value" id="ai-llm-ok">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">人格偏离率</div>' +
+              '<div class="stat-value" id="ai-persona">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+            '<div class="stat-card">' +
+              '<div class="stat-label">内容安全拦截率</div>' +
+              '<div class="stat-value" id="ai-block">—</div>' +
+              '<div class="stat-sub-today">(今日)</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="page-card">' +
+            '<div style="font-weight:500">人格偏离率趋势（%）</div>' +
+            '<div class="chart-title-sub">LLM响应时长按日趋势待系统支持后补充（TD-008）</div>' +
+            '<div id="chart-ai-line" class="chart-block"></div>' +
+          '</div>' +
+          '<div class="alert alert-info ai-footnote">' +
+            '📊 人格偏离率计算说明：<br>' +
+            '数据来源：conversation_log 表中 persona_risk_flag=True 的记录数<br>' +
+            '计算公式：偏离记录数 / 当日 role=assistant 的 AI 回复条数 × 100%<br>' +
+            '正常基线：&lt; 0.5%，超过 1% 建议检查 Prompt 配置' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function init() {
+    var root = document.getElementById('reportPage');
+    if (!root) return;
+    root.innerHTML = buildPageHtml();
+
+    initDefaultDates();
+
+    document.getElementById('btn-query').onclick = function () {
+      onQuery().then(function () {
+        setTimeout(resizeAllCharts, 50);
+      });
+    };
+    document.getElementById('btn-export').onclick = function () {
+      onExport();
+    };
+
+    initTabs('report-tabs');
+    document.querySelectorAll('#report-tabs .tab-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        setTimeout(function () {
+          onQuery().then(function () {
+            setTimeout(resizeAllCharts, 50);
+          });
+        }, 0);
+      });
+    });
+
+    window.addEventListener('resize', function () {
+      resizeAllCharts();
+    });
+
+    loadDashboard();
+    loadTotalUsers();
+    onQuery().then(function () {
+      setTimeout(resizeAllCharts, 50);
+    });
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>

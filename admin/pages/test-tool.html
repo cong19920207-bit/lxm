@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI测试工具 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* 主区：左 40% + 右 60% */
+    .test-tool-layout {
+      display: grid;
+      grid-template-columns: 40% 60%;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .test-tool-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .test-tool-left .page-card {
+      margin-bottom: 0;
+    }
+    .test-tool-history-card {
+      margin-top: 16px;
+    }
+
+    .test-config-radio-group {
+      margin-bottom: 16px;
+    }
+    .test-config-radio-group label {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .test-config-radio-group input {
+      margin-right: 6px;
+    }
+
+    .test-param-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mem-count-row {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    .test-history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .test-history-head h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text);
+    }
+    .test-history-list {
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .test-history-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-bottom: 6px;
+    }
+    .test-history-item:hover {
+      background: #fafafa;
+      border-color: #f0f0f0;
+    }
+    .test-history-item .t {
+      font-size: 13px;
+      color: var(--text-disabled);
+    }
+    .test-history-item .p {
+      font-size: 14px;
+      color: var(--text);
+      margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .test-result-placeholder {
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+
+    .test-result-body {
+      animation: testResultFadeIn 0.35s ease;
+    }
+    @keyframes testResultFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .ai-reply-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .ai-reply-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1890ff;
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ai-reply-bubble {
+      flex: 1;
+      border-radius: 12px;
+      background: #f0f2f5;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .persona-score-card {
+      padding: 16px;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      background: #fafafa;
+      margin-bottom: 16px;
+    }
+    .persona-score-top {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .persona-score-total {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .test-dim-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .test-dim-row:last-child {
+      margin-bottom: 0;
+    }
+    .test-dim-label {
+      width: 120px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .test-dim-bar-wrap {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: #f0f0f0;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .test-dim-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--primary);
+      transition: width 0.3s ease;
+      max-width: 100%;
+    }
+    .test-dim-score {
+      width: 36px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .content-safety-box {
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .content-safety-box.ok {
+      background: #f6ffed;
+      color: #389e0d;
+    }
+    .content-safety-box.bad {
+      background: #fff2f0;
+      color: var(--danger);
+    }
+
+    .prompt-toggle-btn {
+      margin-bottom: 8px;
+    }
+    .prompt-full-pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      background: #f5f5f5;
+      padding: 16px;
+      overflow-x: auto;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .modal-content--w480 {
+      width: 480px;
+      max-width: 92vw;
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  /* 无 Token 时仅走登录跳转，避免继续执行后被误判为无权限 403 */
+  if (!checkAdminLogin()) return;
+
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+    window.location.href = '/admin/pages/error.html?type=403';
+    return;
+  }
+
+  var LS_KEY = 'admin_test_history';
+  var MAX_HISTORY = 10;
+
+  /* 最近一次成功测试参数（用于保存测试用例） */
+  var lastSuccessfulTestParams = null;
+
+  document.body.innerHTML =
+    renderSidebar('test') +
+    renderHeader('AI测试工具') +
+    '<div class="admin-content">' +
+      '<div class="test-tool-layout">' +
+        '<div class="test-tool-left">' +
+          '<div class="page-card">' +
+            '<div class="page-card-title">测试参数配置</div>' +
+            '<div class="test-config-radio-group">' +
+              '<span style="display:block;margin-bottom:8px;font-size:14px;color:var(--text)">使用配置</span>' +
+              '<label><input type="radio" name="tt-use-draft" value="0" checked> 当前生效配置</label>' +
+              '<label><input type="radio" name="tt-use-draft" value="1"> 草稿配置</label>' +
+            '</div>' +
+            '<div class="test-param-grid">' +
+              '<div class="form-item" style="margin-bottom:0">' +
+                '<label>关系等级</label>' +
+                '<select id="tt-level" class="form-control">' +
+                  '<option value="0">0级陌生</option>' +
+                  '<option value="1" selected>1级朋友</option>' +
+                  '<option value="2">2级亲密</option>' +
+                  '<option value="3">3级知己</option>' +
+                '</select>' +
+              '</div>' +
+              '<div class="form-item" style="margin-bottom:0">' +
+                '<label>用户情绪</label>' +
+                '<select id="tt-emotion" class="form-control">' +
+                  '<option value="开心">开心</option>' +
+                  '<option value="悲伤">悲伤</option>' +
+                  '<option value="焦虑">焦虑</option>' +
+                  '<option value="愤怒">愤怒</option>' +
+                  '<option value="孤独">孤独</option>' +
+                  '<option value="疲惫">疲惫</option>' +
+                  '<option value="平静">平静</option>' +
+                '</select>' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-item" style="margin-top:12px;margin-bottom:0">' +
+              '<label>模拟记忆</label>' +
+              '<textarea id="tt-memories" class="form-control" rows="4" placeholder="每行输入一条模拟记忆，如：喜欢喝燕麦拿铁"></textarea>' +
+              '<div class="mem-count-row" id="tt-mem-count">已输入 0/5 条</div>' +
+              '<div id="tt-mem-warn" class="alert alert-warning" style="display:none;margin-top:8px;margin-bottom:0">最多输入5条，超出部分将被忽略</div>' +
+            '</div>' +
+            '<div class="form-item" style="margin-top:12px;margin-bottom:0">' +
+              '<label class="required">测试输入</label>' +
+              '<textarea id="tt-input" class="form-control" rows="4" placeholder="输入要测试的对话内容，如：今天工作好累"></textarea>' +
+            '</div>' +
+            '<button type="button" class="btn btn-primary btn-block" id="tt-run" style="margin-top:16px">开始测试</button>' +
+          '</div>' +
+          '<div class="page-card test-tool-history-card">' +
+            '<div class="test-history-head">' +
+              '<h2>最近测试记录</h2>' +
+              '<button type="button" class="btn btn-link" id="tt-history-clear">清空</button>' +
+            '</div>' +
+            '<div class="test-history-list" id="tt-history-list"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="test-tool-right">' +
+          '<div class="page-card">' +
+            '<div class="page-card-title">测试结果</div>' +
+            '<div id="tt-result-placeholder" class="test-result-placeholder">点击「开始测试」查看结果</div>' +
+            '<div id="tt-result-body" style="display:none"></div>' +
+            '<button type="button" class="btn btn-default" id="tt-save-case" style="display:none;margin-top:16px;width:100%;justify-content:center">保存为测试用例</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function countMemoryLines(text) {
+    if (!text || !String(text).trim()) return 0;
+    return String(text).split(/\n/).map(function (l) { return l.trim(); }).filter(Boolean).length;
+  }
+
+  function parseMemoriesForRequest(text) {
+    if (!text || !String(text).trim()) return [];
+    var lines = String(text).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    return lines.slice(0, 5);
+  }
+
+  function updateMemCount() {
+    var n = countMemoryLines(document.getElementById('tt-memories').value);
+    document.getElementById('tt-mem-count').textContent = '已输入 ' + n + '/5 条';
+    document.getElementById('tt-mem-warn').style.display = n > 5 ? 'block' : 'none';
+  }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(list) {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(list));
+      return true;
+    } catch (e) {
+      showToast('本地测试记录保存失败，请检查浏览器存储空间或权限', 'warning');
+      return false;
+    }
+  }
+
+  function pushHistory(entry) {
+    var list = loadHistory();
+    list.unshift(entry);
+    if (list.length > MAX_HISTORY) list = list.slice(0, MAX_HISTORY);
+    if (!saveHistory(list)) {
+      renderHistory();
+      return;
+    }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = loadHistory();
+    var el = document.getElementById('tt-history-list');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text-disabled);font-size:13px">暂无记录</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var h = list[i];
+      var preview = (h.test_input || '').trim();
+      if (preview.length > 20) preview = preview.slice(0, 20) + '…';
+      html +=
+        '<div class="test-history-item" data-idx="' + i + '">' +
+          '<div class="t">' + escapeHtml(formatDateTime(h.time)) + '</div>' +
+          '<div class="p" title="' + escapeHtml(h.test_input || '') + '">' + escapeHtml(preview) + '</div>' +
+        '</div>';
+    }
+    el.innerHTML = html;
+    el.querySelectorAll('.test-history-item').forEach(function (node) {
+      node.onclick = function () {
+        var idx = parseInt(node.getAttribute('data-idx'), 10);
+        applyHistoryItem(list[idx]);
+      };
+    });
+  }
+
+  function applyHistoryItem(h) {
+    if (!h) return;
+    var draft = h.use_draft === true;
+    document.querySelector('input[name="tt-use-draft"][value="' + (draft ? '1' : '0') + '"]').checked = true;
+    document.getElementById('tt-level').value = String(h.relationship_level != null ? h.relationship_level : 1);
+    document.getElementById('tt-emotion').value = h.emotion_label || '平静';
+    document.getElementById('tt-input').value = h.test_input || '';
+    if (h.mock_memories && Array.isArray(h.mock_memories)) {
+      document.getElementById('tt-memories').value = h.mock_memories.join('\n');
+    } else {
+      document.getElementById('tt-memories').value = '';
+    }
+    updateMemCount();
+    showToast('已回填该条测试参数', 'info');
+  }
+
+  function renderTestResult(d) {
+    var ph = document.getElementById('tt-result-placeholder');
+    var body = document.getElementById('tt-result-body');
+    var saveBtn = document.getElementById('tt-save-case');
+    ph.style.display = 'none';
+    body.style.display = 'block';
+    saveBtn.style.display = 'inline-flex';
+
+    var pm = d.persona_match || {};
+    var total = pm.total_score != null ? pm.total_score : 0;
+    var level = pm.level || '低';
+    var tagClass = total >= 80 ? 'tag-success' : (total >= 60 ? 'tag-warning' : 'tag-error');
+    var styleS = pm.style_score != null ? pm.style_score : 0;
+    var boundS = pm.boundary_score != null ? pm.boundary_score : 0;
+    var emoS = pm.emotion_score != null ? pm.emotion_score : 0;
+    var fullPrompt = d.full_prompt || '';
+    var tok = Math.ceil(fullPrompt.length * 1.5);
+
+    var safe = d.content_safety || {};
+    var isSafe = safe.is_safe === true;
+    var safeHtml = isSafe
+      ? '<div class="content-safety-box ok">✓ 内容安全检查通过</div>'
+      : '<div class="content-safety-box bad">✗ 内容不安全' +
+        (safe.reason ? '：' + escapeHtml(safe.reason) : '') + '</div>';
+
+    var dim = function (label, score) {
+      var w = Math.min(100, Math.max(0, score));
+      return (
+        '<div class="test-dim-row">' +
+          '<span class="test-dim-label">' + label + '</span>' +
+          '<div class="test-dim-bar-wrap"><div class="test-dim-bar-fill" style="width:' + w + '%"></div></div>' +
+          '<span class="test-dim-score">' + score + '</span>' +
+        '</div>'
+      );
+    };
+
+    body.className = 'test-result-body';
+    body.innerHTML =
+      '<div class="ai-reply-row">' +
+        '<div class="ai-reply-avatar">梦</div>' +
+        '<div class="ai-reply-bubble">' + escapeHtml(d.ai_reply || '') + '</div>' +
+      '</div>' +
+      '<div class="persona-score-card">' +
+        '<div class="persona-score-top">' +
+          '<span class="persona-score-total">' + total + '</span>' +
+          '<span class="tag ' + tagClass + '">' + escapeHtml(level) + '</span>' +
+        '</div>' +
+        dim('风格评分（40%）', styleS) +
+        dim('边界评分（40%）', boundS) +
+        dim('情绪评分（20%）', emoS) +
+      '</div>' +
+      safeHtml +
+      '<div>' +
+        '<button type="button" class="btn btn-default prompt-toggle-btn" id="tt-prompt-toggle">▶ 查看完整 Prompt（约' + tok + ' Token）</button>' +
+        '<pre id="tt-prompt-pre" class="prompt-full-pre" style="display:none"></pre>' +
+      '</div>';
+
+    var pre = document.getElementById('tt-prompt-pre');
+    var btn = document.getElementById('tt-prompt-toggle');
+    if (pre) pre.textContent = fullPrompt;
+    if (btn && pre) {
+      var expanded = false;
+      btn.onclick = function () {
+        expanded = !expanded;
+        pre.style.display = expanded ? 'block' : 'none';
+        btn.textContent = expanded
+          ? '▼ 收起完整 Prompt（约' + tok + ' Token）'
+          : '▶ 查看完整 Prompt（约' + tok + ' Token）';
+      };
+    }
+  }
+
+  async function runTest() {
+    var input = (document.getElementById('tt-input').value || '').trim();
+    if (!input) {
+      showToast('请填写测试输入', 'error');
+      return;
+    }
+    var useDraft = document.querySelector('input[name="tt-use-draft"]:checked').value === '1';
+    var level = parseInt(document.getElementById('tt-level').value, 10);
+    var emotion = document.getElementById('tt-emotion').value;
+    var memories = parseMemoriesForRequest(document.getElementById('tt-memories').value);
+
+    var btn = document.getElementById('tt-run');
+    btn.disabled = true;
+    btn.textContent = '测试中...';
+
+    var payload = {
+      use_draft: useDraft,
+      relationship_level: level,
+      emotion_label: emotion,
+      mock_memories: memories,
+      test_input: input
+    };
+
+    var r = await adminRequest('POST', '/api/admin/prompt/test', payload);
+
+    btn.disabled = false;
+    btn.textContent = '开始测试';
+
+    if (!r || r.code !== 0) {
+      document.getElementById('tt-result-placeholder').style.display = 'none';
+      document.getElementById('tt-result-body').style.display = 'block';
+      document.getElementById('tt-result-body').className = 'test-result-body';
+      document.getElementById('tt-result-body').innerHTML = '<div class="alert alert-error">测试失败，请稍后重试</div>';
+      document.getElementById('tt-save-case').style.display = 'none';
+      lastSuccessfulTestParams = null;
+      return;
+    }
+
+    var data = r.data || {};
+    renderTestResult(data);
+    lastSuccessfulTestParams = {
+      test_input: input,
+      relationship_level: level,
+      emotion_label: emotion,
+      use_draft: useDraft,
+      mock_memories: memories
+    };
+    pushHistory({
+      time: new Date().toISOString(),
+      test_input: input,
+      use_draft: useDraft,
+      relationship_level: level,
+      emotion_label: emotion,
+      mock_memories: memories
+    });
+  }
+
+  function openSaveCaseModal() {
+    if (!lastSuccessfulTestParams) {
+      showToast('请先成功完成一次测试', 'warning');
+      return;
+    }
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    overlay.innerHTML =
+      '<div class="modal-content modal-content--w480">' +
+        '<div class="modal-header">' +
+          '<h3>保存为测试用例</h3>' +
+          '<button type="button" class="btn btn-link" id="tt-sc-close">✕</button>' +
+        '</div>' +
+        '<div class="modal-body">' +
+          '<p class="modal-hint">将使用<strong>最近一次成功测试</strong>时的测试输入、关系等级与用户情绪（与当时请求体一致），连同下方填写的期望标准，写入人格测试用例库（config_key=persona）。若你改动了左侧表单，请先再次「开始测试」再保存。</p>' +
+          '<div class="form-item" style="margin-bottom:0">' +
+            '<label class="required">期望通过标准</label>' +
+            '<textarea id="tt-sc-criteria" class="form-control" rows="3" placeholder="描述这条测试用例的期望通过标准"></textarea>' +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+          '<button type="button" class="btn btn-default" id="tt-sc-cancel">取消</button>' +
+          '<button type="button" class="btn btn-primary" id="tt-sc-ok">确认保存</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.remove();
+    }
+
+    overlay.querySelector('#tt-sc-close').onclick = close;
+    overlay.querySelector('#tt-sc-cancel').onclick = close;
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+
+    overlay.querySelector('#tt-sc-ok').onclick = async function () {
+      var criteria = (document.getElementById('tt-sc-criteria').value || '').trim();
+      if (!criteria) {
+        showToast('请填写期望通过标准', 'error');
+        return;
+      }
+      var okBtn = overlay.querySelector('#tt-sc-ok');
+      if (okBtn.disabled) return;
+      okBtn.disabled = true;
+      okBtn.textContent = '保存中...';
+      try {
+        var p = lastSuccessfulTestParams;
+        var body = {
+          input: p.test_input,
+          expected_pass_criteria: criteria,
+          emotion_label: p.emotion_label,
+          relationship_level: p.relationship_level
+        };
+        var res = await adminRequest('POST', '/api/admin/test-cases/persona', body);
+        if (res && res.code === 0) {
+          showToast('已保存为测试用例', 'success');
+          close();
+        }
+      } finally {
+        if (okBtn && okBtn.parentNode) {
+          okBtn.disabled = false;
+          okBtn.textContent = '确认保存';
+        }
+      }
+    };
+  }
+
+  document.getElementById('tt-memories').addEventListener('input', updateMemCount);
+  document.getElementById('tt-run').onclick = runTest;
+  document.getElementById('tt-save-case').onclick = openSaveCaseModal;
+
+  document.getElementById('tt-history-clear').onclick = function () {
+    showConfirm('确定清空最近测试记录？', function () {
+      try {
+        localStorage.removeItem(LS_KEY);
+      } catch (e) {
+        showToast('清空本地记录失败', 'warning');
+        return;
+      }
+      renderHistory();
+      showToast('已清空', 'success');
+    });
+  };
+
+  updateMemCount();
+  renderHistory();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>林小梦 - 聊天</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .chat-page {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    /* 顶部栏 */
+    .chat-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--color-white);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      z-index: 100;
+    }
+
+    .chat-top-bar .back-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border-radius: 50%;
+    }
+
+    .chat-top-bar .back-btn:active {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-top-bar .bar-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .chat-top-bar .bar-info .name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .chat-top-bar .bar-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-right: 8px;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-success);
+    }
+
+    .online-text {
+      font-size: 12px;
+      color: var(--color-gray);
+    }
+
+    /* 未读提示条 */
+    .agent-tip {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      background: #FFF0F0;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .agent-tip.hidden {
+      opacity: 0;
+      transform: translateY(-100%);
+      pointer-events: none;
+    }
+
+    .agent-tip .tip-line {
+      width: 4px;
+      align-self: stretch;
+      background: #E8938A;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .agent-tip .tip-content {
+      flex: 1;
+      font-size: 13px;
+      color: var(--color-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .agent-tip .tip-close {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--color-gray);
+      flex-shrink: 0;
+    }
+
+    /* 聊天记录区（底部留白由 JS 按输入栏高度同步，此处为初值防首帧遮挡） */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 68px 16px 72px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .chat-messages.has-tip {
+      padding-top: 110px;
+    }
+
+    .msg-sentinel {
+      height: 1px;
+    }
+
+    .msg-loading {
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--color-gray);
+    }
+
+    /* 消息气泡 */
+    .msg-row {
+      display: flex;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .msg-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .msg-row .msg-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-top: 2px;
+      object-fit: cover;
+      background: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    .msg-row.ai { gap: 8px; }
+    .msg-row.user { gap: 8px; }
+
+    /* 与头像同列时占满剩余宽度，保证 max-width:70% 有稳定参照，避免气泡被压成极窄 */
+    .msg-row .msg-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* 用户消息：气泡与时间靠右，紧贴头像侧（避免 flex:1 拉满后仍从左排布） */
+    .msg-row.user .msg-body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    /* AI 消息：与用户侧对称，气泡按内容宽度收缩（仍受 .msg-bubble max-width:70% 约束） */
+    .msg-row.ai .msg-body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .msg-bubble {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-wrap: break-word;
+      word-break: normal;
+      position: relative;
+    }
+
+    .msg-row.user .msg-bubble {
+      background: #DCF8C6;
+      border-top-right-radius: 4px;
+    }
+
+    .msg-row.ai .msg-bubble {
+      background: var(--color-white);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      border-top-left-radius: 4px;
+    }
+
+    /* 主动消息标识 */
+    .msg-row.agent .msg-bubble {
+      border-left: 3px solid var(--color-primary);
+    }
+
+    .msg-unread-tag {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #FF8C00;
+      color: var(--color-white);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .msg-time {
+      font-size: 11px;
+      color: var(--color-gray);
+      margin-top: 4px;
+    }
+
+    .msg-row.user .msg-meta {
+      text-align: right;
+    }
+
+    /* 底部输入区 */
+    .input-area {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-white);
+      padding: 8px 12px calc(8px + var(--safe-area-bottom));
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
+      z-index: 100;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      min-height: 36px;
+      max-height: 33vh;
+      padding: 8px 12px;
+      background: #F5F2EE;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      color: var(--color-text);
+      overflow-y: auto;
+    }
+
+    .input-area textarea::placeholder {
+      color: #C0B8B0;
+    }
+
+    .send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+
+    .send-btn.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* AI思考动画 */
+    .thinking-bubble .loading-dots {
+      padding: 4px 0;
+    }
+
+    .msg-error {
+      color: var(--color-danger);
+      font-size: 13px;
+    }
+
+    /* 叹号重发（失败 user 行） */
+    .msg-user-with-side {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .msg-bang {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 22px;
+      text-align: center;
+      padding: 0;
+      flex-shrink: 0;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .msg-bang:active { opacity: 0.85; }
+
+    /* 升级提示条 */
+    .levelup-tip {
+      position: fixed;
+      bottom: 70px;
+      left: 16px;
+      right: 16px;
+      background: linear-gradient(135deg, #fff3e0, #fce4ec);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 99;
+      animation: toast-in 0.3s forwards;
+      cursor: pointer;
+    }
+    .levelup-tip .lt-text {
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .levelup-tip .lt-btn {
+      font-size: 13px;
+      color: #fa8c16;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-page">
+    <!-- 顶部栏 -->
+    <div class="chat-top-bar">
+      <button class="back-btn" onclick="location.href='/pages/index.html'">←</button>
+      <div class="bar-info">
+        <div class="avatar-wrapper" style="width:32px;height:32px">
+          <img id="linxiaomeng-avatar"
+               src="/static/images/avatar/default.png"
+               alt="林小梦"
+               style="width:32px;height:32px"
+               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+        </div>
+        <span class="name">林小梦</span>
+      </div>
+      <div class="bar-status">
+        <span class="online-dot"></span>
+        <span class="online-text">在线</span>
+      </div>
+    </div>
+
+    <!-- 未读提示条 -->
+    <div class="agent-tip hidden" id="agent-tip">
+      <div class="tip-line"></div>
+      <div class="tip-content" id="tip-content"></div>
+      <div class="tip-close" id="tip-close">×</div>
+    </div>
+
+    <!-- 聊天记录 -->
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg-sentinel" id="top-sentinel"></div>
+    </div>
+
+    <!-- 底部输入区 -->
+    <div class="input-area">
+      <textarea id="msg-input" placeholder="想和我说什么..." rows="1"
+                oninput="autoResize(this); updateSendBtn(); saveDraft()"
+                onkeydown="handleEnterKey(event)"></textarea>
+      <button class="send-btn disabled" id="send-btn" onclick="handleSend()">➤</button>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    checkLogin()
+
+    let timelineCursor = null
+    let loadingTimeline = false
+    let noMoreTimeline = false
+    let agentTipMessageId = null
+
+    /* 用户默认头像（路径与 static 下目录一致：User/avatar/user_default.png） */
+    const USER_AVATAR_SRC = '/static/images/User/avatar/user_default.png'
+    const USER_AVATAR_FALLBACK = '/static/images/avatar/emotion_calm.png'
+
+    /* ====== 聊天区底部留白：随固定输入栏高度变化，避免消息被遮挡 ====== */
+    function syncChatBottomPadding() {
+      const bar = document.querySelector('.input-area')
+      const msgs = document.getElementById('chat-messages')
+      if (!bar || !msgs) return
+      const atBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 48
+      msgs.style.paddingBottom = (bar.offsetHeight + 8) + 'px'
+      if (atBottom) {
+        requestAnimationFrame(() => {
+          msgs.scrollTop = msgs.scrollHeight
+        })
+      }
+    }
+
+    function setupInputAreaBottomSync() {
+      const bar = document.querySelector('.input-area')
+      if (!bar || typeof ResizeObserver === 'undefined') return
+      const ro = new ResizeObserver(() => syncChatBottomPadding())
+      ro.observe(bar)
+    }
+
+    /* ====== 输入框自适应高度 ====== */
+    function autoResize(el) {
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, window.innerHeight / 3) + 'px'
+      syncChatBottomPadding()
+    }
+
+    function updateSendBtn() {
+      const btn = document.getElementById('send-btn')
+      const input = document.getElementById('msg-input')
+      btn.classList.toggle('disabled', !input.value.trim())
+    }
+
+    function handleEnterKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleSend()
+      }
+    }
+
+    /* ====== 草稿保存 ====== */
+    function saveDraft() {
+      sessionStorage.setItem('chat_draft', document.getElementById('msg-input').value)
+    }
+
+    function loadDraft() {
+      const draft = sessionStorage.getItem('chat_draft')
+      if (draft) {
+        const input = document.getElementById('msg-input')
+        input.value = draft
+        autoResize(input)
+        updateSendBtn()
+      }
+    }
+
+    function clearDraft() {
+      sessionStorage.removeItem('chat_draft')
+    }
+
+    /* ====== 消息渲染 ====== */
+    function appendUserBubble(content, time, deliveryStatus) {
+      const container = document.getElementById('chat-messages')
+      const row = document.createElement('div')
+      row.className = 'msg-row user'
+      const ds = deliveryStatus || 'pending_llm'
+      row.setAttribute('data-delivery', ds)
+      const needBang = ds === 'failed_timeout' || ds === 'failed_error'
+      const bangBtn = needBang
+        ? `<button type="button" class="msg-bang" title="重试">!</button>`
+        : ''
+      row.innerHTML = `
+        <img class="msg-avatar" src="${USER_AVATAR_SRC}"
+             onerror="this.onerror=null;this.src='${USER_AVATAR_FALLBACK}'" alt="">
+        <div class="msg-user-with-side">
+          ${bangBtn}
+          <div class="msg-body">
+            <div class="msg-bubble">${escapeHtml(content)}</div>
+            <div class="msg-meta msg-time">${time ? formatTime(time) : '刚刚'}</div>
+          </div>
+        </div>
+      `
+      container.appendChild(row)
+      return row
+    }
+
+    /** 用户行标记为失败态时补叹号按钮（与 timeline 结构一致） */
+    function ensureUserRowBangButton(row) {
+      if (!row || !row.parentNode) return
+      const ds = row.getAttribute('data-delivery') || ''
+      if (ds !== 'failed_timeout' && ds !== 'failed_error') return
+      const side = row.querySelector('.msg-user-with-side')
+      if (!side || side.querySelector('.msg-bang')) return
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'msg-bang'
+      btn.title = '重试'
+      btn.textContent = '!'
+      side.insertBefore(btn, side.firstChild)
+    }
+
+    /** 移除所有「流式进行中」的 AI 行（S2：打断 / 新 send / failed / obsolete） */
+    function removeAiInFlightRows() {
+      document.querySelectorAll('#chat-messages .msg-row.ai[data-ai-in-flight="1"]').forEach((el) => el.remove())
+    }
+
+    function mapSseFailedToDelivery(data) {
+      const msg = (data && data.message) ? String(data.message) : ''
+      if (msg.indexOf('超时') >= 0) return 'failed_timeout'
+      return 'failed_error'
+    }
+
+    function appendAIBubble(content, time, isAgent, isUnread) {
+      const container = document.getElementById('chat-messages')
+      const row = document.createElement('div')
+      row.className = 'msg-row ai' + (isAgent ? ' agent' : '')
+      row.innerHTML = `
+        <img class="msg-avatar" src="/static/images/avatar/default.png"
+             onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
+        <div class="msg-body">
+          <div class="msg-bubble">
+            ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
+            ${escapeHtml(content)}
+          </div>
+          <div class="msg-meta msg-time">${time ? formatTime(time) : '刚刚'}</div>
+        </div>
+      `
+      container.appendChild(row)
+      return row
+    }
+
+    function appendAIThinkingBubble() {
+      const container = document.getElementById('chat-messages')
+      const row = document.createElement('div')
+      row.className = 'msg-row ai'
+      row.setAttribute('data-ai-in-flight', '1')
+      row.innerHTML = `
+        <img class="msg-avatar" src="/static/images/avatar/default.png"
+             onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
+        <div class="msg-body">
+          <div class="msg-bubble thinking-bubble">
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+          </div>
+          <div class="msg-meta msg-time"></div>
+        </div>
+      `
+      container.appendChild(row)
+
+      const bubble = row.querySelector('.msg-bubble')
+      const timeMeta = row.querySelector('.msg-time')
+
+      return {
+        row,
+        removeRow() {
+          if (row.parentNode) row.remove()
+        },
+        clearThinking() {
+          bubble.classList.remove('thinking-bubble')
+          bubble.innerHTML = ''
+        },
+        appendText(text) {
+          bubble.innerHTML += escapeHtml(text)
+        },
+        markComplete() {
+          timeMeta.textContent = '刚刚'
+          row.removeAttribute('data-ai-in-flight')
+        },
+        showError(msg) {
+          bubble.classList.remove('thinking-bubble')
+          bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+        }
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('chat-messages')
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight
+      })
+    }
+
+    /* ====== 发送消息（TD-015：Abort 打断、meta.generation_id、幂等键、队列满） ====== */
+    let sending = false
+    let chatSendAbort = null
+    /** 每次发起 send/resend 前递增；与 meta.generation_id 配合丢弃过期 SSE（对齐契约） */
+    let chatSendSession = 0
+
+    function countOpenPendingUsers() {
+      const users = [...document.querySelectorAll('#chat-messages .msg-row.user')]
+      let pending = 0
+      let hasBang = false
+      for (const el of users) {
+        const d = el.getAttribute('data-delivery') || ''
+        if (d === 'failed_timeout' || d === 'failed_error') hasBang = true
+        if (d === 'pending_llm' || d === 'failed_timeout' || d === 'failed_error') pending++
+      }
+      return { pending, hasBang }
+    }
+
+    /**
+     * 解析对话 SSE。sseCtx.userRowForFailure：仅 send 传入，failed 时把该 user 行标为叹号态；resend 传空。
+     */
+    async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
+      const userRowForFailure = sseCtx && sseCtx.userRowForFailure
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let isFirstChunk = true
+      /** N2（VX-A）：首段 SSE 响应体首包非空字节到达后只解锁一次 sending，不等待 meta */
+      let n2StreamBodyStarted = false
+      /** 本连接 meta 下发的代；delta 若带 generation_id 则须与此一致 */
+      let streamGenerationId = null
+      let metaReceived = false
+      while (true) {
+        const { done, value } = await reader.read()
+        if (sessionAtStart !== chatSendSession) break
+        if (done) break
+        if (!n2StreamBodyStarted && value && value.byteLength > 0) {
+          n2StreamBodyStarted = true
+          if (sessionAtStart === chatSendSession) {
+            sending = false
+          }
+        }
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (sessionAtStart !== chatSendSession) return
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+            if (data.type === 'meta') {
+              metaReceived = true
+              const gid = data.generation_id
+              streamGenerationId = (typeof gid === 'string' && gid.length > 0) ? gid : null
+              // VX-A：N3 仅记录本代 generation_id；sending 已在 N2（首包字节）解锁，此处不再改 sending
+              continue
+            }
+            if (!metaReceived) continue
+            if (data.type === 'delta' && data.generation_id != null && data.generation_id !== streamGenerationId) {
+              continue
+            }
+            if (data.type === 'obsolete') {
+              aiBubble.removeRow()
+              return
+            }
+            if (data.type === 'failed') {
+              aiBubble.removeRow()
+              if (userRowForFailure && userRowForFailure.parentNode) {
+                const st = mapSseFailedToDelivery(data)
+                userRowForFailure.setAttribute('data-delivery', st)
+                ensureUserRowBangButton(userRowForFailure)
+              }
+              return
+            }
+            if (data.type === 'delta') {
+              if (isFirstChunk) {
+                aiBubble.clearThinking()
+                isFirstChunk = false
+              }
+              aiBubble.appendText(data.content)
+              scrollToBottom()
+            } else if (data.type === 'done') {
+              aiBubble.markComplete()
+              if (data.emotion && data.emotion.label) updateAvatarEmotion(data.emotion.label)
+              if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
+            }
+          } catch (e) {
+            console.error('SSE parse error:', e)
+          }
+        }
+      }
+    }
+
+    async function handleSend() {
+      const input = document.getElementById('msg-input')
+      const content = input.value.trim()
+      if (!content || sending) return
+
+      const { pending, hasBang } = countOpenPendingUsers()
+      if (pending >= 5 && !hasBang) {
+        alert('待处理消息过多，请先等待回复或处理失败提示后再发')
+        return
+      }
+
+      if (chatSendAbort) chatSendAbort.abort()
+      const sessionAtStart = ++chatSendSession
+      removeAiInFlightRows()
+      chatSendAbort = new AbortController()
+
+      sending = true
+      const userRow = appendUserBubble(content, null, 'pending_llm')
+      input.value = ''
+      input.style.height = 'auto'
+      updateSendBtn()
+      clearDraft()
+      scrollToBottom()
+
+      const aiBubble = appendAIThinkingBubble()
+      scrollToBottom()
+
+      const clientMsgId = (crypto.randomUUID && crypto.randomUUID()) ||
+        ('idemp-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+
+      try {
+        const timeoutId = setTimeout(() => chatSendAbort.abort(), 48000)
+        const response = await fetch(API_BASE + '/api/chat/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Idempotency-Key': clientMsgId
+          },
+          body: JSON.stringify({ content: content, client_message_id: clientMsgId }),
+          signal: chatSendAbort.signal
+        })
+        clearTimeout(timeoutId)
+
+        if (response.status === 401) {
+          aiBubble.removeRow()
+          if (userRow.parentNode) userRow.remove()
+          if (sessionAtStart === chatSendSession) sending = false
+          clearToken()
+          window.location.href = '/pages/login.html'
+          return
+        }
+
+        if (!response.ok) {
+          aiBubble.removeRow()
+          if (userRow.parentNode) {
+            userRow.setAttribute('data-delivery', 'failed_error')
+            ensureUserRowBangButton(userRow)
+          }
+          if (sessionAtStart === chatSendSession) sending = false
+          return
+        }
+
+        const contentType = response.headers.get('content-type') || ''
+        if (contentType.includes('application/json')) {
+          await response.json().catch(() => ({})) /* 业务失败信封，与 !response.ok 路径一致 */
+          aiBubble.removeRow()
+          if (userRow.parentNode) {
+            userRow.setAttribute('data-delivery', 'failed_error')
+            ensureUserRowBangButton(userRow)
+          }
+          if (sessionAtStart === chatSendSession) sending = false
+          return
+        }
+
+        await consumeChatSse(response, aiBubble, sessionAtStart, { userRowForFailure: userRow })
+      } catch (err) {
+        console.error('发送失败:', err)
+        aiBubble.removeRow()
+        const superseded = sessionAtStart !== chatSendSession
+        if (!superseded && userRow && userRow.parentNode) {
+          if (err.name === 'AbortError') {
+            userRow.setAttribute('data-delivery', 'failed_timeout')
+            ensureUserRowBangButton(userRow)
+          } else {
+            userRow.setAttribute('data-delivery', 'failed_error')
+            ensureUserRowBangButton(userRow)
+          }
+        }
+      }
+
+      if (sessionAtStart === chatSendSession) sending = false
+    }
+
+    document.getElementById('chat-messages').addEventListener('click', async function (e) {
+      const btn = e.target.closest('.msg-bang')
+      if (!btn || btn.disabled) return
+      if (sending) return
+      btn.disabled = true
+      if (chatSendAbort) chatSendAbort.abort()
+      const sessionAtStart = ++chatSendSession
+      removeAiInFlightRows()
+      chatSendAbort = new AbortController()
+      sending = true
+      const aiBubble = appendAIThinkingBubble()
+      scrollToBottom()
+      try {
+        const timeoutId = setTimeout(() => chatSendAbort.abort(), 48000)
+        const rid = (crypto.randomUUID && crypto.randomUUID()) ||
+          ('resend-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+        const response = await fetch(API_BASE + '/api/chat/resend', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Idempotency-Key': rid
+          },
+          body: JSON.stringify({ client_resend_id: rid }),
+          signal: chatSendAbort.signal
+        })
+        clearTimeout(timeoutId)
+        if (response.status === 401) {
+          aiBubble.removeRow()
+          if (sessionAtStart === chatSendSession) {
+            sending = false
+            btn.disabled = false
+          }
+          clearToken()
+          window.location.href = '/pages/login.html'
+          return
+        }
+        if (!response.ok) {
+          aiBubble.removeRow()
+          if (sessionAtStart === chatSendSession) {
+            sending = false
+            btn.disabled = false
+          }
+          return
+        }
+        const ct = response.headers.get('content-type') || ''
+        if (ct.includes('application/json')) {
+          await response.json().catch(() => ({}))
+          aiBubble.removeRow()
+          if (sessionAtStart === chatSendSession) {
+            sending = false
+            btn.disabled = false
+          }
+          return
+        }
+        await consumeChatSse(response, aiBubble, sessionAtStart, null)
+      } catch (err) {
+        console.error('重发失败:', err)
+        aiBubble.removeRow()
+      }
+      if (sessionAtStart === chatSendSession) {
+        sending = false
+        btn.disabled = false
+      }
+    })
+
+    /* ====== 加载统一时间线 ====== */
+    async function loadTimeline(isFirstPage) {
+      if (loadingTimeline || noMoreTimeline) return
+      loadingTimeline = true
+
+      let url = '/api/chat/timeline?limit=20'
+      if (timelineCursor !== null) {
+        url += '&cursor=' + timelineCursor
+      }
+
+      const res = await request('GET', url)
+      if (res.code === 0 && res.data) {
+        const items = res.data.items || []
+        if (items.length === 0) {
+          noMoreTimeline = true
+          loadingTimeline = false
+          return
+        }
+
+        if (!res.data.has_more) {
+          noMoreTimeline = true
+        }
+
+        if (res.data.next_cursor !== null && res.data.next_cursor !== undefined) {
+          timelineCursor = res.data.next_cursor
+        }
+
+        const container = document.getElementById('chat-messages')
+        const sentinel = document.getElementById('top-sentinel')
+
+        if (isFirstPage) {
+          items.forEach(item => {
+            container.appendChild(renderTimelineItem(item))
+          })
+        } else {
+          const oldScrollHeight = container.scrollHeight
+          const firstMsgNode = sentinel.nextElementSibling
+
+          items.forEach(item => {
+            const row = renderTimelineItem(item)
+            if (firstMsgNode) {
+              container.insertBefore(row, firstMsgNode)
+            } else {
+              container.appendChild(row)
+            }
+          })
+
+          container.scrollTop = container.scrollHeight - oldScrollHeight
+        }
+      }
+
+      loadingTimeline = false
+    }
+
+    function renderTimelineItem(item) {
+      const row = document.createElement('div')
+      if (item.source === 'user') {
+        row.className = 'msg-row user'
+        const ds = item.delivery_status || ''
+        if (ds) row.setAttribute('data-delivery', ds)
+        const needBang = ds === 'failed_timeout' || ds === 'failed_error'
+        const bangBtn = needBang
+          ? `<button type="button" class="msg-bang" title="重试">!</button>`
+          : ''
+        row.innerHTML = `
+          <img class="msg-avatar" src="${USER_AVATAR_SRC}"
+               onerror="this.onerror=null;this.src='${USER_AVATAR_FALLBACK}'" alt="">
+          <div class="msg-user-with-side">
+            ${bangBtn}
+            <div class="msg-body">
+              <div class="msg-bubble">${escapeHtml(item.content)}</div>
+              <div class="msg-meta msg-time">${formatTime(item.created_at)}</div>
+            </div>
+          </div>
+        `
+      } else {
+        const isAgent = item.source === 'agent'
+        const isUnread = isAgent && item.is_read === false
+        row.className = 'msg-row ai' + (isAgent ? ' agent' : '')
+        row.innerHTML = `
+          <img class="msg-avatar" src="/static/images/avatar/default.png"
+               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
+          <div class="msg-body">
+            <div class="msg-bubble">
+              ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
+              ${escapeHtml(item.content)}
+            </div>
+            <div class="msg-meta msg-time">${formatTime(item.created_at)}</div>
+          </div>
+        `
+        if (item.emotion_label) {
+          row.setAttribute('data-emotion', item.emotion_label)
+        }
+      }
+      return row
+    }
+
+    /* ====== 加载未读主动消息提示条 ====== */
+    async function loadAgentTip() {
+      const res = await request('GET', '/api/agent/messages')
+      if (res.code !== 0 || !res.data) return
+
+      const messages = res.data.messages || res.data || []
+      if (messages.length === 0) return
+
+      const unreadMessages = messages.filter(m => !m.is_read)
+      if (unreadMessages.length > 0) {
+        const latest = unreadMessages[unreadMessages.length - 1]
+        agentTipMessageId = latest.id
+        const tipEl = document.getElementById('agent-tip')
+        const tipContent = document.getElementById('tip-content')
+        let text = latest.content || ''
+        if (text.length > 30) text = text.substring(0, 30) + '...'
+        tipContent.textContent = text
+        tipEl.classList.remove('hidden')
+
+        const chatMessages = document.getElementById('chat-messages')
+        chatMessages.classList.add('has-tip')
+      }
+    }
+
+    /* ====== 提示条交互 ====== */
+    document.getElementById('agent-tip').addEventListener('click', async function (e) {
+      if (e.target.id === 'tip-close' || e.target.closest('#tip-close')) {
+        return
+      }
+
+      if (agentTipMessageId) {
+        await request('POST', '/api/agent/messages/' + agentTipMessageId + '/read')
+      }
+      hideAgentTip()
+      scrollToBottom()
+    })
+
+    document.getElementById('tip-close').addEventListener('click', function (e) {
+      e.stopPropagation()
+      hideAgentTip()
+    })
+
+    function hideAgentTip() {
+      const tipEl = document.getElementById('agent-tip')
+      tipEl.classList.add('hidden')
+      document.getElementById('chat-messages').classList.remove('has-tip')
+    }
+
+    /* ====== 上滑加载更多 ====== */
+    function setupScrollObserver() {
+      const sentinel = document.getElementById('top-sentinel')
+      const observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !loadingTimeline && !noMoreTimeline) {
+          loadTimeline(false)
+        }
+      }, { root: document.getElementById('chat-messages'), threshold: 0 })
+      observer.observe(sentinel)
+    }
+
+    /* ====== 键盘弹起适配 ====== */
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        const bottomBar = document.querySelector('.input-area')
+        bottomBar.style.bottom = (window.innerHeight - window.visualViewport.height) + 'px'
+        syncChatBottomPadding()
+        scrollToBottom()
+      })
+    }
+
+    window.addEventListener('resize', () => syncChatBottomPadding())
+
+    /* ====== 升级提示条 ====== */
+    function showLevelUpTip(levelName) {
+      const existing = document.querySelector('.levelup-tip')
+      if (existing) existing.remove()
+
+      const tip = document.createElement('div')
+      tip.className = 'levelup-tip'
+      tip.innerHTML =
+        '<div class="lt-text">🎉 恭喜！我们升级为「' + levelName + '」了</div>' +
+        '<div class="lt-btn">查看 →</div>'
+      tip.onclick = function() { goToRelationship(true) }
+      document.body.appendChild(tip)
+
+      setTimeout(function() {
+        if (tip.parentNode) {
+          tip.style.animation = 'toast-out 0.3s forwards'
+          tip.addEventListener('animationend', function() { tip.remove() })
+        }
+      }, 6000)
+    }
+
+    /* ====== 页面初始化 ====== */
+    async function initChat() {
+      loadDraft()
+
+      syncChatBottomPadding()
+      setupInputAreaBottomSync()
+
+      await loadTimeline(true)
+
+      await loadAgentTip()
+
+      syncChatBottomPadding()
+      scrollToBottom()
+
+      // 用最新 AI 消息的情绪初始化头像
+      const aiMessages = document.querySelectorAll('.msg-row.ai')
+      if (aiMessages.length > 0) {
+        const lastAiRow = aiMessages[aiMessages.length - 1]
+        const emotionAttr = lastAiRow.getAttribute('data-emotion')
+        updateAvatarEmotion(emotionAttr || '平静')
+      } else {
+        updateAvatarEmotion('平静')
+      }
+
+      setupScrollObserver()
+    }
+
+    initChat()
+  </script>
+</body>
+</html>

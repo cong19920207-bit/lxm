@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 日记历史 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .dh-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dh-filter-row + .dh-filter-row {
+      margin-top: 12px;
+    }
+    .dh-filter-row .form-control {
+      width: 160px;
+    }
+    .dh-table-wrap {
+      overflow-x: auto;
+    }
+    .dh-content-cell {
+      max-width: 360px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .empty-tip {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>checkAdminLogin();</script>
+
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ops_admin'];
+  if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+    window.location.href = '/admin/pages/error.html?type=403';
+    return;
+  }
+
+  document.body.innerHTML =
+    renderSidebar('diary-history') +
+    renderHeader('AI 日记历史') +
+    '<div class="admin-content" id="diaryHistoryContent"></div>';
+})();
+</script>
+
+<script>
+(function () {
+  var PAGE_SIZE = 20;
+  var currentPage = 1;
+  var filters = { user_id: '', start_date: '', end_date: '' };
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  var contentEl = document.getElementById('diaryHistoryContent');
+  contentEl.innerHTML =
+    '<div class="page-card" style="margin-bottom:16px">' +
+      '<div class="dh-filter-row">' +
+        '<input type="number" id="dhUserId" class="form-control" placeholder="用户 ID" min="1" step="1">' +
+        '<input type="date" id="dhStart" class="form-control" title="开始日期">' +
+        '<span class="text-secondary" style="font-size:13px">至</span>' +
+        '<input type="date" id="dhEnd" class="form-control" title="结束日期">' +
+        '<button type="button" class="btn btn-primary" id="dhQuery">查询</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="page-card">' +
+      '<div class="dh-table-wrap">' +
+        '<table class="admin-table">' +
+          '<thead><tr>' +
+            '<th style="width:72px">ID</th>' +
+            '<th style="min-width:120px">账号</th>' +
+            '<th style="width:88px">账号ID</th>' +
+            '<th>正文</th>' +
+            '<th style="width:88px">生成时等级</th>' +
+            '<th style="width:72px">已读</th>' +
+            '<th style="width:160px">创建时间</th>' +
+          '</tr></thead>' +
+          '<tbody id="dhTbody"></tbody>' +
+        '</table>' +
+      '</div>' +
+      '<div id="dhEmpty" class="empty-tip" style="display:none">暂无数据</div>' +
+      '<div id="dhPagination"></div>' +
+    '</div>';
+
+  function readFiltersFromDom() {
+    var uid = document.getElementById('dhUserId').value.trim();
+    filters.user_id = uid;
+    filters.start_date = document.getElementById('dhStart').value;
+    filters.end_date = document.getElementById('dhEnd').value;
+  }
+
+  function buildQuery(page) {
+    var q = 'page=' + page + '&page_size=' + PAGE_SIZE;
+    if (filters.user_id) q += '&user_id=' + encodeURIComponent(filters.user_id);
+    if (filters.start_date) q += '&start_date=' + encodeURIComponent(filters.start_date);
+    if (filters.end_date) q += '&end_date=' + encodeURIComponent(filters.end_date);
+    return q;
+  }
+
+  async function loadPage(page) {
+    var url = '/api/admin/diary-history?' + buildQuery(page);
+    var res = await adminRequest('GET', url);
+    if (!res || res.code !== 0) return;
+    var data = res.data || {};
+    var list = data.list || [];
+    var total = typeof data.total === 'number' ? data.total : 0;
+    currentPage = data.page || page;
+
+    var tbody = document.getElementById('dhTbody');
+    var emptyEl = document.getElementById('dhEmpty');
+    tbody.innerHTML = '';
+
+    if (!list.length) {
+      emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+      for (var i = 0; i < list.length; i++) {
+        var row = list[i];
+        var content = row.content != null ? String(row.content) : '';
+        var shortText = content.length > 120 ? content.slice(0, 120) + '…' : content;
+        var tr = document.createElement('tr');
+        var uname = row.username != null && row.username !== '' ? String(row.username) : '';
+        tr.innerHTML =
+          '<td>' + escapeHtml(row.id) + '</td>' +
+          '<td>' + escapeHtml(uname) + '</td>' +
+          '<td>' + escapeHtml(row.user_id) + '</td>' +
+          '<td class="dh-content-cell" title="' + escapeHtml(content) + '">' + escapeHtml(shortText) + '</td>' +
+          '<td>' + escapeHtml(row.relationship_level_at_creation) + '</td>' +
+          '<td>' + (row.is_read ? '是' : '否') + '</td>' +
+          '<td>' + escapeHtml(formatDateTime(row.created_at)) + '</td>';
+        tbody.appendChild(tr);
+      }
+    }
+
+    renderPagination('dhPagination', currentPage, total, PAGE_SIZE, function (p) {
+      loadPage(p);
+    });
+  }
+
+  document.getElementById('dhQuery').onclick = function () {
+    readFiltersFromDom();
+    loadPage(1);
+  };
+
+  readFiltersFromDom();
+  loadPage(1);
+})();
+</script>
+</body>
+</html>

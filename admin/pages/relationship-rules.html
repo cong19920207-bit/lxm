@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>关系成长配置 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .rel-tab-header-card {
+      padding-bottom: 0;
+      margin-bottom: 16px;
+    }
+    .rel-tab-header-card .tabs {
+      margin-bottom: 0;
+    }
+    .td-banner-rel {
+      background: #fff7e6;
+      border: 1px solid #ffd591;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #d46b08;
+      line-height: 1.6;
+    }
+    .rel-level-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .rel-level-badge {
+      display: inline-block;
+      color: #fff;
+      border-radius: 12px;
+      padding: 3px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .growth-input-narrow {
+      width: 70px;
+      box-sizing: border-box;
+    }
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="td-banner-rel" role="note">
+    ⚠️ 技术债 <strong>TD-005</strong>：当前修改保存至配置库（admin_config），但
+    relationship_service.py 仍读取代码中的硬编码值（LEVEL_CONFIG / GROWTH_ACTIONS），
+    需同步更新服务代码后配置才能生效。
+  </div>
+
+  <div class="page-card rel-tab-header-card">
+    <div class="tabs" id="main-tabs">
+      <div class="tab-item active" data-target="tab-levels">等级配置</div>
+      <div class="tab-item" data-target="tab-growth">成长值规则</div>
+    </div>
+  </div>
+
+  <div id="tab-levels" class="tab-pane active">
+    <div id="level-cards-wrap" class="grid-4"></div>
+    <button type="button" class="btn btn-primary btn-block" id="btn-level-check-save" style="margin-top:16px">检查影响并保存</button>
+  </div>
+
+  <div id="tab-growth" class="tab-pane">
+    <div class="page-card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>行为</th>
+            <th style="width:100px">单次积分</th>
+            <th style="width:100px">每日上限</th>
+            <th>特殊规则说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>完成有效对话</td>
+            <td><input type="number" class="form-control growth-points growth-input-narrow" data-action="dialog" min="1" value="2"></td>
+            <td><input type="number" class="form-control growth-limit growth-input-narrow" data-action="dialog" min="1" value="50"></td>
+            <td class="text-secondary">-</td>
+          </tr>
+          <tr>
+            <td>深度聊天奖励</td>
+            <td><input type="number" class="form-control growth-points growth-input-narrow" data-action="long_session" min="1" value="20"></td>
+            <td><input type="number" class="form-control growth-limit growth-input-narrow" data-action="long_session" min="1" value="20"></td>
+            <td class="text-secondary">触发条件由服务端判定（见 relationship_service.py）</td>
+          </tr>
+          <tr>
+            <td>每日登录</td>
+            <td><input type="number" class="form-control growth-points growth-input-narrow" data-action="daily_login" min="1" value="5"></td>
+            <td><input type="number" class="form-control growth-limit growth-input-narrow" data-action="daily_login" min="1" value="10"></td>
+            <td class="text-secondary">连续登录超过7天后提升至10分/天</td>
+          </tr>
+          <tr>
+            <td>回复主动消息</td>
+            <td><input type="number" class="form-control growth-points growth-input-narrow" data-action="reply_agent" min="1" value="10"></td>
+            <td><input type="number" class="form-control growth-limit growth-input-narrow" data-action="reply_agent" min="1" value="20"></td>
+            <td class="text-secondary">-</td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-primary btn-block" id="btn-save-growth" style="margin-top:16px">保存成长规则</button>
+    </div>
+  </div>
+</div>
+
+<!-- 影响预览 Modal -->
+<div id="modal-impact-overlay" class="modal-overlay">
+  <div class="modal-content" style="min-width:360px;max-width:480px">
+    <div class="modal-header">
+      <h3>影响预览</h3>
+      <button type="button" class="btn btn-link" id="modal-impact-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="modal-impact-summary" style="margin:0 0 12px 0;color:#333;font-size:14px;line-height:1.6"></p>
+      <div id="modal-impact-alert-wrap"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="modal-impact-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="modal-impact-confirm">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+
+  var DEFAULT_LEVELS = [
+    { level: 0, name: '陌生', threshold: 0, description: '初次相识，一切都是新鲜的开始' },
+    { level: 1, name: '朋友', threshold: 200, description: '已经是熟悉的朋友，互相了解，建立了基础信任' },
+    { level: 2, name: '亲密', threshold: 800, description: '亲密的陪伴者，互相信任，建立了深度的情感连接' },
+    { level: 3, name: '知己', threshold: 99999, description: '灵魂知己，完全懂对方，是彼此最专属的陪伴者' }
+  ];
+
+  var LEVEL_BADGE_COLORS = ['#8c8c8c', '#1890ff', '#fa8c16', '#722ed1'];
+
+  var GROWTH_ACTION_ORDER = ['dialog', 'long_session', 'daily_login', 'reply_agent'];
+
+  /** 与成长值表格「行为」列一致，用于校验失败时的 Toast 文案 */
+  var GROWTH_ROW_LABELS = {
+    dialog: '完成有效对话',
+    long_session: '深度聊天奖励',
+    daily_login: '每日登录',
+    reply_agent: '回复主动消息'
+  };
+
+  function escapeAttr(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function escapeForTextarea(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /** 合并接口 levels（按 level 字段匹配），缺省用 DEFAULT_LEVELS */
+  function mergeLevelsFromApi(apiLevels) {
+    if (!apiLevels || !apiLevels.length) return DEFAULT_LEVELS.map(function (x) { return Object.assign({}, x); });
+    var map = {};
+    for (var i = 0; i < apiLevels.length; i++) {
+      var L = apiLevels[i];
+      if (L && typeof L.level === 'number') map[L.level] = L;
+    }
+    return DEFAULT_LEVELS.map(function (d) {
+      var o = map[d.level];
+      if (!o) return Object.assign({}, d);
+      return {
+        level: d.level,
+        name: o.name != null ? String(o.name) : d.name,
+        threshold: o.threshold != null ? o.threshold : d.threshold,
+        description: o.description != null ? String(o.description) : d.description
+      };
+    });
+  }
+
+  function renderLevelCards(levels) {
+    var arr = levels && levels.length ? levels : DEFAULT_LEVELS.map(function (x) { return Object.assign({}, x); });
+    var html = '';
+    for (var i = 0; i < arr.length; i++) {
+      var L = arr[i];
+      var lvl = L.level;
+      var bg = LEVEL_BADGE_COLORS[lvl] || '#8c8c8c';
+      var nameVal = escapeAttr(L.name || '');
+      var descContent = escapeForTextarea(L.description || '');
+      html += '<div class="rel-level-card">';
+      html += '<span class="rel-level-badge" style="background:' + bg + '">' + lvl + '级</span>';
+      html += '<div class="form-item"><label>等级名称</label>';
+      html += '<input type="text" class="form-control level-name" data-level="' + lvl + '" value="' + nameVal + '">';
+      html += '</div>';
+      html += '<div class="form-item mt-16"><label>升级所需成长值</label>';
+      if (lvl === 0) {
+        html += '<input type="number" class="form-control" disabled value="0">';
+      } else if (lvl === 3) {
+        html += '<input type="number" class="form-control" disabled value="" placeholder="最高等级">';
+      } else {
+        var th = L.threshold != null && L.threshold !== 99999 ? L.threshold : '';
+        html += '<input type="number" class="form-control level-threshold" data-level="' + lvl + '" min="1" value="' + escapeAttr(String(th)) + '">';
+      }
+      html += '</div>';
+      html += '<div class="form-item mt-16"><label>权益描述</label>';
+      html += '<textarea class="form-control level-desc" data-level="' + lvl + '" rows="2">' + descContent + '</textarea>';
+      html += '</div></div>';
+    }
+    document.getElementById('level-cards-wrap').innerHTML = html;
+  }
+
+  function readLevelsFromForm() {
+    var out = [];
+    for (var lv = 0; lv <= 3; lv++) {
+      var nameEl = document.querySelector('.level-name[data-level="' + lv + '"]');
+      var descEl = document.querySelector('.level-desc[data-level="' + lv + '"]');
+      var name = nameEl ? nameEl.value.trim() : '';
+      var description = descEl ? descEl.value.trim() : '';
+      if (lv === 0) {
+        out.push({ level: 0, name: name, threshold: 0, description: description });
+      } else if (lv === 3) {
+        out.push({ level: 3, name: name, threshold: 99999, description: description });
+      } else {
+        var thEl = document.querySelector('.level-threshold[data-level="' + lv + '"]');
+        var th = parseInt(thEl && thEl.value, 10);
+        if (isNaN(th)) th = 0;
+        out.push({ level: lv, name: name, threshold: th, description: description });
+      }
+    }
+    return out;
+  }
+
+  var DEFAULT_GROWTH = {
+    dialog: { points: 2, daily_limit: 50 },
+    long_session: { points: 20, daily_limit: 20 },
+    daily_login: { points: 5, daily_limit: 10 },
+    reply_agent: { points: 10, daily_limit: 20 }
+  };
+
+  function mergeGrowthFromApi(rules) {
+    var merged = {};
+    var k;
+    for (k in DEFAULT_GROWTH) {
+      if (Object.prototype.hasOwnProperty.call(DEFAULT_GROWTH, k)) {
+        merged[k] = { action_type: k, points: DEFAULT_GROWTH[k].points, daily_limit: DEFAULT_GROWTH[k].daily_limit };
+      }
+    }
+    if (!rules || !rules.length) return merged;
+    for (var i = 0; i < rules.length; i++) {
+      var r = rules[i];
+      if (!r || !r.action_type) continue;
+      var at = r.action_type;
+      if (!merged[at]) merged[at] = { action_type: at, points: 1, daily_limit: 1 };
+      if (r.points != null) merged[at].points = parseInt(r.points, 10) || merged[at].points;
+      if (r.daily_limit != null) merged[at].daily_limit = parseInt(r.daily_limit, 10) || merged[at].daily_limit;
+    }
+    return merged;
+  }
+
+  function applyGrowthRulesToForm(merged) {
+    for (var i = 0; i < GROWTH_ACTION_ORDER.length; i++) {
+      var at = GROWTH_ACTION_ORDER[i];
+      var row = merged[at];
+      if (!row) continue;
+      var pEl = document.querySelector('.growth-points[data-action="' + at + '"]');
+      var lEl = document.querySelector('.growth-limit[data-action="' + at + '"]');
+      if (pEl) pEl.value = String(row.points);
+      if (lEl) lEl.value = String(row.daily_limit);
+    }
+  }
+
+  /** 读取成长值表单；非法输入时 Toast 并返回 null，不静默改写 */
+  function readGrowthRulesFromForm() {
+    var out = [];
+    for (var i = 0; i < GROWTH_ACTION_ORDER.length; i++) {
+      var at = GROWTH_ACTION_ORDER[i];
+      var label = GROWTH_ROW_LABELS[at] || at;
+      var pEl = document.querySelector('.growth-points[data-action="' + at + '"]');
+      var lEl = document.querySelector('.growth-limit[data-action="' + at + '"]');
+      var points = parseInt(pEl && pEl.value, 10);
+      var daily_limit = parseInt(lEl && lEl.value, 10);
+      if (isNaN(points) || points < 1) {
+        showToast('「' + label + '」单次积分须为大于等于 1 的整数', 'error');
+        return null;
+      }
+      if (isNaN(daily_limit) || daily_limit < 1) {
+        showToast('「' + label + '」每日上限须为大于等于 1 的整数', 'error');
+        return null;
+      }
+      out.push({ action_type: at, points: points, daily_limit: daily_limit });
+    }
+    return out;
+  }
+
+  function validateLevelsBeforeSubmit(levels) {
+    if (levels[1].threshold <= 0) {
+      showToast('1级升级所需成长值须为大于等于 1 的整数', 'error');
+      return false;
+    }
+    if (levels[2].threshold <= levels[1].threshold) {
+      showToast('2级阈值须严格大于 1 级阈值', 'error');
+      return false;
+    }
+    if (levels[3].threshold <= levels[2].threshold) {
+      showToast('等级阈值须严格递增（最高级提交值由系统处理）', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  function closeImpactModal() {
+    var el = document.getElementById('modal-impact-overlay');
+    if (el) el.classList.remove('show');
+  }
+
+  function openImpactModal(upgrade, downgrade) {
+    var total = upgrade + downgrade;
+    var summary = document.getElementById('modal-impact-summary');
+    var wrap = document.getElementById('modal-impact-alert-wrap');
+    summary.textContent = '将影响 ' + upgrade + ' 名用户升级，' + downgrade + ' 名用户进入7天过渡期。';
+    wrap.innerHTML = '';
+    if (total > 0) {
+      wrap.innerHTML = '<div class="alert alert-warning" style="margin:0">等级阈值变更可能导致用户等级调整，请确认后再保存。</div>';
+    } else {
+      wrap.innerHTML = '<div class="alert alert-success" style="margin:0">✅ 无用户受影响，可以直接保存。</div>';
+    }
+    document.getElementById('modal-impact-overlay').classList.add('show');
+  }
+
+  async function loadRules() {
+    var res = await adminRequest('GET', '/api/admin/relationship-rules');
+    if (!res || res.code !== 0) return;
+    if (!res.data) return;
+    var mergedLv = mergeLevelsFromApi(res.data.levels);
+    renderLevelCards(mergedLv);
+    var gr = res.data.growth_rules;
+    if (gr && gr.length) {
+      applyGrowthRulesToForm(mergeGrowthFromApi(gr));
+    } else {
+      applyGrowthRulesToForm(mergeGrowthFromApi(null));
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('relationship');
+    document.getElementById('header-mount').innerHTML = renderHeader('关系成长配置');
+
+    initTabs('main-tabs');
+
+    renderLevelCards(null);
+
+    loadRules();
+
+    document.getElementById('btn-level-check-save').onclick = async function () {
+      var levels = readLevelsFromForm();
+      if (!validateLevelsBeforeSubmit(levels)) return;
+      var growth = readGrowthRulesFromForm();
+      if (!growth) return;
+      var body = {
+        levels: levels,
+        growth_rules: growth,
+        confirmed: false
+      };
+      var res = await adminRequest('PUT', '/api/admin/relationship-rules', body);
+      if (!res || res.code !== 0 || !res.data) return;
+      var up = parseInt(res.data.affected_upgrade_users, 10) || 0;
+      var down = parseInt(res.data.affected_downgrade_users, 10) || 0;
+      openImpactModal(up, down);
+    };
+
+    function bindModalClose() {
+      closeImpactModal();
+    }
+    document.getElementById('modal-impact-close').onclick = bindModalClose;
+    document.getElementById('modal-impact-cancel').onclick = bindModalClose;
+    document.getElementById('modal-impact-overlay').addEventListener('click', function (e) {
+      if (e.target === this) bindModalClose();
+    });
+
+    document.getElementById('modal-impact-confirm').onclick = async function () {
+      var levels = readLevelsFromForm();
+      if (!validateLevelsBeforeSubmit(levels)) return;
+      var growth = readGrowthRulesFromForm();
+      if (!growth) return;
+      var body = {
+        levels: levels,
+        growth_rules: growth,
+        confirmed: true
+      };
+      var res = await adminRequest('PUT', '/api/admin/relationship-rules', body);
+      if (res && res.code === 0) {
+        closeImpactModal();
+        showToast('配置已更新', 'success');
+      }
+    };
+
+    document.getElementById('btn-save-growth').onclick = async function () {
+      var levels = readLevelsFromForm();
+      if (!validateLevelsBeforeSubmit(levels)) return;
+      var growth = readGrowthRulesFromForm();
+      if (!growth) return;
+      var body = {
+        levels: levels,
+        growth_rules: growth,
+        confirmed: true
+      };
+      var res = await adminRequest('PUT', '/api/admin/relationship-rules', body);
+      if (res && res.code === 0) {
+        showToast('成长规则已保存', 'success');
+      }
+    };
+  });
+</script>
+</body>
+</html>

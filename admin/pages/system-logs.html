@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统日志 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    #log-detail-content {
+      margin: 0;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 420px;
+      overflow: auto;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  if (!checkAdminLogin()) return;
+
+  var ALLOWED_ROLES = ['super_admin', 'tech_ops'];
+  if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+    window.location.href = '/admin/pages/error.html?type=403';
+    return;
+  }
+
+  var pageState = {
+    system: { page: 1, total: 0, level: '', startDate: '', endDate: '', hasQueried: false },
+    error: { page: 1, total: 0, level: '', startDate: '', endDate: '', hasQueried: false }
+  };
+  var PAGE_SIZE = 50;
+
+  function formatYMD(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function parseYMD(s) {
+    var parts = String(s).split('-');
+    if (parts.length !== 3) return null;
+    var y = Number(parts[0]);
+    var mo = Number(parts[1]) - 1;
+    var da = Number(parts[2]);
+    if (isNaN(y) || isNaN(mo) || isNaN(da)) return null;
+    return new Date(y, mo, da);
+  }
+
+  /** 与后端 datetime.date 相减的 days 一致（按日历本地时区） */
+  function dateDiffDays(startStr, endStr) {
+    var s = parseYMD(startStr);
+    var e = parseYMD(endStr);
+    if (!s || !e) return NaN;
+    return Math.round((e.getTime() - s.getTime()) / 86400000);
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function validateLogRange(start, end, forExport) {
+    if (!start || !end) {
+      showToast('请选择查询日期范围', 'warning');
+      return false;
+    }
+    var diff = dateDiffDays(start, end);
+    if (isNaN(diff)) {
+      showToast('请选择查询日期范围', 'warning');
+      return false;
+    }
+    if (diff < 0) {
+      showToast('结束日期不能早于开始日期', 'error');
+      return false;
+    }
+    if (diff > 30) {
+      showToast('单次查询范围不能超过30天', 'error');
+      return false;
+    }
+    if (forExport && diff > 7) {
+      showToast('单次导出范围不能超过7天，请缩小范围', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  function buildFilterHtml(logType) {
+    return (
+      '<div class="page-card" style="margin-bottom:12px">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+          '<select class="form-control log-level-select" data-type="' + logType + '" style="width:110px">' +
+            '<option value="">全部</option>' +
+            '<option value="INFO">INFO</option>' +
+            '<option value="WARNING">WARNING</option>' +
+            '<option value="ERROR">ERROR</option>' +
+          '</select>' +
+          '<input type="date" class="form-control log-start-date" data-type="' + logType + '" style="width:150px">' +
+          '<input type="date" class="form-control log-end-date" data-type="' + logType + '" style="width:150px">' +
+          '<button type="button" class="btn btn-primary" onclick="queryLogs(\'' + logType + '\', 1)">查询</button>' +
+          '<button type="button" class="btn btn-default" onclick="exportLogs(\'' + logType + '\')">导出</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function setDefaultDatesForType(logType) {
+    var end = new Date();
+    var start = new Date();
+    start.setDate(start.getDate() - 6);
+    var startEl = document.querySelector('.log-start-date[data-type="' + logType + '"]');
+    var endEl = document.querySelector('.log-end-date[data-type="' + logType + '"]');
+    if (startEl) startEl.value = formatYMD(start);
+    if (endEl) endEl.value = formatYMD(end);
+  }
+
+  function initFilters() {
+    var fs = document.getElementById('filter-system');
+    var fe = document.getElementById('filter-error');
+    if (fs) fs.innerHTML = buildFilterHtml('system');
+    if (fe) fe.innerHTML = buildFilterHtml('error');
+    setDefaultDatesForType('system');
+    setDefaultDatesForType('error');
+  }
+
+  function readFilters(logType) {
+    var levelEl = document.querySelector('.log-level-select[data-type="' + logType + '"]');
+    var startEl = document.querySelector('.log-start-date[data-type="' + logType + '"]');
+    var endEl = document.querySelector('.log-end-date[data-type="' + logType + '"]');
+    return {
+      level: levelEl ? levelEl.value : '',
+      startDate: startEl ? startEl.value : '',
+      endDate: endEl ? endEl.value : ''
+    };
+  }
+
+  function levelTagClass(level) {
+    if (level === 'ERROR') return 'tag tag-error';
+    if (level === 'WARNING') return 'tag tag-warning';
+    return 'tag tag-default';
+  }
+
+  function rowBg(level) {
+    if (level === 'ERROR') return '#fff2f0';
+    if (level === 'WARNING') return '#fffbe6';
+    return '#ffffff';
+  }
+
+  window.renderLogList = function (logType, list) {
+    var el = document.getElementById('log-list-' + logType);
+    if (!el) return;
+    if (!list || !list.length) {
+      el.innerHTML = '<div style="text-align:center;padding:48px 16px;color:var(--text-disabled)">暂无日志数据</div>';
+      return;
+    }
+    var h = '';
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      var bg = rowBg(row.level);
+      var tagCls = levelTagClass(row.level);
+      var timeTxt = escapeHtml(row.time || '');
+      var modTxt = escapeHtml(row.module || '');
+      var msgEsc = escapeHtml(row.message || '');
+      h +=
+        '<div style="display:flex;gap:12px;align-items:flex-start;padding:8px 12px;border-bottom:1px solid #f0f0f0;' +
+        'font-family:monospace;font-size:13px;background:' + bg + '">' +
+        '<span style="flex-shrink:0;color:#666;white-space:nowrap">' + timeTxt + '</span>' +
+        '<span class="' + tagCls + '" style="flex-shrink:0">' + escapeHtml(row.level || '') + '</span>' +
+        '<span style="flex-shrink:0;color:#333;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="' + modTxt + '">' + modTxt + '</span>' +
+        '<span style="flex:1;min-width:0;word-break:break-all;color:#333">' + msgEsc + '</span>';
+      if (logType === 'error' && row.level === 'ERROR') {
+        var arg = JSON.stringify(row.message || '').replace(/<\//g, '\\u003c/');
+        var onBody = 'showLogDetail(' + arg + ')';
+        var onEsc = onBody.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        h +=
+          '<button type="button" class="btn btn-link" style="flex-shrink:0;padding:0;white-space:nowrap;font-size:13px" ' +
+          'onclick="' + onEsc + '">详情</button>';
+      }
+      h += '</div>';
+    }
+    el.innerHTML = h;
+  };
+
+  window.queryLogs = async function (logType, page) {
+    var f = readFilters(logType);
+    if (!validateLogRange(f.startDate, f.endDate, false)) return;
+
+    pageState[logType].page = page;
+    pageState[logType].level = f.level;
+    pageState[logType].startDate = f.startDate;
+    pageState[logType].endDate = f.endDate;
+
+    var listEl = document.getElementById('log-list-' + logType);
+    if (listEl) {
+      listEl.innerHTML =
+        '<div style="text-align:center;padding:48px 16px;color:var(--text-disabled)">加载中...</div>';
+    }
+
+    var qs =
+      'log_type=' + encodeURIComponent(logType) +
+      '&start_date=' + encodeURIComponent(f.startDate) +
+      '&end_date=' + encodeURIComponent(f.endDate) +
+      '&page=' + page +
+      '&page_size=' + PAGE_SIZE;
+    if (f.level) qs += '&level=' + encodeURIComponent(f.level);
+
+    var res = await adminRequest('GET', '/api/admin/system/logs?' + qs, null, false, { silentErrorToast: true });
+    if (!res || res.code !== 0) {
+      if (listEl) {
+        listEl.innerHTML =
+          '<div style="text-align:center;padding:48px 16px;color:var(--text-disabled)">加载失败，请重试</div>';
+      }
+      if (res && res.message) showToast(res.message, 'error');
+      else if (!res) { /* adminRequest 已 Toast 网络类 */ }
+      return;
+    }
+
+    var data = res.data || {};
+    pageState[logType].total = data.total != null ? data.total : 0;
+    pageState[logType].hasQueried = true;
+    renderLogList(logType, data.list || []);
+
+    renderPagination(
+      'pagination-' + logType,
+      page,
+      pageState[logType].total,
+      PAGE_SIZE,
+      function (p) { queryLogs(logType, p); }
+    );
+  };
+
+  window.exportLogs = async function (logType) {
+    var start =
+      pageState[logType].startDate ||
+      (document.querySelector('.log-start-date[data-type="' + logType + '"]') || {}).value ||
+      '';
+    var end =
+      pageState[logType].endDate ||
+      (document.querySelector('.log-end-date[data-type="' + logType + '"]') || {}).value ||
+      '';
+    var level =
+      pageState[logType].level ||
+      (document.querySelector('.log-level-select[data-type="' + logType + '"]') || {}).value ||
+      '';
+
+    if (!validateLogRange(start, end, true)) return;
+
+    var url =
+      '/api/admin/system/logs/export?log_type=' +
+      encodeURIComponent(logType) +
+      '&start_date=' +
+      encodeURIComponent(start) +
+      '&end_date=' +
+      encodeURIComponent(end);
+    if (level) url += '&level=' + encodeURIComponent(level);
+
+    await adminRequest('POST', url);
+  };
+
+  window.showLogDetail = function (message) {
+    var body = document.getElementById('log-detail-content');
+    var modal = document.getElementById('log-detail-modal');
+    if (body) body.textContent = message == null ? '' : String(message);
+    if (modal) modal.classList.add('show');
+  };
+
+  window.closeDetailModal = function () {
+    var modal = document.getElementById('log-detail-modal');
+    if (modal) modal.classList.remove('show');
+  };
+
+  document.body.innerHTML =
+    renderSidebar('system-logs') +
+    renderHeader('系统日志') +
+    '<div class="admin-content">' +
+      '<div id="log-tabs" class="tabs">' +
+        '<div class="tab-item active" data-target="tab-system" data-log-type="system">系统日志（30天）</div>' +
+        '<div class="tab-item" data-target="tab-error" data-log-type="error">错误日志（90天）</div>' +
+      '</div>' +
+      '<div id="tab-system" class="tab-pane active">' +
+        '<div class="alert alert-info" style="font-size:12px;margin-bottom:12px">' +
+          '当前显示最近 30 天的日志，超出范围的已自动清除。' +
+        '</div>' +
+        '<div id="filter-system"></div>' +
+        '<div class="page-card" id="log-list-system" style="padding:0;overflow:hidden"></div>' +
+        '<div id="pagination-system"></div>' +
+      '</div>' +
+      '<div id="tab-error" class="tab-pane">' +
+        '<div class="alert alert-info" style="font-size:12px;margin-bottom:12px">' +
+          '错误日志保留 90天，单次查询范围 ≤ 30天；单次导出范围 ≤ 7天。' +
+        '</div>' +
+        '<div id="filter-error"></div>' +
+        '<div class="page-card" id="log-list-error" style="padding:0;overflow:hidden"></div>' +
+        '<div id="pagination-error"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="log-detail-modal" class="modal-overlay">' +
+      '<div class="modal-content" style="min-width:640px;max-width:840px">' +
+        '<div class="modal-header">' +
+          '<h3>错误详情</h3>' +
+          '<button type="button" class="btn btn-link" onclick="closeDetailModal()">✕</button>' +
+        '</div>' +
+        '<div class="modal-body">' +
+          '<pre id="log-detail-content"></pre>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+          '<button type="button" class="btn btn-default" onclick="closeDetailModal()">关闭</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  function bindTabLazyLoad() {
+    var container = document.getElementById('log-tabs');
+    if (!container) return;
+    var items = container.querySelectorAll('.tab-item');
+    items.forEach(function (item) {
+      item.addEventListener('click', function () {
+        var lt = item.dataset.logType;
+        if (!lt || !pageState[lt]) return;
+        if (!pageState[lt].hasQueried) {
+          setTimeout(function () { queryLogs(lt, 1); }, 50);
+        }
+      });
+    });
+  }
+
+  initTabs('log-tabs');
+  initFilters();
+  bindTabLazyLoad();
+  queryLogs('system', 1);
+
+  document.getElementById('log-detail-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeDetailModal();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>林小梦 - 日记</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    .page-body {
+      padding: 56px 16px calc(16px + var(--safe-area-bottom));
+    }
+
+    /* 日记卡片 */
+    .diary-card {
+      margin-bottom: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    /* 未读标识 */
+    .diary-card.unread {
+      border-left: 4px solid #FF8C00;
+    }
+
+    .diary-card .unread-dot {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #FF8C00;
+      transition: opacity 0.3s;
+    }
+
+    .diary-card.read .unread-dot {
+      opacity: 0;
+    }
+
+    .diary-card .diary-date {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 8px;
+    }
+
+    .diary-card .diary-content {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #555;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      transition: max-height 0.3s ease;
+      word-break: break-word;
+    }
+
+    .diary-card.expanded .diary-content {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
+
+    .diary-card .expand-btn {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--color-gray);
+      cursor: pointer;
+    }
+
+    .diary-card .expand-btn:active {
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <div class="top-bar">
+    <div class="bar-left">
+      <button class="back-btn" onclick="history.back()">←</button>
+    </div>
+    <div class="bar-center">林小梦的日记</div>
+    <div class="bar-right"></div>
+  </div>
+
+  <div class="page-body">
+    <div id="diary-list"></div>
+    <div class="load-more-sentinel" id="bottom-sentinel"></div>
+    <div class="no-more-text" id="no-more" style="display:none">没有更多日记了</div>
+
+    <!-- 空状态（等级≥1） -->
+    <div class="empty-state" id="empty-active" style="display:none">
+      <div class="empty-icon">
+        <div class="empty-bubble"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+      </div>
+      <div class="empty-text">今天林小梦还没写新日记哦<br>多和我聊聊吧</div>
+      <button class="btn-primary" onclick="location.href='/pages/chat.html'">去聊天</button>
+    </div>
+
+    <!-- 空状态（等级=0） -->
+    <div class="empty-state" id="empty-new" style="display:none">
+      <div class="empty-icon">
+        <div class="empty-bubble"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+      </div>
+      <div class="empty-text">和我多聊聊天<br>我会把我们的故事都记下来</div>
+    </div>
+
+    <!-- 列表加载失败（避免整页空白且无提示） -->
+    <div class="empty-state" id="empty-error" style="display:none">
+      <div class="empty-text" id="empty-error-text">日记加载失败，请检查网络后重试</div>
+      <button type="button" class="btn-primary" id="btn-retry-diary">重新加载</button>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    checkLogin()
+
+    let currentPage = 1
+    let loading = false
+    let noMore = false
+    let totalLoaded = 0
+    let relationLevel = parseInt(localStorage.getItem('relationship_level') || '0', 10) || 0
+
+    function hideAllEmptyStates() {
+      document.getElementById('empty-active').style.display = 'none'
+      document.getElementById('empty-new').style.display = 'none'
+      document.getElementById('empty-error').style.display = 'none'
+    }
+
+    /* ====== 日期格式化 ====== */
+    function formatDiaryDate(isoString) {
+      if (!isoString) return ''
+      const date = new Date(isoString)
+      return (date.getMonth() + 1) + '月' + date.getDate() + '日'
+    }
+
+    /* ====== 加载日记 ====== */
+    async function loadDiaries(page) {
+      if (loading || noMore) return
+      loading = true
+
+      const res = await request('GET', '/api/diary/list?page=' + page)
+      if (!res || res.code !== 0 || !res.data) {
+        loading = false
+        if (page === 1) {
+          showToast((res && res.message) || '日记列表加载失败，请稍后重试', 'error')
+          hideAllEmptyStates()
+          const errEl = document.getElementById('empty-error')
+          const errText = document.getElementById('empty-error-text')
+          if (errText) errText.textContent = (res && res.message) || '日记加载失败，请检查网络后重试'
+          errEl.style.display = 'flex'
+        }
+        return
+      }
+
+      const data = res.data
+      // 兼容异常结构，避免误判为有数据
+      const items = Array.isArray(data.items) ? data.items : []
+      const pageSize = typeof data.page_size === 'number' && data.page_size > 0 ? data.page_size : 20
+      const total = data.total
+
+      if (page === 1) {
+        hideAllEmptyStates()
+      }
+
+      if (items.length === 0 && page === 1) {
+        noMore = true
+        showEmptyState()
+        loading = false
+        return
+      }
+
+      if (items.length === 0 && page > 1) {
+        noMore = true
+        loading = false
+        return
+      }
+
+      if (items.length > 0) {
+        const totalIsNum = typeof total === 'number' && !isNaN(total)
+        if (totalIsNum) {
+          if (totalLoaded + items.length >= total) {
+            noMore = true
+            document.getElementById('no-more').style.display = 'block'
+          }
+        } else if (items.length < pageSize) {
+          noMore = true
+          if (totalLoaded + items.length > 0) {
+            document.getElementById('no-more').style.display = 'block'
+          }
+        }
+
+        items.forEach(d => appendDiaryCard(d))
+        totalLoaded += items.length
+        currentPage = page
+      }
+
+      loading = false
+    }
+
+    function showEmptyState() {
+      hideAllEmptyStates()
+      if (relationLevel >= 1) {
+        document.getElementById('empty-active').style.display = 'flex'
+      } else {
+        document.getElementById('empty-new').style.display = 'flex'
+      }
+    }
+
+    function appendDiaryCard(diary) {
+      const list = document.getElementById('diary-list')
+      const card = document.createElement('div')
+      card.className = 'card diary-card' + (diary.is_read ? '' : ' unread')
+      card.dataset.id = diary.id
+
+      card.innerHTML = `
+        ${diary.is_read ? '' : '<div class="unread-dot"></div>'}
+        <div class="diary-date">${formatDiaryDate(diary.created_at)}</div>
+        <div class="diary-content">${escapeHtml(diary.content)}</div>
+        <span class="expand-btn">展开全文</span>
+      `
+
+      card.addEventListener('click', function (e) {
+        toggleDiary(card, diary)
+      })
+
+      list.appendChild(card)
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    /* ====== 展开/收起日记 ====== */
+    async function toggleDiary(card, diary) {
+      const isExpanded = card.classList.contains('expanded')
+
+      if (isExpanded) {
+        card.classList.remove('expanded')
+        card.querySelector('.expand-btn').textContent = '展开全文'
+      } else {
+        card.classList.add('expanded')
+        card.querySelector('.expand-btn').textContent = '收起'
+
+        // 标记已读
+        if (card.classList.contains('unread')) {
+          card.classList.remove('unread')
+          card.classList.add('read')
+          request('POST', '/api/diary/' + diary.id + '/read')
+        }
+      }
+    }
+
+    /* ====== 触底加载 ====== */
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !loading && !noMore) {
+        loadDiaries(currentPage + 1)
+      }
+    })
+    observer.observe(document.getElementById('bottom-sentinel'))
+
+    /* ====== 初始化 ====== */
+    async function initDiary() {
+      // 先拉日记列表，避免被关系接口阻塞导致整页空白（关系接口慢/异常时不影响读日记）
+      const diaryPromise = loadDiaries(1)
+      request('GET', '/api/relationship/status').then(function (relRes) {
+        if (relRes && relRes.code === 0 && relRes.data) {
+          relationLevel = relRes.data.level || 0
+          localStorage.setItem('relationship_level', String(relationLevel))
+          // 若已展示「无日记」空状态，按最新等级切换文案
+          var list = document.getElementById('diary-list')
+          if (list && list.children.length === 0) {
+            var ea = document.getElementById('empty-active')
+            var en = document.getElementById('empty-new')
+            if ((ea && ea.style.display === 'flex') || (en && en.style.display === 'flex')) {
+              showEmptyState()
+            }
+          }
+        }
+      })
+      await diaryPromise
+    }
+
+    document.getElementById('btn-retry-diary').addEventListener('click', function () {
+      loading = false
+      noMore = false
+      currentPage = 1
+      totalLoaded = 0
+      document.getElementById('diary-list').innerHTML = ''
+      document.getElementById('no-more').style.display = 'none'
+      hideAllEmptyStates()
+      initDiary()
+    })
+
+    initDiary()
+  </script>
+</body>
+</html>

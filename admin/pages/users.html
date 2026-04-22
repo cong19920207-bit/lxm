@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-row + .filter-row {
+      margin-top: 12px;
+    }
+
+    .filter-row .form-control {
+      width: 180px;
+    }
+
+    .filter-row .search-input {
+      width: 220px;
+    }
+
+    .date-range {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-range .form-control {
+      width: 150px;
+    }
+
+    .date-range-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .op-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: all 0.2s;
+    }
+
+    .op-btn-detail {
+      color: var(--primary);
+    }
+
+    .op-btn-detail:hover {
+      background: #e6f7ff;
+    }
+
+    .op-btn-danger {
+      color: var(--danger);
+    }
+
+    .op-btn-danger:hover {
+      background: #fff2f0;
+    }
+
+    .op-btn-success {
+      color: var(--success);
+    }
+
+    .op-btn-success:hover {
+      background: #f6ffed;
+    }
+
+    .empty-tip {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>checkAdminLogin();</script>
+
+<script>
+  document.body.innerHTML =
+    renderSidebar('users') +
+    renderHeader('用户管理') +
+    '<div class="admin-content" id="usersContent"></div>';
+</script>
+
+<script>
+(function () {
+  var PAGE_SIZE = 20;
+  var currentPage = 1;
+
+  /* 筛选条件 */
+  var filters = {
+    username: '',
+    relationship_level: '',
+    status: '',
+    register_start: '',
+    register_end: '',
+    last_login_start: '',
+    last_login_end: ''
+  };
+
+  /* 关系等级配置 */
+  var LEVEL_CONFIG = {
+    0: { name: '0级陌生', tagClass: 'tag-default' },
+    1: { name: '1级朋友', tagClass: 'tag-blue' },
+    2: { name: '2级亲密', tagClass: 'tag-warning' },
+    3: { name: '3级知己', tagClass: 'tag-success' }
+  };
+
+  /* ─── 初始化页面结构 ─── */
+  var contentEl = document.getElementById('usersContent');
+  contentEl.innerHTML =
+    '<div class="page-card">' +
+      '<div class="filter-row">' +
+        '<input type="text" class="form-control search-input" id="filterUsername" placeholder="搜索账号...">' +
+        '<select class="form-control" id="filterLevel">' +
+          '<option value="">全部等级</option>' +
+          '<option value="0">0级陌生</option>' +
+          '<option value="1">1级朋友</option>' +
+          '<option value="2">2级亲密</option>' +
+          '<option value="3">3级知己</option>' +
+        '</select>' +
+        '<select class="form-control" id="filterStatus">' +
+          '<option value="">全部状态</option>' +
+          '<option value="normal">正常</option>' +
+          '<option value="banned">禁用</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="filter-row">' +
+        '<div class="date-range">' +
+          '<span class="date-range-label">注册时间</span>' +
+          '<input type="date" class="form-control" id="filterRegStart">' +
+          '<span class="date-range-label">至</span>' +
+          '<input type="date" class="form-control" id="filterRegEnd">' +
+        '</div>' +
+        '<div class="date-range">' +
+          '<span class="date-range-label">最后登录</span>' +
+          '<input type="date" class="form-control" id="filterLoginStart">' +
+          '<span class="date-range-label">至</span>' +
+          '<input type="date" class="form-control" id="filterLoginEnd">' +
+        '</div>' +
+        '<button class="btn btn-primary" id="btnSearch">搜索</button>' +
+        '<button class="btn btn-default" id="btnReset">重置</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="page-card">' +
+      '<div class="table-wrap">' +
+        '<table class="admin-table" id="userTable">' +
+          '<thead><tr>' +
+            '<th>用户ID</th>' +
+            '<th>账号</th>' +
+            '<th>注册时间</th>' +
+            '<th>最后登录</th>' +
+            '<th>关系等级</th>' +
+            '<th>成长值</th>' +
+            '<th>累计对话</th>' +
+            '<th>状态</th>' +
+            '<th>操作</th>' +
+          '</tr></thead>' +
+          '<tbody id="userTbody"></tbody>' +
+        '</table>' +
+      '</div>' +
+      '<div id="paginationWrap"></div>' +
+    '</div>';
+
+  /* ─── DOM 引用 ─── */
+  var elUsername = document.getElementById('filterUsername');
+  var elLevel = document.getElementById('filterLevel');
+  var elStatus = document.getElementById('filterStatus');
+  var elRegStart = document.getElementById('filterRegStart');
+  var elRegEnd = document.getElementById('filterRegEnd');
+  var elLoginStart = document.getElementById('filterLoginStart');
+  var elLoginEnd = document.getElementById('filterLoginEnd');
+  var elTbody = document.getElementById('userTbody');
+
+  /* ─── 收集筛选条件 ─── */
+  function collectFilters() {
+    filters.username = elUsername.value.trim();
+    filters.relationship_level = elLevel.value;
+    filters.status = elStatus.value;
+    filters.register_start = elRegStart.value;
+    filters.register_end = elRegEnd.value;
+    filters.last_login_start = elLoginStart.value;
+    filters.last_login_end = elLoginEnd.value;
+  }
+
+  /* ─── 构建查询参数 ─── */
+  function buildQuery(page) {
+    var params = ['page=' + page, 'page_size=' + PAGE_SIZE];
+    if (filters.username) params.push('username=' + encodeURIComponent(filters.username));
+    if (filters.relationship_level !== '') params.push('relationship_level=' + filters.relationship_level);
+    if (filters.status) params.push('status=' + filters.status);
+    if (filters.register_start) params.push('register_start=' + filters.register_start);
+    if (filters.register_end) params.push('register_end=' + filters.register_end);
+    if (filters.last_login_start) params.push('last_login_start=' + filters.last_login_start);
+    if (filters.last_login_end) params.push('last_login_end=' + filters.last_login_end);
+    return params.join('&');
+  }
+
+  /* ─── 渲染表格行 ─── */
+  function renderRows(items) {
+    if (!items || items.length === 0) {
+      elTbody.innerHTML =
+        '<tr><td colspan="9" class="empty-tip">暂无用户数据</td></tr>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+      var u = items[i];
+      var levelCfg = LEVEL_CONFIG[u.relationship_level] || LEVEL_CONFIG[0];
+      var isBanned = u.status === 'banned';
+      var statusTag = isBanned
+        ? '<span class="tag tag-error">禁用</span>'
+        : '<span class="tag tag-success">正常</span>';
+      var toggleLabel = isBanned ? '启用' : '禁用';
+      var toggleClass = isBanned ? 'op-btn-success' : 'op-btn-danger';
+
+      html +=
+        '<tr>' +
+          '<td>' + u.id + '</td>' +
+          '<td>' + escapeHtml(u.username) + '</td>' +
+          '<td>' + formatDateTime(u.created_at) + '</td>' +
+          '<td>' + formatDateTime(u.last_login_at) + '</td>' +
+          '<td><span class="tag ' + levelCfg.tagClass + '">' + levelCfg.name + '</span></td>' +
+          '<td>' + u.growth_value + '</td>' +
+          '<td>' + u.total_conversation_count + '</td>' +
+          '<td>' + statusTag + '</td>' +
+          '<td>' +
+            '<button class="op-btn op-btn-detail" onclick="goDetail(' + u.id + ')">详情</button>' +
+            '<button class="op-btn ' + toggleClass + '" onclick="toggleStatus(' + u.id + ',\'' + u.username + '\',' + isBanned + ')">' + toggleLabel + '</button>' +
+          '</td>' +
+        '</tr>';
+    }
+    elTbody.innerHTML = html;
+  }
+
+  /* ─── HTML 转义 ─── */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ─── 加载用户列表 ─── */
+  async function loadUsers(page) {
+    if (page === undefined) page = 1;
+    currentPage = page;
+    collectFilters();
+
+    var res = await adminRequest('GET', '/api/admin/users?' + buildQuery(page));
+    if (!res || res.code !== 0) {
+      elTbody.innerHTML =
+        '<tr><td colspan="9" class="empty-tip">加载失败，请重试</td></tr>';
+      return;
+    }
+
+    var data = res.data || {};
+    renderRows(data.list || []);
+    renderPagination('paginationWrap', data.page || 1, data.total || 0, PAGE_SIZE, goPage);
+  }
+
+  /* ─── 翻页 ─── */
+  window.goPage = function (page) {
+    loadUsers(page);
+  };
+
+  /* ─── 跳转详情 ─── */
+  window.goDetail = function (userId) {
+    window.location.href = '/admin/pages/user-detail.html?id=' + userId;
+  };
+
+  /* ─── 禁用/启用 ─── */
+  window.toggleStatus = function (userId, username, isBanned) {
+    var action = isBanned ? 'unban' : 'ban';
+    var actionLabel = isBanned ? '启用' : '禁用';
+    showConfirm(
+      '确定要' + actionLabel + '用户「' + username + '」吗？',
+      async function () {
+        var res = await adminRequest('PUT', '/api/admin/users/' + userId + '/status', { action: action });
+        if (res && res.code === 0) {
+          showToast(res.message || '操作成功', 'success');
+          loadUsers(currentPage);
+        }
+      }
+    );
+  };
+
+  /* ─── 搜索按钮 ─── */
+  document.getElementById('btnSearch').addEventListener('click', function () {
+    loadUsers(1);
+  });
+
+  /* ─── 重置按钮 ─── */
+  document.getElementById('btnReset').addEventListener('click', function () {
+    elUsername.value = '';
+    elLevel.value = '';
+    elStatus.value = '';
+    elRegStart.value = '';
+    elRegEnd.value = '';
+    elLoginStart.value = '';
+    elLoginEnd.value = '';
+    loadUsers(1);
+  });
+
+  /* ─── 账号搜索框 debounce ─── */
+  var debouncedLoad = debounce(function () { loadUsers(1); }, 500);
+  elUsername.addEventListener('input', debouncedLoad);
+
+  /* ─── 首次加载 ─── */
+  loadUsers(1);
+})();
+</script>
+
+</body>
+</html>

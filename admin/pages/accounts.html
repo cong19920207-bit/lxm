@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账号管理 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+</head>
+<body>
+
+<!-- Step 3：创建账号 Modal -->
+<div id="create-account-modal-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width:520px" role="dialog" aria-labelledby="create-account-title" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="create-account-title">新建账号</h3>
+      <button type="button" class="btn btn-link" id="create-account-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="required" for="create-username">账号</label>
+        <input type="text" id="create-username" class="form-control" maxlength="50" placeholder="请输入账号" autocomplete="username">
+      </div>
+      <div class="form-item">
+        <label class="required" for="create-password">密码</label>
+        <input type="password" id="create-password" class="form-control" placeholder="请输入密码" autocomplete="new-password">
+        <div class="pwd-rule-list" id="create-pwd-rules">
+          <div class="pwd-rule-item fail" data-rule="len"><span class="pwd-rule-mark">✗</span> ≥ 12位</div>
+          <div class="pwd-rule-item fail" data-rule="upper"><span class="pwd-rule-mark">✗</span> 含大写字母（A-Z）</div>
+          <div class="pwd-rule-item fail" data-rule="lower"><span class="pwd-rule-mark">✗</span> 含小写字母（a-z）</div>
+          <div class="pwd-rule-item fail" data-rule="digit"><span class="pwd-rule-mark">✗</span> 含数字（0-9）</div>
+          <div class="pwd-rule-item fail" data-rule="special"><span class="pwd-rule-mark">✗</span> 含特殊字符（非字母数字）</div>
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="required" for="create-confirm-password">确认密码</label>
+        <input type="password" id="create-confirm-password" class="form-control" placeholder="请再次输入密码" autocomplete="new-password">
+        <div class="form-error" id="create-confirm-error" style="display:none">两次密码不一致</div>
+      </div>
+      <div class="form-item">
+        <label class="required" for="create-role">角色</label>
+        <select id="create-role" class="form-control">
+          <option value="">请选择角色</option>
+          <option value="super_admin">超级管理员</option>
+          <option value="ops_admin">运营管理员</option>
+          <option value="ai_trainer">AI训练师</option>
+          <option value="tech_ops">技术运维</option>
+        </select>
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label for="create-remark">备注</label>
+        <textarea id="create-remark" class="form-control" maxlength="200" placeholder="选填，最多200字"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="create-account-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="create-account-submit" disabled>确认创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4：编辑他人账号 Modal（角色 + 备注） -->
+<div id="edit-account-modal-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width:520px" role="dialog" aria-labelledby="edit-account-title" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="edit-account-title">编辑账号</h3>
+      <button type="button" class="btn btn-link" id="edit-account-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="edit-account-username-hint" class="modal-hint" aria-live="polite"></p>
+      <div class="form-item">
+        <label class="required" for="edit-role">角色</label>
+        <select id="edit-role" class="form-control">
+          <option value="super_admin">超级管理员</option>
+          <option value="ops_admin">运营管理员</option>
+          <option value="ai_trainer">AI训练师</option>
+          <option value="tech_ops">技术运维</option>
+        </select>
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label for="edit-remark">备注</label>
+        <textarea id="edit-remark" class="form-control" maxlength="200" placeholder="选填，最多200字"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="edit-account-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="edit-account-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4：仅修改本人备注 Modal（不含角色） -->
+<div id="edit-remark-modal-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width:520px" role="dialog" aria-labelledby="edit-remark-modal-title" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="edit-remark-modal-title">修改备注</h3>
+      <button type="button" class="btn btn-link" id="edit-remark-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">仅可修改自己账号的备注</p>
+      <div class="form-item" style="margin-bottom:0">
+        <label for="edit-remark-self">备注</label>
+        <textarea id="edit-remark-self" class="form-control" maxlength="200" placeholder="选填，最多200字"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="edit-remark-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="edit-remark-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 5：重置密码成功展示（管理员账号 POST /api/admin/accounts/{id}/reset-password） -->
+<div id="reset-password-result-modal-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width:520px" role="dialog" aria-labelledby="reset-pwd-result-title" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="reset-pwd-result-title">密码重置成功</h3>
+      <button type="button" class="btn btn-link" id="reset-pwd-result-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px;color:#333;font-size:14px;line-height:1.6">新密码如下（16位强密码），请及时告知该管理员<br>并提醒其登录后修改密码：</p>
+      <div id="reset-pwd-result-value" style="font-family:monospace;font-size:20px;letter-spacing:2px;padding:12px;background:#f5f5f5;border-radius:4px;user-select:all;word-break:break-all"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="reset-pwd-result-copy">复制密码</button>
+      <button type="button" class="btn btn-primary" id="reset-pwd-result-done">我已记录</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+// 后续所有函数通过此变量判断「自身账号」
+let currentUsername = ''
+
+// 存储行数据，Key 为 id，供操作按钮回调读取（Step 2 填充）
+const accountMap = new Map()
+
+// Step 4：当前编辑中的账号 id（PUT 路径用）
+var editAccountTargetId = null
+var editRemarkTargetId = null
+
+// Step 5：重置密码成功 Modal 中展示的明文（供复制，不写入 HTML）
+var resetPasswordResultPlain = ''
+
+/** 表格单元格文本转义，防止 XSS */
+function escapeHtml(str) {
+  if (str == null) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** 角色列 Tag HTML */
+function roleTagHtml(role) {
+  var map = {
+    super_admin: { cls: 'tag tag-error', text: '超级管理员' },
+    ops_admin: { cls: 'tag tag-blue', text: '运营管理员' },
+    ai_trainer: { cls: 'tag tag-success', text: 'AI训练师' },
+    tech_ops: { cls: 'tag tag-warning', text: '技术运维' }
+  }
+  var item = map[role] || { cls: 'tag tag-default', text: role || '-' }
+  return '<span class="' + item.cls + '">' + escapeHtml(item.text) + '</span>'
+}
+
+/** 状态列 Tag：锁定优先展示 */
+function statusTagHtml(isLocked) {
+  if (isLocked) {
+    return '<span class="tag tag-error">已锁定</span>'
+  }
+  return '<span class="tag tag-success">正常</span>'
+}
+
+/** 与后端 accounts._validate_admin_password 一致 */
+function checkPasswordComplexity(password) {
+  return {
+    len: password.length >= 12,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    digit: /[0-9]/.test(password),
+    special: /[^a-zA-Z0-9]/.test(password)
+  }
+}
+
+function resetCreateAccountModal() {
+  var u = document.getElementById('create-username')
+  var p = document.getElementById('create-password')
+  var c = document.getElementById('create-confirm-password')
+  var r = document.getElementById('create-role')
+  var m = document.getElementById('create-remark')
+  var err = document.getElementById('create-confirm-error')
+  if (u) u.value = ''
+  if (p) p.value = ''
+  if (c) c.value = ''
+  if (r) r.value = ''
+  if (m) m.value = ''
+  if (err) err.style.display = 'none'
+  // 密码规则 UI 重置为未满足
+  var rules = document.querySelectorAll('#create-pwd-rules .pwd-rule-item')
+  for (var i = 0; i < rules.length; i++) {
+    rules[i].classList.remove('ok')
+    rules[i].classList.add('fail')
+    var mk = rules[i].querySelector('.pwd-rule-mark')
+    if (mk) mk.textContent = '✗'
+  }
+  updateCreateAccountSubmitState()
+}
+
+function updatePasswordRuleDisplay(password) {
+  var checks = checkPasswordComplexity(password)
+  var keys = ['len', 'upper', 'lower', 'digit', 'special']
+  for (var k = 0; k < keys.length; k++) {
+    var key = keys[k]
+    var el = document.querySelector('#create-pwd-rules .pwd-rule-item[data-rule="' + key + '"]')
+    if (!el) continue
+    var ok = checks[key]
+    el.classList.toggle('ok', ok)
+    el.classList.toggle('fail', !ok)
+    var mk = el.querySelector('.pwd-rule-mark')
+    if (mk) mk.textContent = ok ? '✓' : '✗'
+  }
+  return checks
+}
+
+function passwordRulesAllMet(checks) {
+  return checks.len && checks.upper && checks.lower && checks.digit && checks.special
+}
+
+function updateCreateAccountSubmitState() {
+  var btn = document.getElementById('create-account-submit')
+  if (!btn) return
+  var username = (document.getElementById('create-username') && document.getElementById('create-username').value.trim()) || ''
+  var password = (document.getElementById('create-password') && document.getElementById('create-password').value) || ''
+  var confirmPwd = (document.getElementById('create-confirm-password') && document.getElementById('create-confirm-password').value) || ''
+  var role = (document.getElementById('create-role') && document.getElementById('create-role').value) || ''
+  var checks = checkPasswordComplexity(password)
+  var pwdOk = passwordRulesAllMet(checks)
+  var confirmOk = confirmPwd.length > 0 && password === confirmPwd
+  var roleOk = role.length > 0
+  var userOk = username.length > 0
+  btn.disabled = !(userOk && pwdOk && confirmOk && roleOk)
+}
+
+function onCreateConfirmPasswordInput() {
+  var password = (document.getElementById('create-password') && document.getElementById('create-password').value) || ''
+  var confirmPwd = (document.getElementById('create-confirm-password') && document.getElementById('create-confirm-password').value) || ''
+  var err = document.getElementById('create-confirm-error')
+  if (!err) return
+  if (confirmPwd.length === 0) {
+    err.style.display = 'none'
+  } else if (password !== confirmPwd) {
+    err.style.display = 'block'
+  } else {
+    err.style.display = 'none'
+  }
+  updateCreateAccountSubmitState()
+}
+
+function closeCreateModal() {
+  var overlay = document.getElementById('create-account-modal-overlay')
+  if (overlay) {
+    overlay.classList.remove('show')
+    overlay.setAttribute('aria-hidden', 'true')
+  }
+}
+
+function openCreateModal() {
+  resetCreateAccountModal()
+  var overlay = document.getElementById('create-account-modal-overlay')
+  if (overlay) {
+    overlay.classList.add('show')
+    overlay.setAttribute('aria-hidden', 'false')
+  }
+  setTimeout(function () {
+    var el = document.getElementById('create-username')
+    if (el) el.focus()
+  }, 50)
+}
+
+async function submitCreateAccount() {
+  var usernameEl = document.getElementById('create-username')
+  var passwordEl = document.getElementById('create-password')
+  var roleEl = document.getElementById('create-role')
+  var remarkEl = document.getElementById('create-remark')
+  if (!usernameEl || !passwordEl || !roleEl) return
+  var username = usernameEl.value.trim()
+  var password = passwordEl.value
+  var role = roleEl.value
+  var remark = (remarkEl && remarkEl.value.trim()) || ''
+  if (!username) {
+    showToast('请填写账号', 'error')
+    return
+  }
+  if (!passwordRulesAllMet(checkPasswordComplexity(password))) {
+    showToast('密码不符合复杂度要求', 'error')
+    return
+  }
+  if (password !== (document.getElementById('create-confirm-password') && document.getElementById('create-confirm-password').value)) {
+    showToast('两次密码不一致', 'error')
+    return
+  }
+  if (!role) {
+    showToast('请选择角色', 'error')
+    return
+  }
+  var body = { username: username, password: password, role: role, remark: remark || null }
+  var result = await adminRequest('POST', '/api/admin/accounts', body, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0) {
+    closeCreateModal()
+    showToast('账号创建成功', 'success')
+    loadAccountList()
+    return
+  }
+  if (result.code === 20014) {
+    showToast('账号名已存在，请换一个', 'error')
+    return
+  }
+  if (result.code === 20007) {
+    showToast('密码不符合复杂度要求', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+function initCreateAccountModal() {
+  var overlay = document.getElementById('create-account-modal-overlay')
+  var pwd = document.getElementById('create-password')
+  var confirmPwd = document.getElementById('create-confirm-password')
+  var user = document.getElementById('create-username')
+  var role = document.getElementById('create-role')
+  var submitBtn = document.getElementById('create-account-submit')
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeCreateModal()
+    })
+  }
+  var closeBtn = document.getElementById('create-account-close')
+  var cancelBtn = document.getElementById('create-account-cancel')
+  if (closeBtn) closeBtn.onclick = closeCreateModal
+  if (cancelBtn) cancelBtn.onclick = closeCreateModal
+  if (pwd) {
+    pwd.addEventListener('input', function () {
+      updatePasswordRuleDisplay(pwd.value)
+      onCreateConfirmPasswordInput()
+      updateCreateAccountSubmitState()
+    })
+  }
+  if (confirmPwd) {
+    confirmPwd.addEventListener('input', onCreateConfirmPasswordInput)
+  }
+  if (user) {
+    user.addEventListener('input', updateCreateAccountSubmitState)
+  }
+  if (role) {
+    role.addEventListener('change', updateCreateAccountSubmitState)
+  }
+  if (submitBtn) {
+    submitBtn.onclick = submitCreateAccount
+  }
+}
+
+function resetEditAccountModal() {
+  editAccountTargetId = null
+  var hint = document.getElementById('edit-account-username-hint')
+  var role = document.getElementById('edit-role')
+  var remark = document.getElementById('edit-remark')
+  if (hint) hint.textContent = ''
+  if (role) role.value = ''
+  if (remark) remark.value = ''
+}
+
+function closeEditAccountModal() {
+  var overlay = document.getElementById('edit-account-modal-overlay')
+  if (overlay) {
+    overlay.classList.remove('show')
+    overlay.setAttribute('aria-hidden', 'true')
+  }
+}
+
+function openEditModal(id) {
+  resetEditAccountModal()
+  var row = accountMap.get(id)
+  if (!row) return
+  editAccountTargetId = id
+  var hint = document.getElementById('edit-account-username-hint')
+  var role = document.getElementById('edit-role')
+  var remark = document.getElementById('edit-remark')
+  if (hint) hint.textContent = '正在编辑：' + row.username
+  if (role) role.value = row.role || ''
+  if (remark) remark.value = row.remark != null ? String(row.remark) : ''
+  var overlay = document.getElementById('edit-account-modal-overlay')
+  if (overlay) {
+    overlay.classList.add('show')
+    overlay.setAttribute('aria-hidden', 'false')
+  }
+  setTimeout(function () {
+    var el = document.getElementById('edit-role')
+    if (el) el.focus()
+  }, 50)
+}
+
+async function submitEditAccount() {
+  if (editAccountTargetId == null) return
+  var roleEl = document.getElementById('edit-role')
+  var remarkEl = document.getElementById('edit-remark')
+  if (!roleEl) return
+  var role = roleEl.value
+  var remark = (remarkEl && remarkEl.value.trim()) || ''
+  if (!role) {
+    showToast('请选择角色', 'error')
+    return
+  }
+  var body = { role: role, remark: remark }
+  var path = '/api/admin/accounts/' + editAccountTargetId
+  var result = await adminRequest('PUT', path, body, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0) {
+    closeEditAccountModal()
+    showToast('账号已更新', 'success')
+    loadAccountList()
+    return
+  }
+  if (result.code === 20015) {
+    showToast('账号不存在', 'error')
+    return
+  }
+  if (result.code === 20016) {
+    showToast('不可修改自己的角色', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+function initEditAccountModal() {
+  var overlay = document.getElementById('edit-account-modal-overlay')
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeEditAccountModal()
+    })
+  }
+  var closeBtn = document.getElementById('edit-account-close')
+  var cancelBtn = document.getElementById('edit-account-cancel')
+  var submitBtn = document.getElementById('edit-account-submit')
+  if (closeBtn) closeBtn.onclick = closeEditAccountModal
+  if (cancelBtn) cancelBtn.onclick = closeEditAccountModal
+  if (submitBtn) submitBtn.onclick = submitEditAccount
+}
+
+function resetEditRemarkOnlyModal() {
+  editRemarkTargetId = null
+  var remark = document.getElementById('edit-remark-self')
+  if (remark) remark.value = ''
+}
+
+function closeEditRemarkOnlyModal() {
+  var overlay = document.getElementById('edit-remark-modal-overlay')
+  if (overlay) {
+    overlay.classList.remove('show')
+    overlay.setAttribute('aria-hidden', 'true')
+  }
+}
+
+function openEditRemarkModal(id) {
+  resetEditRemarkOnlyModal()
+  var row = accountMap.get(id)
+  if (!row) return
+  editRemarkTargetId = id
+  var remark = document.getElementById('edit-remark-self')
+  if (remark) remark.value = row.remark != null ? String(row.remark) : ''
+  var overlay = document.getElementById('edit-remark-modal-overlay')
+  if (overlay) {
+    overlay.classList.add('show')
+    overlay.setAttribute('aria-hidden', 'false')
+  }
+  setTimeout(function () {
+    var el = document.getElementById('edit-remark-self')
+    if (el) el.focus()
+  }, 50)
+}
+
+async function submitEditRemarkOnly() {
+  if (editRemarkTargetId == null) return
+  var remarkEl = document.getElementById('edit-remark-self')
+  var remark = (remarkEl && remarkEl.value.trim()) || ''
+  // 仅传 remark，不传 role，避免触发 20016
+  var body = { remark: remark }
+  var path = '/api/admin/accounts/' + editRemarkTargetId
+  var result = await adminRequest('PUT', path, body, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0) {
+    closeEditRemarkOnlyModal()
+    showToast('备注已更新', 'success')
+    loadAccountList()
+    return
+  }
+  if (result.code === 20015) {
+    showToast('账号不存在', 'error')
+    return
+  }
+  if (result.code === 20016) {
+    showToast('不可修改自己的角色', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+function initEditRemarkOnlyModal() {
+  var overlay = document.getElementById('edit-remark-modal-overlay')
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeEditRemarkOnlyModal()
+    })
+  }
+  var closeBtn = document.getElementById('edit-remark-close')
+  var cancelBtn = document.getElementById('edit-remark-cancel')
+  var submitBtn = document.getElementById('edit-remark-submit')
+  if (closeBtn) closeBtn.onclick = closeEditRemarkOnlyModal
+  if (cancelBtn) cancelBtn.onclick = closeEditRemarkOnlyModal
+  if (submitBtn) submitBtn.onclick = submitEditRemarkOnly
+}
+
+/** Step 5：复制新密码（Clipboard API，失败则 execCommand） */
+function copyAdminNewPasswordFallback(text) {
+  var ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.position = 'fixed'
+  ta.style.left = '-9999px'
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    var ok = document.execCommand('copy')
+    if (ta.parentNode) document.body.removeChild(ta)
+    if (ok) {
+      showToast('已复制到剪贴板', 'success')
+    } else {
+      showToast('复制失败，请手动选择复制', 'error')
+    }
+  } catch (e) {
+    if (ta.parentNode) document.body.removeChild(ta)
+    showToast('复制失败，请手动选择复制', 'error')
+  }
+}
+
+function copyAdminNewPasswordToClipboard(text) {
+  if (!text) return
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    navigator.clipboard.writeText(text).then(function () {
+      showToast('已复制到剪贴板', 'success')
+    }).catch(function () {
+      copyAdminNewPasswordFallback(text)
+    })
+  } else {
+    copyAdminNewPasswordFallback(text)
+  }
+}
+
+function closeResetPasswordResultModal() {
+  var overlay = document.getElementById('reset-password-result-modal-overlay')
+  if (overlay) {
+    overlay.classList.remove('show')
+    overlay.setAttribute('aria-hidden', 'true')
+  }
+  resetPasswordResultPlain = ''
+  var box = document.getElementById('reset-pwd-result-value')
+  if (box) box.textContent = ''
+}
+
+function showResetPasswordResultModal(newPassword) {
+  resetPasswordResultPlain = newPassword
+  var box = document.getElementById('reset-pwd-result-value')
+  if (box) box.textContent = newPassword
+  var overlay = document.getElementById('reset-password-result-modal-overlay')
+  if (overlay) {
+    overlay.classList.add('show')
+    overlay.setAttribute('aria-hidden', 'false')
+  }
+}
+
+function initResetPasswordResultModal() {
+  var overlay = document.getElementById('reset-password-result-modal-overlay')
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeResetPasswordResultModal()
+    })
+  }
+  var closeBtn = document.getElementById('reset-pwd-result-close')
+  var doneBtn = document.getElementById('reset-pwd-result-done')
+  var copyBtn = document.getElementById('reset-pwd-result-copy')
+  if (closeBtn) closeBtn.onclick = closeResetPasswordResultModal
+  if (doneBtn) doneBtn.onclick = closeResetPasswordResultModal
+  if (copyBtn) {
+    copyBtn.onclick = function () {
+      copyAdminNewPasswordToClipboard(resetPasswordResultPlain)
+    }
+  }
+}
+
+/** 操作列「重置密码」：先确认，再 POST 管理员重置密码接口（非用户端 users/...） */
+function openResetPasswordModal(id) {
+  var row = accountMap.get(id)
+  if (!row) return
+  var nameSafe = escapeHtml(row.username)
+  showConfirm('确认重置「' + nameSafe + '」的密码？系统将生成新的强密码。', function () {
+    submitResetAdminPassword(id)
+  })
+}
+
+async function submitResetAdminPassword(id) {
+  var path = '/api/admin/accounts/' + id + '/reset-password'
+  var result = await adminRequest('POST', path, null, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0 && result.data && result.data.new_password) {
+    showResetPasswordResultModal(String(result.data.new_password))
+    return
+  }
+  if (result.code === 20015) {
+    showToast('账号不存在', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+/** Step 6：解锁账号（未锁定时后端仍返回 code=0，统一 Toast「账号已解锁」并刷新列表） */
+function unlockAccount(id) {
+  var row = accountMap.get(id)
+  if (!row) return
+  var nameSafe = escapeHtml(row.username)
+  showConfirm('确认解锁「' + nameSafe + '」的账号？', function () {
+    submitUnlockAccount(id)
+  })
+}
+
+async function submitUnlockAccount(id) {
+  var path = '/api/admin/accounts/' + id + '/unlock'
+  var result = await adminRequest('POST', path, null, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0) {
+    showToast('账号已解锁', 'success')
+    loadAccountList()
+    return
+  }
+  if (result.code === 20015) {
+    showToast('账号不存在', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+/** Step 6：删除账号（超级管理员行按钮 disabled、自身无删除按钮，此处仅作兜底） */
+function deleteAccount(id) {
+  var row = accountMap.get(id)
+  if (!row) return
+  if (row.username === currentUsername || row.role === 'super_admin') return
+  var nameSafe = escapeHtml(row.username)
+  showConfirm(
+    '确认删除「' + nameSafe + '」？此操作不可恢复。',
+    function () {
+      submitDeleteAccount(id)
+    },
+    null,
+    { danger: true }
+  )
+}
+
+async function submitDeleteAccount(id) {
+  var path = '/api/admin/accounts/' + id
+  var result = await adminRequest('DELETE', path, null, false, { silentErrorToast: true })
+  if (result === null) return
+  if (result.code === 0) {
+    showToast('账号已删除', 'success')
+    loadAccountList()
+    return
+  }
+  if (result.code === 20017) {
+    showToast('不可删除自己的账号', 'error')
+    return
+  }
+  if (result.code === 20018) {
+    showToast('超级管理员账号不可删除', 'error')
+    return
+  }
+  if (result.code === 20015) {
+    showToast('账号不存在', 'error')
+    return
+  }
+  showToast(result.message || '操作失败', 'error')
+}
+
+async function loadAccountList() {
+  var wrap = document.getElementById('account-table-wrap')
+  if (!wrap) return
+
+  var skeletonHtml = ''
+  for (var s = 0; s < 3; s++) {
+    skeletonHtml += '<div class="skeleton" style="height:20px;margin:12px 0"></div>'
+  }
+  wrap.innerHTML = skeletonHtml
+
+  // 列表区自行展示失败文案，避免与骨架/表格区域重复 Toast
+  var result = await adminRequest('GET', '/api/admin/accounts', null, false, { silentErrorToast: true })
+
+  if (result === null || result.code !== 0 || !Array.isArray(result.data)) {
+    wrap.innerHTML = '<p style="text-align:center;color:#999;padding:24px 0">加载失败，请刷新重试</p>'
+    return
+  }
+
+  var data = result.data
+  accountMap.clear()
+  for (var i = 0; i < data.length; i++) {
+    accountMap.set(data[i].id, data[i])
+  }
+
+  if (data.length === 0) {
+    wrap.innerHTML = '<p style="text-align:center;color:#999;padding:24px 0">暂无账号数据</p>'
+    return
+  }
+
+  var html = '<table class="admin-table"><thead><tr>' +
+    '<th>账号</th><th>角色</th><th>备注</th><th>创建时间</th><th>最后登录</th><th>状态</th><th>操作</th>' +
+    '</tr></thead><tbody>'
+
+  for (var j = 0; j < data.length; j++) {
+    var row = data[j]
+    var isSelf = row.username === currentUsername
+    var ops = ''
+
+    if (isSelf) {
+      ops = '<button type="button" class="btn btn-default btn-sm" onclick="openEditRemarkModal(' + row.id + ')">修改备注</button>'
+    } else {
+      ops += '<button type="button" class="btn btn-default btn-sm" onclick="openEditModal(' + row.id + ')">编辑</button>'
+      ops += '<button type="button" class="btn btn-default btn-sm" onclick="openResetPasswordModal(' + row.id + ')">重置密码</button>'
+      if (row.is_locked) {
+        ops += '<button type="button" class="btn btn-default btn-sm" onclick="unlockAccount(' + row.id + ')">解锁</button>'
+      }
+      if (row.role === 'super_admin') {
+        ops += '<button type="button" class="btn btn-danger btn-sm" disabled title="超级管理员账号不可删除">删除</button>'
+      } else {
+        ops += '<button type="button" class="btn btn-danger btn-sm" onclick="deleteAccount(' + row.id + ')">删除</button>'
+      }
+    }
+
+    var remarkCell = (row.remark && String(row.remark).trim()) ? escapeHtml(row.remark) : '-'
+
+    html += '<tr>' +
+      '<td>' + escapeHtml(row.username) + '</td>' +
+      '<td>' + roleTagHtml(row.role) + '</td>' +
+      '<td>' + remarkCell + '</td>' +
+      '<td>' + formatDateTime(row.created_at) + '</td>' +
+      '<td>' + formatDateTime(row.last_login_at) + '</td>' +
+      '<td>' + statusTagHtml(row.is_locked) + '</td>' +
+      '<td style="white-space:normal"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">' + ops + '</div></td>' +
+      '</tr>'
+  }
+
+  html += '</tbody></table>'
+  wrap.innerHTML = html
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  if (!checkAdminLogin()) {
+    return
+  }
+  if (getAdminRole() !== 'super_admin') {
+    window.location.href = '/admin/pages/error.html?type=403'
+    return
+  }
+  currentUsername = getAdminUsername()
+
+  // insertAdjacentHTML('afterbegin') 每次插入到第一个子节点前；
+  // 按「主内容 → 顶栏 → 侧边栏」顺序插入，最终从上到下为：侧边栏、顶栏、主内容区
+  var mainHtml =
+    '<div class="admin-content">' +
+      '<div class="page-card">' +
+        '<div class="accounts-toolbar" style="display:flex;justify-content:flex-end;margin-bottom:16px">' +
+          '<button type="button" class="btn btn-primary" onclick="openCreateModal()">+ 新建账号</button>' +
+        '</div>' +
+        '<div id="account-table-wrap"></div>' +
+        '<div id="pagination-wrap"></div>' +
+      '</div>' +
+    '</div>'
+  document.body.insertAdjacentHTML('afterbegin', mainHtml)
+  document.body.insertAdjacentHTML('afterbegin', renderHeader('账号管理'))
+  document.body.insertAdjacentHTML('afterbegin', renderSidebar('accounts'))
+
+  initCreateAccountModal()
+  initEditAccountModal()
+  initEditRemarkOnlyModal()
+  initResetPasswordResultModal()
+  loadAccountList()
+})
+</script>
+</body>
+</html>

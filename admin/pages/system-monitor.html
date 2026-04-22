@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统监控 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* 状态卡片容器：与规范一致，底部间距 */
+    #status-cards {
+      margin-bottom: 16px;
+    }
+
+    /* 指标卡片（数据加载后） */
+    .system-metric-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .system-metric-card .metric-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .system-metric-card .metric-sub {
+      font-size: 12px;
+      color: var(--text-disabled);
+      margin-top: 4px;
+    }
+
+    /* CPU 趋势卡片固定高度 */
+    .cpu-chart-card {
+      min-height: 280px;
+    }
+
+    .cpu-chart-card .cpu-chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .cpu-chart-card .cpu-chart-head .cpu-chart-title {
+      font-weight: 500;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    #chart-cpu {
+      width: 100%;
+      height: 220px;
+    }
+
+    /* 告警行 */
+    .alert-list-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+
+    .alert-list-row:last-child {
+      border-bottom: none;
+    }
+
+    .alert-list-time {
+      color: #999;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .alert-list-msg {
+      flex: 1;
+      text-align: left;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    /* 骨架屏块（置于 .page-card 内） */
+    .status-skeleton-inner {
+      height: 160px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  /* 无 Token 时仅走登录跳转 */
+  if (!checkAdminLogin()) return;
+
+  var ALLOWED_ROLES = ['super_admin', 'tech_ops'];
+  if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+    window.location.href = '/admin/pages/error.html?type=403';
+    return;
+  }
+
+  var cpuChart = null;
+  var cpuData = [];
+  var cpuLabels = [];
+  var refreshTimer = null;
+
+  var CIRC = 2 * Math.PI * 34;
+
+  function percentColor(pct) {
+    if (pct >= 90) return '#ff4d4f';
+    if (pct >= 80) return '#fa8c16';
+    return '#1890ff';
+  }
+
+  function redisHitColor(pct) {
+    if (pct >= 70) return '#1890ff';
+    if (pct >= 50) return '#fa8c16';
+    return '#ff4d4f';
+  }
+
+  function clampPct(n) {
+    var x = Number(n);
+    if (isNaN(x)) return 0;
+    return Math.max(0, Math.min(100, x));
+  }
+
+  /* 纯 SVG 环形进度（12 点起笔） */
+  function ringSvgHtml(pct, strokeColor) {
+    var p = clampPct(pct);
+    var arcLen = (p / 100) * CIRC;
+    var dash = arcLen + ' ' + CIRC;
+    var label = p.toFixed(0);
+    return (
+      '<svg width="80" height="80" viewBox="0 0 80 80" style="display:block;margin:0 auto 10px">' +
+        '<circle cx="40" cy="40" r="34" fill="none" stroke="#f0f0f0" stroke-width="8"/>' +
+        '<circle cx="40" cy="40" r="34" fill="none" stroke="' + strokeColor + '" stroke-width="8" ' +
+        'stroke-linecap="round" stroke-dasharray="' + dash + '" transform="rotate(-90 40 40)"/>' +
+        '<text x="40" y="41" text-anchor="middle" dominant-baseline="middle" ' +
+        'style="font-size:14px;font-weight:bold;fill:#333">' + label + '%</text>' +
+      '</svg>'
+    );
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderStatusCards(data) {
+    var cpu = data.cpu || {};
+    var mem = data.memory || {};
+    var disk = data.disk || {};
+    var redis = data.redis || {};
+
+    var cpuP = clampPct(cpu.percent);
+    var memP = clampPct(mem.percent);
+    var diskP = clampPct(disk.percent);
+    var hitP = clampPct(redis.hit_rate);
+
+    var h = '';
+    h += '<div class="system-metric-card">' +
+      ringSvgHtml(cpuP, percentColor(cpuP)) +
+      '<div class="metric-title">CPU 使用率</div>' +
+      '<div class="metric-sub">' + (cpu.cores != null ? cpu.cores : '—') + ' 核</div></div>';
+
+    h += '<div class="system-metric-card">' +
+      ringSvgHtml(memP, percentColor(memP)) +
+      '<div class="metric-title">内存使用率</div>' +
+      '<div class="metric-sub">' + (mem.used_gb != null ? mem.used_gb : '—') + ' GB / ' +
+      (mem.total_gb != null ? mem.total_gb : '—') + ' GB</div></div>';
+
+    h += '<div class="system-metric-card">' +
+      ringSvgHtml(diskP, percentColor(diskP)) +
+      '<div class="metric-title">磁盘使用率</div>' +
+      '<div class="metric-sub">' + (disk.used_gb != null ? disk.used_gb : '—') + ' GB / ' +
+      (disk.total_gb != null ? disk.total_gb : '—') + ' GB</div></div>';
+
+    h += '<div class="system-metric-card">' +
+      ringSvgHtml(hitP, redisHitColor(hitP)) +
+      '<div class="metric-title">Redis 命中率</div>' +
+      '<div class="metric-sub">已用内存：' + escapeHtml(redis.used_memory != null ? redis.used_memory : '—') + '</div></div>';
+
+    document.getElementById('status-cards').innerHTML = h;
+  }
+
+  function renderAlerts(alerts, timeStr) {
+    var box = document.getElementById('alert-list');
+    if (!alerts || !alerts.length) {
+      box.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-disabled)">暂无告警</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < alerts.length; i++) {
+      var a = alerts[i];
+      var lvl = (a && a.level) || 'warning';
+      var tagClass = lvl === 'critical' ? 'tag tag-error' : 'tag tag-warning';
+      var tagText = lvl === 'critical' ? '严重' : '警告';
+      html +=
+        '<div class="alert-list-row">' +
+          '<span class="alert-list-time">' + escapeHtml(timeStr) + '</span>' +
+          '<span class="alert-list-msg">' + escapeHtml(a.message || '') + '</span>' +
+          '<span class="' + tagClass + '">' + tagText + '</span>' +
+        '</div>';
+    }
+    box.innerHTML = html;
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function nowTimeLabel() {
+    var d = new Date();
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+
+  function initCpuChart() {
+    var el = document.getElementById('chart-cpu');
+    if (!el || typeof echarts === 'undefined') return;
+    cpuChart = echarts.init(el);
+    cpuChart.setOption({
+      tooltip: {
+        trigger: 'axis',
+        formatter: function (params) {
+          var p = params[0];
+          return p.axisValue + ' CPU: ' + p.value + '%';
+        }
+      },
+      grid: { top: 20, right: 20, bottom: 40, left: 50 },
+      xAxis: {
+        type: 'category',
+        data: cpuLabels,
+        boundaryGap: false
+      },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        axisLabel: { formatter: '{value}%' }
+      },
+      series: [{
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        data: cpuData,
+        lineStyle: { color: '#1890ff' },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(24,144,255,0.3)' },
+              { offset: 1, color: 'rgba(24,144,255,0.02)' }
+            ]
+          }
+        }
+      }]
+    });
+  }
+
+  function appendCpuPoint(pct) {
+    if (!cpuChart) return;
+    var label = nowTimeLabel();
+    cpuData.push(clampPct(pct));
+    cpuLabels.push(label);
+    if (cpuData.length > 60) {
+      cpuData.shift();
+      cpuLabels.shift();
+    }
+    cpuChart.setOption({
+      xAxis: { data: cpuLabels },
+      series: [{ data: cpuData }]
+    });
+  }
+
+  async function refreshSystemStatus() {
+    var res = await adminRequest('GET', '/api/admin/system/status');
+    if (!res || res.code !== 0 || !res.data) {
+      /* 首屏失败时避免告警区一直停在「加载中」 */
+      var al = document.getElementById('alert-list');
+      if (al && /加载中/.test(al.textContent || '')) {
+        al.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-disabled)">暂无法获取状态，将随下次定时刷新重试</div>';
+      }
+      return;
+    }
+    var data = res.data;
+    var t = nowTimeLabel();
+    renderStatusCards(data);
+    appendCpuPoint(data.cpu && data.cpu.percent != null ? data.cpu.percent : 0);
+    renderAlerts(data.alerts || [], t);
+  }
+
+  document.body.innerHTML =
+    renderSidebar('system') +
+    renderHeader('系统监控') +
+    '<div class="admin-content">' +
+      '<div id="status-cards" class="grid-4">' +
+        '<div class="page-card" style="margin-bottom:0"><div class="skeleton status-skeleton-inner"></div></div>' +
+        '<div class="page-card" style="margin-bottom:0"><div class="skeleton status-skeleton-inner"></div></div>' +
+        '<div class="page-card" style="margin-bottom:0"><div class="skeleton status-skeleton-inner"></div></div>' +
+        '<div class="page-card" style="margin-bottom:0"><div class="skeleton status-skeleton-inner"></div></div>' +
+      '</div>' +
+      '<div class="page-card cpu-chart-card">' +
+        '<div class="cpu-chart-head">' +
+          '<span class="cpu-chart-title">近10分钟 CPU 趋势</span>' +
+          '<span class="text-disabled" style="font-size:12px">每10秒更新</span>' +
+        '</div>' +
+        '<div id="chart-cpu"></div>' +
+      '</div>' +
+      '<div class="page-card">' +
+        '<div class="page-card-title">最近告警</div>' +
+        '<div id="alert-list">' +
+          '<div style="text-align:center;padding:24px;color:var(--text-disabled)">加载中…</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  initCpuChart();
+  refreshSystemStatus();
+  refreshTimer = setInterval(refreshSystemStatus, 10000);
+
+  window.addEventListener('beforeunload', function () {
+    if (refreshTimer) clearInterval(refreshTimer);
+  });
+
+  window.addEventListener('resize', function () {
+    if (cpuChart) cpuChart.resize();
+  });
+})();
+</script>
+
+</body>
+</html>

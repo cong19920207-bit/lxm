@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>林小梦 - 记忆</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    .page-body {
+      padding: 56px 16px calc(16px + var(--safe-area-bottom));
+    }
+
+    .top-bar .add-btn {
+      font-size: 14px;
+      color: #E8938A;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 记忆卡片 */
+    .memory-card {
+      margin-bottom: 12px;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .memory-card.removing {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    .memory-content {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--color-text);
+      word-break: break-word;
+    }
+
+    .memory-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .memory-time {
+      font-size: 12px;
+      color: var(--color-gray);
+    }
+
+    .memory-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .memory-actions button {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .memory-actions button:active {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    /* 编辑状态 */
+    .memory-edit {
+      display: none;
+    }
+
+    .memory-card.editing .memory-content { display: none; }
+    .memory-card.editing .memory-bottom { display: none; }
+    .memory-card.editing .memory-edit { display: block; }
+
+    .memory-edit textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      color: var(--color-text);
+      margin-bottom: 10px;
+    }
+
+    .memory-edit textarea:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+
+    .memory-edit .edit-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .memory-edit .edit-actions button {
+      min-height: 36px;
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .edit-cancel {
+      background: #F5F5F5;
+      color: var(--color-text);
+    }
+
+    .edit-save {
+      background: var(--color-primary);
+      color: var(--color-text);
+    }
+
+    /* 添加记忆面板 */
+    .add-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-white);
+      padding: 20px 16px calc(20px + var(--safe-area-bottom));
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 200;
+    }
+
+    .add-panel.visible {
+      transform: translateY(0);
+    }
+
+    .add-panel-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 199;
+      display: none;
+    }
+
+    .add-panel-overlay.visible {
+      display: block;
+    }
+
+    .add-panel .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .add-panel textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      color: var(--color-text);
+      margin-bottom: 12px;
+    }
+
+    .add-panel textarea:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+
+    .add-panel .btn-primary {
+      width: 100%;
+      height: 44px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <div class="top-bar">
+    <div class="bar-left">
+      <button class="back-btn" onclick="history.back()">←</button>
+    </div>
+    <div class="bar-center">林小梦记住的你</div>
+    <div class="bar-right">
+      <button class="add-btn" onclick="showAddPanel()">+ 添加</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div id="memory-list"></div>
+    <div class="load-more-sentinel" id="bottom-sentinel"></div>
+    <div class="no-more-text" id="no-more" style="display:none">没有更多记忆了</div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-icon">
+        <div class="empty-bubble"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+        <div class="empty-dot"></div>
+      </div>
+      <div class="empty-text">我会慢慢记住关于你的所有小事<br>多和我聊聊吧</div>
+      <button class="btn-primary" onclick="location.href='/pages/chat.html'">去聊天</button>
+    </div>
+  </div>
+
+  <!-- 添加记忆面板 -->
+  <div class="add-panel-overlay" id="add-overlay" onclick="hideAddPanel()"></div>
+  <div class="add-panel" id="add-panel">
+    <div class="panel-title">添加一条记忆</div>
+    <textarea id="add-input" placeholder="比如：我喜欢喝燕麦拿铁"></textarea>
+    <button class="btn-primary" id="add-save-btn" onclick="handleAddMemory()">保存</button>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    checkLogin()
+
+    let currentPage = 1
+    let loading = false
+    let noMore = false
+    let totalLoaded = 0
+
+    /* ====== 加载记忆列表 ====== */
+    async function loadMemories(page) {
+      if (loading || noMore) return
+      loading = true
+
+      const res = await request('GET', '/api/memory/list?page=' + page)
+      if (res.code === 0 && res.data) {
+        const d = res.data
+        // 后端分页结构：{ total, page, page_size, list }；兼容旧字段 memories
+        const memories = Array.isArray(d.list)
+          ? d.list
+          : (Array.isArray(d.memories) ? d.memories : [])
+        const pageSize = typeof d.page_size === 'number' ? d.page_size : 20
+        const total = typeof d.total === 'number' ? d.total : memories.length
+
+        if (memories.length === 0 && page === 1) {
+          document.getElementById('empty-state').style.display = 'flex'
+          loading = false
+          return
+        }
+
+        // 本页条数不足一页，或累计已覆盖服务端总数，则没有更多
+        const loadedAfter = totalLoaded + memories.length
+        if (memories.length < pageSize || loadedAfter >= total) {
+          noMore = true
+          if (loadedAfter > 0) {
+            document.getElementById('no-more').style.display = 'block'
+          }
+        }
+
+        memories.forEach(m => appendMemoryCard(m))
+        totalLoaded += memories.length
+        currentPage = page
+      }
+
+      loading = false
+    }
+
+    function appendMemoryCard(memory, prepend) {
+      const list = document.getElementById('memory-list')
+      const card = document.createElement('div')
+      card.className = 'card memory-card'
+      card.dataset.id = memory.id
+      card.innerHTML = `
+        <div class="memory-content">${escapeHtml(memory.content)}</div>
+        <div class="memory-bottom">
+          <span class="memory-time">${formatTime(memory.created_at)}</span>
+          <div class="memory-actions">
+            <button onclick="startEdit(this)" title="编辑">✏️</button>
+            <button onclick="handleDelete(${memory.id})" title="删除">🗑️</button>
+          </div>
+        </div>
+        <div class="memory-edit">
+          <textarea>${escapeHtml(memory.content)}</textarea>
+          <div class="edit-actions">
+            <button class="edit-cancel" onclick="cancelEdit(this)">取消</button>
+            <button class="edit-save" onclick="saveEdit(this, ${memory.id})">保存</button>
+          </div>
+        </div>
+      `
+
+      if (prepend) {
+        list.insertBefore(card, list.firstChild)
+      } else {
+        list.appendChild(card)
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    /* ====== 编辑 ====== */
+    function startEdit(btn) {
+      const card = btn.closest('.memory-card')
+      card.classList.add('editing')
+      const textarea = card.querySelector('.memory-edit textarea')
+      textarea.focus()
+    }
+
+    function cancelEdit(btn) {
+      const card = btn.closest('.memory-card')
+      card.classList.remove('editing')
+      const content = card.querySelector('.memory-content').textContent
+      card.querySelector('.memory-edit textarea').value = content
+    }
+
+    async function saveEdit(btn, id) {
+      const card = btn.closest('.memory-card')
+      const textarea = card.querySelector('.memory-edit textarea')
+      const newContent = textarea.value.trim()
+
+      if (!newContent) {
+        showToast('内容不能为空', 'error')
+        return
+      }
+
+      btn.textContent = '保存中...'
+      btn.disabled = true
+
+      const res = await request('PUT', '/api/memory/' + id, { content: newContent })
+      if (res.code === 0) {
+        card.querySelector('.memory-content').textContent = newContent
+        card.classList.remove('editing')
+        showToast('已更新', 'success')
+      } else {
+        showToast(res.message || '更新失败', 'error')
+      }
+
+      btn.textContent = '保存'
+      btn.disabled = false
+    }
+
+    /* ====== 删除 ====== */
+    async function handleDelete(id) {
+      const ok = await showConfirm(
+        '删除记忆',
+        '确定要删除这条记忆吗？删除后林小梦将不再记住这条内容，且无法恢复',
+        '确认删除',
+        true
+      )
+      if (!ok) return
+
+      const res = await request('DELETE', '/api/memory/' + id)
+      if (res.code === 0) {
+        const card = document.querySelector('.memory-card[data-id="' + id + '"]')
+        if (card) {
+          card.classList.add('removing')
+          setTimeout(() => {
+            card.remove()
+            totalLoaded--
+            if (totalLoaded === 0) {
+              document.getElementById('empty-state').style.display = 'flex'
+            }
+          }, 300)
+        }
+        showToast('已删除', 'success')
+      } else {
+        showToast(res.message || '删除失败', 'error')
+      }
+    }
+
+    /* ====== 添加记忆 ====== */
+    function showAddPanel() {
+      document.getElementById('add-panel').classList.add('visible')
+      document.getElementById('add-overlay').classList.add('visible')
+      document.getElementById('add-input').focus()
+    }
+
+    function hideAddPanel() {
+      document.getElementById('add-panel').classList.remove('visible')
+      document.getElementById('add-overlay').classList.remove('visible')
+      document.getElementById('add-input').value = ''
+    }
+
+    async function handleAddMemory() {
+      const input = document.getElementById('add-input')
+      const content = input.value.trim()
+      if (!content) {
+        showToast('请输入记忆内容', 'error')
+        return
+      }
+
+      const btn = document.getElementById('add-save-btn')
+      btn.textContent = '保存中...'
+      btn.disabled = true
+
+      const res = await request('POST', '/api/memory/add', { content })
+      if (res.code === 0) {
+        const memory = res.data || { id: Date.now(), content, created_at: new Date().toISOString() }
+        appendMemoryCard(memory, true)
+        totalLoaded++
+        hideAddPanel()
+        document.getElementById('empty-state').style.display = 'none'
+        showToast('记忆已添加', 'success')
+      } else {
+        showToast(res.message || '添加失败', 'error')
+      }
+
+      btn.textContent = '保存'
+      btn.disabled = false
+    }
+
+    /* ====== 触底加载 ====== */
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !loading && !noMore) {
+        loadMemories(currentPage + 1)
+      }
+    })
+    observer.observe(document.getElementById('bottom-sentinel'))
+
+    /* ====== 初始化 ====== */
+    loadMemories(1)
+  </script>
+</body>
+</html>

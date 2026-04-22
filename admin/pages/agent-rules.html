@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent配置 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .agent-tab-header-card {
+      padding-bottom: 0;
+      margin-bottom: 16px;
+    }
+    .agent-tab-header-card .tabs {
+      margin-bottom: 0;
+    }
+    .agent-trigger-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .agent-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .agent-card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .agent-prio-badge {
+      display: inline-block;
+      color: #fff;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .agent-type-name {
+      font-weight: 500;
+    }
+    .agent-form-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .agent-form-row .form-item {
+      margin-bottom: 0;
+      min-width: 160px;
+    }
+    #p3-tag-cloud {
+      min-height: 80px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      box-sizing: border-box;
+    }
+    .agent-p3-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #e6f7ff;
+      color: #1890ff;
+      border: 1px solid #91d5ff;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 13px;
+    }
+    .agent-p3-tag-remove {
+      border: none;
+      background: none;
+      cursor: pointer;
+      margin-left: 6px;
+      color: #1890ff;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .agent-p3-tag-remove:hover {
+      color: var(--danger);
+    }
+    .agent-p3-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #p3-kw-input {
+      max-width: 300px;
+    }
+    .agent-toggle {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .agent-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .agent-toggle .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 22px;
+    }
+    .agent-toggle .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: #fff;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    .agent-toggle input:checked + .slider {
+      background: #1890ff;
+    }
+    .agent-toggle input:focus + .slider {
+      box-shadow: 0 0 1px #1890ff;
+    }
+    .agent-toggle input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .agent-de-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .agent-de-row .form-item {
+      margin-bottom: 0;
+    }
+    .agent-msg-subcard {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .agent-msg-subcard-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .agent-example-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .agent-example-row .form-control {
+      flex: 1;
+      min-width: 0;
+    }
+    #agent-page-wrap.is-loading .agent-disable-while-load {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div id="agent-page-wrap" class="is-loading">
+    <div class="page-card agent-tab-header-card">
+      <div class="tabs" id="main-tabs">
+        <div class="tab-item active" data-target="tab-triggers">触发条件</div>
+        <div class="tab-item" data-target="tab-decision">决策引擎 &amp; 消息规则</div>
+      </div>
+    </div>
+
+    <!-- Tab 1：触发条件 -->
+    <div id="tab-triggers" class="tab-pane active agent-disable-while-load">
+      <div class="agent-trigger-card">
+        <div class="agent-card-head">
+          <div class="agent-card-head-left">
+            <span class="agent-prio-badge" style="background:#ff4d4f">P0</span>
+            <span class="agent-type-name">情绪跟进</span>
+          </div>
+          <label class="agent-toggle" title="启用">
+            <input type="checkbox" id="p0-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="text-secondary" style="font-size:13px;margin:0">用户最新情绪为悲伤/焦虑/愤怒/孤独，且24小时内无新对话时自动触发，无额外可配置参数。</p>
+      </div>
+
+      <div class="agent-trigger-card">
+        <div class="agent-card-head">
+          <div class="agent-card-head-left">
+            <span class="agent-prio-badge" style="background:#fa8c16">P1</span>
+            <span class="agent-type-name">长期沉默</span>
+          </div>
+          <label class="agent-toggle" title="启用">
+            <input type="checkbox" id="p1-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="agent-form-row">
+          <div class="form-item">
+            <label>沉默天数</label>
+            <input type="number" id="p1-silence-days" class="form-control" min="1" step="1" style="width:120px">
+          </div>
+          <div class="form-item">
+            <label>最少历史对话数（轮）</label>
+            <input type="number" id="p1-min-history" class="form-control" min="1" step="1" style="width:120px">
+          </div>
+        </div>
+      </div>
+
+      <div class="agent-trigger-card">
+        <div class="agent-card-head">
+          <div class="agent-card-head-left">
+            <span class="agent-prio-badge" style="background:#1890ff">P2</span>
+            <span class="agent-type-name">日常问候</span>
+          </div>
+          <label class="agent-toggle" title="启用">
+            <input type="checkbox" id="p2-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="agent-form-row">
+          <div class="form-item">
+            <label>习惯积累期天数</label>
+            <input type="number" id="p2-accum-days" class="form-control" min="7" max="30" step="1" style="width:120px">
+          </div>
+          <div class="form-item">
+            <label>登录习惯门槛天数</label>
+            <input type="number" id="p2-habit-days" class="form-control" min="5" step="1" style="width:120px">
+            <p class="text-secondary" style="font-size:12px;margin:4px 0 0">须为 5～积累期天数（与后端校验一致）</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="agent-trigger-card">
+        <div class="agent-card-head">
+          <div class="agent-card-head-left">
+            <span class="agent-prio-badge" style="background:#722ed1">P3</span>
+            <span class="agent-type-name">凌晨在线</span>
+          </div>
+          <label class="agent-toggle" title="启用">
+            <input type="checkbox" id="p3-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-item">
+          <label>关键词列表</label>
+          <div id="p3-tag-cloud"></div>
+          <div class="agent-p3-input-row">
+            <input type="text" id="p3-kw-input" class="form-control" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+            <button type="button" class="btn btn-default btn-sm" id="p3-kw-add">添加</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="agent-trigger-card">
+        <div class="agent-card-head">
+          <div class="agent-card-head-left">
+            <span class="agent-prio-badge" style="background:#8c8c8c">P4</span>
+            <span class="agent-type-name">轻度沉默</span>
+          </div>
+          <label class="agent-toggle" title="启用">
+            <input type="checkbox" id="p4-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="agent-form-row">
+          <div class="form-item">
+            <label>沉默小时数</label>
+            <input type="number" id="p4-silence-hours" class="form-control" min="1" step="1" style="width:120px">
+          </div>
+          <div class="form-item">
+            <label>最低关系等级</label>
+            <select id="p4-min-level" class="form-control" style="width:120px">
+              <option value="1">1级</option>
+              <option value="2">2级</option>
+              <option value="3">3级</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" id="btn-save-triggers">保存触发规则</button>
+    </div>
+
+    <!-- Tab 2：决策引擎 & 消息规则 -->
+    <div id="tab-decision" class="tab-pane agent-disable-while-load">
+      <div class="page-card" style="margin-bottom:16px">
+        <div class="page-card-title" style="border:none;padding-bottom:8px;margin-bottom:8px">决策引擎配置</div>
+        <div class="agent-de-row">
+          <div class="form-item">
+            <label>行动阈值</label>
+            <input type="number" id="de-threshold" class="form-control" min="1" max="10" step="1" style="width:100px">
+            <p class="text-secondary" style="font-size:12px;margin:4px 0 0">≥ 此分值才发起主动行为</p>
+          </div>
+          <div class="form-item">
+            <label>每日最多触发次数</label>
+            <input type="number" id="de-daily-limit" class="form-control" min="1" max="5" step="1" style="width:100px">
+          </div>
+          <div class="form-item">
+            <label>两次触发最小间隔（小时）</label>
+            <input type="number" id="de-interval" class="form-control" min="1" max="24" step="1" style="width:100px">
+          </div>
+        </div>
+      </div>
+
+      <div id="message-rules-wrap"></div>
+
+      <button type="button" class="btn btn-primary btn-block" id="btn-save-decision" style="margin-top:8px">保存决策配置</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+
+  // 独立内存：切 Tab 不丢未保存修改（与 agent-message-rules 响应对应）
+  var gTriggersData = {};
+  var gDecisionData = {};
+  var gMessageRulesData = {};
+  var p3Keywords = [];
+
+  var TRIGGER_LABELS = {
+    P0: 'P0 情绪跟进',
+    P1: 'P1 长期沉默',
+    P2: 'P2 日常问候',
+    P3: 'P3 凌晨在线',
+    P4: 'P4 轻度沉默'
+  };
+
+  var TRIGGER_NAMES = {
+    P0: '情绪跟进',
+    P1: '长期沉默',
+    P2: '日常问候',
+    P3: '凌晨在线',
+    P4: '轻度沉默'
+  };
+
+  var MSG_ORDER = ['P0', 'P1', 'P2', 'P3', 'P4'];
+
+  function defaultTriggers() {
+    return {
+      P0: { enabled: true },
+      P1: { enabled: true, silence_days: 3, min_history_rounds: 10 },
+      P2: { enabled: true, accumulation_days: 14, habit_days_threshold: 8 },
+      P3: { enabled: true },
+      P4: { enabled: true, silence_hours: 24, min_level: 2 }
+    };
+  }
+
+  function defaultDecision() {
+    return { action_threshold: 6, daily_limit: 2, interval_hours: 6 };
+  }
+
+  function mergeTriggers(raw) {
+    var d = defaultTriggers();
+    if (!raw || typeof raw !== 'object') return d;
+    MSG_ORDER.forEach(function (k) {
+      if (raw[k] && typeof raw[k] === 'object') {
+        d[k] = Object.assign({}, d[k], raw[k]);
+      }
+    });
+    return d;
+  }
+
+  function mergeDecision(raw) {
+    var d = defaultDecision();
+    if (!raw || typeof raw !== 'object') return d;
+    return Object.assign({}, d, raw);
+  }
+
+  function fillTriggersForm(t) {
+    var tr = mergeTriggers(t);
+    document.getElementById('p0-enabled').checked = !!tr.P0.enabled;
+    document.getElementById('p1-enabled').checked = !!tr.P1.enabled;
+    document.getElementById('p2-enabled').checked = !!tr.P2.enabled;
+    document.getElementById('p3-enabled').checked = !!tr.P3.enabled;
+    document.getElementById('p4-enabled').checked = !!tr.P4.enabled;
+
+    document.getElementById('p1-silence-days').value = tr.P1.silence_days != null ? tr.P1.silence_days : 3;
+    document.getElementById('p1-min-history').value = tr.P1.min_history_rounds != null ? tr.P1.min_history_rounds : 10;
+
+    document.getElementById('p2-accum-days').value = tr.P2.accumulation_days != null ? tr.P2.accumulation_days : 14;
+    document.getElementById('p2-habit-days').value = tr.P2.habit_days_threshold != null ? tr.P2.habit_days_threshold : 8;
+    syncP2HabitBounds();
+
+    document.getElementById('p4-silence-hours').value = tr.P4.silence_hours != null ? tr.P4.silence_hours : 24;
+    var ml = tr.P4.min_level != null ? String(tr.P4.min_level) : '2';
+    var sel = document.getElementById('p4-min-level');
+    if (['1', '2', '3'].indexOf(ml) >= 0) sel.value = ml;
+    else sel.value = '2';
+  }
+
+  function fillDecisionForm(d) {
+    var de = mergeDecision(d);
+    document.getElementById('de-threshold').value = de.action_threshold;
+    document.getElementById('de-daily-limit').value = de.daily_limit;
+    document.getElementById('de-interval').value = de.interval_hours;
+  }
+
+  function syncP2HabitBounds() {
+    var accEl = document.getElementById('p2-accum-days');
+    var habitEl = document.getElementById('p2-habit-days');
+    var acc = parseInt(accEl.value, 10);
+    if (isNaN(acc)) acc = 14;
+    acc = Math.min(30, Math.max(7, acc));
+    accEl.value = acc;
+    habitEl.min = 5;
+    habitEl.max = acc;
+    var hv = parseInt(habitEl.value, 10);
+    if (isNaN(hv) || hv < 5) habitEl.value = 5;
+    else if (hv > acc) habitEl.value = acc;
+  }
+
+  function readTriggersFromForm() {
+    return {
+      P0: { enabled: document.getElementById('p0-enabled').checked },
+      P1: {
+        enabled: document.getElementById('p1-enabled').checked,
+        silence_days: Math.max(1, parseInt(document.getElementById('p1-silence-days').value, 10) || 1),
+        min_history_rounds: Math.max(1, parseInt(document.getElementById('p1-min-history').value, 10) || 1)
+      },
+      P2: {
+        enabled: document.getElementById('p2-enabled').checked,
+        accumulation_days: Math.min(30, Math.max(7, parseInt(document.getElementById('p2-accum-days').value, 10) || 14)),
+        habit_days_threshold: (function () {
+          var acc = Math.min(30, Math.max(7, parseInt(document.getElementById('p2-accum-days').value, 10) || 14));
+          var h = parseInt(document.getElementById('p2-habit-days').value, 10);
+          if (isNaN(h)) h = 5;
+          return Math.min(acc, Math.max(5, h));
+        })()
+      },
+      P3: { enabled: document.getElementById('p3-enabled').checked },
+      P4: {
+        enabled: document.getElementById('p4-enabled').checked,
+        silence_hours: Math.max(1, parseInt(document.getElementById('p4-silence-hours').value, 10) || 1),
+        min_level: parseInt(document.getElementById('p4-min-level').value, 10) || 2
+      }
+    };
+  }
+
+  function readDecisionFromForm() {
+    return {
+      action_threshold: Math.min(10, Math.max(1, parseInt(document.getElementById('de-threshold').value, 10) || 6)),
+      daily_limit: Math.min(5, Math.max(1, parseInt(document.getElementById('de-daily-limit').value, 10) || 2)),
+      interval_hours: Math.min(24, Math.max(1, parseInt(document.getElementById('de-interval').value, 10) || 6))
+    };
+  }
+
+  function validateP2ForSave() {
+    syncP2HabitBounds();
+    var acc = parseInt(document.getElementById('p2-accum-days').value, 10);
+    var habit = parseInt(document.getElementById('p2-habit-days').value, 10);
+    if (habit < 5 || habit > acc) {
+      showToast('P2：登录习惯门槛须在 5～' + acc + ' 之间（与后端一致）', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  function renderP3Tags() {
+    var el = document.getElementById('p3-tag-cloud');
+    if (!el) return;
+    el.innerHTML = '';
+    if (!p3Keywords.length) {
+      var hint = document.createElement('span');
+      hint.style.fontSize = '13px';
+      hint.style.color = 'var(--text-secondary)';
+      hint.textContent = '暂无关键词；保存时需至少 1 个词才能更新服务端关键词库';
+      el.appendChild(hint);
+      return;
+    }
+    p3Keywords.forEach(function (kw) {
+      var span = document.createElement('span');
+      span.className = 'agent-p3-tag';
+      var text = document.createElement('span');
+      text.textContent = kw;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'agent-p3-tag-remove';
+      btn.setAttribute('aria-label', '删除');
+      btn.textContent = '×';
+      btn.onclick = function () {
+        var i = p3Keywords.indexOf(kw);
+        if (i >= 0) p3Keywords.splice(i, 1);
+        renderP3Tags();
+      };
+      span.appendChild(text);
+      span.appendChild(btn);
+      el.appendChild(span);
+    });
+  }
+
+  function tryAddP3Keyword() {
+    var input = document.getElementById('p3-kw-input');
+    var v = (input.value || '').trim();
+    if (!v) {
+      showToast('请输入关键词', 'warning');
+      return;
+    }
+    if (p3Keywords.indexOf(v) >= 0) {
+      showToast('该关键词已存在', 'warning');
+      return;
+    }
+    p3Keywords.push(v);
+    input.value = '';
+    renderP3Tags();
+  }
+
+  function renderMessageRules(data) {
+    var wrap = document.getElementById('message-rules-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    MSG_ORDER.forEach(function (key) {
+      var rule = (data && data[key]) || {};
+      var gen = rule.generation_requirements != null ? String(rule.generation_requirements) : '';
+      var maxLen = rule.max_length != null ? rule.max_length : 60;
+      var examples = Array.isArray(rule.examples) ? rule.examples.map(function (x) { return String(x); }) : [];
+      while (examples.length < 3) examples.push('');
+      if (examples.length > 5) examples = examples.slice(0, 5);
+
+      var sub = document.createElement('div');
+      sub.className = 'agent-msg-subcard';
+      sub.setAttribute('data-msg-type', key);
+
+      var titleRow = document.createElement('div');
+      titleRow.className = 'agent-msg-subcard-title';
+      titleRow.innerHTML = '<span>' + TRIGGER_NAMES[key] + '</span><span class="tag tag-blue">' + key + '</span>';
+
+      var fg = document.createElement('div');
+      fg.className = 'form-item';
+      fg.innerHTML = '<label>生成要求</label>';
+      var ta = document.createElement('textarea');
+      ta.rows = 3;
+      ta.className = 'form-control msg-gen-req';
+      ta.setAttribute('data-type', key);
+      ta.value = gen;
+      fg.appendChild(ta);
+
+      var fm = document.createElement('div');
+      fm.className = 'form-item mt-16';
+      fm.innerHTML = '<label>消息最大长度（字符）</label>';
+      var num = document.createElement('input');
+      num.type = 'number';
+      num.className = 'form-control msg-max-len';
+      num.setAttribute('data-type', key);
+      num.min = 20;
+      num.max = 100;
+      num.style.width = '100px';
+      num.value = maxLen;
+      fm.appendChild(num);
+
+      var fe = document.createElement('div');
+      fe.className = 'form-item mt-16';
+      fe.innerHTML = '<label>消息示例（3-5条）</label>';
+      var exWrap = document.createElement('div');
+      exWrap.id = 'examples-' + key;
+
+      function addExampleRow(val) {
+        var row = document.createElement('div');
+        row.className = 'agent-example-row';
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'form-control agent-example-input';
+        inp.placeholder = '示例消息';
+        inp.value = val || '';
+        row.appendChild(inp);
+        var rb = document.createElement('button');
+        rb.type = 'button';
+        rb.className = 'btn btn-link agent-ex-remove';
+        rb.style.color = 'var(--danger)';
+        rb.textContent = '✕';
+        rb.onclick = function () {
+          var rows = exWrap.querySelectorAll('.agent-example-row');
+          if (rows.length <= 3) return;
+          row.remove();
+          refreshExampleRemoveVisibility(exWrap);
+        };
+        row.appendChild(rb);
+        exWrap.appendChild(row);
+      }
+
+      examples.forEach(function (ex, n) {
+        addExampleRow(ex);
+        var lastInp = exWrap.lastChild.querySelector('.agent-example-input');
+        if (lastInp) lastInp.placeholder = '示例消息 ' + (n + 1);
+      });
+
+      refreshExampleRemoveVisibility(exWrap);
+
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn btn-default btn-sm agent-add-example';
+      addBtn.style.marginTop = '8px';
+      addBtn.setAttribute('data-type', key);
+      addBtn.textContent = '+ 添加示例';
+      addBtn.onclick = function () {
+        var rows = exWrap.querySelectorAll('.agent-example-row');
+        if (rows.length >= 5) {
+          showToast('最多5条示例', 'warning');
+          return;
+        }
+        addExampleRow('');
+        var lastInp = exWrap.lastChild.querySelector('.agent-example-input');
+        if (lastInp) lastInp.placeholder = '示例消息 ' + (rows.length + 1);
+        refreshExampleRemoveVisibility(exWrap);
+      };
+
+      fe.appendChild(exWrap);
+      fe.appendChild(addBtn);
+
+      sub.appendChild(titleRow);
+      sub.appendChild(fg);
+      sub.appendChild(fm);
+      sub.appendChild(fe);
+      wrap.appendChild(sub);
+    });
+  }
+
+  function refreshExampleRemoveVisibility(exWrap) {
+    var rows = exWrap.querySelectorAll('.agent-example-row');
+    var n = rows.length;
+    rows.forEach(function (row) {
+      var btn = row.querySelector('.agent-ex-remove');
+      if (!btn) return;
+      btn.style.display = n > 3 ? '' : 'none';
+    });
+  }
+
+  function collectMessageRulePayload(key) {
+    var genEl = document.querySelector('.msg-gen-req[data-type="' + key + '"]');
+    var maxEl = document.querySelector('.msg-max-len[data-type="' + key + '"]');
+    var exWrap = document.getElementById('examples-' + key);
+    var gen = genEl ? (genEl.value || '') : '';
+    var maxLen = parseInt(maxEl && maxEl.value, 10);
+    if (isNaN(maxLen) || maxLen < 20 || maxLen > 100) {
+      showToast(TRIGGER_LABELS[key] + '：消息最大长度须在 20～100（字符）', 'error');
+      return { error: true };
+    }
+    var examples = [];
+    if (exWrap) {
+      exWrap.querySelectorAll('.agent-example-input').forEach(function (inp) {
+        var v = (inp.value || '').trim();
+        if (v) examples.push(v);
+      });
+    }
+    if (examples.length < 3) {
+      showToast(TRIGGER_LABELS[key] + '：示例不足3条', 'error');
+      return { skip: true };
+    }
+    return {
+      payload: {
+        generation_requirements: gen,
+        examples: examples.slice(0, 5),
+        max_length: maxLen
+      }
+    };
+  }
+
+  document.getElementById('p2-accum-days').addEventListener('change', syncP2HabitBounds);
+  document.getElementById('p2-accum-days').addEventListener('input', syncP2HabitBounds);
+
+  document.getElementById('p3-kw-add').onclick = tryAddP3Keyword;
+  document.getElementById('p3-kw-input').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    tryAddP3Keyword();
+  });
+
+  document.getElementById('btn-save-triggers').onclick = async function () {
+    if (!validateP2ForSave()) return;
+
+    // 决策引擎以当前表单为准，避免仅在 Tab2 修改后未点保存、Tab1 保存时用旧内存覆盖
+    var body = {
+      triggers: readTriggersFromForm(),
+      decision_engine: readDecisionFromForm()
+    };
+
+    var extra = { silentErrorToast: true };
+    var pRules = adminRequest('PUT', '/api/admin/agent-rules', body, false, extra);
+    var tasks = [pRules];
+    if (p3Keywords.length >= 1) {
+      tasks.push(adminRequest('PUT', '/api/admin/agent-night-keywords', { keywords: p3Keywords }, false, extra));
+    }
+    var results = await Promise.all(tasks);
+    var resRules = results[0];
+    if (!resRules || resRules.code !== 0) {
+      showToast((resRules && resRules.message) || 'Agent 规则保存失败', 'error');
+      return;
+    }
+    gTriggersData = body.triggers;
+    gDecisionData = body.decision_engine;
+
+    if (p3Keywords.length >= 1) {
+      var resNight = results[1];
+      if (!resNight || resNight.code !== 0) {
+        showToast((resNight && resNight.message) || '凌晨关键词保存失败', 'error');
+        return;
+      }
+      showToast('触发规则已保存', 'success');
+    } else {
+      showToast('触发规则已保存', 'success');
+      showToast('凌晨关键词列表为空，未调用保存接口（服务端要求至少 1 个关键词）', 'warning');
+    }
+  };
+
+  document.getElementById('btn-save-decision').onclick = async function () {
+    if (!validateP2ForSave()) return;
+
+    var de = readDecisionFromForm();
+    // 触发规则以当前表单为准，避免仅在 Tab1 修改后未点保存、Tab2 保存时用旧内存覆盖
+    var body = {
+      triggers: readTriggersFromForm(),
+      decision_engine: de
+    };
+
+    var res1 = await adminRequest('PUT', '/api/admin/agent-rules', body, false, { silentErrorToast: true });
+    if (!res1 || res1.code !== 0) {
+      showToast((res1 && res1.message) || '决策引擎保存失败', 'error');
+      return;
+    }
+    gDecisionData = de;
+    gTriggersData = body.triggers;
+
+    var types = MSG_ORDER.slice();
+    var payloads = [];
+    var anyMsgFail = false;
+    var skipped = false;
+
+    for (var i = 0; i < types.length; i++) {
+      var t = types[i];
+      var c = collectMessageRulePayload(t);
+      if (c.error) {
+        anyMsgFail = true;
+        continue;
+      }
+      if (c.skip) {
+        skipped = true;
+        continue;
+      }
+      payloads.push({ type: t, payload: c.payload });
+    }
+
+    if (payloads.length === 0) {
+      if (anyMsgFail) {
+        showToast('决策引擎已保存；消息规则存在校验错误，请检查后重试', 'warning');
+        return;
+      }
+      if (skipped) {
+        showToast('决策引擎已保存；部分类型因示例不足3条等未提交消息规则', 'warning');
+      }
+      return;
+    }
+
+    // 串行 PUT，避免后端读-改-写整包时并行请求互相覆盖
+    for (var pi = 0; pi < payloads.length; pi++) {
+      var item = payloads[pi];
+      var r = await adminRequest('PUT', '/api/admin/agent-message-rules/' + item.type, item.payload, false, { silentErrorToast: true });
+      if (!r || r.code !== 0) anyMsgFail = true;
+      else gMessageRulesData[item.type] = item.payload;
+    }
+
+    if (anyMsgFail) {
+      showToast('部分配置保存失败，请检查', 'warning');
+    } else {
+      showToast('决策配置已保存', 'success');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('agent');
+    document.getElementById('header-mount').innerHTML = renderHeader('Agent配置');
+
+    initTabs('main-tabs');
+
+    var wrap = document.getElementById('agent-page-wrap');
+    var extra = { silentErrorToast: true };
+
+    var results = await Promise.all([
+      adminRequest('GET', '/api/admin/agent-rules', null, false, extra),
+      adminRequest('GET', '/api/admin/agent-message-rules', null, false, extra),
+      adminRequest('GET', '/api/admin/agent-night-keywords', null, false, extra)
+    ]);
+    var r1 = results[0];
+    var r2 = results[1];
+    var r3 = results[2];
+
+    if (r1 && r1.code === 0 && r1.data && typeof r1.data === 'object') {
+      gTriggersData = mergeTriggers(r1.data.triggers);
+      gDecisionData = mergeDecision(r1.data.decision_engine);
+    } else {
+      gTriggersData = mergeTriggers(null);
+      gDecisionData = mergeDecision(null);
+      if (r1 && r1.code !== 0) showToast(r1.message || 'Agent 规则加载失败', 'warning');
+    }
+
+    fillTriggersForm(gTriggersData);
+    fillDecisionForm(gDecisionData);
+
+    if (r2 && r2.code === 0 && r2.data && typeof r2.data === 'object') {
+      gMessageRulesData = r2.data;
+    } else {
+      gMessageRulesData = {};
+      if (r2 && r2.code !== 0) showToast(r2.message || '消息规则加载失败', 'warning');
+    }
+    renderMessageRules(gMessageRulesData);
+
+    p3Keywords.length = 0;
+    if (r3 && r3.code === 0 && r3.data && Array.isArray(r3.data.keywords)) {
+      r3.data.keywords.forEach(function (x) {
+        if (x != null && String(x).trim()) p3Keywords.push(String(x).trim());
+      });
+    } else if (r3 && r3.code !== 0) {
+      showToast(r3.message || '凌晨关键词加载失败', 'warning');
+    }
+    renderP3Tags();
+
+    if (wrap) wrap.classList.remove('is-loading');
+  });
+})();
+</script>
+</body>
+</html>

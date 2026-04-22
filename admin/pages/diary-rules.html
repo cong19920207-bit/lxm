@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日记规则配置 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .td-banner-diary {
+      background: #fff7e6;
+      border: 1px solid #ffd591;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #d46b08;
+      line-height: 1.6;
+    }
+    .diary-info-banner {
+      white-space: pre-line;
+      margin-bottom: 16px;
+    }
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    #gen-hour {
+      width: 140px;
+      box-sizing: border-box;
+    }
+    #gen-minute {
+      width: 100px;
+      box-sizing: border-box;
+    }
+    .gen-time-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="td-banner-diary" role="note">
+    已接入生成与调度；改生成时刻后须重启 backend。运维说明见 <code>docs/ops-diary.md</code>。
+  </div>
+
+  <div id="diary-history-link-wrap" class="diary-history-link-wrap" style="display:none;margin-bottom:12px;">
+    <a href="/admin/pages/diary-history.html" class="text-link">📔 查看 AI 日记历史</a>
+    <span class="text-secondary" style="font-size:12px;margin-left:8px">（仅超级管理员 / 运营管理员）</span>
+  </div>
+
+  <div class="alert alert-info diary-info-banner">
+📌 日记生成条件说明：
+1级（朋友）+ 当日有互动 → 生成日记（内容围绕互动）
+2级及以上 + 当日有互动 → 生成日记
+2级及以上 + 当日无互动 → 生成日记（内容为想念用户）
+0级 / 1级且无互动 → 不生成
+  </div>
+
+  <div class="page-card">
+    <div class="form-item">
+      <label>有互动时 · 日记生成 Prompt</label>
+      <textarea id="gen-prompt-with" class="form-control" rows="7" placeholder="当日有对话时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+    </div>
+
+    <div class="form-item mt-16">
+      <label>无互动时 · 日记生成 Prompt（≥2 级想念向）</label>
+      <textarea id="gen-prompt-without" class="form-control" rows="7" placeholder="当日无对话且等级≥2时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+      <div class="alert alert-info" style="font-size:12px;margin-top:8px;margin-bottom:0">
+        可用占位符：<br>
+        {{relationship_level_name}} - 关系等级名称<br>
+        {{conversation_summary}} - 今日对话摘要（无互动分支可为空，由服务端填默认文案）<br>
+        {{recent_emotion}} - 用户最近情绪<br>
+        {{recent_thought}} - 林小梦最近的想法<br>
+        {{max_length}} - 字数上限（与下方滑块一致）
+      </div>
+    </div>
+
+    <div class="form-item mt-16">
+      <label>字数限制 <span id="max-length-val" class="text-secondary">当前设置：最多 150 字</span></label>
+      <input type="range" id="max-length" min="50" max="300" step="10" value="150">
+    </div>
+
+    <div class="form-item mt-16">
+      <label>生成时间（UTC，与日记「当日」日界一致）</label>
+      <div class="gen-time-row">
+        <select id="gen-hour" class="form-control">
+          <option value="0">0 点</option>
+          <option value="1">1 点</option>
+          <option value="2">2 点</option>
+          <option value="3">3 点</option>
+          <option value="4">4 点</option>
+          <option value="5">5 点</option>
+        </select>
+        <input type="number" id="gen-minute" class="form-control" min="0" max="59" step="1" value="0" title="分钟 0–59">
+        <span class="text-secondary" style="font-size:13px">分</span>
+      </div>
+      <p class="text-secondary" style="font-size:12px;margin-top:6px;margin-bottom:0">建议选择凌晨低峰期；修改后须重启 backend 进程后生效。</p>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block mt-16" id="btn-save-diary-rules">保存配置</button>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+
+  function syncMaxLengthLabel() {
+    var el = document.getElementById('max-length');
+    var v = el ? el.value : '150';
+    var span = document.getElementById('max-length-val');
+    if (span) span.textContent = '当前设置：最多 ' + v + ' 字';
+  }
+
+  /** 将服务端 max_length 对齐到滑块 step=10（基准 50），与控件取值域一致 */
+  function snapMaxLengthToSliderStep(ml) {
+    var n = parseInt(ml, 10);
+    if (isNaN(n) || n < 50 || n > 300) return null;
+    var snapped = Math.round((n - 50) / 10) * 10 + 50;
+    if (snapped < 50) snapped = 50;
+    if (snapped > 300) snapped = 300;
+    return { raw: n, value: snapped, adjusted: snapped !== n };
+  }
+
+  async function loadDiaryRules() {
+    var res = await adminRequest('GET', '/api/admin/diary-rules');
+    if (!res || res.code !== 0 || res.data == null) return;
+    var d = res.data;
+    var pwi = d.prompt_with_interaction;
+    var pwo = d.prompt_without_interaction;
+    var leg = d.generation_prompt;
+    if (typeof pwi === 'string' && pwi.trim()) {
+      document.getElementById('gen-prompt-with').value = pwi;
+    } else if (typeof leg === 'string' && leg.trim()) {
+      document.getElementById('gen-prompt-with').value = leg;
+    }
+    if (typeof pwo === 'string' && pwo.trim()) {
+      document.getElementById('gen-prompt-without').value = pwo;
+    } else if (typeof leg === 'string' && leg.trim()) {
+      document.getElementById('gen-prompt-without').value = leg;
+    }
+    if (d.max_length != null) {
+      var snap = snapMaxLengthToSliderStep(d.max_length);
+      if (snap) {
+        document.getElementById('max-length').value = String(snap.value);
+        if (snap.adjusted) {
+          showToast('字数限制已从 ' + snap.raw + ' 对齐为 ' + snap.value + ' 字（与滑块步进一致）', 'warning');
+        }
+      }
+    }
+    if (d.generation_hour != null) {
+      var gh = parseInt(d.generation_hour, 10);
+      if (!isNaN(gh) && gh >= 0 && gh <= 5) {
+        document.getElementById('gen-hour').value = String(gh);
+      }
+    }
+    if (d.generation_minute != null) {
+      var gm = parseInt(d.generation_minute, 10);
+      if (!isNaN(gm) && gm >= 0 && gm <= 59) {
+        document.getElementById('gen-minute').value = String(gm);
+      }
+    }
+    syncMaxLengthLabel();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('diary');
+    document.getElementById('header-mount').innerHTML = renderHeader('日记规则配置');
+
+    var __role = getAdminRole();
+    if (__role === 'super_admin' || __role === 'ops_admin') {
+      var __hist = document.getElementById('diary-history-link-wrap');
+      if (__hist) __hist.style.display = 'block';
+    }
+
+    document.getElementById('max-length').addEventListener('input', syncMaxLengthLabel);
+
+    loadDiaryRules();
+    document.getElementById('btn-save-diary-rules').onclick = async function () {
+      var pw = (document.getElementById('gen-prompt-with').value || '').trim();
+      var pwo = (document.getElementById('gen-prompt-without').value || '').trim();
+      var maxLen = parseInt(document.getElementById('max-length').value, 10);
+      var hour = parseInt(document.getElementById('gen-hour').value, 10);
+      var minute = parseInt(document.getElementById('gen-minute').value, 10);
+      if (!pw || !pwo) {
+        showToast('请同时填写「有互动」与「无互动」两套 Prompt', 'error');
+        return;
+      }
+      if (isNaN(maxLen) || maxLen < 50 || maxLen > 300) {
+        showToast('字数限制须在 50–300 之间', 'error');
+        return;
+      }
+      if (isNaN(hour) || hour < 0 || hour > 5) {
+        showToast('生成时刻（时）须为 0–5', 'error');
+        return;
+      }
+      if (isNaN(minute) || minute < 0 || minute > 59) {
+        showToast('生成时刻（分）须为 0–59', 'error');
+        return;
+      }
+      var body = {
+        prompt_with_interaction: pw,
+        prompt_without_interaction: pwo,
+        max_length: maxLen,
+        frequency: 'daily',
+        generation_hour: hour,
+        generation_minute: minute
+      };
+      var res = await adminRequest('PUT', '/api/admin/diary-rules', body);
+      if (res && res.code === 0) {
+        showToast('日记规则已保存。若修改了生成时刻，须重启 backend 后 Cron 才会按新时刻执行。', 'success', 4500);
+      }
+    };
+  });
+</script>
+</body>
+</html>

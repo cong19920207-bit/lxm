@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt管理 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* 左 70% + 右 30%，与 persona 时间线等组件风格一致 */
+    .prompt-layout {
+      display: grid;
+      grid-template-columns: 7fr 3fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .prompt-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .status-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .status-draft-hint {
+      color: var(--warning);
+      font-size: 14px;
+    }
+    .status-published-hint {
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+    .btn-publish-green {
+      background: #52c41a !important;
+      color: #fff !important;
+      border-color: #52c41a !important;
+    }
+    .btn-publish-green:hover:not([disabled]) {
+      background: #73d13d !important;
+      border-color: #73d13d !important;
+    }
+    .prompt-edit-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .page-card-head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .page-card-head-row h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text);
+    }
+    #prompt-form-wrap.is-loading #prompt-edit-skeleton {
+      display: block;
+    }
+    #prompt-form-wrap.is-loading #prompt-editor-body {
+      display: none;
+    }
+    #prompt-edit-skeleton {
+      display: none;
+    }
+    #prompt-edit-skeleton .skeleton-row {
+      height: 72px;
+      margin-bottom: 12px;
+    }
+    .timeline-wrap {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline-wrap::before {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: #d9d9d9;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 20px;
+    }
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -20px;
+      top: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1890ff;
+      transform: translateX(-50%);
+    }
+    .timeline-body {
+      padding-left: 8px;
+    }
+    .timeline-ver {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .timeline-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .timeline-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    #prompt-history-collapse-body.collapsed {
+      display: none;
+    }
+    #dirty-alert {
+      display: none;
+    }
+    #dirty-alert.show {
+      display: block;
+    }
+    .prompt-token-line {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    .prompt-token-line.is-over {
+      color: var(--danger);
+    }
+    .modal-prompt-test {
+      max-width: 800px;
+      width: 94%;
+      height: 560px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-prompt-test .modal-body {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .prompt-test-grid {
+      display: grid;
+      grid-template-columns: 40% 60%;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (max-width: 720px) {
+      .prompt-test-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .prompt-test-col {
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .prompt-test-col-right {
+      border-left: 1px solid #f0f0f0;
+      padding-left: 16px;
+    }
+    @media (max-width: 720px) {
+      .prompt-test-col-right {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 16px;
+      }
+    }
+    .ai-reply-bubble {
+      border-radius: 12px;
+      background: #f0f2f5;
+      padding: 16px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .score-bar-row {
+      margin-bottom: 12px;
+    }
+    .score-bar-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .test-score-bar {
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .test-score-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #1890ff, #52c41a);
+      transition: width 0.3s;
+    }
+    .prompt-full-pre {
+      font-family: monospace;
+      font-size: 12px;
+      background: #f5f5f5;
+      overflow-x: auto;
+      padding: 12px;
+      border-radius: 4px;
+      max-height: 240px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .prompt-test-wait {
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 48px 16px;
+      font-size: 14px;
+    }
+    .radio-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .radio-row label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card" style="margin-bottom:16px">
+    <div class="status-bar-inner">
+      <div id="prompt-status-left" class="text-secondary">加载中…</div>
+      <div id="prompt-status-right" class="flex flex-center gap-8"></div>
+    </div>
+  </div>
+
+  <div class="prompt-layout">
+    <div class="page-card">
+      <div class="page-card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Prompt 模块编辑</div>
+      <div id="dirty-alert" class="alert alert-warning mt-16" style="margin-bottom:16px">⚠️ 有未保存的修改</div>
+
+      <div id="prompt-form-wrap" class="is-loading mt-16">
+        <div id="prompt-edit-skeleton">
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+        </div>
+        <div id="prompt-editor-body">
+          <div class="tabs" id="prompt-tabs">
+            <div class="tab-item active" data-target="pane-system" data-module="system">system</div>
+            <div class="tab-item" data-target="pane-relationship" data-module="relationship">relationship</div>
+            <div class="tab-item" data-target="pane-user_memory" data-module="user_memory">user_memory</div>
+            <div class="tab-item" data-target="pane-emotion" data-module="emotion">emotion</div>
+            <div class="tab-item" data-target="pane-recent_chat" data-module="recent_chat">recent_chat</div>
+          </div>
+
+          <div class="alert alert-info" style="margin-bottom:16px">
+            persona 模块由人格管理页面维护；user_input 模块固定不可修改
+          </div>
+
+          <div id="pane-system" class="tab-pane active" data-module="system">
+            <div class="alert alert-info module-hint">加载中…</div>
+            <textarea id="prompt-ta-system" class="form-control" rows="8" style="font-family:monospace;font-size:13px;width:100%;box-sizing:border-box"></textarea>
+            <div id="prompt-token-system" class="prompt-token-line"></div>
+          </div>
+          <div id="pane-relationship" class="tab-pane" data-module="relationship">
+            <div class="alert alert-info module-hint">加载中…</div>
+            <textarea id="prompt-ta-relationship" class="form-control" rows="8" style="font-family:monospace;font-size:13px;width:100%;box-sizing:border-box"></textarea>
+            <div id="prompt-token-relationship" class="prompt-token-line"></div>
+          </div>
+          <div id="pane-user_memory" class="tab-pane" data-module="user_memory">
+            <div class="alert alert-info module-hint">加载中…</div>
+            <textarea id="prompt-ta-user_memory" class="form-control" rows="8" style="font-family:monospace;font-size:13px;width:100%;box-sizing:border-box"></textarea>
+            <div id="prompt-token-user_memory" class="prompt-token-line"></div>
+          </div>
+          <div id="pane-emotion" class="tab-pane" data-module="emotion">
+            <div class="alert alert-info module-hint">加载中…</div>
+            <textarea id="prompt-ta-emotion" class="form-control" rows="8" style="font-family:monospace;font-size:13px;width:100%;box-sizing:border-box"></textarea>
+            <div id="prompt-token-emotion" class="prompt-token-line"></div>
+          </div>
+          <div id="pane-recent_chat" class="tab-pane" data-module="recent_chat">
+            <div class="alert alert-info module-hint">加载中…</div>
+            <textarea id="prompt-ta-recent_chat" class="form-control" rows="8" style="font-family:monospace;font-size:13px;width:100%;box-sizing:border-box"></textarea>
+            <div id="prompt-token-recent_chat" class="prompt-token-line"></div>
+          </div>
+
+          <div class="prompt-edit-actions">
+            <button type="button" class="btn btn-default" id="btn-save-draft">保存草稿</button>
+            <button type="button" class="btn btn-primary" id="btn-test-open">在线测试</button>
+            <button type="button" class="btn btn-publish-green" id="btn-publish" disabled>发布生效</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <div class="page-card-head-row">
+        <h2>版本历史</h2>
+        <button type="button" class="btn btn-default btn-sm" id="btn-history-toggle" aria-expanded="true">收起</button>
+      </div>
+      <div id="prompt-history-collapse-body">
+        <div id="prompt-history-list" class="text-secondary">加载中…</div>
+        <div id="prompt-history-pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 在线测试 -->
+<div id="prompt-test-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-prompt-test" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Prompt 在线测试</h3>
+      <button type="button" class="btn btn-link" id="prompt-test-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="prompt-test-grid">
+        <div class="prompt-test-col">
+          <div class="form-item" style="margin-bottom:12px">
+            <label>使用配置</label>
+            <div class="radio-row">
+              <label><input type="radio" name="prompt-use-draft" value="0" checked> 当前生效配置</label>
+              <label><input type="radio" name="prompt-use-draft" value="1"> 草稿配置</label>
+            </div>
+          </div>
+          <div class="form-item">
+            <label for="prompt-test-level">关系等级</label>
+            <select id="prompt-test-level" class="form-control">
+              <option value="0">0级陌生</option>
+              <option value="1" selected>1级朋友</option>
+              <option value="2">2级亲密</option>
+              <option value="3">3级知己</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="prompt-test-emotion">用户情绪</label>
+            <select id="prompt-test-emotion" class="form-control">
+              <option value="开心">开心</option>
+              <option value="悲伤">悲伤</option>
+              <option value="焦虑">焦虑</option>
+              <option value="愤怒">愤怒</option>
+              <option value="孤独">孤独</option>
+              <option value="疲惫">疲惫</option>
+              <option value="平静" selected>平静</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="prompt-test-memories">模拟记忆</label>
+            <textarea id="prompt-test-memories" class="form-control" rows="4" placeholder="每行一条，最多5条"></textarea>
+          </div>
+          <div class="form-item">
+            <label for="prompt-test-input">测试输入</label>
+            <textarea id="prompt-test-input" class="form-control" rows="4" placeholder="必填"></textarea>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-run-test" style="width:100%;margin-top:8px">开始测试</button>
+        </div>
+        <div class="prompt-test-col prompt-test-col-right">
+          <div id="prompt-test-result-wrap">
+            <div class="prompt-test-wait" id="prompt-test-placeholder">等待测试…</div>
+            <div id="prompt-test-result" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 查看历史版本 -->
+<div id="prompt-view-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content" style="max-width:640px;width:92%" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="prompt-view-title">查看版本</h3>
+      <button type="button" class="btn btn-link" id="prompt-view-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre id="prompt-view-pre" class="form-control" style="white-space:pre-wrap;max-height:60vh;overflow:auto;margin:0;font-size:13px;font-family:monospace"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  // 与 backend/routers/admin/prompt_mgmt.py _EDITABLE_MODULES 一致
+  var EDITABLE_MODULES = ['system', 'relationship', 'user_memory', 'emotion', 'recent_chat'];
+  var PLACEHOLDER_RULES = {
+    relationship: ['{{关系等级名称}}'],
+    user_memory: ['{{Top5记忆列表}}'],
+    emotion: ['{{用户情绪}}', '{{AI联动情绪}}']
+  };
+  var MODULE_TOKEN_LIMITS = {
+    system: 400,
+    relationship: 200,
+    user_memory: 500,
+    emotion: 150,
+    recent_chat: 1000
+  };
+  var MODULE_HINT_HTML = {
+    system: '【用途】System Prompt：人格禁区、回复格式（1–3 短句、禁止列表/Markdown）、共情原则、<strong>结构化 JSON 输出指令</strong>。运行时作为对话链路第一条系统消息。<br>【占位符】本模块无后端强制占位符。',
+    relationship: '【用途】关系状态 Prompt：根据关系等级调整语气与亲密度边界；可写入沉默语气修正等说明。<br>【必填占位符】' +
+      '<code>{{关系等级名称}}</code>（运行时会替换为：陌生 / 朋友 / 亲密 / 知己）。',
+    user_memory: '【用途】用户记忆模块：描述 Top5 向量记忆如何注入对话。<br>【必填占位符】<code>{{Top5记忆列表}}</code>。',
+    emotion: '【用途】情绪模块：用户情绪与 AI 联动情绪、共情规则。<br>【必填占位符】<code>{{用户情绪}}</code>、<code>{{AI联动情绪}}</code>。',
+    recent_chat: '【用途】最近对话上下文说明（实际对话内容由运行时拼接）。<br>【占位符】本模块无后端强制占位符。'
+  };
+
+  var savedSnapshots = {};
+  var testPassed = false;
+  var promptMeta = { version: 0, has_draft: false, total_token_limit: 4096 };
+  var historyPage = 1;
+  var historyTotal = 0;
+
+  function moduleToKey(name) {
+    return name + '_prompt';
+  }
+
+  function getActiveModule() {
+    var t = document.querySelector('#prompt-tabs .tab-item.active');
+    return t ? t.getAttribute('data-module') : 'system';
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function deepMergeModules(active, draft) {
+    if (!draft || typeof draft !== 'object') return active;
+    var out = JSON.parse(JSON.stringify(active));
+    Object.keys(draft).forEach(function (k) {
+      if (out[k] && typeof draft[k] === 'object' && draft[k] !== null && !Array.isArray(draft[k])) {
+        out[k] = Object.assign({}, out[k], draft[k]);
+      } else {
+        out[k] = draft[k];
+      }
+    });
+    return out;
+  }
+
+  function getTextareaValue(name) {
+    var el = document.getElementById('prompt-ta-' + name);
+    return el ? el.value : '';
+  }
+
+  function snapshotForModule(name) {
+    return getTextareaValue(name);
+  }
+
+  function updateTokenLine(name) {
+    var ta = document.getElementById('prompt-ta-' + name);
+    var line = document.getElementById('prompt-token-' + name);
+    if (!ta || !line) return;
+    var n = Math.ceil((ta.value || '').length * 1.5);
+    var limit = MODULE_TOKEN_LIMITS[name] || 500;
+    line.textContent = '当前约 ' + n + ' Token，上限 ' + limit + ' Token';
+    if (n > limit) line.classList.add('is-over');
+    else line.classList.remove('is-over');
+  }
+
+  function updateAllTokenLines() {
+    EDITABLE_MODULES.forEach(updateTokenLine);
+  }
+
+  function updateDirtyAlert() {
+    var el = document.getElementById('dirty-alert');
+    var dirty = EDITABLE_MODULES.some(function (m) {
+      return snapshotForModule(m) !== (savedSnapshots[m] || '');
+    });
+    if (dirty) el.classList.add('show');
+    else el.classList.remove('show');
+  }
+
+  function setTestPassed(val) {
+    testPassed = !!val;
+    document.getElementById('btn-publish').disabled = !testPassed;
+  }
+
+  function onModuleInput(name) {
+    setTestPassed(false);
+    updateTokenLine(name);
+    updateDirtyAlert();
+  }
+
+  function validatePlaceholders(moduleName, content) {
+    var rules = PLACEHOLDER_RULES[moduleName];
+    if (!rules || !rules.length) return true;
+    for (var i = 0; i < rules.length; i++) {
+      if (content.indexOf(rules[i]) < 0) {
+        showToast('缺少必填占位符：' + rules[i], 'error');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function renderStatusBar() {
+    var left = document.getElementById('prompt-status-left');
+    var right = document.getElementById('prompt-status-right');
+    right.innerHTML = '';
+
+    if (promptMeta.version > 0) {
+      left.textContent = '当前生效版本：V' + promptMeta.version;
+    } else {
+      left.textContent = '当前生效版本：默认内置模板（未发布过）';
+    }
+
+    if (promptMeta.has_draft) {
+      var span = document.createElement('span');
+      span.className = 'status-draft-hint';
+      span.textContent = '📝 有未发布的草稿';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-default btn-sm';
+      btn.textContent = '丢弃草稿';
+      btn.onclick = function () {
+        showConfirm('确定丢弃当前 Prompt 草稿？丢弃后不可恢复。', function () {
+          discardDraftRequest();
+        });
+      };
+      right.appendChild(span);
+      right.appendChild(btn);
+    } else {
+      var pub = document.createElement('span');
+      pub.className = 'status-published-hint';
+      pub.textContent = '已发布';
+      right.appendChild(pub);
+    }
+  }
+
+  async function discardDraftRequest() {
+    var r = await adminRequest('DELETE', '/api/admin/prompt/draft');
+    if (r && r.code === 0) {
+      showToast('草稿已丢弃', 'success');
+      window.location.reload();
+    }
+  }
+
+  async function refreshModulesMeta() {
+    var r = await adminRequest('GET', '/api/admin/prompt/modules');
+    if (r && r.code === 0 && r.data) {
+      promptMeta.version = r.data.version != null ? r.data.version : 0;
+      promptMeta.has_draft = !!r.data.has_draft;
+      promptMeta.total_token_limit = r.data.total_token_limit != null ? r.data.total_token_limit : 4096;
+      renderStatusBar();
+    }
+  }
+
+  function fillHints() {
+    EDITABLE_MODULES.forEach(function (m) {
+      var pane = document.getElementById('pane-' + m);
+      if (!pane) return;
+      var hint = pane.querySelector('.module-hint');
+      if (hint) hint.innerHTML = MODULE_HINT_HTML[m] || '';
+    });
+  }
+
+  function fillFromModules(merged) {
+    EDITABLE_MODULES.forEach(function (m) {
+      var key = moduleToKey(m);
+      var mod = merged[key] || {};
+      var c = mod.content != null ? String(mod.content) : '';
+      var ta = document.getElementById('prompt-ta-' + m);
+      if (ta) ta.value = c;
+      savedSnapshots[m] = c;
+      updateTokenLine(m);
+    });
+    updateDirtyAlert();
+  }
+
+  function renderHistoryList(data) {
+    var box = document.getElementById('prompt-history-list');
+    if (!data || !data.list || data.list.length === 0) {
+      box.textContent = '暂无版本历史';
+      document.getElementById('prompt-history-pagination').innerHTML = '';
+      return;
+    }
+    historyTotal = data.total || 0;
+    var html = '<div class="timeline-wrap">';
+    data.list.forEach(function (row) {
+      var ver = row.version;
+      var activeTag = row.is_active ? ' <span class="tag tag-blue">生效中</span>' : '';
+      html += '<div class="timeline-item">';
+      html += '<div class="timeline-dot"></div>';
+      html += '<div class="timeline-body">';
+      html += '<div class="timeline-ver">V' + ver + activeTag + '</div>';
+      html += '<div class="timeline-meta">' + escapeHtml(row.updated_by || '-') + ' · ' + formatDateTime(row.updated_at) + '</div>';
+      html += '<div class="timeline-actions">';
+      html += '<button type="button" class="btn btn-link btn-sm" data-view-v="' + ver + '">查看</button>';
+      html += '<button type="button" class="btn btn-link btn-sm" data-rollback-v="' + ver + '">回滚</button>';
+      html += '</div></div></div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+    box.querySelectorAll('[data-view-v]').forEach(function (b) {
+      b.onclick = function () {
+        openViewVersion(parseInt(b.getAttribute('data-view-v'), 10));
+      };
+    });
+    box.querySelectorAll('[data-rollback-v]').forEach(function (b) {
+      b.onclick = function () {
+        rollbackVersion(parseInt(b.getAttribute('data-rollback-v'), 10));
+      };
+    });
+    renderPagination('prompt-history-pagination', data.page || 1, historyTotal, 10, 'goPromptHistoryPage');
+  }
+
+  window.goPromptHistoryPage = function (p) {
+    historyPage = p;
+    loadHistoryPage();
+  };
+
+  async function loadHistoryPage() {
+    var r = await adminRequest('GET', '/api/admin/prompt/history?page=' + historyPage + '&page_size=10');
+    if (r && r.code === 0 && r.data) {
+      renderHistoryList(r.data);
+    } else if (r && r.code === 0) {
+      renderHistoryList({ list: [], total: 0, page: 1 });
+    }
+  }
+
+  async function openViewVersion(version) {
+    var r = await adminRequest('GET', '/api/admin/prompt/history/' + version);
+    if (!r || r.code !== 0 || !r.data) return;
+    document.getElementById('prompt-view-title').textContent = '查看版本 V' + version;
+    var c = r.data.content;
+    var text = typeof c === 'object' && c !== null
+      ? JSON.stringify(c, null, 2)
+      : String(c == null ? '' : c);
+    document.getElementById('prompt-view-pre').textContent = text;
+    var overlay = document.getElementById('prompt-view-modal');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeViewModal() {
+    var overlay = document.getElementById('prompt-view-modal');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function rollbackVersion(version) {
+    showConfirmInput(
+      '回滚确认',
+      '将回滚至 V' + version + ' 版本，当前生效版本将成为历史记录。',
+      '确认回滚',
+      function () {
+        doRollback(version);
+      }
+    );
+  }
+
+  async function doRollback(version) {
+    var r = await adminRequest('POST', '/api/admin/prompt/rollback', {
+      version: version,
+      confirm_text: 'CONFIRM'
+    });
+    if (r && r.code === 0) {
+      showToast('回滚成功', 'success');
+      window.location.reload();
+    }
+  }
+
+  function openTestModal() {
+    var overlay = document.getElementById('prompt-test-modal');
+    document.getElementById('prompt-test-placeholder').style.display = 'block';
+    document.getElementById('prompt-test-result').style.display = 'none';
+    document.getElementById('prompt-test-result').innerHTML = '';
+    document.getElementById('btn-run-test').disabled = false;
+    document.getElementById('btn-run-test').textContent = '开始测试';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeTestModal() {
+    var overlay = document.getElementById('prompt-test-modal');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function parseMemories(text) {
+    if (!text || !String(text).trim()) return [];
+    var lines = String(text).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    return lines.slice(0, 5);
+  }
+
+  function renderTestResult(d) {
+    var ph = document.getElementById('prompt-test-placeholder');
+    var box = document.getElementById('prompt-test-result');
+    ph.style.display = 'none';
+    box.style.display = 'block';
+
+    var pm = d.persona_match || {};
+    var total = pm.total_score != null ? pm.total_score : 0;
+    var level = pm.level || '低';
+    var tagClass = total >= 80 ? 'tag-success' : (total >= 60 ? 'tag-warning' : 'tag-error');
+    var styleS = pm.style_score != null ? pm.style_score : 0;
+    var boundS = pm.boundary_score != null ? pm.boundary_score : 0;
+    var emoS = pm.emotion_score != null ? pm.emotion_score : 0;
+    var fullPrompt = d.full_prompt || '';
+    var tok = Math.ceil(fullPrompt.length * 1.5);
+
+    var safe = (d.content_safety || {});
+    var isSafe = safe.is_safe === true;
+    var safeHtml = isSafe
+      ? '<div style="color:#52c41a;margin:12px 0;font-size:14px">✓ 内容安全</div>'
+      : '<div style="color:var(--danger);margin:12px 0;font-size:14px">✗ 内容不安全' +
+        (safe.reason ? '：' + escapeHtml(safe.reason) : '') + '</div>';
+
+    var html = '';
+    html += '<div class="ai-reply-bubble"><strong>AI 回复</strong><br>' + escapeHtml(d.ai_reply || '') + '</div>';
+
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:140px">';
+    html += '<div class="score-bar-label">人格匹配度 · 总分 ' + total + '</div>';
+    html += '<div class="test-score-bar"><div class="test-score-bar-inner" style="width:' + Math.min(100, Math.max(0, total)) + '%"></div></div>';
+    html += '</div>';
+    html += '<span class="tag ' + tagClass + '">' + escapeHtml(level) + '</span>';
+    html += '</div>';
+
+    html += '<div class="score-bar-row"><div class="score-bar-label">风格得分 ' + styleS + '（权重 40%）</div>';
+    html += '<div class="test-score-bar"><div class="test-score-bar-inner" style="width:' + Math.min(100, Math.max(0, styleS)) + '%"></div></div></div>';
+    html += '<div class="score-bar-row"><div class="score-bar-label">边界得分 ' + boundS + '（权重 40%）</div>';
+    html += '<div class="test-score-bar"><div class="test-score-bar-inner" style="width:' + Math.min(100, Math.max(0, boundS)) + '%"></div></div></div>';
+    html += '<div class="score-bar-row"><div class="score-bar-label">情绪得分 ' + emoS + '（权重 20%）</div>';
+    html += '<div class="test-score-bar"><div class="test-score-bar-inner" style="width:' + Math.min(100, Math.max(0, emoS)) + '%"></div></div></div>';
+
+    html += safeHtml;
+
+    html += '<div style="margin-top:16px">';
+    html += '<button type="button" class="btn btn-default btn-sm" id="btn-toggle-full-prompt">查看完整 Prompt（约' + tok + ' Token）</button>';
+    html += '<pre id="prompt-full-pre" class="prompt-full-pre" style="display:none;margin-top:8px"></pre>';
+    html += '</div>';
+
+    box.innerHTML = html;
+    var btn = document.getElementById('btn-toggle-full-prompt');
+    var pre = document.getElementById('prompt-full-pre');
+    if (pre) pre.textContent = fullPrompt;
+    if (btn && pre) {
+      btn.onclick = function () {
+        var open = pre.style.display !== 'block';
+        pre.style.display = open ? 'block' : 'none';
+        btn.textContent = open ? '收起完整 Prompt' : '查看完整 Prompt（约' + tok + ' Token）';
+      };
+    }
+
+    // 与产品约定一致：已发起测试且收到非空 AI 回复才可发布（不依赖人格匹配分数）
+    if (d.ai_reply != null && String(d.ai_reply).trim() !== '') {
+      setTestPassed(true);
+    } else {
+      setTestPassed(false);
+    }
+  }
+
+  async function runPromptTest() {
+    var input = (document.getElementById('prompt-test-input').value || '').trim();
+    if (!input) {
+      showToast('请填写测试输入', 'error');
+      return;
+    }
+    var useDraft = document.querySelector('input[name="prompt-use-draft"]:checked').value === '1';
+    var level = parseInt(document.getElementById('prompt-test-level').value, 10);
+    var emotion = document.getElementById('prompt-test-emotion').value;
+    var memories = parseMemories(document.getElementById('prompt-test-memories').value);
+
+    var btn = document.getElementById('btn-run-test');
+    // 每次重新测试前清除通过态，避免上次成功、本次失败后仍可发布（与 persona 测前重置一致）
+    setTestPassed(false);
+    btn.disabled = true;
+    btn.textContent = '测试中...';
+
+    var r = await adminRequest('POST', '/api/admin/prompt/test', {
+      test_input: input,
+      relationship_level: level,
+      emotion_label: emotion,
+      mock_memories: memories,
+      use_draft: useDraft
+    });
+
+    btn.disabled = false;
+    btn.textContent = '开始测试';
+
+    if (!r || r.code !== 0) {
+      document.getElementById('prompt-test-placeholder').style.display = 'none';
+      var box = document.getElementById('prompt-test-result');
+      box.style.display = 'block';
+      box.innerHTML = '<div class="alert alert-error">测试失败，请稍后重试</div>';
+      return;
+    }
+
+    renderTestResult(r.data || {});
+  }
+
+  async function saveDraft() {
+    var mod = getActiveModule();
+    var content = snapshotForModule(mod);
+    if (!content.trim()) {
+      showToast('内容不能为空', 'error');
+      return;
+    }
+    if (!validatePlaceholders(mod, content)) return;
+
+    var r = await adminRequest('PUT', '/api/admin/prompt/draft/' + mod, { content: content });
+    if (r && r.code === 0) {
+      showToast('草稿已保存', 'success');
+      savedSnapshots[mod] = content;
+      updateDirtyAlert();
+      await refreshModulesMeta();
+    }
+  }
+
+  function publishPrompt() {
+    showConfirmInput(
+      '发布 Prompt 配置',
+      '发布后将立即影响所有用户对话，请确认已通过在线测试。',
+      '确认发布',
+      async function () {
+        var r = await adminRequest('POST', '/api/admin/prompt/publish', {
+          confirm_text: 'CONFIRM',
+          test_passed: true
+        });
+        if (r && r.code === 0) {
+          showToast('发布成功', 'success');
+          window.location.reload();
+        }
+      }
+    );
+  }
+
+  document.getElementById('btn-save-draft').onclick = saveDraft;
+  document.getElementById('btn-test-open').onclick = openTestModal;
+  document.getElementById('btn-publish').onclick = publishPrompt;
+  document.getElementById('btn-run-test').onclick = runPromptTest;
+
+  document.getElementById('prompt-test-close').onclick = closeTestModal;
+  document.getElementById('prompt-test-modal').onclick = function (e) {
+    if (e.target === this) closeTestModal();
+  };
+  document.getElementById('prompt-view-close').onclick = closeViewModal;
+  document.getElementById('prompt-view-modal').onclick = function (e) {
+    if (e.target === this) closeViewModal();
+  };
+
+  EDITABLE_MODULES.forEach(function (m) {
+    var ta = document.getElementById('prompt-ta-' + m);
+    if (ta) {
+      ta.addEventListener('input', function () { onModuleInput(m); });
+    }
+  });
+
+  document.getElementById('btn-history-toggle').onclick = function () {
+    var body = document.getElementById('prompt-history-collapse-body');
+    var expanded = !body.classList.contains('collapsed');
+    if (expanded) {
+      body.classList.add('collapsed');
+      this.textContent = '展开';
+      this.setAttribute('aria-expanded', 'false');
+    } else {
+      body.classList.remove('collapsed');
+      this.textContent = '收起';
+      this.setAttribute('aria-expanded', 'true');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('prompt');
+    document.getElementById('header-mount').innerHTML = renderHeader('Prompt管理');
+
+    fillHints();
+    initTabs('prompt-tabs');
+
+    var wrap = document.getElementById('prompt-form-wrap');
+    var modR, histR, draftR;
+    try {
+      var results = await Promise.all([
+        adminRequest('GET', '/api/admin/prompt/modules'),
+        adminRequest('GET', '/api/admin/prompt/history?page=1&page_size=10'),
+        adminRequest('GET', '/api/admin/prompt/draft')
+      ]);
+      modR = results[0];
+      histR = results[1];
+      draftR = results[2];
+    } catch (e) {
+      modR = null;
+    }
+
+    if (modR && modR.code === 0 && modR.data) {
+      promptMeta.version = modR.data.version != null ? modR.data.version : 0;
+      promptMeta.has_draft = !!modR.data.has_draft;
+      promptMeta.total_token_limit = modR.data.total_token_limit != null ? modR.data.total_token_limit : 4096;
+      var merged = modR.data.modules || {};
+      var draftMerged = false;
+      if (modR.data.has_draft && draftR && draftR.code === 0 && draftR.data && draftR.data.config_value) {
+        merged = deepMergeModules(modR.data.modules || {}, draftR.data.config_value);
+        draftMerged = true;
+      }
+      if (modR.data.has_draft && !draftMerged) {
+        showToast('草稿未能加载，已显示生效内容，请刷新重试', 'warning');
+      }
+      fillFromModules(merged);
+    } else {
+      document.getElementById('prompt-status-left').textContent = '加载失败';
+    }
+
+    setTestPassed(false);
+    wrap.classList.remove('is-loading');
+    renderStatusBar();
+    updateAllTokenLines();
+
+    if (histR && histR.code === 0 && histR.data) {
+      renderHistoryList(histR.data);
+    } else {
+      document.getElementById('prompt-history-list').textContent = '加载失败，请刷新重试';
+    }
+  });
+})();
+</script>
+</body>
+</html>

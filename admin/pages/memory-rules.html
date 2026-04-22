@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>记忆规则配置 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .memory-range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .memory-range-row input[type="range"] {
+      flex: 1;
+      min-width: 160px;
+      max-width: 360px;
+    }
+    .memory-api-key-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .memory-api-key-row .form-control {
+      flex: 1;
+      min-width: 200px;
+      max-width: 480px;
+      box-sizing: border-box;
+    }
+    #memory-page-wrap.is-loading .memory-disable-while-load {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .memory-tab-header-card {
+      padding-bottom: 0;
+      margin-bottom: 16px;
+    }
+    .memory-tab-header-card .tabs {
+      margin-bottom: 0;
+    }
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .memory-vector-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .memory-vector-actions .btn {
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+    }
+    #threshold-merge-conflict {
+      display: none;
+      margin-top: 8px;
+    }
+    #threshold-merge-conflict.show {
+      display: block;
+    }
+    .memory-score-input {
+      width: 72px;
+      box-sizing: border-box;
+    }
+    .memory-input-w100 {
+      width: 100px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div id="memory-page-wrap" class="is-loading">
+    <div class="page-card memory-tab-header-card">
+      <div class="tabs" id="memory-tabs">
+        <div class="tab-item active" data-target="pane-memory-rules">记忆规则</div>
+        <div class="tab-item" data-target="pane-vector-db">向量数据库配置</div>
+      </div>
+    </div>
+
+    <!-- Tab 1：记忆规则 -->
+    <div id="pane-memory-rules" class="tab-pane active">
+      <div class="page-card memory-disable-while-load">
+        <div class="form-item">
+          <label>记忆提取 Prompt</label>
+          <textarea id="extract-prompt" class="form-control" rows="6" placeholder="请输入记忆提取 Prompt" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+        </div>
+
+        <div class="form-item mt-16">
+          <label>重要性评分规则</label>
+          <table class="admin-table" style="margin-top:8px">
+            <thead>
+              <tr>
+                <th style="width:55%">类型</th>
+                <th>分值（1–4）</th>
+              </tr>
+            </thead>
+            <tbody id="importance-rules-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="form-item mt-16">
+          <label>存储阈值</label>
+          <input type="number" id="store-threshold" class="form-control memory-input-w100" min="1" max="4" step="1">
+          <p class="text-secondary mt-8" style="font-size:13px;margin-bottom:0">重要性评分≥此值的记忆才存入长期记忆库</p>
+        </div>
+
+        <div class="form-item mt-16">
+          <label>检索相似度阈值 <span class="text-secondary">当前 <span id="search-threshold-val">0.70</span></span></label>
+          <div class="memory-range-row">
+            <input type="range" id="search-threshold" min="0.5" max="0.85" step="0.01" value="0.7">
+          </div>
+          <p class="text-secondary mt-8" style="font-size:12px;margin-bottom:0">值越高越精准，越低召回越多</p>
+        </div>
+
+        <div class="form-item mt-16">
+          <label>合并相似度阈值 <span class="text-secondary">当前 <span id="merge-threshold-val">0.92</span></span></label>
+          <div class="memory-range-row">
+            <input type="range" id="merge-threshold" min="0.85" max="0.98" step="0.01" value="0.92">
+          </div>
+          <div id="threshold-merge-conflict" class="alert alert-error">⚠️ 合并阈值必须大于检索阈值，否则会出现逻辑冲突</div>
+        </div>
+
+        <div class="mt-24">
+          <button type="button" class="btn btn-primary btn-block" id="btn-save-memory-rules">保存配置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2：向量数据库 -->
+    <div id="pane-vector-db" class="tab-pane">
+      <div class="page-card memory-disable-while-load">
+        <div class="form-item">
+          <label>Endpoint</label>
+          <input type="url" id="vector-endpoint" class="form-control" placeholder="https://..." autocomplete="off">
+        </div>
+        <div class="form-item mt-16">
+          <label>Collection 名称</label>
+          <input type="text" id="vector-collection" class="form-control" placeholder="集合名称" autocomplete="off">
+        </div>
+        <div class="form-item mt-16">
+          <label>检索 TopK</label>
+          <input type="number" id="vector-top-k" class="form-control memory-input-w100" min="1" step="1" title="保存与测连须在 1–20 范围内">
+          <p class="text-secondary mt-8" style="font-size:13px;margin-bottom:0">测连与保存时须在 1–20；若配置中曾大于 20，请改回范围内再保存，避免误覆盖</p>
+        </div>
+        <div class="form-item mt-16">
+          <label>API Key</label>
+          <div class="memory-api-key-row">
+            <input type="password" id="vector-api-key-masked" class="form-control" readonly autocomplete="off" placeholder="加载后显示脱敏值">
+            <button type="button" class="btn btn-default" id="btn-toggle-api-key">修改</button>
+          </div>
+          <div id="vector-api-key-plain-wrap" class="mt-8" style="display:none">
+            <input type="password" id="vector-api-key-plain" class="form-control" style="max-width:480px;box-sizing:border-box;font-family:monospace" placeholder="输入新 API Key" autocomplete="off">
+          </div>
+        </div>
+
+        <div id="vector-test-result" class="memory-vdb-test-result" style="display:none;margin-top:16px"></div>
+
+        <div class="memory-vector-actions">
+          <button type="button" class="btn btn-default" id="btn-vector-test">测试连接</button>
+          <button type="button" class="btn btn-primary" id="btn-vector-save" disabled title="请先测试连接">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+
+  var IMP_ROWS = [
+    { type: 'core_life_event', label: '核心人生事件', defaultScore: 4 },
+    { type: 'fixed_preference', label: '固定喜好厌恶', defaultScore: 3 },
+    { type: 'short_emotion', label: '短期情绪', defaultScore: 2 },
+    { type: 'normal_content', label: '普通内容', defaultScore: 1 }
+  ];
+
+  var DEFAULT_MEMORY = {
+    extract_prompt: '',
+    store_threshold: 3,
+    search_threshold: 0.7,
+    merge_threshold: 0.92
+  };
+
+  var vectorTestPassed = false;
+  var vectorKeyPlainVisible = false;
+
+  function fmtThreshold(v) {
+    var n = Number(v);
+    if (isNaN(n)) return '0.00';
+    return n.toFixed(2);
+  }
+
+  function parseScoreInput(el) {
+    var v = parseInt(el.value, 10);
+    if (isNaN(v)) return null;
+    return v;
+  }
+
+  function clampScore(v) {
+    if (v == null) return null;
+    if (v < 1) return 1;
+    if (v > 4) return 4;
+    return v;
+  }
+
+  /** 将 v 限制在 [lo, hi]；返回 { value, adjusted }，NaN 时 value 为 null */
+  function clampThresholdToRange(v, lo, hi) {
+    var n = Number(v);
+    if (isNaN(n)) return { value: null, adjusted: false };
+    var x = n;
+    var adjusted = false;
+    if (x < lo) {
+      x = lo;
+      adjusted = true;
+    } else if (x > hi) {
+      x = hi;
+      adjusted = true;
+    }
+    return { value: x, adjusted: adjusted };
+  }
+
+  /** 解析向量 TopK：仅当整数且 ≥1 时返回数值，否则 null（缺省不用此值） */
+  function parseVectorTopKInput() {
+    var tk = parseInt(document.getElementById('vector-top-k').value, 10);
+    if (isNaN(tk) || tk < 1) return null;
+    return tk;
+  }
+
+  function isVectorTopKInProductRange(tk) {
+    return tk != null && tk >= 1 && tk <= 20;
+  }
+
+  function buildImportanceRulesBody() {
+    var out = [];
+    for (var i = 0; i < IMP_ROWS.length; i++) {
+      var row = IMP_ROWS[i];
+      var inp = document.getElementById('imp-score-' + row.type);
+      var s = clampScore(parseScoreInput(inp));
+      if (s === null) {
+        showToast('重要性分值须为 1–4 的整数', 'error');
+        return null;
+      }
+      out.push({ type: row.type, score: s });
+    }
+    return out;
+  }
+
+  function updateThresholdConflictUI() {
+    var searchEl = document.getElementById('search-threshold');
+    var mergeEl = document.getElementById('merge-threshold');
+    var box = document.getElementById('threshold-merge-conflict');
+    if (!searchEl || !mergeEl || !box) return;
+    var s = Number(searchEl.value);
+    var m = Number(mergeEl.value);
+    if (m <= s) {
+      box.classList.add('show');
+    } else {
+      box.classList.remove('show');
+    }
+  }
+
+  /** 同步阈值冲突 UI，并返回是否满足 merge > search（与 Step 11a validateThresholds 语义一致） */
+  function validateThresholds() {
+    updateThresholdConflictUI();
+    var s = Number(document.getElementById('search-threshold').value);
+    var m = Number(document.getElementById('merge-threshold').value);
+    if (isNaN(s) || isNaN(m)) return false;
+    return m > s;
+  }
+
+  function bindRangeDisplay(rangeId, spanId) {
+    var r = document.getElementById(rangeId);
+    var s = document.getElementById(spanId);
+    if (!r || !s) return;
+    function sync() {
+      s.textContent = fmtThreshold(r.value);
+      if (rangeId === 'search-threshold' || rangeId === 'merge-threshold') {
+        validateThresholds();
+      }
+    }
+    r.addEventListener('input', sync);
+    sync();
+  }
+
+  function renderImportanceRows(scoresByType) {
+    var tb = document.getElementById('importance-rules-tbody');
+    if (!tb) return;
+    tb.innerHTML = '';
+    IMP_ROWS.forEach(function (def) {
+      var score = scoresByType[def.type];
+      if (score == null || isNaN(Number(score))) score = def.defaultScore;
+      score = clampScore(parseInt(score, 10)) || def.defaultScore;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + def.label + '</td>' +
+        '<td><input type="number" class="form-control memory-score-input" id="imp-score-' + def.type + '" ' +
+        'min="1" max="4" step="1" value="' + score + '"></td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  function scoresMapFromApi(rules) {
+    var map = {};
+    if (Array.isArray(rules)) {
+      rules.forEach(function (r) {
+        if (r && r.type != null) map[r.type] = r.score;
+      });
+    }
+    return map;
+  }
+
+  function validateMemoryRulesBeforeSave() {
+    if (!validateThresholds()) {
+      showToast('合并阈值必须大于检索阈值，否则会出现逻辑冲突', 'error');
+      return false;
+    }
+    var st = parseInt(document.getElementById('store-threshold').value, 10);
+    if (isNaN(st) || st < 1 || st > 4) {
+      showToast('存储阈值须为 1–4 的整数', 'error');
+      return false;
+    }
+    if (buildImportanceRulesBody() === null) return false;
+    return true;
+  }
+
+  function setVectorSaveEnabled(on) {
+    var btn = document.getElementById('btn-vector-save');
+    if (!btn) return;
+    if (on) {
+      btn.disabled = false;
+      btn.removeAttribute('title');
+    } else {
+      btn.disabled = true;
+      btn.setAttribute('title', '请先测试连接');
+    }
+  }
+
+  function setVectorTestPassed(passed) {
+    vectorTestPassed = passed;
+    setVectorSaveEnabled(passed);
+  }
+
+  function resetVectorTestResult() {
+    var el = document.getElementById('vector-test-result');
+    if (!el) return;
+    el.innerHTML = '';
+    el.style.display = 'none';
+  }
+
+  function showVectorTestResult(htmlClass, text) {
+    var el = document.getElementById('vector-test-result');
+    if (!el) return;
+    el.style.display = 'block';
+    el.innerHTML = '';
+    var div = document.createElement('div');
+    div.className = 'alert ' + htmlClass;
+    div.style.marginBottom = '0';
+    div.textContent = text;
+    el.appendChild(div);
+  }
+
+  // 展开明文：按需求在「修改 API Key」时重置测试通过与结果区；取消仅收起并清空，不重复改 testPassed
+  function openApiKeyPlainEditor() {
+    vectorKeyPlainVisible = true;
+    var wrap = document.getElementById('vector-api-key-plain-wrap');
+    var plain = document.getElementById('vector-api-key-plain');
+    var btn = document.getElementById('btn-toggle-api-key');
+    if (!wrap || !plain || !btn) return;
+    wrap.style.display = 'block';
+    btn.textContent = '取消';
+    plain.value = '';
+    plain.focus();
+    setVectorTestPassed(false);
+    resetVectorTestResult();
+  }
+
+  function closeApiKeyPlainEditor() {
+    vectorKeyPlainVisible = false;
+    var wrap = document.getElementById('vector-api-key-plain-wrap');
+    var plain = document.getElementById('vector-api-key-plain');
+    var btn = document.getElementById('btn-toggle-api-key');
+    if (wrap) wrap.style.display = 'none';
+    if (plain) plain.value = '';
+    if (btn) btn.textContent = '修改';
+  }
+
+  async function loadMemoryRules() {
+    var res = await adminRequest('GET', '/api/admin/memory-rules');
+    var d = (res && res.code === 0) ? res.data : null;
+    var scoresByType = {};
+    var memoryThresholdClamped = false;
+    if (d && typeof d === 'object') {
+      document.getElementById('extract-prompt').value = d.extract_prompt != null ? String(d.extract_prompt) : '';
+      var st = parseInt(d.store_threshold, 10);
+      document.getElementById('store-threshold').value = (!isNaN(st) && st >= 1 && st <= 4) ? st : DEFAULT_MEMORY.store_threshold;
+      var searchRaw = Number(d.search_threshold);
+      var mergeRaw = Number(d.merge_threshold);
+      if (!isNaN(searchRaw)) {
+        var cs = clampThresholdToRange(searchRaw, 0.5, 0.85);
+        document.getElementById('search-threshold').value = String(cs.value);
+        if (cs.adjusted) memoryThresholdClamped = true;
+      } else {
+        document.getElementById('search-threshold').value = String(DEFAULT_MEMORY.search_threshold);
+      }
+      if (!isNaN(mergeRaw)) {
+        var cm = clampThresholdToRange(mergeRaw, 0.85, 0.98);
+        document.getElementById('merge-threshold').value = String(cm.value);
+        if (cm.adjusted) memoryThresholdClamped = true;
+      } else {
+        document.getElementById('merge-threshold').value = String(DEFAULT_MEMORY.merge_threshold);
+      }
+      scoresByType = scoresMapFromApi(d.importance_rules);
+    } else {
+      document.getElementById('extract-prompt').value = DEFAULT_MEMORY.extract_prompt;
+      document.getElementById('store-threshold').value = DEFAULT_MEMORY.store_threshold;
+      document.getElementById('search-threshold').value = String(DEFAULT_MEMORY.search_threshold);
+      document.getElementById('merge-threshold').value = String(DEFAULT_MEMORY.merge_threshold);
+    }
+    renderImportanceRows(scoresByType);
+    document.getElementById('search-threshold-val').textContent = fmtThreshold(document.getElementById('search-threshold').value);
+    document.getElementById('merge-threshold-val').textContent = fmtThreshold(document.getElementById('merge-threshold').value);
+    validateThresholds();
+    if (memoryThresholdClamped) {
+      showToast('检索/合并阈值曾超出服务端允许范围，已自动调整到边界值', 'warning');
+    }
+  }
+
+  async function loadVectorConfig() {
+    var res = await adminRequest('GET', '/api/admin/vector-db-config');
+    if (!res || res.code !== 0 || !res.data) return;
+    var d = res.data;
+    document.getElementById('vector-endpoint').value = d.endpoint != null ? String(d.endpoint) : '';
+    document.getElementById('vector-collection').value = d.collection_name != null ? String(d.collection_name) : '';
+    // 原样展示接口返回的 top_k（≥1）；仅当缺失或非法时用 5，避免把如 50 静默改成 5 导致误保存
+    var tk = parseInt(d.top_k, 10);
+    document.getElementById('vector-top-k').value = (!isNaN(tk) && tk >= 1) ? tk : 5;
+    var masked = d.api_key_masked != null ? String(d.api_key_masked) : '';
+    document.getElementById('vector-api-key-masked').value = masked;
+  }
+
+  async function loadAll() {
+    var wrap = document.getElementById('memory-page-wrap');
+    if (wrap) wrap.classList.add('is-loading');
+
+    await Promise.all([loadMemoryRules(), loadVectorConfig()]);
+
+    if (wrap) wrap.classList.remove('is-loading');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('memory');
+    document.getElementById('header-mount').innerHTML = renderHeader('记忆规则配置');
+
+    initTabs('memory-tabs');
+
+    bindRangeDisplay('search-threshold', 'search-threshold-val');
+    bindRangeDisplay('merge-threshold', 'merge-threshold-val');
+
+    document.getElementById('btn-save-memory-rules').onclick = async function () {
+      if (!validateMemoryRulesBeforeSave()) return;
+      var rules = buildImportanceRulesBody();
+      if (!rules) return;
+      var body = {
+        extract_prompt: document.getElementById('extract-prompt').value || '',
+        importance_rules: rules,
+        store_threshold: parseInt(document.getElementById('store-threshold').value, 10),
+        search_threshold: Number(document.getElementById('search-threshold').value),
+        merge_threshold: Number(document.getElementById('merge-threshold').value)
+      };
+      var res = await adminRequest('PUT', '/api/admin/memory-rules', body);
+      if (res && res.code === 0) {
+        showToast('记忆规则配置已保存', 'success');
+      }
+    };
+
+    document.getElementById('btn-toggle-api-key').onclick = function () {
+      if (vectorKeyPlainVisible) closeApiKeyPlainEditor();
+      else openApiKeyPlainEditor();
+    };
+
+    document.getElementById('vector-api-key-plain').addEventListener('input', function () {
+      setVectorTestPassed(false);
+      resetVectorTestResult();
+    });
+
+    document.getElementById('btn-vector-test').onclick = async function () {
+      var topK = parseVectorTopKInput();
+      if (!isVectorTopKInProductRange(topK)) {
+        showToast('检索 TopK 须为 1–20 的整数后再测试连接', 'warning');
+        return;
+      }
+      var endpoint = (document.getElementById('vector-endpoint').value || '').trim();
+      var collection = (document.getElementById('vector-collection').value || '').trim();
+      var plainKey = (document.getElementById('vector-api-key-plain').value || '').trim();
+      var body = {
+        endpoint: endpoint || null,
+        collection_name: collection || null
+      };
+      if (plainKey) body.api_key = plainKey;
+
+      showVectorTestResult('alert-info', '正在测试连接...');
+      // silentErrorToast：业务错误仅在结果区展示，避免与 adminRequest 内 Toast 重复
+      var res = await adminRequest(
+        'POST',
+        '/api/admin/vector-db-config/test-connection',
+        body,
+        false,
+        { silentErrorToast: true }
+      );
+      if (!res || res.code !== 0) {
+        var msg0 = (res && res.message) ? String(res.message) : '请求失败';
+        showVectorTestResult('alert-error', '❌ 连接失败：' + msg0);
+        setVectorTestPassed(false);
+        return;
+      }
+      var data = res.data || {};
+      if (data.connected) {
+        var ms = data.latency_ms != null ? data.latency_ms : 0;
+        showVectorTestResult('alert-success', '✅ 连接成功，延迟 ' + ms + 'ms');
+        setVectorTestPassed(true);
+      } else {
+        var err = data.error != null ? String(data.error) : ((res.message != null) ? String(res.message) : '未知错误');
+        showVectorTestResult('alert-error', '❌ 连接失败：' + err);
+        setVectorTestPassed(false);
+      }
+    };
+
+    document.getElementById('btn-vector-save').onclick = async function () {
+      if (!vectorTestPassed) {
+        showToast('请先测试连接', 'warning');
+        return;
+      }
+      var endpoint = (document.getElementById('vector-endpoint').value || '').trim();
+      var collection = (document.getElementById('vector-collection').value || '').trim();
+      var topK = parseVectorTopKInput();
+      if (!endpoint) {
+        showToast('请填写 Endpoint', 'warning');
+        return;
+      }
+      if (!collection) {
+        showToast('请填写 Collection 名称', 'warning');
+        return;
+      }
+      if (!isVectorTopKInProductRange(topK)) {
+        showToast('检索 TopK 须为 1–20 的整数后再保存', 'warning');
+        return;
+      }
+      var plainKey = (document.getElementById('vector-api-key-plain').value || '').trim();
+      var body = {
+        endpoint: endpoint,
+        collection_name: collection,
+        top_k: topK,
+        need_test_first: false
+      };
+      if (plainKey) body.api_key = plainKey;
+
+      var res = await adminRequest('PUT', '/api/admin/vector-db-config', body);
+      if (res && res.code === 0) {
+        showToast('保存成功', 'success');
+        closeApiKeyPlainEditor();
+        setVectorTestPassed(false);
+        resetVectorTestResult();
+        await loadVectorConfig();
+      }
+    };
+
+    loadAll();
+  });
+})();
+</script>
+</body>
+</html>

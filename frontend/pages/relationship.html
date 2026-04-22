@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>林小梦 - 我们的关系</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <style>
+    .page-body {
+      padding: 56px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* 区块一：关系等级卡片 */
+    .level-card {
+      border-radius: 20px;
+      padding: 28px 20px 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      transition: background 0.3s;
+    }
+    .level-card.level-0 { background: linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%); }
+    .level-card.level-1 { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); }
+    .level-card.level-2 { background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%); }
+    .level-card.level-3 { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); }
+
+    .level-card .avatar-wrapper {
+      margin: 0 auto 16px;
+    }
+    .level-card .level-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--color-text);
+    }
+    .level-card .level-desc {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .level-card .perks-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .level-card .perk-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(82, 196, 26, 0.15);
+      color: #389e0d;
+      font-size: 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .level-card .next-hint {
+      font-size: 14px;
+      color: #999;
+    }
+
+    /* 区块二：互动里程碑 */
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--color-text);
+    }
+    .milestone-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .milestone-item {
+      background: var(--color-white);
+      border-radius: 14px;
+      padding: 14px 6px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .milestone-item .m-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.2;
+    }
+    .milestone-item .m-value.warn {
+      color: #fa8c16;
+    }
+    .milestone-item .m-label {
+      font-size: 12px;
+      color: var(--color-gray);
+      margin-top: 4px;
+    }
+    .milestone-item .m-sub {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 2px;
+    }
+
+    /* 区块三：成长进度 */
+    .progress-section {
+      background: var(--color-white);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .detail-progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #f0f0f0;
+      border-radius: 6px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+    .detail-progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.6s ease-out;
+      width: 0;
+    }
+    .detail-progress-fill.level-0 { background: linear-gradient(90deg, #b0bec5, #90a4ae); }
+    .detail-progress-fill.level-1 { background: linear-gradient(90deg, #ffcc80, #ffb74d); }
+    .detail-progress-fill.level-2 { background: linear-gradient(90deg, #f48fb1, #ec407a); }
+    .detail-progress-fill.level-3 { background: linear-gradient(90deg, #ce93d8, #ab47bc); }
+
+    .progress-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--color-gray);
+    }
+    .progress-tip {
+      text-align: center;
+      font-size: 13px;
+      color: #fa8c16;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .progress-tip.visible {
+      opacity: 1;
+    }
+    .next-perks-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--color-gray);
+      cursor: pointer;
+      user-select: none;
+    }
+    .next-perks-toggle .arrow {
+      transition: transform 0.2s;
+      font-size: 12px;
+    }
+    .next-perks-toggle.open .arrow {
+      transform: rotate(180deg);
+    }
+    .next-perks-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .next-perks-list.open {
+      max-height: 200px;
+    }
+    .next-perks-list .perk-item {
+      padding: 6px 0;
+      font-size: 14px;
+      color: var(--color-text);
+    }
+    .max-level-badge {
+      text-align: center;
+      padding: 16px 0;
+    }
+    .max-level-badge .big {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+    .max-level-badge .sub {
+      font-size: 14px;
+      color: var(--color-gray);
+    }
+
+    /* 区块四：今日成长 */
+    .today-section {
+      background: var(--color-white);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .today-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .today-header .today-total {
+      font-size: 14px;
+      color: #389e0d;
+      font-weight: 500;
+    }
+    .today-header .today-total.empty {
+      color: var(--color-gray);
+    }
+    .growth-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .growth-item:last-child {
+      border-bottom: none;
+    }
+    .growth-item .gi-icon {
+      width: 32px;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .growth-item .gi-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .growth-item .gi-title {
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .growth-item .gi-sub {
+      font-size: 12px;
+      color: var(--color-gray);
+      margin-top: 2px;
+    }
+    .growth-item .gi-right {
+      text-align: right;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .growth-item .gi-points {
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .done-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(82, 196, 26, 0.12);
+      color: #389e0d;
+      font-size: 11px;
+      border-radius: 10px;
+      margin-top: 2px;
+    }
+    .streak-tag {
+      font-size: 12px;
+      color: #fa8c16;
+    }
+
+    /* 区块五：成长历程时间线 */
+    .timeline-section {
+      background: var(--color-white);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .timeline-empty {
+      text-align: center;
+      font-style: italic;
+      color: var(--color-gray);
+      font-size: 14px;
+      line-height: 1.8;
+      padding: 12px 0;
+    }
+    .timeline-list {
+      position: relative;
+      padding-left: 24px;
+    }
+    .timeline-list::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: #f0e8e0;
+    }
+    .timeline-node {
+      position: relative;
+      padding: 8px 0;
+    }
+    .timeline-node::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 14px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      border: 2px solid var(--color-white);
+      box-shadow: 0 0 0 2px var(--color-primary);
+    }
+    .timeline-node.current::before {
+      background: #fa8c16;
+      box-shadow: 0 0 0 2px #fa8c16;
+    }
+    .timeline-node .tn-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .timeline-node .tn-time {
+      font-size: 12px;
+      color: var(--color-gray);
+      margin-top: 2px;
+    }
+
+    /* 区块六：成长记录 */
+    .log-section {
+      background: var(--color-white);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .log-header .log-total {
+      font-size: 12px;
+      color: var(--color-gray);
+    }
+    .log-date-sep {
+      text-align: center;
+      font-size: 12px;
+      color: #bbb;
+      padding: 8px 0;
+    }
+    .log-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f9f5f0;
+    }
+    .log-item:last-child {
+      border-bottom: none;
+    }
+    .log-item .li-icon {
+      width: 28px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .log-item .li-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .log-item .li-label {
+      font-size: 14px;
+      color: var(--color-text);
+    }
+    .log-item .li-time {
+      font-size: 12px;
+      color: var(--color-gray);
+      margin-top: 2px;
+    }
+    .log-item .li-points {
+      font-size: 14px;
+      font-weight: 600;
+      color: #389e0d;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    /* 骨架屏 */
+    .skeleton-card {
+      height: 260px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .skeleton-grid-item {
+      height: 80px;
+      border-radius: 14px;
+    }
+    .skeleton-block {
+      height: 140px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .content-loaded .skeleton-wrap { display: none; }
+    .content-loaded .real-content { display: block !important; }
+    .real-content { display: none !important; }
+
+    /* 升级庆祝弹窗 */
+    .levelup-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      animation: fade-in 0.3s forwards;
+    }
+    .levelup-overlay.closing {
+      animation: fade-out 0.3s forwards;
+    }
+    .levelup-box {
+      width: 300px;
+      background: var(--color-white);
+      border-radius: 24px;
+      padding: 32px 24px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .levelup-box .lu-title {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .levelup-box .lu-subtitle {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 16px;
+    }
+    .levelup-box .lu-perks {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .levelup-box .lu-perks .lu-perk {
+      padding: 6px 0;
+      font-size: 14px;
+      color: var(--color-text);
+    }
+    .levelup-box .lu-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--color-primary);
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .levelup-box .lu-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* 粒子动画 */
+    .particles {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: particle-float 2s ease-out forwards;
+    }
+    @keyframes particle-float {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
+    }
+
+    @keyframes fade-in {
+      to { opacity: 1; }
+    }
+    @keyframes fade-out {
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="bar-left">
+      <button class="back-btn" onclick="history.back()">←</button>
+    </div>
+    <div class="bar-center">我们的关系</div>
+    <div class="bar-right"></div>
+  </div>
+
+  <div class="page-body" id="page-body">
+    <!-- 骨架屏 -->
+    <div class="skeleton-wrap">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton-grid">
+        <div class="skeleton skeleton-grid-item"></div>
+        <div class="skeleton skeleton-grid-item"></div>
+        <div class="skeleton skeleton-grid-item"></div>
+        <div class="skeleton skeleton-grid-item"></div>
+      </div>
+      <div class="skeleton skeleton-block"></div>
+      <div class="skeleton skeleton-block"></div>
+    </div>
+
+    <!-- 真实内容 -->
+    <div class="real-content">
+      <!-- 区块一：关系等级卡片 -->
+      <div class="level-card" id="level-card">
+        <div class="avatar-wrapper" style="width:80px;height:80px">
+          <img id="linxiaomeng-avatar"
+               src="/static/images/avatar/default.png"
+               alt="林小梦"
+               style="width:80px;height:80px"
+               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+        </div>
+        <div class="level-name" id="card-level-name"></div>
+        <div class="level-desc" id="card-level-desc"></div>
+        <div class="perks-list" id="card-perks"></div>
+        <div class="next-hint" id="card-next-hint"></div>
+      </div>
+
+      <!-- 区块二：互动里程碑 -->
+      <div class="section-title">我们的故事</div>
+      <div class="milestone-grid" id="milestone-grid">
+        <div class="milestone-item">
+          <div class="m-value" id="m-known-days">0</div>
+          <div class="m-label">相识时间</div>
+          <div class="m-sub" id="m-first-conv"></div>
+        </div>
+        <div class="milestone-item">
+          <div class="m-value" id="m-conv-rounds">0</div>
+          <div class="m-label">聊天记录</div>
+          <div class="m-sub">轮</div>
+        </div>
+        <div class="milestone-item">
+          <div class="m-value" id="m-login-days">0</div>
+          <div class="m-label">连续登录</div>
+          <div class="m-sub">天</div>
+        </div>
+        <div class="milestone-item">
+          <div class="m-value" id="m-silence-days">0</div>
+          <div class="m-label">距上次</div>
+          <div class="m-sub">天</div>
+        </div>
+      </div>
+
+      <!-- 区块三：成长进度 -->
+      <div class="progress-section" id="progress-section">
+        <div class="section-title" style="margin-bottom:14px">亲密进度</div>
+        <div id="progress-content"></div>
+      </div>
+
+      <!-- 区块四：今日成长 -->
+      <div class="today-section">
+        <div class="today-header">
+          <div class="section-title" style="margin-bottom:0">今日成长</div>
+          <div class="today-total" id="today-total"></div>
+        </div>
+        <div id="today-list"></div>
+      </div>
+
+      <!-- 区块五：成长历程 -->
+      <div class="timeline-section">
+        <div class="section-title">成长历程</div>
+        <div id="timeline-content"></div>
+      </div>
+
+      <!-- 区块六：成长记录 -->
+      <div class="log-section">
+        <div class="log-header">
+          <div class="section-title" style="margin-bottom:0">成长记录</div>
+          <div class="log-total" id="log-total"></div>
+        </div>
+        <div id="log-list"></div>
+        <div class="load-more-sentinel" id="log-sentinel"></div>
+        <div class="no-more-text" id="log-no-more" style="display:none">已经到底啦 ✨</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    checkLogin()
+
+    const ICON_MAP = {
+      dialog: '💬',
+      long_session: '⏱',
+      daily_login: '📅',
+      reply_agent: '💌'
+    }
+
+    let logPage = 1
+    let logLoading = false
+    let logNoMore = false
+    let pageData = null
+
+    async function loadPage() {
+      try {
+        const res = await request('GET', '/api/relationship/detail')
+        if (res.code !== 0 || !res.data) {
+          showToast('加载失败，请重试', 'error')
+          document.getElementById('page-body').classList.add('content-loaded')
+          return
+        }
+
+        pageData = res.data
+        renderLevelCard(pageData.level_info, pageData.ai_current_emotion)
+        renderMilestones(pageData.milestones)
+        renderProgress(pageData.level_info, pageData.growth_info)
+        renderTodayGrowth(pageData.today_growth, pageData.milestones.consecutive_login_days)
+        renderTimeline(pageData.level_history, pageData.level_info, pageData.milestones)
+
+        document.getElementById('page-body').classList.add('content-loaded')
+
+        animateNumbers()
+
+        await loadGrowthLog()
+
+        checkLevelUpParam(pageData.level_info)
+      } catch (err) {
+        console.error('加载失败:', err)
+        document.getElementById('page-body').classList.add('content-loaded')
+        showToast('加载失败，请重试', 'error')
+      }
+    }
+
+    /* ====== 区块一：关系等级卡片 ====== */
+    function renderLevelCard(info, emotion) {
+      const card = document.getElementById('level-card')
+      card.className = 'level-card level-' + info.level
+
+      document.getElementById('card-level-name').textContent = info.name
+      document.getElementById('card-level-desc').textContent = info.description
+
+      const perksEl = document.getElementById('card-perks')
+      perksEl.innerHTML = ''
+      info.perks.forEach(p => {
+        const tag = document.createElement('span')
+        tag.className = 'perk-tag'
+        tag.textContent = p
+        perksEl.appendChild(tag)
+      })
+
+      const hintEl = document.getElementById('card-next-hint')
+      if (info.level < 3 && info.next_perks && info.next_perks.length > 0) {
+        hintEl.textContent = '解锁「' + info.next_level_name + '」后，' + info.next_perks[0]
+      } else {
+        hintEl.style.display = 'none'
+      }
+
+      if (emotion) {
+        updateAvatarEmotion(emotion)
+      }
+    }
+
+    /* ====== 区块二：互动里程碑 ====== */
+    function renderMilestones(ms) {
+      document.getElementById('m-known-days').setAttribute('data-target', ms.known_days)
+      document.getElementById('m-known-days').textContent = '0'
+
+      document.getElementById('m-conv-rounds').setAttribute('data-target', ms.total_conversation_rounds)
+      document.getElementById('m-conv-rounds').textContent = '0'
+
+      document.getElementById('m-login-days').setAttribute('data-target', ms.consecutive_login_days)
+      document.getElementById('m-login-days').textContent = '0'
+
+      document.getElementById('m-silence-days').setAttribute('data-target', ms.silence_days)
+      document.getElementById('m-silence-days').textContent = '0'
+
+      if (ms.silence_days > 7) {
+        document.getElementById('m-silence-days').classList.add('warn')
+      }
+
+      const firstConvEl = document.getElementById('m-first-conv')
+      if (ms.first_conversation_at) {
+        const d = new Date(ms.first_conversation_at)
+        firstConvEl.textContent = '初次对话于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+      } else {
+        firstConvEl.textContent = '天'
+      }
+    }
+
+    /* ====== 数字增长动画 ====== */
+    function animateNumbers() {
+      const els = document.querySelectorAll('[data-target]')
+      els.forEach(el => {
+        const target = parseInt(el.getAttribute('data-target')) || 0
+        if (target === 0) { el.textContent = '0'; return }
+        const start = performance.now()
+        const duration = 300
+        function tick(now) {
+          const progress = Math.min((now - start) / duration, 1)
+          const eased = 1 - Math.pow(1 - progress, 3)
+          el.textContent = Math.round(target * eased)
+          if (progress < 1) requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      })
+    }
+
+    /* ====== 区块三：成长进度 ====== */
+    function renderProgress(levelInfo, growthInfo) {
+      const container = document.getElementById('progress-content')
+
+      if (growthInfo.is_max_level) {
+        container.innerHTML =
+          '<div class="max-level-badge">' +
+            '<div class="big">已达到最高等级「知己」✨</div>' +
+            '<div class="sub">林小梦与你之间，已建立最深的情感连接</div>' +
+          '</div>'
+        return
+      }
+
+      const nextLevelName = levelInfo.next_level_name || '下一级'
+      container.innerHTML =
+        '<div class="progress-header">' +
+          '<span>' + levelInfo.name + '</span>' +
+          '<span>' + nextLevelName + '</span>' +
+        '</div>' +
+        '<div class="detail-progress-bar" id="detail-bar" onclick="showProgressTip()">' +
+          '<div class="detail-progress-fill level-' + levelInfo.level + '" id="detail-fill"></div>' +
+        '</div>' +
+        '<div class="progress-stats">' +
+          '<span>已积累 ' + growthInfo.points_in_level + ' / ' + growthInfo.points_needed + ' 成长值</span>' +
+          '<span>还差 ' + growthInfo.points_to_next + ' 升级</span>' +
+        '</div>' +
+        '<div class="progress-tip" id="progress-tip"></div>' +
+        '<div class="next-perks-toggle" onclick="toggleNextPerks()">' +
+          '<span>解锁「' + nextLevelName + '」后可获得</span>' +
+          '<span class="arrow">▼</span>' +
+        '</div>' +
+        '<div class="next-perks-list" id="next-perks-list">' +
+          levelInfo.next_perks.map(function(p) {
+            return '<div class="perk-item">✨ ' + p + '</div>'
+          }).join('') +
+        '</div>'
+
+      setTimeout(function() {
+        const fill = document.getElementById('detail-fill')
+        if (fill) fill.style.width = growthInfo.progress_percent + '%'
+      }, 100)
+    }
+
+    function showProgressTip() {
+      if (!pageData || pageData.growth_info.is_max_level) return
+      const tip = document.getElementById('progress-tip')
+      const rounds = Math.ceil(pageData.growth_info.points_to_next / 2)
+      tip.textContent = '再聊 ' + rounds + ' 轮就能升级啦～'
+      tip.classList.add('visible')
+      setTimeout(function() { tip.classList.remove('visible') }, 2000)
+    }
+
+    function toggleNextPerks() {
+      const toggle = document.querySelector('.next-perks-toggle')
+      const list = document.getElementById('next-perks-list')
+      toggle.classList.toggle('open')
+      list.classList.toggle('open')
+    }
+
+    /* ====== 区块四：今日成长 ====== */
+    function renderTodayGrowth(tg, consecutiveDays) {
+      const totalEl = document.getElementById('today-total')
+      if (tg.today_total_points > 0) {
+        totalEl.textContent = '今日总计 +' + tg.today_total_points + ' 成长值'
+        totalEl.className = 'today-total'
+      } else {
+        totalEl.textContent = '今天还没有互动哦'
+        totalEl.className = 'today-total empty'
+      }
+
+      const list = document.getElementById('today-list')
+      const items = [
+        {
+          icon: '📝',
+          title: '完成对话',
+          points: tg.today_dialog_points,
+          sub: tg.today_dialog_limit_reached
+            ? null
+            : '还能获得 ' + tg.today_remaining_dialog + ' 分',
+          done: tg.today_dialog_limit_reached,
+          doneText: '今日已满'
+        },
+        {
+          icon: '🕐',
+          title: '深度聊天（单日对话≥10分钟）',
+          points: tg.today_session_points,
+          sub: tg.today_session_points === 0 ? '聊够10分钟可获得+20分' : null,
+          done: tg.today_session_points >= 20,
+          doneText: '已完成'
+        },
+        {
+          icon: '📅',
+          title: '每日登录',
+          points: tg.today_login_points,
+          sub: tg.today_login_points === 0 ? '今日登录可获得+5分' : null,
+          done: tg.today_login_points > 0,
+          doneText: '已完成',
+          streak: consecutiveDays >= 7 ? '连续' + consecutiveDays + '天登录奖励中🔥' : null
+        },
+        {
+          icon: '💬',
+          title: '回复林小梦的消息',
+          points: tg.today_reply_points,
+          sub: tg.today_reply_points === 0 ? '回复林小梦主动消息可获得+10分' : null,
+          done: tg.today_reply_points > 0,
+          doneText: '已完成'
+        }
+      ]
+
+      list.innerHTML = items.map(function(item) {
+        let rightHtml = '<div class="gi-points">' + item.points + '分</div>'
+        if (item.done) {
+          rightHtml += '<div class="done-tag">' + item.doneText + '</div>'
+        }
+
+        let subHtml = ''
+        if (item.sub) {
+          subHtml = '<div class="gi-sub">' + item.sub + '</div>'
+        }
+        if (item.streak) {
+          subHtml += '<div class="streak-tag">' + item.streak + '</div>'
+        }
+
+        return '<div class="growth-item">' +
+          '<div class="gi-icon">' + item.icon + '</div>' +
+          '<div class="gi-body">' +
+            '<div class="gi-title">' + item.title + '</div>' +
+            subHtml +
+          '</div>' +
+          '<div class="gi-right">' + rightHtml + '</div>' +
+        '</div>'
+      }).join('')
+    }
+
+    /* ====== 区块五：成长历程时间线 ====== */
+    function renderTimeline(history, levelInfo, milestones) {
+      const container = document.getElementById('timeline-content')
+
+      if (!history || history.length === 0) {
+        let text = '我们的故事，从这里开始'
+        if (milestones.first_conversation_at) {
+          const d = new Date(milestones.first_conversation_at)
+          text = '我们相识于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日，\n从陌生人开始，慢慢走到了现在'
+        }
+        container.innerHTML = '<div class="timeline-empty">' + text + '</div>'
+        return
+      }
+
+      let html = '<div class="timeline-list">'
+      html += '<div class="timeline-node current">' +
+        '<div class="tn-title">★ 当前是「' + levelInfo.name + '」</div>' +
+        '<div class="tn-time">一直在这里陪着你</div>' +
+      '</div>'
+
+      history.forEach(function(h) {
+        const d = new Date(h.achieved_at)
+        const timeStr = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' +
+          String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+        html += '<div class="timeline-node">' +
+          '<div class="tn-title">● 升级为「' + h.level_name + '」</div>' +
+          '<div class="tn-time">' + timeStr + '</div>' +
+        '</div>'
+      })
+
+      html += '</div>'
+      container.innerHTML = html
+    }
+
+    /* ====== 区块六：成长记录 ====== */
+    async function loadGrowthLog() {
+      if (logLoading || logNoMore) return
+      logLoading = true
+
+      const res = await request('GET', '/api/relationship/growth-log?page=' + logPage + '&page_size=20')
+      if (res.code !== 0 || !res.data) {
+        logLoading = false
+        return
+      }
+
+      const data = res.data
+      document.getElementById('log-total').textContent = '共 ' + data.total + ' 条'
+
+      if (data.list.length === 0 && logPage === 1) {
+        document.getElementById('log-list').innerHTML =
+          '<div class="timeline-empty">暂无成长记录</div>'
+        logNoMore = true
+        logLoading = false
+        return
+      }
+
+      const listEl = document.getElementById('log-list')
+      let lastDateStr = ''
+      if (listEl.children.length > 0) {
+        const lastChild = listEl.lastElementChild
+        if (lastChild) lastDateStr = lastChild.getAttribute('data-date') || ''
+      }
+
+      data.list.forEach(function(item) {
+        const d = new Date(item.created_at)
+        const dateStr = (d.getMonth() + 1) + '月' + d.getDate() + '日'
+
+        if (dateStr !== lastDateStr) {
+          const sep = document.createElement('div')
+          sep.className = 'log-date-sep'
+          sep.textContent = dateStr
+          listEl.appendChild(sep)
+          lastDateStr = dateStr
+        }
+
+        const row = document.createElement('div')
+        row.className = 'log-item'
+        row.setAttribute('data-date', dateStr)
+
+        const icon = ICON_MAP[item.action_type] || '📌'
+        const timeStr = String(d.getHours()).padStart(2, '0') + ':' +
+                        String(d.getMinutes()).padStart(2, '0')
+
+        row.innerHTML =
+          '<div class="li-icon">' + icon + '</div>' +
+          '<div class="li-body">' +
+            '<div class="li-label">' + item.action_label + '</div>' +
+            '<div class="li-time">' + timeStr + '</div>' +
+          '</div>' +
+          '<div class="li-points">+' + item.points + '分</div>'
+
+        listEl.appendChild(row)
+      })
+
+      if (data.list.length < 20 || logPage * 20 >= data.total) {
+        logNoMore = true
+        document.getElementById('log-no-more').style.display = 'block'
+      }
+
+      logPage++
+      logLoading = false
+    }
+
+    /* ====== 上拉加载更多 ====== */
+    const logObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !logLoading && !logNoMore) {
+        loadGrowthLog()
+      }
+    }, { threshold: 0 })
+
+    const sentinel = document.getElementById('log-sentinel')
+    if (sentinel) logObserver.observe(sentinel)
+
+    /* ====== 升级庆祝弹窗 ====== */
+    function checkLevelUpParam(levelInfo) {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('just_leveled_up') !== 'true') return
+
+      setTimeout(function() {
+        showLevelUpModal(levelInfo)
+      }, 500)
+
+      history.replaceState(null, '', window.location.pathname)
+    }
+
+    function showLevelUpModal(info) {
+      const overlay = document.createElement('div')
+      overlay.className = 'levelup-overlay'
+
+      let perksHtml = ''
+      info.perks.forEach(function(p) {
+        perksHtml += '<div class="lu-perk">✨ ' + p + '</div>'
+      })
+
+      overlay.innerHTML =
+        '<div class="levelup-box">' +
+          '<div class="particles" id="lu-particles"></div>' +
+          '<div class="lu-title">🎉 恭喜升级！</div>' +
+          '<div class="lu-subtitle">我们现在是「' + info.name + '」了</div>' +
+          '<div class="lu-perks">' + perksHtml + '</div>' +
+          '<button class="lu-btn" id="lu-close-btn">继续聊天</button>' +
+        '</div>'
+
+      document.body.appendChild(overlay)
+
+      createParticles(document.getElementById('lu-particles'))
+
+      document.getElementById('lu-close-btn').onclick = function() {
+        overlay.classList.add('closing')
+        overlay.addEventListener('animationend', function() {
+          overlay.remove()
+        })
+      }
+
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          overlay.classList.add('closing')
+          overlay.addEventListener('animationend', function() {
+            overlay.remove()
+          })
+        }
+      })
+    }
+
+    function createParticles(container) {
+      if (!container) return
+      const colors = ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98', '#DDA0DD', '#FFA07A']
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div')
+        p.className = 'particle'
+        const size = 4 + Math.random() * 8
+        p.style.width = size + 'px'
+        p.style.height = size + 'px'
+        p.style.background = colors[Math.floor(Math.random() * colors.length)]
+        p.style.left = Math.random() * 100 + '%'
+        p.style.top = 60 + Math.random() * 40 + '%'
+        p.style.animationDelay = Math.random() * 1 + 's'
+        p.style.animationDuration = 1.5 + Math.random() * 1 + 's'
+        container.appendChild(p)
+      }
+    }
+
+    loadPage()
+  </script>
+</body>
+</html>

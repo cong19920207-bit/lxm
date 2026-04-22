@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>操作日志 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* 筛选区：与契约要求一致 */
+    .oplog-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .oplog-filter-row + .oplog-filter-row {
+      margin-top: 12px;
+    }
+
+    #filterAdminUsername {
+      width: 160px;
+    }
+
+    .oplog-filter-spacer {
+      flex: 1;
+      min-width: 8px;
+    }
+
+    .oplog-table-wrap {
+      overflow-x: auto;
+    }
+
+    .oplog-detail-grid {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .oplog-detail-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .oplog-detail-col-title {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .oplog-detail-pre-wrap {
+      background: #fff2f0;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 0;
+      font-size: 12px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .oplog-detail-pre-wrap--after {
+      background: #f6ffed;
+    }
+
+    .oplog-meta-line {
+      font-size: 13px;
+      color: #333;
+      line-height: 1.8;
+      margin-bottom: 8px;
+    }
+
+    .empty-tip {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>checkAdminLogin();</script>
+
+<script>
+  document.body.innerHTML =
+    renderSidebar('operation-logs') +
+    renderHeader('操作日志') +
+    '<div class="admin-content" id="operationLogsContent"></div>';
+</script>
+
+<script>
+(function () {
+  var PAGE_SIZE = 20;
+  var currentPage = 1;
+
+  /**
+   * 模块选项：与 backend 中 log_operation 的 module= 实际写入值一致（含 admin_config_service）。
+   */
+  var MODULE_OPTIONS = [
+    { value: 'ai_config', label: 'ai_config' },
+    { value: 'memory', label: 'memory' },
+    { value: 'third_party', label: 'third_party' },
+    { value: '用户管理', label: '用户管理' },
+    { value: '账号管理', label: '账号管理' },
+    { value: '系统', label: '系统' }
+  ];
+
+  /**
+   * 操作类型选项：与 backend 中 log_operation 的 action= 实际写入值一致。
+   */
+  var ACTION_OPTIONS = [
+    { value: 'batch_delete', label: 'batch_delete' },
+    { value: 'create', label: 'create' },
+    { value: 'delete', label: 'delete' },
+    { value: 'edit', label: 'edit' },
+    { value: 'login', label: 'login' },
+    { value: 'logout', label: 'logout' },
+    { value: 'publish', label: 'publish' },
+    { value: 'unlock', label: 'unlock' },
+    { value: 'update_config', label: 'update_config' }
+  ];
+
+  var filters = {
+    admin_username: '',
+    module: '',
+    action: '',
+    start_date: '',
+    end_date: ''
+  };
+
+  var contentEl = document.getElementById('operationLogsContent');
+  contentEl.innerHTML =
+    '<div class="page-card" style="margin-bottom:16px">' +
+      '<div class="oplog-filter-row">' +
+        '<input type="text" id="filterAdminUsername" class="form-control" placeholder="操作人用户名">' +
+        '<select id="filterModule" class="form-control" style="min-width:140px">' +
+          '<option value="">全部</option>' +
+          MODULE_OPTIONS.map(function (o) {
+            return '<option value="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<select id="filterAction" class="form-control" style="min-width:140px">' +
+          '<option value="">全部</option>' +
+          ACTION_OPTIONS.map(function (o) {
+            return '<option value="' + escapeHtml(o.value) + '">' + escapeHtml(o.label) + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+      '<div class="oplog-filter-row">' +
+        '<input type="date" class="form-control" id="filterStartDate" title="开始时间">' +
+        '<input type="date" class="form-control" id="filterEndDate" title="结束时间">' +
+        '<button type="button" class="btn btn-primary" id="btnSearch">搜索</button>' +
+        '<button type="button" class="btn btn-default" id="btnReset">重置</button>' +
+        '<div class="oplog-filter-spacer"></div>' +
+        '<button type="button" class="btn btn-default" id="btnExport">导出 Excel</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="page-card">' +
+      '<div class="oplog-table-wrap">' +
+        '<table class="admin-table" id="oplogTable">' +
+          '<thead><tr>' +
+            '<th>时间</th><th>操作人</th><th>操作模块</th><th>操作类型</th><th>操作描述</th><th>详情</th>' +
+          '</tr></thead>' +
+          '<tbody id="oplogTbody"></tbody>' +
+        '</table>' +
+      '</div>' +
+      '<div id="oplogPagination"></div>' +
+    '</div>';
+
+  var elUsername = document.getElementById('filterAdminUsername');
+  var elModule = document.getElementById('filterModule');
+  var elAction = document.getElementById('filterAction');
+  var elStart = document.getElementById('filterStartDate');
+  var elEnd = document.getElementById('filterEndDate');
+  var elTbody = document.getElementById('oplogTbody');
+
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function actionTagClass(action) {
+    if (action === 'publish') return 'tag-success';
+    if (action === 'delete' || action === 'batch_delete') return 'tag-error';
+    if (action === 'rollback') return 'tag-warning';
+    return 'tag-default';
+  }
+
+  function collectFilters() {
+    filters.admin_username = elUsername.value.trim();
+    filters.module = elModule.value;
+    filters.action = elAction.value;
+    filters.start_date = elStart.value;
+    filters.end_date = elEnd.value;
+  }
+
+  function buildListQuery(page) {
+    var params = ['page=' + page, 'page_size=' + PAGE_SIZE];
+    if (filters.admin_username) {
+      params.push('admin_username=' + encodeURIComponent(filters.admin_username));
+    }
+    if (filters.module) {
+      params.push('module=' + encodeURIComponent(filters.module));
+    }
+    if (filters.action) {
+      params.push('action=' + encodeURIComponent(filters.action));
+    }
+    if (filters.start_date) params.push('start_date=' + encodeURIComponent(filters.start_date));
+    if (filters.end_date) params.push('end_date=' + encodeURIComponent(filters.end_date));
+    return params.join('&');
+  }
+
+  /**
+   * 导出接口在服务端使用 Query 接收参数，此处拼接到 URL（POST 无 JSON Body）。
+   */
+  function buildExportQueryString() {
+    collectFilters();
+    var params = [];
+    if (filters.admin_username) {
+      params.push('admin_username=' + encodeURIComponent(filters.admin_username));
+    }
+    if (filters.module) params.push('module=' + encodeURIComponent(filters.module));
+    if (filters.action) params.push('action=' + encodeURIComponent(filters.action));
+    if (filters.start_date) params.push('start_date=' + encodeURIComponent(filters.start_date));
+    if (filters.end_date) params.push('end_date=' + encodeURIComponent(filters.end_date));
+    return params.length ? ('?' + params.join('&')) : '';
+  }
+
+  function renderRows(list) {
+    if (!list || list.length === 0) {
+      elTbody.innerHTML =
+        '<tr><td colspan="6" class="empty-tip">暂无操作日志</td></tr>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      var tagCls = actionTagClass(row.action);
+      html +=
+        '<tr>' +
+          '<td>' + escapeHtml(formatDateTime(row.created_at)) + '</td>' +
+          '<td>' + escapeHtml(row.admin_username || '-') + '</td>' +
+          '<td>' + escapeHtml(row.module || '-') + '</td>' +
+          '<td><span class="tag ' + tagCls + '">' + escapeHtml(row.action || '-') + '</span></td>' +
+          '<td>' + escapeHtml(row.target_description || '-') + '</td>' +
+          '<td><button type="button" class="btn btn-link" onclick="openOperationLogDetail(' + row.id + ')">详情</button></td>' +
+        '</tr>';
+    }
+    elTbody.innerHTML = html;
+  }
+
+  window.loadLogs = async function (page) {
+    if (page === undefined) page = 1;
+    currentPage = page;
+    collectFilters();
+    var res = await adminRequest('GET', '/api/admin/operation-logs?' + buildListQuery(page));
+    if (!res || res.code !== 0) {
+      elTbody.innerHTML =
+        '<tr><td colspan="6" class="empty-tip">加载失败，请重试</td></tr>';
+      document.getElementById('oplogPagination').innerHTML = '';
+      return;
+    }
+    var data = res.data || {};
+    renderRows(data.list || []);
+    renderPagination('oplogPagination', data.page || 1, data.total || 0, PAGE_SIZE, 'window.goOplogPage');
+  };
+
+  window.goOplogPage = function (p) {
+    window.loadLogs(p);
+  };
+
+  window.openOperationLogDetail = async function (logId) {
+    var res = await adminRequest('GET', '/api/admin/operation-logs/' + logId);
+    if (!res || res.code !== 0) return;
+    var d = res.data || {};
+    var beforeRaw = d.before_value;
+    var afterRaw = d.after_value;
+    var beforeEmpty = beforeRaw == null || String(beforeRaw) === '';
+    var afterEmpty = afterRaw == null || String(afterRaw) === '';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    overlay.innerHTML =
+      '<div class="modal-content" style="max-width:680px;width:92%" role="dialog" aria-labelledby="oplog-detail-title" onclick="event.stopPropagation()">' +
+        '<div class="modal-header">' +
+          '<h3 id="oplog-detail-title">操作详情</h3>' +
+          '<button type="button" class="btn btn-link" id="oplog-detail-close" aria-label="关闭">✕</button>' +
+        '</div>' +
+        '<div class="modal-body">' +
+          '<div class="oplog-meta-line">' +
+            '操作人：' + escapeHtml(d.admin_username || '-') +
+            ' | 模块：' + escapeHtml(d.module || '-') +
+            ' | 类型：' + escapeHtml(d.action || '-') +
+            ' | 时间：' + escapeHtml(formatDateTime(d.created_at)) +
+            ' | IP：' + escapeHtml(d.ip_address || '-') +
+          '</div>' +
+          '<div class="oplog-detail-grid">' +
+            '<div class="oplog-detail-col">' +
+              '<div class="oplog-detail-col-title">修改前</div>' +
+              (beforeEmpty
+                ? '<p class="oplog-detail-col-title" style="margin:0">（无）</p>'
+                : '<pre class="oplog-detail-pre-wrap">' + escapeHtml(String(beforeRaw)) + '</pre>') +
+            '</div>' +
+            '<div class="oplog-detail-col">' +
+              '<div class="oplog-detail-col-title">修改后</div>' +
+              (afterEmpty
+                ? '<p class="oplog-detail-col-title" style="margin:0">（无）</p>'
+                : '<pre class="oplog-detail-pre-wrap oplog-detail-pre-wrap--after">' + escapeHtml(String(afterRaw)) + '</pre>') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+          '<button type="button" class="btn btn-default" id="oplog-detail-btn-ok">关闭</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function closeDetail() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }
+    overlay.querySelector('#oplog-detail-close').onclick = closeDetail;
+    overlay.querySelector('#oplog-detail-btn-ok').onclick = closeDetail;
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeDetail();
+    });
+  };
+
+  document.getElementById('btnSearch').addEventListener('click', function () {
+    window.loadLogs(1);
+  });
+
+  document.getElementById('btnReset').addEventListener('click', function () {
+    elUsername.value = '';
+    elModule.value = '';
+    elAction.value = '';
+    elStart.value = '';
+    elEnd.value = '';
+    window.loadLogs(1);
+  });
+
+  document.getElementById('btnExport').addEventListener('click', async function () {
+    var q = buildExportQueryString();
+    await adminRequest('POST', '/api/admin/operation-logs/export' + q, null, false);
+  });
+
+  function boot() {
+    window.loadLogs(1);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+
+</body>
+</html>

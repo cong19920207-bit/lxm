@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户详情 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* ─── 面包屑 ─── */
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .breadcrumb a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .breadcrumb a:hover {
+      color: var(--primary);
+    }
+    .breadcrumb .separator {
+      margin: 0 6px;
+      color: var(--text-disabled);
+    }
+    .breadcrumb .current {
+      color: var(--text);
+    }
+
+    /* ─── 页面顶栏（面包屑行 + 操作按钮） ─── */
+    .detail-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .detail-topbar .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ─── 信息卡片 ─── */
+    .info-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .info-card-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 14px;
+    }
+    .info-row .info-label {
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .info-row .info-value {
+      color: var(--text);
+      font-weight: 500;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    /* ─── 进度条 ─── */
+    .progress-bar-wrap {
+      margin-top: 8px;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1890ff, #40a9ff);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-disabled);
+      margin-top: 4px;
+    }
+
+    /* ─── Tab 卡片容器 ─── */
+    .tab-card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    /* ─── 骨架屏 ─── */
+    .info-card.is-skeleton .sk-line {
+      height: 14px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+    }
+    .info-card.is-skeleton .sk-line.w60 { width: 60%; }
+    .info-card.is-skeleton .sk-line.w80 { width: 80%; }
+    .info-card.is-skeleton .sk-line.w40 { width: 40%; }
+
+    /* ─── Tab 占位 ─── */
+    .tab-placeholder {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+
+    /* ─── 筛选栏 ─── */
+    .conv-filter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .conv-filter input[type="date"] {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .conv-filter input[type="date"]:focus {
+      border-color: var(--primary);
+    }
+    .conv-filter .filter-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    /* ─── 聊天气泡列表 ─── */
+    .conv-list {
+      max-height: 600px;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .conv-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .conv-list::-webkit-scrollbar-thumb {
+      background: #d9d9d9;
+      border-radius: 3px;
+    }
+    .conv-empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+    .conv-item {
+      display: flex;
+      margin-bottom: 16px;
+    }
+    .conv-item.is-user {
+      flex-direction: row-reverse;
+    }
+
+    /* 气泡 */
+    .conv-bubble-wrap {
+      max-width: 70%;
+    }
+    .conv-sender {
+      font-size: 12px;
+      color: var(--text-disabled);
+      margin-bottom: 4px;
+    }
+    .conv-item.is-user .conv-sender {
+      text-align: right;
+    }
+    .conv-bubble {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .conv-item.is-ai .conv-bubble {
+      background: #f5f5f5;
+      color: var(--text);
+      border-top-left-radius: 2px;
+    }
+    .conv-item.is-user .conv-bubble {
+      background: #1890ff;
+      color: #fff;
+      border-top-right-radius: 2px;
+    }
+    .conv-item.is-user .conv-bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .conv-time {
+      font-size: 11px;
+      color: var(--text-disabled);
+      margin-top: 4px;
+    }
+    .conv-emotion-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 1px 8px;
+      font-size: 11px;
+      border-radius: 10px;
+      background: rgba(24,144,255,0.1);
+      color: #1890ff;
+    }
+
+    /* 加载更多 */
+    .conv-load-more {
+      text-align: center;
+      padding: 12px 0;
+    }
+    .conv-load-more .btn {
+      min-width: 140px;
+    }
+
+    /* ─── 记忆搜索栏 ─── */
+    .mem-filter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .mem-filter input[type="text"] {
+      flex: 1;
+      max-width: 320px;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .mem-filter input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    /* ─── 记忆列表 ─── */
+    .mem-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .mem-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .mem-list::-webkit-scrollbar-thumb {
+      background: #d9d9d9;
+      border-radius: 3px;
+    }
+    .mem-empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
+    }
+    .mem-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    .mem-item:last-child {
+      border-bottom: none;
+    }
+    .mem-content {
+      flex: 1;
+      min-width: 0;
+      color: var(--text);
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .mem-content input {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(24,144,255,0.15);
+    }
+    .mem-source-tag {
+      display: inline-block;
+      padding: 1px 8px;
+      font-size: 11px;
+      border-radius: 10px;
+      background: rgba(24,144,255,0.08);
+      color: #1890ff;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .mem-time {
+      font-size: 12px;
+      color: var(--text-disabled);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .mem-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .mem-actions .btn {
+      min-width: auto;
+      padding: 2px 10px;
+      font-size: 12px;
+      height: 26px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 侧边栏容器 -->
+<div id="sidebar-container"></div>
+
+<!-- 顶栏容器 -->
+<div id="header-container"></div>
+
+<!-- 主内容区 -->
+<div class="admin-content">
+
+  <!-- 顶栏：面包屑 + 操作按钮 -->
+  <div class="detail-topbar">
+    <div id="breadcrumb" class="breadcrumb">
+      <a href="/admin/pages/users.html">用户管理</a>
+      <span class="separator">/</span>
+      <span class="current">用户详情</span>
+    </div>
+    <div id="action-buttons" class="action-btns"></div>
+  </div>
+
+  <!-- 三列信息卡片区域 -->
+  <div id="info-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+    <div class="info-card is-skeleton">
+      <div class="sk-line skeleton w60"></div>
+      <div class="sk-line skeleton w80"></div>
+      <div class="sk-line skeleton w40"></div>
+      <div class="sk-line skeleton w80"></div>
+    </div>
+    <div class="info-card is-skeleton">
+      <div class="sk-line skeleton w60"></div>
+      <div class="sk-line skeleton w80"></div>
+      <div class="sk-line skeleton w40"></div>
+      <div class="sk-line skeleton w80"></div>
+    </div>
+    <div class="info-card is-skeleton">
+      <div class="sk-line skeleton w60"></div>
+      <div class="sk-line skeleton w80"></div>
+      <div class="sk-line skeleton w40"></div>
+      <div class="sk-line skeleton w80"></div>
+    </div>
+  </div>
+
+  <!-- Tab 容器 -->
+  <div id="tabs-container" class="tab-card">
+    <!-- Tab 标题栏 -->
+    <div class="tabs" id="detail-tabs">
+      <div class="tab-item active" data-target="tab-conversation">历史对话</div>
+      <div class="tab-item" data-target="tab-memory">用户记忆</div>
+      <div class="tab-item" data-target="tab-emotion">情绪日志</div>
+      <div class="tab-item" data-target="tab-diary">AI日记</div>
+      <div class="tab-item" data-target="tab-agent-messages">主动消息</div>
+      <div class="tab-item" data-target="tab-account">账号管理</div>
+    </div>
+    <!-- Tab 内容区 -->
+    <div class="tab-pane active" id="tab-conversation">
+      <!-- 筛选栏 -->
+      <div class="conv-filter">
+        <span class="filter-label">开始时间</span>
+        <input type="date" id="conv-start-date">
+        <span class="filter-label">结束时间</span>
+        <input type="date" id="conv-end-date">
+        <button class="btn btn-primary" id="btnConvSearch" onclick="searchConversations()">查询</button>
+      </div>
+      <!-- 聊天气泡列表 -->
+      <div class="conv-list" id="conversations-list">
+        <div class="conv-empty">加载中...</div>
+      </div>
+      <!-- 加载更多 -->
+      <div class="conv-load-more" id="conv-load-more" style="display:none">
+        <button class="btn btn-default" id="btnLoadMore" onclick="loadMoreConversations()">加载更多</button>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-memory">
+      <!-- 搜索栏 -->
+      <div class="mem-filter">
+        <input type="text" id="mem-keyword" placeholder="输入关键词搜索记忆...">
+        <button class="btn btn-primary" onclick="searchMemories()">搜索</button>
+      </div>
+      <!-- 记忆列表 -->
+      <div class="mem-list" id="memories-list">
+        <div class="mem-empty">加载中...</div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-emotion">
+      <div class="conv-empty" id="emotion-hint" style="padding:24px;text-align:center;color:var(--text-secondary)">
+        切换到本 Tab 后自动加载
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="admin-table" id="emotion-table" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:88px">日志ID</th>
+              <th style="min-width:200px">round_id</th>
+              <th style="width:96px">轮级情绪</th>
+              <th style="width:80px">置信度</th>
+              <th style="width:168px">记录时间</th>
+              <th style="min-width:160px">用户侧（本轮合并）</th>
+              <th style="min-width:160px">助手回复</th>
+            </tr>
+          </thead>
+          <tbody id="emotion-tbody"></tbody>
+        </table>
+      </div>
+      <div class="conv-empty" id="emotion-empty" style="display:none;padding:24px;text-align:center">暂无情绪日志</div>
+      <div class="conv-load-more" id="emotion-load-more" style="display:none;margin-top:12px">
+        <button type="button" class="btn btn-default" id="btnEmotionLoadMore" onclick="loadMoreEmotionRounds()">加载更多</button>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-diary">
+      <div class="conv-filter">
+        <span class="filter-label">开始时间</span>
+        <input type="date" id="diary-start-date">
+        <span class="filter-label">结束时间</span>
+        <input type="date" id="diary-end-date">
+        <button type="button" class="btn btn-primary" id="btnDiarySearch" onclick="searchDiaries()">查询</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="admin-table" id="diary-table" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:72px">ID</th>
+              <th>正文</th>
+              <th style="width:110px">生成时等级</th>
+              <th style="width:72px">已读</th>
+              <th style="width:168px">创建时间</th>
+            </tr>
+          </thead>
+          <tbody id="diary-tbody"></tbody>
+        </table>
+      </div>
+      <div class="conv-empty" id="diary-hint" style="padding:24px;text-align:center;color:var(--text-secondary)">切换到本 Tab 后自动加载</div>
+      <div class="conv-empty" id="diary-empty" style="display:none;padding:24px;text-align:center">暂无 AI 日记</div>
+      <div class="conv-load-more" id="diary-load-more" style="display:none;margin-top:12px">
+        <button type="button" class="btn btn-default" id="btnDiaryLoadMore" onclick="loadMoreDiaries()">加载更多</button>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-agent-messages">
+      <div id="agent-messages-list"><div class="tab-placeholder">加载中...</div></div>
+    </div>
+    <div class="tab-pane" id="tab-account">
+      <div id="account-status-area"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+checkAdminLogin();
+
+var userId = new URLSearchParams(location.search).get('id');
+if (!userId) {
+  window.location.href = '/admin/pages/users.html';
+}
+
+/* ─── 注入侧边栏与顶栏 ─── */
+document.getElementById('sidebar-container').innerHTML = renderSidebar('users');
+document.getElementById('header-container').innerHTML = renderHeader('用户详情');
+
+/* ─── 面包屑 ─── */
+document.getElementById('breadcrumb').innerHTML =
+  '<a href="/admin/pages/users.html">用户管理</a>' +
+  '<span class="separator">/</span>' +
+  '<span class="current">用户详情</span>';
+
+/* ─── 右上角操作按钮 ─── */
+document.getElementById('action-buttons').innerHTML =
+  '<button class="btn btn-danger" id="btnToggleStatus">禁用账号</button>' +
+  '<button class="btn btn-default" id="btnResetPassword">重置密码</button>';
+
+/* ─── Tab 切换初始化 ─── */
+initTabs('detail-tabs');
+
+/* ─── 全局数据 ─── */
+var userData = null;
+
+/* ─── 加载用户详情 ─── */
+async function loadUserDetail() {
+  var res = await adminRequest('GET', '/api/admin/users/' + userId);
+  if (!res || res.code !== 0) {
+    showToast('加载用户详情失败', 'error');
+    return;
+  }
+  var d = res.data;
+  if (!d || !d.basic || !d.relationship || !d.activity) {
+    showToast('用户详情数据格式异常', 'error');
+    return;
+  }
+  /* 将接口嵌套 basic/relationship/activity 展平，供全页统一按扁平字段读取（与契约数据源一致） */
+  userData = {
+    id: d.basic.id,
+    username: d.basic.username,
+    created_at: d.basic.created_at,
+    last_login_at: d.basic.last_login_at,
+    status: d.basic.status,
+    is_banned: d.basic.is_banned,
+    relationship_level: d.relationship.level,
+    level_name: d.relationship.level_name,
+    growth_value: d.relationship.growth_value,
+    next_threshold: d.relationship.next_threshold,
+    progress_percent: d.relationship.progress_percent,
+    total_conversation_count: d.activity.total_conversation_count,
+    active_days_7d: d.activity.active_days_last7,
+    agent_reply_count: d.activity.agent_message_reply_count
+  };
+  renderInfoCards(userData);
+}
+
+/* ─── 关系等级配置 ─── */
+var LEVEL_CONFIG = {
+  0: { name: '0级 陌生', tagClass: 'tag-default', threshold: 0,   next: 200 },
+  1: { name: '1级 朋友', tagClass: 'tag-blue',    threshold: 200, next: 800 },
+  2: { name: '2级 亲密', tagClass: 'tag-warning',  threshold: 800, next: 2000 },
+  3: { name: '3级 知己', tagClass: 'tag-success',  threshold: 2000, next: null }
+};
+
+/* ─── HTML 转义 ─── */
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ─── 渲染三列信息卡片 ─── */
+function renderInfoCards(data) {
+  var level = data.relationship_level || 0;
+  var cfg = LEVEL_CONFIG[level] || LEVEL_CONFIG[0];
+  var growth = data.growth_value || 0;
+
+  /* 进度条百分比计算 */
+  var percent = 100;
+  var needText = '已满级';
+  if (cfg.next !== null) {
+    var rangeStart = cfg.threshold;
+    var rangeEnd = cfg.next;
+    percent = Math.min(100, Math.round((growth - rangeStart) / (rangeEnd - rangeStart) * 100));
+    needText = '还需 ' + (rangeEnd - growth) + ' 成长值';
+  }
+
+  /* 状态标签 */
+  var isBanned = data.status === 'banned';
+  var statusHtml = isBanned
+    ? '<span class="tag tag-error">禁用</span>'
+    : '<span class="tag tag-success">正常</span>';
+
+  var html =
+    /* ─── 卡片一：基本信息 ─── */
+    '<div class="page-card">' +
+      '<div class="info-card-title">基本信息</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">账号</div>' +
+        '<div style="font-size:14px;color:var(--text)">' + esc(data.username) + '</div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">注册时间</div>' +
+        '<div style="font-size:14px;color:var(--text)">' + formatDateTime(data.created_at) + '</div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">最后登录</div>' +
+        '<div style="font-size:14px;color:var(--text)">' + formatDateTime(data.last_login_at) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">状态</div>' +
+        '<div>' + statusHtml + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* ─── 卡片二：关系信息 ─── */
+    '<div class="page-card">' +
+      '<div class="info-card-title">关系信息</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">关系等级</div>' +
+        '<div><span class="tag ' + cfg.tagClass + '">' + cfg.name + '</span></div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">成长值</div>' +
+        '<div style="font-size:14px;color:var(--text);font-weight:500">' + growth + '</div>' +
+        '<div class="progress-bar-wrap">' +
+          '<div class="progress-bar-bg">' +
+            '<div class="progress-bar-fill" style="width:' + percent + '%"></div>' +
+          '</div>' +
+          '<div class="progress-text">' +
+            '<span>' + percent + '%</span>' +
+            '<span>' + (cfg.next !== null ? cfg.next : growth) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">距下一等级</div>' +
+        '<div style="font-size:14px;color:var(--text)">' + needText + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* ─── 卡片三：活跃数据 ─── */
+    '<div class="page-card">' +
+      '<div class="info-card-title">活跃数据</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">累计对话轮次</div>' +
+        '<div style="font-size:14px;color:var(--text);font-weight:500">' + (data.total_conversation_count || 0) + '</div>' +
+      '</div>' +
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">近7天活跃天数</div>' +
+        '<div style="font-size:14px;color:var(--text);font-weight:500">' + (data.active_days_7d || 0) + ' 天</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">主动消息回复次数</div>' +
+        '<div style="font-size:14px;color:var(--text);font-weight:500">' + (data.agent_reply_count || 0) + ' 次</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('info-cards').innerHTML = html;
+}
+
+/* ─── Tab1 历史对话 ─── */
+var convCurrentPage = 0;
+var convHasMore = true;
+var convLoading = false;
+
+function searchConversations() {
+  convCurrentPage = 0;
+  convHasMore = true;
+  document.getElementById('conversations-list').innerHTML = '<div class="conv-empty">加载中...</div>';
+  document.getElementById('conv-load-more').style.display = 'none';
+  loadConversations(1);
+}
+
+function loadMoreConversations() {
+  if (convLoading || !convHasMore) return;
+  loadConversations(convCurrentPage + 1);
+}
+
+async function loadConversations(page) {
+  if (convLoading) return;
+  convLoading = true;
+
+  var btn = document.getElementById('btnLoadMore');
+  if (btn) { btn.disabled = true; btn.textContent = '加载中...'; }
+
+  var startDate = document.getElementById('conv-start-date').value;
+  var endDate = document.getElementById('conv-end-date').value;
+
+  var query = '?page=' + page;
+  if (startDate) query += '&start_date=' + startDate;
+  if (endDate) query += '&end_date=' + endDate;
+
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/conversations' + query);
+
+  convLoading = false;
+  if (btn) { btn.disabled = false; btn.textContent = '加载更多'; }
+
+  if (!res || res.code !== 0) {
+    if (page === 1) {
+      document.getElementById('conversations-list').innerHTML =
+        '<div class="conv-empty">加载失败，请重试</div>';
+    }
+    return;
+  }
+
+  var list = (res.data && res.data.list) || [];
+  var total = (res.data && res.data.total) || 0;
+  var pageSize = (res.data && res.data.page_size) || 20;
+
+  convCurrentPage = page;
+  convHasMore = page * pageSize < total;
+
+  /* 首页加载清空列表 */
+  var container = document.getElementById('conversations-list');
+  if (page === 1) {
+    container.innerHTML = '';
+  }
+
+  if (page === 1 && list.length === 0) {
+    container.innerHTML = '<div class="conv-empty">暂无对话记录</div>';
+    document.getElementById('conv-load-more').style.display = 'none';
+    return;
+  }
+
+  /* 渲染气泡 */
+  var html = '';
+  function convDeliveryLabel(ds) {
+    if (!ds) return '';
+    var m = {
+      delivered: '已送达',
+      pending_llm: '等待回复',
+      failed_timeout: '超时失败',
+      failed_error: '发送失败'
+    };
+    return m[ds] || ds;
+  }
+
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var isUser = item.role === 'user';
+    var roleClass = isUser ? 'is-user' : 'is-ai';
+    var senderText = isUser ? '用户' : '林小梦';
+
+    html += '<div class="conv-item ' + roleClass + '">';
+    html += '  <div class="conv-bubble-wrap">';
+    html += '    <div class="conv-sender">' + esc(senderText) + '</div>';
+    if (isUser && item.delivery_status) {
+      html += '    <div class="conv-delivery" style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">' +
+        esc(convDeliveryLabel(item.delivery_status)) + '</div>';
+    }
+    html += '    <div class="conv-bubble">' + esc(item.content) + '</div>';
+    html += '    <div class="conv-time">' + formatDateTime(item.created_at) + '</div>';
+    if (isUser && item.emotion_label) {
+      html += '    <span class="conv-emotion-tag">' + esc(item.emotion_label) + '</span>';
+    }
+    if (isUser && item.skipped_in_prompt) {
+      html += '    <div style="font-size:11px;color:var(--text-secondary)">（本轮未进上下文）</div>';
+    }
+    html += '  </div>';
+    html += '</div>';
+  }
+  container.insertAdjacentHTML('beforeend', html);
+
+  /* 加载更多按钮 */
+  document.getElementById('conv-load-more').style.display = convHasMore ? '' : 'none';
+}
+
+/* ─── Tab2 用户记忆 ─── */
+
+function searchMemories() {
+  var keyword = document.getElementById('mem-keyword').value.trim();
+  loadMemories(keyword);
+}
+
+async function loadMemories(keyword) {
+  var container = document.getElementById('memories-list');
+  container.innerHTML = '<div class="mem-empty">加载中...</div>';
+
+  var query = '?keyword=' + encodeURIComponent(keyword || '');
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/memories' + query);
+
+  if (!res || res.code !== 0) {
+    container.innerHTML = '<div class="mem-empty">加载失败，请重试</div>';
+    return;
+  }
+
+  var list = (res.data && res.data.list) || res.data || [];
+  if (!list.length) {
+    container.innerHTML = '<div class="mem-empty">暂无记忆数据</div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    html += '<div class="mem-item" data-id="' + item.id + '">';
+    html += '  <div class="mem-content">' + esc(item.content) + '</div>';
+    html += '  <span class="mem-source-tag">' + esc(item.source || '未知') + '</span>';
+    html += '  <span class="mem-time">' + formatDateTime(item.created_at) + '</span>';
+    html += '  <div class="mem-actions">';
+    html += '    <button class="btn btn-default" onclick="editMemory(this,' + item.id + ')">编辑</button>';
+    html += '    <button class="btn btn-danger" onclick="deleteMemory(' + item.id + ')">删除</button>';
+    html += '  </div>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+/* 点击编辑：切换为 input + 保存/取消 */
+function editMemory(btn, memoryId) {
+  var row = btn.closest('.mem-item');
+  var contentEl = row.querySelector('.mem-content');
+  var actionsEl = row.querySelector('.mem-actions');
+  var originalText = contentEl.textContent;
+
+  contentEl.innerHTML = '<input type="text" value="' + esc(originalText) + '">';
+  contentEl.querySelector('input').focus();
+
+  actionsEl.innerHTML =
+    '<button class="btn btn-primary" onclick="saveMemory(this,' + memoryId + ')">保存</button>' +
+    '<button class="btn btn-default" onclick="cancelEditMemory(this)">取消</button>';
+}
+
+/* 取消编辑：恢复原文 */
+function cancelEditMemory(btn) {
+  var keyword = document.getElementById('mem-keyword').value.trim();
+  loadMemories(keyword);
+}
+
+/* 保存编辑 */
+async function saveMemory(btn, memoryId) {
+  var row = btn.closest('.mem-item');
+  var input = row.querySelector('.mem-content input');
+  var newContent = input.value.trim();
+
+  if (!newContent) {
+    showToast('记忆内容不能为空', 'warning');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+
+  var res = await adminRequest('PUT', '/api/admin/users/' + userId + '/memories/' + memoryId, {
+    content: newContent
+  });
+
+  if (res && res.code === 0) {
+    showToast('保存成功', 'success');
+    var keyword = document.getElementById('mem-keyword').value.trim();
+    loadMemories(keyword);
+  } else {
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
+}
+
+/* 删除记忆 */
+function deleteMemory(memoryId) {
+  showConfirm('确定要删除这条记忆吗？删除后不可恢复。', async function () {
+    var res = await adminRequest('DELETE', '/api/admin/users/' + userId + '/memories/' + memoryId);
+    if (res && res.code === 0) {
+      showToast('删除成功', 'success');
+      var keyword = document.getElementById('mem-keyword').value.trim();
+      loadMemories(keyword);
+    }
+  }, null, { danger: true });
+}
+
+/* ─── 页面加载完成后执行 ─── */
+loadUserDetail();
+loadConversations(1);
+loadMemories('');
+
+/* ─── Tab 主动消息（按用户懒加载） ─── */
+async function loadAgentMessages() {
+  var container = document.getElementById('agent-messages-list');
+  if (!container) return;
+  container.innerHTML = '<div class="tab-placeholder">加载中...</div>';
+
+  var res = await adminRequest('GET', '/api/admin/agent-messages?user_id=' + encodeURIComponent(userId));
+
+  if (!res || res.code !== 0) {
+    container.innerHTML = '<div class="mem-empty">加载失败，请重试</div>';
+    return;
+  }
+
+  var list = (res.data && res.data.list) || [];
+  if (!list.length) {
+    container.innerHTML = '<div class="mem-empty">暂无主动消息记录</div>';
+    return;
+  }
+
+  var html = '<div class="mem-list">';
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var tt = item.trigger_type || '';
+    var ttClass = 'tag-default';
+    if (tt === 'P0') ttClass = 'tag-error';
+    else if (tt === 'P1') ttClass = 'tag-warning';
+    else if (tt === 'P2' || tt === 'P3') ttClass = 'tag-blue';
+    /* P4 及未知类型：tag-default */
+    var readClass = item.is_read ? 'tag-default' : 'tag-blue';
+    var readText = item.is_read ? '已读' : '未读';
+    var scoreText = item.action_score != null && item.action_score !== '' ? String(item.action_score) : '-';
+    html += '<div class="mem-item" style="align-items:flex-start">';
+    html += '  <div style="flex:1;min-width:0">';
+    html += '    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">';
+    html += '      <span class="tag ' + ttClass + '">' + esc(item.trigger_type) + '</span>';
+    html += '      <span class="tag ' + readClass + '">' + readText + '</span>';
+    html += '      <span style="font-size:12px;color:var(--text-disabled)">行动评分 ' + esc(scoreText) + '</span>';
+    html += '    </div>';
+    html += '    <div class="mem-content" style="padding:0;border:none">' + esc(item.content) + '</div>';
+    html += '  </div>';
+    html += '  <span class="mem-time">' + formatDateTime(item.created_at) + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/* ─── 情绪日志 Tab（V2-C：GET /api/admin/users/{id}/emotion-rounds，只读） ─── */
+var emotionRoundFirstLoadOk = false;
+var emotionPage = 0;
+var emotionHasMore = false;
+var emotionLoading = false;
+var EMOTION_PAGE_SIZE = 20;
+
+function loadMoreEmotionRounds() {
+  if (emotionLoading || !emotionHasMore) return;
+  loadEmotionRoundsPage(emotionPage + 1, false);
+}
+
+async function loadEmotionRoundsPage(page, replace) {
+  if (emotionLoading) return false;
+  emotionLoading = true;
+  var btn = document.getElementById('btnEmotionLoadMore');
+  if (btn && page > 1) {
+    btn.disabled = true;
+    btn.textContent = '加载中...';
+  }
+  var tbody = document.getElementById('emotion-tbody');
+  var tbl = document.getElementById('emotion-table');
+  var emptyEl = document.getElementById('emotion-empty');
+  var hintEl = document.getElementById('emotion-hint');
+  var moreWrap = document.getElementById('emotion-load-more');
+
+  if (replace) {
+    if (hintEl) hintEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    tbl.style.display = '';
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-secondary)">加载中...</td></tr>';
+    moreWrap.style.display = 'none';
+  }
+
+  var q = '?page=' + page + '&page_size=' + EMOTION_PAGE_SIZE;
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/emotion-rounds' + q);
+
+  emotionLoading = false;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '加载更多';
+  }
+
+  if (!res || res.code !== 0) {
+    if (replace) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" style="text-align:center;padding:24px">加载失败，请重试</td></tr>';
+    } else {
+      showToast((res && res.message) || '加载失败', 'error');
+    }
+    return false;
+  }
+
+  var list = (res.data && res.data.list) || [];
+  var total = (res.data && res.data.total) || 0;
+  var pageSize = (res.data && res.data.page_size) || EMOTION_PAGE_SIZE;
+  emotionPage = page;
+  emotionHasMore = page * pageSize < total;
+
+  if (replace) {
+    tbody.innerHTML = '';
+  }
+
+  if (replace && list.length === 0) {
+    tbl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    moreWrap.style.display = 'none';
+    return true;
+  }
+
+  tbl.style.display = '';
+  emptyEl.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i];
+    var ut = row.user_text != null ? String(row.user_text) : '';
+    var at = row.assistant_text != null ? String(row.assistant_text) : '';
+    var rid = row.round_id != null ? String(row.round_id) : '（无）';
+    var utShort = ut.length > 120 ? ut.slice(0, 120) + '…' : ut;
+    var atShort = at.length > 120 ? at.slice(0, 120) + '…' : at;
+    html += '<tr>';
+    html += '<td>' + esc(String(row.emotion_log_id)) + '</td>';
+    html += '<td style="font-size:12px;word-break:break-all" title="' + esc(rid) + '">' + esc(rid) + '</td>';
+    html += '<td>' + esc(String(row.emotion_label || '')) + '</td>';
+    html += '<td>' + esc(row.confidence != null ? String(row.confidence) : '') + '</td>';
+    html += '<td>' + formatDateTime(row.created_at) + '</td>';
+    html +=
+      '<td style="font-size:13px;max-width:280px;word-break:break-word" title="' +
+      esc(ut) +
+      '">' +
+      esc(utShort) +
+      '</td>';
+    html +=
+      '<td style="font-size:13px;max-width:280px;word-break:break-word" title="' +
+      esc(at) +
+      '">' +
+      esc(atShort) +
+      '</td>';
+    html += '</tr>';
+  }
+  tbody.insertAdjacentHTML('beforeend', html);
+  moreWrap.style.display = emotionHasMore ? '' : 'none';
+  return true;
+}
+
+document.querySelector('[data-target="tab-emotion"]').addEventListener('click', function () {
+  if (emotionRoundFirstLoadOk) return;
+  loadEmotionRoundsPage(1, true).then(function (ok) {
+    if (ok) emotionRoundFirstLoadOk = true;
+  });
+});
+
+/* ─── Tab AI 日记（首次进入拉取、同条件与日记历史一致；查询后按筛选分页） ─── */
+var DIARY_LEVEL_NAMES = { 0: '0级 陌生', 1: '1级 朋友', 2: '2级 亲密', 3: '3级 知己' };
+var diaryFirstLoadOk = false;
+var diaryPage = 0;
+var diaryHasMore = false;
+var diaryLoading = false;
+var diaryActiveStart = '';
+var diaryActiveEnd = '';
+var DIARY_PAGE_SIZE = 20;
+
+function searchDiaries() {
+  diaryActiveStart = (document.getElementById('diary-start-date') || {}).value || '';
+  diaryActiveEnd = (document.getElementById('diary-end-date') || {}).value || '';
+  loadDiariesPage(1, true);
+}
+
+function loadMoreDiaries() {
+  if (diaryLoading || !diaryHasMore) return;
+  loadDiariesPage(diaryPage + 1, false);
+}
+
+async function loadDiariesPage(page, replace) {
+  if (diaryLoading) return false;
+  diaryLoading = true;
+  var btn = document.getElementById('btnDiaryLoadMore');
+  if (btn && page > 1) {
+    btn.disabled = true;
+    btn.textContent = '加载中...';
+  }
+
+  var tbody = document.getElementById('diary-tbody');
+  var tbl = document.getElementById('diary-table');
+  var emptyEl = document.getElementById('diary-empty');
+  var hintEl = document.getElementById('diary-hint');
+  var moreWrap = document.getElementById('diary-load-more');
+
+  if (replace) {
+    if (hintEl) hintEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    tbl.style.display = '';
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary)">加载中...</td></tr>';
+    moreWrap.style.display = 'none';
+  }
+
+  var q = '?page=' + page + '&page_size=' + DIARY_PAGE_SIZE;
+  if (diaryActiveStart) q += '&start_date=' + encodeURIComponent(diaryActiveStart);
+  if (diaryActiveEnd) q += '&end_date=' + encodeURIComponent(diaryActiveEnd);
+
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/diaries' + q);
+
+  diaryLoading = false;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '加载更多';
+  }
+
+  if (!res || res.code !== 0) {
+    if (replace) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;padding:24px">加载失败，请重试</td></tr>';
+    } else {
+      showToast((res && res.message) || '加载失败', 'error');
+    }
+    return false;
+  }
+
+  var list = (res.data && res.data.list) || [];
+  var total = (res.data && res.data.total) || 0;
+  var pageSize = (res.data && res.data.page_size) || DIARY_PAGE_SIZE;
+  diaryPage = page;
+  diaryHasMore = page * pageSize < total;
+
+  if (replace) {
+    tbody.innerHTML = '';
+  }
+
+  if (replace && list.length === 0) {
+    tbl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    moreWrap.style.display = 'none';
+    return true;
+  }
+
+  tbl.style.display = '';
+  emptyEl.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i];
+    var content = row.content != null ? String(row.content) : '';
+    var shortText = content.length > 100 ? content.slice(0, 100) + '…' : content;
+    var lvl = row.relationship_level_at_creation;
+    var lvlText = Object.prototype.hasOwnProperty.call(DIARY_LEVEL_NAMES, lvl)
+      ? DIARY_LEVEL_NAMES[lvl]
+      : String(lvl);
+    html += '<tr>';
+    html += '<td>' + esc(String(row.id)) + '</td>';
+    html +=
+      '<td style="max-width:360px;font-size:13px;word-break:break-word" title="' +
+      esc(content) +
+      '">' +
+      esc(shortText) +
+      '</td>';
+    html += '<td>' + esc(lvlText) + '</td>';
+    html += '<td>' + (row.is_read ? '是' : '否') + '</td>';
+    html += '<td>' + formatDateTime(row.created_at) + '</td>';
+    html += '</tr>';
+  }
+  tbody.insertAdjacentHTML('beforeend', html);
+  moreWrap.style.display = diaryHasMore ? '' : 'none';
+  return true;
+}
+
+document.querySelector('[data-target="tab-diary"]').addEventListener('click', function () {
+  if (diaryFirstLoadOk) return;
+  diaryActiveStart = '';
+  diaryActiveEnd = '';
+  loadDiariesPage(1, true).then(function (ok) {
+    if (ok) diaryFirstLoadOk = true;
+  });
+});
+
+var agentMsgLoaded = false;
+document.querySelector('[data-target="tab-agent-messages"]').addEventListener('click', function () {
+  if (!agentMsgLoaded) {
+    loadAgentMessages();
+    agentMsgLoaded = true;
+  }
+});
+
+/* ─── 账号管理 Tab：状态展示与操作 ─── */
+function syncTopBarToggleStatusBtn() {
+  var el = document.getElementById('btnToggleStatus');
+  if (!el || !userData) return;
+  el.textContent = userData.status === 'banned' ? '启用账号' : '禁用账号';
+}
+
+function renderAccountTab() {
+  if (!userData) return;
+  var area = document.getElementById('account-status-area');
+  if (!area) return;
+  var banned = userData.status === 'banned';
+  var statusTag = banned
+    ? '<span class="tag tag-error">禁用</span>'
+    : '<span class="tag tag-success">正常</span>';
+  var actionBtnLabel = banned ? '启用账号' : '禁用账号';
+  var actionBtnClass = banned ? 'btn btn-primary' : 'btn btn-danger';
+  area.innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px">' +
+      '<span style="color:var(--text-secondary);font-size:14px">当前状态</span>' +
+      statusTag +
+    '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+      '<button type="button" class="' + actionBtnClass + '" onclick="toggleUserStatus()">' + esc(actionBtnLabel) + '</button>' +
+      '<button type="button" class="btn btn-default" onclick="resetUserPassword()">重置密码</button>' +
+    '</div>';
+  syncTopBarToggleStatusBtn();
+}
+
+function toggleUserStatus() {
+  if (!userData) return;
+  var action = userData.status === 'banned' ? 'unban' : 'ban';
+  var label = userData.status === 'banned' ? '启用' : '禁用';
+  showConfirm('确定要' + label + '该用户吗？', async function () {
+    var res = await adminRequest(
+      'PUT',
+      '/api/admin/users/' + userId + '/status',
+      { action: action },
+      false,
+      { silentErrorToast: true }
+    );
+    if (!res) return;
+    if (res.code !== 0) {
+      if (res.code === 20012 || res.code === 20013) {
+        showToast(
+          res.message || (res.code === 20012 ? '用户已处于禁用状态' : '用户未被禁用'),
+          'error'
+        );
+      } else {
+        showToast(res.message || '操作失败', 'error');
+      }
+      return;
+    }
+    showToast(res.message || '操作成功', 'success');
+    await loadUserDetail();
+    renderAccountTab();
+    syncTopBarToggleStatusBtn();
+  });
+}
+
+async function resetUserPassword() {
+  var res = await adminRequest('POST', '/api/admin/users/' + userId + '/reset-password');
+  if (!res || res.code !== 0) return;
+  var pwd = (res.data && res.data.new_password) || '';
+  if (!pwd) {
+    showToast('未返回新密码', 'error');
+    return;
+  }
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML =
+    '<div class="modal-content" style="min-width:360px;max-width:480px">' +
+      '<div class="modal-header">' +
+        '<h3>新密码已生成</h3>' +
+        '<button type="button" class="btn btn-link" id="__pwd_modal_close">✕</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<p style="margin:0 0 12px;font-size:13px;color:var(--text-secondary)">请复制并安全交付用户，关闭后需重新重置才可再次查看。</p>' +
+        '<div id="__pwd_display" style="font-size:24px;letter-spacing:2px;font-weight:600;text-align:center;padding:16px;background:#fafafa;border-radius:8px;word-break:break-all">' +
+          esc(pwd) +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-default" id="__pwd_modal_copy">复制</button>' +
+        '<button type="button" class="btn btn-primary" id="__pwd_modal_ok">关闭</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  function closePwdModal() {
+    overlay.remove();
+  }
+
+  overlay.querySelector('#__pwd_modal_close').onclick = closePwdModal;
+  overlay.querySelector('#__pwd_modal_ok').onclick = closePwdModal;
+  overlay.querySelector('#__pwd_modal_copy').onclick = function () {
+    var ta = document.createElement('textarea');
+    ta.value = pwd;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {}
+    document.body.removeChild(ta);
+    var copyBtn = overlay.querySelector('#__pwd_modal_copy');
+    copyBtn.textContent = '已复制✓';
+  };
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closePwdModal();
+  });
+}
+
+document.getElementById('btnToggleStatus').onclick = toggleUserStatus;
+document.getElementById('btnResetPassword').onclick = resetUserPassword;
+
+var accountTabLoaded = false;
+document.querySelector('[data-target="tab-account"]').addEventListener('click', function () {
+  if (!accountTabLoaded && userData) {
+    renderAccountTab();
+    accountTabLoaded = true;
+  }
+});
+
+/* 首屏顶栏「禁用/启用」与 userData 对齐（不改变 loadUserDetail 逻辑，仅轮询等待赋值） */
+(function syncTopBarWhenUserLoaded() {
+  var tries = 0;
+  var timer = setInterval(function () {
+    if (userData) {
+      clearInterval(timer);
+      syncTopBarToggleStatusBtn();
+    } else if (++tries > 120) {
+      clearInterval(timer);
+    }
+  }, 50);
+})();
+</script>
+</body>
+</html>
