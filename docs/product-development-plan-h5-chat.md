@@ -2,7 +2,7 @@
 
 > **版本**：v1.0（与 `**docs/tech-debt.md` TD-015 / TD-016 / TD-017**、`docs/chat-refactor-implementation-plan.md` 对齐，2026-04-09 起为讨论基线）  
 > **性质**：产品目标 + 业务规则 + 交付阶段说明；**接口字段级契约**以清偿后更新的 `**docs/contract.md`** 为准。  
-> **（2026-04 增量索引）**：目标 B 中「**不必等打字结束**」的 **H5 门闩 / 气泡 / 契约补句** 已收口到 **`docs/chat-refactor-agent-tasks.md` →「后续里程碑」**、**`docs/chat-refactor-implementation-plan.md` →「十三、后续增量」**、**`docs/tech-debt.md` [TD-015] →「首版主链 vs 后续排期」**；**勿与** 已交付主链 **重复开发**。用户**短期情绪属性**见 **`docs/tech-debt.md` [TD-020]**。
+> **（2026-04 增量索引）**：目标 B 中「**不必等打字结束**」的 **H5 门闩 / 气泡 / 契约补句** 已收口到 `**docs/chat-refactor-agent-tasks.md` →「后续里程碑」**、`**docs/chat-refactor-implementation-plan.md` →「十三、后续增量」**、`**docs/tech-debt.md` [TD-015] →「首版主链 vs 后续排期」**；勿与 已交付主链 重复开发。用户**短期情绪属性**见 `**docs/tech-debt.md` [TD-020]**。
 
 ---
 
