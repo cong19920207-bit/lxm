@@ -624,7 +624,7 @@
     }
 
     /**
-     * 解析对话 SSE。sseCtx.userRowForFailure：仅 send 传入，failed 时把该 user 行标为叹号态；resend 传空。
+     * 解析对话 SSE。sseCtx.userRowForFailure：仅 send 传入；failed 时标叹号态，done 时标 delivered（与后端一致）。
      */
     async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
       const userRowForFailure = sseCtx && sseCtx.userRowForFailure
@@ -690,6 +690,10 @@
               aiBubble.markComplete()
               if (data.emotion && data.emotion.label) updateAvatarEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
+              // 成功收尾：与后端 DELIVERY_STATUS_DELIVERED 对齐，避免 pending_llm 虚高触发本地 5 条拦截
+              if (userRowForFailure && userRowForFailure.parentNode && sessionAtStart === chatSendSession) {
+                userRowForFailure.setAttribute('data-delivery', 'delivered')
+              }
             }
           } catch (e) {
             console.error('SSE parse error:', e)
