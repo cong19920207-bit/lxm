@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-# 关系业务逻辑：成长值计算、等级判定、沉默天数、连续登录
+# 关系业务逻辑：成长值计算、等级判定、沉默天数、连续登录、Step6 标量回写
 
 import json
 import logging
 from datetime import date, datetime, timedelta
+from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,8 @@ from backend.models.relationship_growth_log import RelationshipGrowthLog
 from backend.models.relationship_level_history import RelationshipLevelHistory
 from backend.models.user import User
 from backend.redis_client import get_redis
+from backend.services.relationship_history_service import RelationshipHistoryService
+from backend.utils.future_time_parser import parse_future_time
 
 logger = logging.getLogger(__name__)
 
@@ -540,3 +543,199 @@ class RelationshipService:
             })
 
         return history
+
+    # ── STEP-015：Step6 标量写回 + 历史 + Future 槽 ──
+
+    # Step6 输出字段（驼峰）→ relationship 表列名（蛇形）的映射
+    _STEP6_FIELD_MAP: dict[str, str] = {
+        "UserRealName": "user_real_name",
+        "UserHobbyName": "user_hobby_name",
+        "UserDescription": "user_description",
+        "CharacterPurpose": "character_purpose",
+        "CharacterAttitude": "character_attitude",
+        "RelationDescription": "relation_description",
+    }
+
+    async def update_relationship_from_step6(
+        self,
+        relationship: Relationship,
+        step6_output,
+        round_id: Optional[str] = None,
+        *,
+        future_time_natural: Optional[str] = None,
+        future_action: Optional[str] = None,
+    ) -> dict:
+        """
+        将 Step6 记忆 LLM 的 6 个标量字段写回 relationship 表，并处理 Future 槽。
+
+        规则（R-MEM-05）：
+        - 值非「无」→ UPDATE 覆盖该列 + 写入变更历史（含 old_value）
+        - 值为「无」→ 跳过赋值，保留库内上一轮值
+        - 历史记录 trigger_source='step6'，携带 round_id
+
+        Future 槽（§2.8.4）：
+        - future.time_natural 调用 parse_future_time 解析
+        - 解析成功 → 写入 future_timestamp + future_action
+        - action 为「无」→ 清空 future 字段
+        - 解析失败 → 清空 future 字段 + 保留 proactive_times + 写日志
+
+        Args:
+            relationship: 当前用户的 Relationship 实例（已从 DB 加载）
+            step6_output: Step6MemoryOutput 实例（含 6 个标量字段）
+            round_id: 本轮对话 round_id
+            future_time_natural: Step5 输出的 future.time_natural
+            future_action: Step5 输出的 future.action
+
+        Returns:
+            {"updated_fields": [...], "history_count": N, "future_status": "..."}
+        """
+        history_svc = RelationshipHistoryService(self.db)
+        updated_fields: list[str] = []
+        history_count = 0
+
+        # ── 1. 6 个标量字段写回 ──
+        for step6_key, db_column in self._STEP6_FIELD_MAP.items():
+            new_value = getattr(step6_output, step6_key, "无")
+            if not isinstance(new_value, str):
+                new_value = str(new_value)
+
+            if new_value.strip() == "无":
+                continue
+
+            old_value = getattr(relationship, db_column, None)
+
+            setattr(relationship, db_column, new_value)
+            updated_fields.append(db_column)
+
+            await history_svc.append_history(
+                relationship_id=relationship.id,
+                user_id=relationship.user_id,
+                field_name=db_column,
+                old_value=old_value,
+                new_value=new_value,
+                trigger_source="step6",
+                round_id=round_id,
+            )
+            history_count += 1
+
+        # ── 2. Future 槽处理 ──
+        future_status = "no_future"
+
+        if future_action is not None and future_action.strip() == "无":
+            # action 为「无」→ 清空 future 字段
+            old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
+            old_act = relationship.future_action
+
+            relationship.future_timestamp = None
+            relationship.future_action = None
+            future_status = "cleared_by_action_none"
+
+            # 记录清空历史
+            if old_ts is not None:
+                await history_svc.append_history(
+                    relationship_id=relationship.id,
+                    user_id=relationship.user_id,
+                    field_name="future_timestamp",
+                    old_value=old_ts,
+                    new_value=None,
+                    trigger_source="step6",
+                    round_id=round_id,
+                )
+                history_count += 1
+            if old_act is not None:
+                await history_svc.append_history(
+                    relationship_id=relationship.id,
+                    user_id=relationship.user_id,
+                    field_name="future_action",
+                    old_value=old_act,
+                    new_value=None,
+                    trigger_source="step6",
+                    round_id=round_id,
+                )
+                history_count += 1
+
+        elif future_time_natural is not None and future_time_natural.strip() != "无":
+            # 有 time_natural 需要解析
+            parsed_ts = parse_future_time(future_time_natural)
+
+            if parsed_ts is not None:
+                # 解析成功 → 写入 future_timestamp + future_action
+                old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
+                old_act = relationship.future_action
+
+                relationship.future_timestamp = parsed_ts
+                relationship.future_action = future_action
+                future_status = "written"
+
+                await history_svc.append_history(
+                    relationship_id=relationship.id,
+                    user_id=relationship.user_id,
+                    field_name="future_timestamp",
+                    old_value=old_ts,
+                    new_value=str(parsed_ts),
+                    trigger_source="step6",
+                    round_id=round_id,
+                )
+                history_count += 1
+                await history_svc.append_history(
+                    relationship_id=relationship.id,
+                    user_id=relationship.user_id,
+                    field_name="future_action",
+                    old_value=old_act,
+                    new_value=future_action,
+                    trigger_source="step6",
+                    round_id=round_id,
+                )
+                history_count += 1
+            else:
+                # 解析失败 → 清空 future 字段，保留 proactive_times
+                old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
+                old_act = relationship.future_action
+
+                relationship.future_timestamp = None
+                relationship.future_action = None
+                future_status = "cleared_parse_failed"
+
+                logger.warning(
+                    "Step6 Future 槽解析失败, user_id=%d, time_natural=%s, "
+                    "proactive_times 保留=%d",
+                    relationship.user_id,
+                    future_time_natural,
+                    relationship.proactive_times,
+                )
+
+                if old_ts is not None:
+                    await history_svc.append_history(
+                        relationship_id=relationship.id,
+                        user_id=relationship.user_id,
+                        field_name="future_timestamp",
+                        old_value=old_ts,
+                        new_value=None,
+                        trigger_source="step6",
+                        round_id=round_id,
+                    )
+                    history_count += 1
+                if old_act is not None:
+                    await history_svc.append_history(
+                        relationship_id=relationship.id,
+                        user_id=relationship.user_id,
+                        field_name="future_action",
+                        old_value=old_act,
+                        new_value=None,
+                        trigger_source="step6",
+                        round_id=round_id,
+                    )
+                    history_count += 1
+
+        await self.db.flush()
+
+        logger.info(
+            "Step6 关系标量写回完成: user_id=%d, updated=%s, history=%d, future=%s",
+            relationship.user_id, updated_fields, history_count, future_status,
+        )
+
+        return {
+            "updated_fields": updated_fields,
+            "history_count": history_count,
+            "future_status": future_status,
+        }

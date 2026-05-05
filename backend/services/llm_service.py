@@ -8,11 +8,14 @@ import logging
 import re
 import time
 from collections.abc import AsyncGenerator
+from typing import List
 
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.admin_config import AdminConfig
+from backend.constants import MAX_MESSAGES_COUNT, MAX_SINGLE_MESSAGE_LENGTH
 from backend.redis_client import get_redis
 from backend.utils.llm_client import llm_client
 
@@ -20,6 +23,182 @@ logger = logging.getLogger(__name__)
 
 # JSON 提取正则：匹配第一个 { ... } 块（支持嵌套）
 _JSON_PATTERN = re.compile(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}")
+
+
+# ============ Step5 结构化输出模型 ============
+
+
+class Step5ParseError(Exception):
+    """Step5 JSON 解析/校验失败异常"""
+    pass
+
+
+class MessageItem(BaseModel):
+    """单条消息"""
+    type: str
+    content: str
+
+
+class RelationChange(BaseModel):
+    """关系变化"""
+    delta: int = 0
+
+
+class FutureSlot(BaseModel):
+    """未来行为槽"""
+    time_natural: str = "无"
+    action: str = "无"
+
+
+class EmotionResult(BaseModel):
+    """情绪结果"""
+    label: str = "平静"
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def clamp_confidence(cls, v):
+        try:
+            v = float(v)
+            return max(0.0, min(1.0, v))
+        except (TypeError, ValueError):
+            return 1.0
+
+
+class Step5Output(BaseModel):
+    """Step5 LLM 输出的完整结构化模型（§2.7.7）"""
+    inner_monologue: str = ""
+    messages: List[MessageItem]
+    relation_change: RelationChange = Field(default_factory=RelationChange)
+    future: FutureSlot = Field(default_factory=FutureSlot)
+    emotion: EmotionResult = Field(default_factory=EmotionResult)
+    knowledge_expand: str = "否"
+
+    @field_validator("knowledge_expand", mode="before")
+    @classmethod
+    def normalize_knowledge_expand(cls, v):
+        """U1：trim 后仅精确「是」为是，其余一律「否」"""
+        if isinstance(v, str) and v.strip() == "是":
+            return "是"
+        return "否"
+
+
+def parse_step5_output(raw_json_str: str) -> Step5Output:
+    """
+    解析 LLM 返回的 Step5 JSON 字符串，执行严格校验。
+
+    校验规则：
+    - JSON 解析失败 → Step5ParseError
+    - messages 为空数组或全部 content 为空 → Step5ParseError（U2）
+    - 任一 messages[].type 非精确 "text" → Step5ParseError（CP3）
+    - knowledge_expand trim 后仅「是」为是，其余按「否」（U1），不失败
+    - relation_change.delta 缺失 → 默认 0（R-BND-02）
+    - future 缺失 → 默认 time_natural="无", action="无"
+
+    Raises:
+        Step5ParseError: 解析或校验失败
+    """
+    if not raw_json_str or not raw_json_str.strip():
+        raise Step5ParseError("LLM 返回空文本")
+
+    # 尝试提取 JSON 块
+    json_str = raw_json_str.strip()
+    match = _JSON_PATTERN.search(json_str)
+    if match:
+        json_str = match.group()
+
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise Step5ParseError(f"JSON 解析失败: {e}") from e
+
+    if not isinstance(data, dict):
+        raise Step5ParseError("JSON 顶层不是对象")
+
+    # U2：messages 为空数组或全部 content trim 后为空 → 失败
+    messages_raw = data.get("messages")
+    if not isinstance(messages_raw, list) or len(messages_raw) == 0:
+        raise Step5ParseError("messages 为空数组（U2）")
+
+    all_content_empty = all(
+        not item.get("content", "").strip()
+        for item in messages_raw
+        if isinstance(item, dict)
+    )
+    if all_content_empty:
+        raise Step5ParseError("messages 每条 content trim 后均为空（U2）")
+
+    # CP3：messages[].type 必须精确等于字面量 "text"（大小写敏感）
+    for i, item in enumerate(messages_raw):
+        if not isinstance(item, dict):
+            raise Step5ParseError(f"messages[{i}] 不是对象")
+        msg_type = item.get("type")
+        if msg_type != "text":
+            raise Step5ParseError(
+                f"messages[{i}].type=\"{msg_type}\" 非精确 \"text\"（CP3）"
+            )
+
+    # R-BND-02：relation_change 缺失 → 填入默认
+    if "relation_change" not in data or data["relation_change"] is None:
+        data["relation_change"] = {"delta": 0}
+    elif isinstance(data["relation_change"], dict) and "delta" not in data["relation_change"]:
+        data["relation_change"]["delta"] = 0
+
+    # future 缺失 → 填入默认
+    if "future" not in data or data["future"] is None:
+        data["future"] = {"time_natural": "无", "action": "无"}
+
+    # emotion 缺失 → 填入默认
+    if "emotion" not in data or data["emotion"] is None:
+        data["emotion"] = {"label": "平静", "confidence": 1.0}
+
+    try:
+        result = Step5Output(**data)
+    except Exception as e:
+        raise Step5ParseError(f"Pydantic 校验失败: {e}") from e
+
+    return result
+
+def merge_messages_if_exceed(
+    messages: list[MessageItem],
+    max_count: int = MAX_MESSAGES_COUNT,
+    max_length: int = MAX_SINGLE_MESSAGE_LENGTH,
+) -> list[MessageItem]:
+    """
+    §2.9.1：当 messages 超过 max_count 条时，将第 max_count 条及以后
+    的 content 按顺序用半角空格拼入第 max_count 条（下标 max_count-1）
+    的 content 末尾。合并后若超过 max_length 则尾部截断并打日志。
+
+    纯函数，不修改入参；返回新列表。
+
+    Args:
+        messages: Step5 / Step5.5 解析出的 MessageItem 列表
+        max_count: 最大条数上限，默认 5
+        max_length: 合并后单条 content 最大字符数，默认 2000
+
+    Returns:
+        合并后的 MessageItem 列表（长度 ≤ max_count）
+    """
+    if len(messages) <= max_count:
+        return list(messages)
+
+    merged = list(messages[:max_count])
+
+    tail_item = merged[max_count - 1]
+    accumulated = tail_item.content
+    for item in messages[max_count:]:
+        accumulated = accumulated + " " + item.content
+
+    if len(accumulated) > max_length:
+        logger.warning(
+            "消息合并后第 %d 条超长（%d > %d），执行尾部截断",
+            max_count, len(accumulated), max_length,
+        )
+        accumulated = accumulated[:max_length]
+
+    merged[max_count - 1] = MessageItem(type=tail_item.type, content=accumulated)
+    return merged
+
 
 # 解析失败时的默认回复
 DEFAULT_FALLBACK = {
@@ -239,6 +418,49 @@ class LLMService:
         except (json.JSONDecodeError, ValueError, TypeError):
             return None
 
+    async def chat_with_step5_parse(
+        self,
+        prompt: str,
+        is_test: bool = False,
+        timeout_sec: float | None = None,
+    ) -> Step5Output:
+        """
+        H5 对话主链路：调用 LLM 后使用 Step5 解析器解析 6 字段结构化输出。
+
+        解析失败时抛 Step5ParseError，供上层决定叹号/兜底策略。
+
+        Args:
+            prompt: 完整 Prompt 文本
+            is_test: 后台测试调用时为 True，跳过统计写入
+            timeout_sec: LLM HTTP 超时（秒）
+
+        Returns:
+            Step5Output 结构化数据
+
+        Raises:
+            Step5ParseError: 解析/校验失败
+            Exception: LLM HTTP 调用失败
+        """
+        start_time = time.time()
+        try:
+            raw_text = await llm_client.chat_sync(prompt, timeout_sec=timeout_sec)
+            response_ms = int((time.time() - start_time) * 1000)
+            if not is_test:
+                asyncio.create_task(self._record_stats(response_ms, True))
+            result = parse_step5_output(raw_text)
+            return result
+        except Step5ParseError:
+            response_ms = int((time.time() - start_time) * 1000)
+            if not is_test:
+                asyncio.create_task(self._record_stats(response_ms, False))
+            raise
+        except Exception as e:
+            response_ms = int((time.time() - start_time) * 1000)
+            if not is_test:
+                asyncio.create_task(self._record_stats(response_ms, False))
+            logger.error("LLM chat_with_step5_parse 调用失败: %s", str(e))
+            raise
+
     async def chat_with_parse_strict(
         self,
         prompt: str,
@@ -247,6 +469,7 @@ class LLMService:
     ) -> dict:
         """
         H5 对话打包调度：HTTP 失败或无法解析为合法 JSON 时抛异常，不返回走神占位字典。
+        （保留兼容：Agent 主动消息等旧链路仍可使用）
         """
         start_time = time.time()
         try:

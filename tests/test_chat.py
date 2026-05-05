@@ -2,7 +2,8 @@
 # 对话模块单元测试
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+import uuid
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -255,6 +256,464 @@ class TestPersonaRiskDetection:
         assert risk_type is None
 
 
+# ============ STEP-008：round_id 提前生成 + 落库复用 ============
+
+
+def _step5_output_for_tests():
+    """构造合法 Step5Output，供 mock chat_with_step5_parse 返回。"""
+    from backend.services.llm_service import parse_step5_output
+
+    raw = json.dumps(
+        {
+            "inner_monologue": "测试中",
+            "messages": [{"type": "text", "content": "合并后回复正文"}],
+            "relation_change": {"delta": 0},
+            "future": {"time_natural": "无", "action": "无"},
+            "emotion": {"label": "平静", "confidence": 1.0},
+            "knowledge_expand": "否",
+        },
+        ensure_ascii=False,
+    )
+    return parse_step5_output(raw)
+
+
+class TestStep008RoundId:
+    """STEP-008：Step5 成功即生成合法 UUID 并落库复用；Step5 失败不闭环、不写入 round_id。"""
+
+    @pytest.mark.asyncio
+    async def test_persist_bundle_success_uses_passed_round_id(self, auth_token: str):
+        """场景2：透传的 round_id 与 conversation_log / emotion_log 中一致。"""
+        from sqlalchemy import select
+
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.models.emotion_log import EmotionLog
+        from backend.routers.chat import _persist_bundle_success
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        fixed_rid = "aaaaaaaa-bbbb-4ccc-bddd-eeeeeeeeeeee"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="单测用户行",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+
+        from backend.services.llm_service import MessageItem
+        await _persist_bundle_success(
+            user_id=1,
+            pack_rows=[urow],
+            emotion_data={"label": "平静", "confidence": 1.0},
+            messages=[MessageItem(type="text", content="助手回复")],
+            memory_injected=None,
+            round_id=fixed_rid,
+        )
+
+        async with async_session_test() as db:
+            conv_rows = (
+                (await db.execute(select(ConversationLog).where(ConversationLog.user_id == 1))).scalars().all()
+            )
+            assistants = [r for r in conv_rows if r.role == "assistant"]
+            users_delivered = [r for r in conv_rows if r.role == "user" and r.delivery_status == DELIVERY_STATUS_DELIVERED]
+            assert len(assistants) == 1
+            assert len(users_delivered) == 1
+            assert users_delivered[0].round_id == fixed_rid
+            assert assistants[0].round_id == fixed_rid
+
+            elogs = (await db.execute(select(EmotionLog).where(EmotionLog.user_id == 1))).scalars().all()
+            assert len(elogs) == 1
+            assert elogs[0].round_id == fixed_rid
+
+    @pytest.mark.asyncio
+    async def test_execute_llm_bundle_step5_success_round_id_valid_and_unified(self, auth_token: str):
+        """场景1：Step5 成功后 round_id 为合法 UUID，且 user/assistant/emotion_log 一致。"""
+        from sqlalchemy import select
+
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.models.emotion_log import EmotionLog
+        from backend.routers import chat as chat_mod
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        gen_fixed = "00000000-0000-4000-8000-000000000099"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="打包测试输入",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+
+        mock_redis = AsyncMock()
+        store: dict = {}
+
+        async def redis_get(k):
+            return store.get(k)
+
+        async def redis_set(k, v, ex=None, px=None):
+            store[k] = v
+            return True
+
+        mock_redis.get = AsyncMock(side_effect=redis_get)
+        mock_redis.set = AsyncMock(side_effect=redis_set)
+
+        step5_out = _step5_output_for_tests()
+
+        with (
+            patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
+            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
+            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "backend.routers.chat.llm_service.chat_with_step5_parse",
+                new_callable=AsyncMock,
+                return_value=step5_out,
+            ),
+            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
+            patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
+            patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None),
+            patch("backend.routers.chat.get_redis", return_value=mock_redis),
+            patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
+            patch("backend.services.chat_queue_service.get_redis", return_value=mock_redis),
+        ):
+            await chat_mod._execute_llm_bundle(1)
+
+        async with async_session_test() as db:
+            conv_rows = (
+                (await db.execute(select(ConversationLog).where(ConversationLog.user_id == 1))).scalars().all()
+            )
+            assistants = [r for r in conv_rows if r.role == "assistant"]
+            users_ok = [r for r in conv_rows if r.role == "user" and r.delivery_status == DELIVERY_STATUS_DELIVERED]
+            assert len(assistants) == 1
+            assert len(users_ok) == 1
+            rid = assistants[0].round_id
+            assert rid is not None
+            uuid.UUID(rid)  # 合法 UUID 则通过
+            assert users_ok[0].round_id == rid
+
+            elogs = (await db.execute(select(EmotionLog).where(EmotionLog.user_id == 1))).scalars().all()
+            assert len(elogs) == 1
+            assert elogs[0].round_id == rid
+
+    @pytest.mark.asyncio
+    async def test_execute_llm_bundle_step5_failure_no_assistant_round(self, auth_token: str):
+        """边界：Step5 解析失败时不闭环，无 assistant，user 行 round_id 仍为 NULL。"""
+        from sqlalchemy import select
+
+        from backend.constants import (
+            DELIVERY_STATUS_FAILED_TIMEOUT,
+            DELIVERY_STATUS_PENDING_LLM,
+        )
+        from backend.models.conversation_log import ConversationLog
+        from backend.routers import chat as chat_mod
+        from backend.services.llm_service import Step5ParseError
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        gen_fixed = "00000000-0000-4000-8000-000000000088"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="将触发 Step5 失败",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+            uid = urow.id
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+        mock_redis.set = AsyncMock(return_value=True)
+
+        with (
+            patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
+            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
+            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "backend.routers.chat.llm_service.chat_with_step5_parse",
+                new_callable=AsyncMock,
+                side_effect=Step5ParseError("U2 模拟失败"),
+            ),
+            patch("backend.routers.chat.get_redis", return_value=mock_redis),
+            patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
+            patch("backend.services.chat_queue_service.get_redis", return_value=mock_redis),
+        ):
+            await chat_mod._execute_llm_bundle(1)
+
+        async with async_session_test() as db:
+            u = await db.get(ConversationLog, uid)
+            assert u is not None
+            assert u.delivery_status == DELIVERY_STATUS_FAILED_TIMEOUT
+            assert u.round_id is None
+
+            assistants = (
+                await db.execute(select(ConversationLog).where(ConversationLog.user_id == 1, ConversationLog.role == "assistant"))
+            ).scalars().all()
+            assert len(assistants) == 0
+
+
+# ============ STEP-011：conversation_log 多气泡落库 ============
+
+
+class TestStep011MultiBubblePersist:
+    """STEP-011：N 条 messages 写入 N 行 assistant，sort_seq 连续递增，round_id 共享。"""
+
+    @pytest.mark.asyncio
+    async def test_three_messages_persist_three_assistant_rows(self, auth_token: str):
+        """场景1：3 条 messages → 写入 3 行 assistant，sort_seq 连续递增。"""
+        from sqlalchemy import select
+
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.routers.chat import _persist_bundle_success
+        from backend.services.llm_service import MessageItem
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        fixed_rid = "11111111-2222-4333-8444-555555555555"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="用户问话",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+
+        messages = [
+            MessageItem(type="text", content="第一条气泡"),
+            MessageItem(type="text", content="第二条气泡"),
+            MessageItem(type="text", content="第三条气泡"),
+        ]
+
+        await _persist_bundle_success(
+            user_id=1,
+            pack_rows=[urow],
+            emotion_data={"label": "开心", "confidence": 0.9},
+            messages=messages,
+            memory_injected=None,
+            round_id=fixed_rid,
+        )
+
+        async with async_session_test() as db:
+            assistants = (
+                await db.execute(
+                    select(ConversationLog)
+                    .where(ConversationLog.user_id == 1, ConversationLog.role == "assistant")
+                    .order_by(ConversationLog.sort_seq.asc())
+                )
+            ).scalars().all()
+
+            assert len(assistants) == 3
+            assert assistants[0].content == "第一条气泡"
+            assert assistants[1].content == "第二条气泡"
+            assert assistants[2].content == "第三条气泡"
+
+            # sort_seq 连续递增
+            assert assistants[1].sort_seq == assistants[0].sort_seq + 1
+            assert assistants[2].sort_seq == assistants[1].sort_seq + 1
+
+            # 共享同一 round_id
+            for a in assistants:
+                assert a.round_id == fixed_rid
+
+    @pytest.mark.asyncio
+    async def test_timeline_query_three_assistant_in_order(self, client: AsyncClient, auth_token: str):
+        """场景2：timeline 查询 → 3 条 assistant 按 sort_seq 升序展示。"""
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.routers.chat import _persist_bundle_success
+        from backend.services.llm_service import MessageItem
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        fixed_rid = "22222222-3333-4444-8555-666666666666"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="时间线测试",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+
+        messages = [
+            MessageItem(type="text", content="时间线A"),
+            MessageItem(type="text", content="时间线B"),
+            MessageItem(type="text", content="时间线C"),
+        ]
+
+        await _persist_bundle_success(
+            user_id=1,
+            pack_rows=[urow],
+            emotion_data={"label": "平静", "confidence": 1.0},
+            messages=messages,
+            memory_injected=None,
+            round_id=fixed_rid,
+        )
+
+        resp = await client.get(
+            "/api/chat/timeline",
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        items = data["items"]
+
+        # 过滤 assistant 行
+        assistant_items = [i for i in items if i["source"] == "assistant"]
+        assert len(assistant_items) == 3
+        assert assistant_items[0]["content"] == "时间线A"
+        assert assistant_items[1]["content"] == "时间线B"
+        assert assistant_items[2]["content"] == "时间线C"
+        # sort_seq 升序
+        assert assistant_items[0]["sort_seq"] < assistant_items[1]["sort_seq"] < assistant_items[2]["sort_seq"]
+
+    @pytest.mark.asyncio
+    async def test_same_round_id_user_and_three_assistant(self, auth_token: str):
+        """场景3：同一 round_id 下 user 行 + 3 条 assistant 行。"""
+        from sqlalchemy import select
+
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.routers.chat import _persist_bundle_success
+        from backend.services.llm_service import MessageItem
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        fixed_rid = "33333333-4444-4555-8666-777777777777"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="共享round测试",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+
+        messages = [
+            MessageItem(type="text", content="回复1"),
+            MessageItem(type="text", content="回复2"),
+            MessageItem(type="text", content="回复3"),
+        ]
+
+        await _persist_bundle_success(
+            user_id=1,
+            pack_rows=[urow],
+            emotion_data={"label": "平静", "confidence": 1.0},
+            messages=messages,
+            memory_injected=None,
+            round_id=fixed_rid,
+        )
+
+        async with async_session_test() as db:
+            all_rows = (
+                await db.execute(
+                    select(ConversationLog)
+                    .where(ConversationLog.user_id == 1, ConversationLog.round_id == fixed_rid)
+                    .order_by(ConversationLog.sort_seq.asc())
+                )
+            ).scalars().all()
+
+            # 1 user + 3 assistant = 4 行
+            assert len(all_rows) == 4
+            assert all_rows[0].role == "user"
+            assert all_rows[0].delivery_status == DELIVERY_STATUS_DELIVERED
+            for row in all_rows[1:]:
+                assert row.role == "assistant"
+                assert row.round_id == fixed_rid
+
+    @pytest.mark.asyncio
+    async def test_single_message_backward_compatible(self, auth_token: str):
+        """边界测试：1 条 message → 兼容现有逻辑，写入 1 行 assistant。"""
+        from sqlalchemy import select
+
+        from backend.constants import DELIVERY_STATUS_DELIVERED, DELIVERY_STATUS_PENDING_LLM
+        from backend.models.conversation_log import ConversationLog
+        from backend.routers.chat import _persist_bundle_success
+        from backend.services.llm_service import MessageItem
+        from backend.services.timeline_seq_service import allocate_sort_seq
+
+        fixed_rid = "44444444-5555-4666-8777-888888888888"
+
+        async with async_session_test() as db:
+            seqs = await allocate_sort_seq(1, 1, db=db)
+            urow = ConversationLog(
+                user_id=1,
+                role="user",
+                content="单条兼容测试",
+                sort_seq=seqs[0],
+                delivery_status=DELIVERY_STATUS_PENDING_LLM,
+                skipped_in_prompt=False,
+                persona_risk_flag=False,
+            )
+            db.add(urow)
+            await db.commit()
+            await db.refresh(urow)
+
+        messages = [MessageItem(type="text", content="唯一回复")]
+
+        await _persist_bundle_success(
+            user_id=1,
+            pack_rows=[urow],
+            emotion_data={"label": "平静", "confidence": 1.0},
+            messages=messages,
+            memory_injected=None,
+            round_id=fixed_rid,
+        )
+
+        async with async_session_test() as db:
+            assistants = (
+                await db.execute(
+                    select(ConversationLog)
+                    .where(ConversationLog.user_id == 1, ConversationLog.role == "assistant")
+                )
+            ).scalars().all()
+
+            assert len(assistants) == 1
+            assert assistants[0].content == "唯一回复"
+            assert assistants[0].round_id == fixed_rid
+
+
 # ============ Chat API 接口测试 ============
 
 
@@ -281,10 +740,20 @@ class TestChatSendAPI:
     @pytest.mark.asyncio
     async def test_chat_send_stream_response(self, client: AsyncClient, auth_token: str):
         """正常发送消息，验证 SSE 流式响应格式（含 meta.generation_id）"""
-        llm_parsed = {
-            "emotion": {"label": "开心", "confidence": 0.9},
-            "reply": "你好呀！",
-        }
+        from backend.services.llm_service import parse_step5_output
+
+        step5_raw = json.dumps(
+            {
+                "inner_monologue": "用户打招呼，我也开心",
+                "messages": [{"type": "text", "content": "你好呀！"}],
+                "relation_change": {"delta": 0},
+                "future": {"time_natural": "无", "action": "无"},
+                "emotion": {"label": "开心", "confidence": 0.9},
+                "knowledge_expand": "否",
+            },
+            ensure_ascii=False,
+        )
+        step5_out = parse_step5_output(step5_raw)
 
         mock_redis = AsyncMock()
         store: dict = {}
@@ -306,9 +775,9 @@ class TestChatSendAPI:
             patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536),
             patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
             patch(
-                "backend.routers.chat.llm_service.chat_with_parse_strict",
+                "backend.routers.chat.llm_service.chat_with_step5_parse",
                 new_callable=AsyncMock,
-                return_value=llm_parsed,
+                return_value=step5_out,
             ),
             patch("backend.routers.chat.check_content", return_value={"is_safe": True, "reason": ""}),
             patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
@@ -317,6 +786,7 @@ class TestChatSendAPI:
             patch("backend.routers.chat.schedule_debounced", side_effect=instant_debounce),
             patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
             patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
+            patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None),
         ):
             resp = await client.post(
                 "/api/chat/send",
@@ -338,9 +808,13 @@ class TestChatSendAPI:
             assert len(events) >= 3
             assert events[0]["type"] == "meta"
             assert "generation_id" in events[0]
+            assert events[0].get("message_count") == 1
             done_event = events[-1]
             assert done_event["type"] == "done"
             assert "emotion" in done_event
+            assert isinstance(done_event.get("messages"), list)
+            assert len(done_event["messages"]) == 1
+            assert done_event["messages"][0].get("content") == "你好呀！"
 
     @pytest.mark.asyncio
     async def test_chat_send_content_unsafe(self, client: AsyncClient, auth_token: str):
@@ -369,6 +843,200 @@ class TestChatSendAPI:
 
             data = resp.json()
             assert data["code"] == 10101
+
+
+def _parse_sse_data_events(body: str) -> list[dict]:
+    """从 SSE 响应体解析 data: JSON 行（与 STEP-010 流式测试共用）。"""
+    events: list[dict] = []
+    for line in body.strip().split("\n"):
+        line = line.strip()
+        if line.startswith("data: "):
+            events.append(json.loads(line[6:]))
+    return events
+
+
+def _h5_mirror_append_text_at(slots: list[str], message_index: int, content: str) -> None:
+    """镜像 H5 `appendTextAt`：按 message_index 扩展列表并追加文本（用于乱序 delta 场景单测）。"""
+    while len(slots) <= message_index:
+        slots.append("")
+    slots[message_index] += content
+
+
+class TestStep010SseMultiBubble:
+    """STEP-010：多气泡 SSE 协议（§2.9.4 / §2.7.5）——集成 + H5 填槽语义镜像测试。"""
+
+    @pytest.mark.asyncio
+    async def test_sse_three_messages_meta_delta_done(self, client: AsyncClient, auth_token: str):
+        """场景1：3 条 messages → meta message_count=3；delta 均带 message_index；done.messages 含 3 条。"""
+        from backend.services.llm_service import parse_step5_output
+
+        step5_raw = json.dumps(
+            {
+                "inner_monologue": "",
+                "messages": [
+                    {"type": "text", "content": "第一条"},
+                    {"type": "text", "content": "第二"},
+                    {"type": "text", "content": "三"},
+                ],
+                "relation_change": {"delta": 0},
+                "future": {"time_natural": "无", "action": "无"},
+                "emotion": {"label": "开心", "confidence": 0.9},
+                "knowledge_expand": "否",
+            },
+            ensure_ascii=False,
+        )
+        step5_out = parse_step5_output(step5_raw)
+
+        mock_redis = AsyncMock()
+        store: dict = {}
+
+        async def redis_get(k):
+            return store.get(k)
+
+        async def redis_set(k, v, ex=None, px=None):
+            store[k] = v
+            return True
+
+        mock_redis.get = AsyncMock(side_effect=redis_get)
+        mock_redis.set = AsyncMock(side_effect=redis_set)
+
+        async def instant_debounce(user_id, coro):
+            await coro()
+
+        with (
+            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536),
+            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "backend.routers.chat.llm_service.chat_with_step5_parse",
+                new_callable=AsyncMock,
+                return_value=step5_out,
+            ),
+            patch("backend.routers.chat.check_content", return_value={"is_safe": True, "reason": ""}),
+            patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
+            patch("backend.routers.chat.get_redis", return_value=mock_redis),
+            patch("backend.services.chat_queue_service.get_redis", return_value=mock_redis),
+            patch("backend.routers.chat.schedule_debounced", side_effect=instant_debounce),
+            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
+            patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
+            patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None),
+        ):
+            resp = await client.post(
+                "/api/chat/send",
+                json={"content": "触发三条"},
+                headers={"Authorization": f"Bearer {auth_token}"},
+            )
+
+        assert resp.status_code == 200
+        events = _parse_sse_data_events(resp.text)
+        assert events[0]["type"] == "meta"
+        assert events[0]["message_count"] == 3
+        assert "generation_id" in events[0]
+
+        deltas = [e for e in events if e["type"] == "delta"]
+        assert len(deltas) > 0
+        for d in deltas:
+            assert "message_index" in d
+            assert 0 <= d["message_index"] < 3
+
+        # 服务端按 CP2：同 index 连续，整体 message_index 非递减
+        idx_seq = [d["message_index"] for d in deltas]
+        assert idx_seq == sorted(idx_seq)
+
+        done_event = events[-1]
+        assert done_event["type"] == "done"
+        assert len(done_event["messages"]) == 3
+        assert [m["content"] for m in done_event["messages"]] == ["第一条", "第二", "三"]
+        assert done_event["emotion"]["label"] == "开心"
+
+    @pytest.mark.asyncio
+    async def test_sse_single_message_message_count_one(self, client: AsyncClient, auth_token: str):
+        """边界：仅 1 条 message → message_count=1；delta 仅 message_index=0；done.messages 长度 1。"""
+        from backend.services.llm_service import parse_step5_output
+
+        step5_raw = json.dumps(
+            {
+                "inner_monologue": "",
+                "messages": [{"type": "text", "content": "独句"}],
+                "relation_change": {"delta": 0},
+                "future": {"time_natural": "无", "action": "无"},
+                "emotion": {"label": "平静", "confidence": 1.0},
+                "knowledge_expand": "否",
+            },
+            ensure_ascii=False,
+        )
+        step5_out = parse_step5_output(step5_raw)
+
+        mock_redis = AsyncMock()
+        store: dict = {}
+
+        async def redis_get(k):
+            return store.get(k)
+
+        async def redis_set(k, v, ex=None, px=None):
+            store[k] = v
+            return True
+
+        mock_redis.get = AsyncMock(side_effect=redis_get)
+        mock_redis.set = AsyncMock(side_effect=redis_set)
+
+        async def instant_debounce(user_id, coro):
+            await coro()
+
+        with (
+            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536),
+            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "backend.routers.chat.llm_service.chat_with_step5_parse",
+                new_callable=AsyncMock,
+                return_value=step5_out,
+            ),
+            patch("backend.routers.chat.check_content", return_value={"is_safe": True, "reason": ""}),
+            patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
+            patch("backend.routers.chat.get_redis", return_value=mock_redis),
+            patch("backend.services.chat_queue_service.get_redis", return_value=mock_redis),
+            patch("backend.routers.chat.schedule_debounced", side_effect=instant_debounce),
+            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
+            patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
+            patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None),
+        ):
+            resp = await client.post(
+                "/api/chat/send",
+                json={"content": "单条边界"},
+                headers={"Authorization": f"Bearer {auth_token}"},
+            )
+
+        assert resp.status_code == 200
+        events = _parse_sse_data_events(resp.text)
+        assert events[0]["message_count"] == 1
+        deltas = [e for e in events if e["type"] == "delta"]
+        assert all(d["message_index"] == 0 for d in deltas)
+        done_event = events[-1]
+        assert done_event["type"] == "done"
+        assert len(done_event["messages"]) == 1
+        assert done_event["messages"][0]["content"] == "独句"
+
+    def test_h5_slot_fill_out_of_order_deltas(self):
+        """场景2：乱序 delta（镜像 H5 appendTextAt）→ 按 index 合并后顺序为 [0],[1],[2] 文本正确。"""
+        slots: list[str] = []
+        for idx, chunk in [(2, "三"), (0, "第"), (1, "二"), (0, "一"), (2, "条")]:
+            _h5_mirror_append_text_at(slots, idx, chunk)
+        assert slots == ["第一", "二", "三条"]
+
+    def test_done_messages_overrides_streaming_slack(self):
+        """场景3：流式累积与 done.messages 不一致时，以 done 为准（镜像 H5 finalize 覆盖）。"""
+        slots: list[str] = []
+        _h5_mirror_append_text_at(slots, 0, "流式错字")
+        _h5_mirror_append_text_at(slots, 1, "暂存")
+        done_messages = [
+            {"type": "text", "content": "定稿甲"},
+            {"type": "text", "content": "定稿乙"},
+        ]
+        # finalize：整段替换，与 chat.html finalize 一致
+        for i, m in enumerate(done_messages):
+            while len(slots) <= i:
+                slots.append("")
+            slots[i] = m.get("content", "")
+        assert slots == ["定稿甲", "定稿乙"]
 
 
 # ============ Schemas 测试 ============

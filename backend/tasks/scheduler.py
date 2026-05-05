@@ -38,6 +38,34 @@ async def _run_agent_scan() -> None:
         logger.error("[定时任务] Agent 扫描任务异常: %s", str(e), exc_info=True)
 
 
+async def _run_future_slot_scan() -> None:
+    """Future 槽消费轮询：扫描到期 Future 槽并触发主动消息子链路"""
+    logger.info("[定时任务] 触发 Future 槽轮询")
+    try:
+        from backend.services.future_handler import future_handler
+        consumed = await future_handler.scan_and_consume()
+        # 顺带清理超出 30 分钟窗口的过期槽位
+        cleaned = await future_handler.cleanup_expired_slots()
+        if consumed or cleaned:
+            logger.info(
+                "[定时任务] Future 槽轮询完成: 消费=%d, 清理过期=%d",
+                consumed, cleaned,
+            )
+    except Exception as e:
+        logger.error("[定时任务] Future 槽轮询异常: %s", str(e), exc_info=True)
+
+
+async def _run_inactive_reset() -> None:
+    """R-FUT-03④：30 天无活动自动清零 proactive_times + Future 槽"""
+    logger.info("[定时任务] 触发 30 天无活动清零检查")
+    try:
+        from backend.services.agent_service import AgentService
+        count = await AgentService().reset_inactive_proactive_times()
+        logger.info("[定时任务] 30 天无活动清零完成，共 %d 人", count)
+    except Exception as e:
+        logger.error("[定时任务] 30 天无活动清零任务异常: %s", str(e), exc_info=True)
+
+
 def start_scheduler(diary_hour: int = 0, diary_minute: int = 30) -> None:
     """注册并启动所有定时任务。日记 Cron 使用 UTC，时刻由 diary_rules 在启动时解析后传入。"""
     # 与 DiaryService「今日」日界一致，使用 UTC（见 docs/diary-refactor-plan.md §0.7）
@@ -53,12 +81,30 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 30) -> None:
         replace_existing=True,
     )
 
-    # 每6小时执行 Agent 主动消息扫描
+    # 每 30 分钟执行 Agent 主动消息扫描（§2.2 变更 8.2：间隔 ≥30min）
     scheduler.add_job(
         _run_agent_scan,
-        trigger=IntervalTrigger(hours=6),
+        trigger=IntervalTrigger(minutes=30),
         id="agent_scan_task",
         name="Agent主动消息扫描",
+        replace_existing=True,
+    )
+
+    # Future 槽消费轮询（每 60 秒扫描一次到期 Future 槽）
+    scheduler.add_job(
+        _run_future_slot_scan,
+        trigger=IntervalTrigger(seconds=60),
+        id="future_slot_scan_task",
+        name="Future槽消费轮询",
+        replace_existing=True,
+    )
+
+    # R-FUT-03④：每日凌晨 1:00 (UTC) 执行 30 天无活动清零
+    scheduler.add_job(
+        _run_inactive_reset,
+        trigger=CronTrigger(hour=1, minute=0, timezone=ZoneInfo("UTC")),
+        id="inactive_proactive_reset_task",
+        name="30天无活动proactive_times清零",
         replace_existing=True,
     )
 

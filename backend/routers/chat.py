@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import get_llm_timeout_chat_seconds
 from backend.constants import (
     DELIVERY_STATUS_DELIVERED,
+    DELIVERY_STATUS_FAILED_BLOCKED,
     DELIVERY_STATUS_FAILED_ERROR,
     DELIVERY_STATUS_FAILED_TIMEOUT,
     DELIVERY_STATUS_PENDING_LLM,
@@ -24,6 +26,7 @@ from backend.constants import (
     ERR_CONTENT_EMPTY,
     ERR_CONTENT_UNSAFE,
     ERR_LLM_FAILED,
+    MEMORY_TYPE_USER,
     PERSONA_RISK_KEYWORDS,
 )
 from backend.database import async_session_maker, get_db
@@ -43,9 +46,20 @@ from backend.services.chat_queue_service import (
 )
 from backend.services.content_safety_service import check_content
 from backend.services.embedding_service import embedding_service
-from backend.services.llm_service import llm_service
+from backend.services.llm_service import Step5ParseError, llm_service, merge_messages_if_exceed
 from backend.services.memory_service import memory_service
-from backend.services.prompt_builder import PromptBuilder
+from backend.services.multi_vector_retrieval_service import execute_multi_vector_retrieval
+from backend.services.prompt_builder import (
+    DEFAULT_PERSONA,
+    LEVEL_DEFINITIONS,
+    PromptBuilder,
+    REDIS_KEY_PERSONA,
+    _generate_time_description,
+    get_activity_description,
+)
+from backend.services.query_rewrite_service import execute_query_rewrite
+from backend.services.step5_5_service import execute_step5_5
+from backend.services.step6_orchestrator import Step6Snapshot, execute_step6
 from backend.services.relationship_service import RelationshipService
 from backend.services import user_short_term_emotion_service
 from backend.services.timeline_seq_service import allocate_sort_seq
@@ -59,8 +73,8 @@ router = APIRouter(prefix="/api/chat", tags=["对话"])
 _SSE_CHUNK_SIZE = 2
 _SSE_CHUNK_DELAY = 0.03
 
-# 每代 SSE 等待 LLM 闭环结果；与 LLM_TIMEOUT_CHAT 对齐并留余量
-_BUNDLE_WAIT_TIMEOUT_SEC = 55.0
+# 每代 SSE 等待 LLM 闭环结果；§2.11.2 调至 120s，Nginx proxy_read_timeout 须 ≥ 130s
+_BUNDLE_WAIT_TIMEOUT_SEC = 120.0
 
 # generation_id -> Future，供 SSE 与打包任务对接
 _generation_futures: dict[str, asyncio.Future] = {}
@@ -132,6 +146,7 @@ async def _get_embedding(text: str) -> list[float]:
 async def _search_memories(vector: list[float], user_id: int) -> list[dict]:
     return await dashvector_client.search(
         vector=vector,
+        memory_type=MEMORY_TYPE_USER,
         user_id=user_id,
         top_k=5,
         threshold=0.7,
@@ -145,6 +160,49 @@ def _detect_persona_risk(text: str) -> tuple[bool, str | None]:
             if kw in text_lower:
                 return True, risk_type
     return False, None
+
+
+# ============ 内容安全：messages 逐条检测 ============
+
+
+async def _check_messages_safety(messages: list) -> tuple[bool, str]:
+    """
+    对 messages 数组逐条执行内容安全检测。
+
+    Args:
+        messages: MessageItem 列表（需有 .content 属性或 dict["content"]）
+
+    Returns:
+        (is_safe, reason): 全部安全返回 (True, "")，任一违规返回 (False, reason)
+    """
+    for idx, msg in enumerate(messages):
+        content = msg.content if hasattr(msg, "content") else msg.get("content", "")
+        if not content or not content.strip():
+            continue
+        result = await check_content(content)
+        if not result["is_safe"]:
+            reason = f"messages[{idx}] {result['reason']}"
+            logger.warning("AI输出内容安全拦截: %s", reason)
+            return False, reason
+    return True, ""
+
+
+async def _check_inner_monologue_safety(inner_monologue: str, user_id: int) -> str:
+    """
+    检测 inner_monologue 内容安全，违规时仅写日志 + 返回空串，不拦截整轮。
+
+    §9.3：inner_monologue 检测失败时替换为空串，避免污染 Step6 记忆。
+    """
+    if not inner_monologue or not inner_monologue.strip():
+        return inner_monologue
+    result = await check_content(inner_monologue)
+    if not result["is_safe"]:
+        logger.warning(
+            "inner_monologue 内容安全违规(仅日志): user_id=%d reason=%s",
+            user_id, result["reason"],
+        )
+        return ""
+    return inner_monologue
 
 
 # ============ 未闭环窗口 / 队列 ============
@@ -299,17 +357,24 @@ async def _persist_bundle_success(
     user_id: int,
     pack_rows: list[ConversationLog],
     emotion_data: dict,
-    ai_reply: str,
+    messages: list,
     memory_injected: list | None,
+    round_id: str,
 ) -> None:
-    """同一事务：pack 内 user 标已送达、写 assistant、写 emotion_log（挂首条 user id）。"""
+    """同一事务：pack 内 user 标已送达、写 N 条 assistant（每条对应 messages[i]）、写 emotion_log。
+
+    §2.8.1：messages 有几条就写入几条 role=assistant，round_id 共享。
+    §2.8.3：一次性申请 N 个连续 sort_seq，按数组下标从小到大赋值。
+    """
+    msg_count = len(messages)
+    if msg_count < 1:
+        logger.warning("_persist_bundle_success: messages 为空，跳过落库 user_id=%d", user_id)
+        return
+
     async with async_session_maker() as db:
         try:
-            # TD-016 / V2-B：按轮写入；round_id 在本轮成功闭环时生成，逻辑上与 pack 内首条 user（pack_rows[0]）同属一轮
-            round_id = str(uuid.uuid4())
-
-            seqs = await allocate_sort_seq(user_id, count=1, db=db)
-            asst_seq = seqs[0]
+            # 一次性申请 N 个连续 sort_seq
+            seqs = await allocate_sort_seq(user_id, count=msg_count, db=db)
 
             for row in pack_rows:
                 u = await db.get(ConversationLog, row.id)
@@ -318,16 +383,20 @@ async def _persist_bundle_success(
                     u.skipped_in_prompt = False
                     u.round_id = round_id
 
-            ai_log = ConversationLog(
-                user_id=user_id,
-                role="assistant",
-                content=ai_reply,
-                sort_seq=asst_seq,
-                delivery_status=None,
-                skipped_in_prompt=False,
-                round_id=round_id,
-            )
-            db.add(ai_log)
+            # 按数组下标写入 N 条 assistant 行
+            for idx, msg in enumerate(messages):
+                content = msg.content if hasattr(msg, "content") else msg.get("content", "")
+                ai_log = ConversationLog(
+                    user_id=user_id,
+                    role="assistant",
+                    content=content,
+                    sort_seq=seqs[idx],
+                    delivery_status=None,
+                    skipped_in_prompt=False,
+                    round_id=round_id,
+                )
+                db.add(ai_log)
+
             await db.flush()
 
             anchor_user_id = pack_rows[0].id
@@ -341,10 +410,11 @@ async def _persist_bundle_success(
             db.add(elog)
             await db.commit()
             logger.info(
-                "对话闭环已落库 user_id=%d pack=%s assistant_seq=%s",
+                "对话闭环已落库 user_id=%d pack=%s assistant_seqs=%s msg_count=%d",
                 user_id,
                 [r.id for r in pack_rows],
-                asst_seq,
+                seqs,
+                msg_count,
             )
         except Exception:
             await db.rollback()
@@ -379,6 +449,60 @@ async def _mark_outside_pack_skipped(session: AsyncSession, open_rows: list[Conv
                 u.skipped_in_prompt = True
 
 
+def _build_round_context(
+    relationship_info: Relationship | None,
+    time_description: str,
+    activity_description: str,
+) -> dict:
+    """
+    STEP-018：构建本轮内存上下文 dict，供 Prompt 构建 / Step5.5 / Step6 共用。
+
+    扩展字段为 NULL 时使用占位文案（空串或默认描述）。
+    """
+    if relationship_info is not None:
+        _rel_level = relationship_info.level
+        _level_name = LEVEL_DEFINITIONS.get(_rel_level, LEVEL_DEFINITIONS[0])["name"]
+
+        if relationship_info.last_interaction_at:
+            _silence_days = (datetime.utcnow() - relationship_info.last_interaction_at).days
+        else:
+            _silence_days = 999
+    else:
+        _rel_level = 0
+        _level_name = LEVEL_DEFINITIONS[0]["name"]
+        _silence_days = 999
+
+    def _safe(val: str | None, fallback: str = "") -> str:
+        return val if val else fallback
+
+    return {
+        "time_description": time_description,
+        "activity_description": activity_description,
+        "relation_description": _safe(
+            getattr(relationship_info, "relation_description", None) if relationship_info else None,
+            "暂无，初次互动",
+        ),
+        "user_real_name": _safe(
+            getattr(relationship_info, "user_real_name", None) if relationship_info else None,
+        ),
+        "user_hobby_name": _safe(
+            getattr(relationship_info, "user_hobby_name", None) if relationship_info else None,
+        ),
+        "user_description": _safe(
+            getattr(relationship_info, "user_description", None) if relationship_info else None,
+        ),
+        "character_purpose": _safe(
+            getattr(relationship_info, "character_purpose", None) if relationship_info else None,
+        ),
+        "character_attitude": _safe(
+            getattr(relationship_info, "character_attitude", None) if relationship_info else None,
+        ),
+        "level": _rel_level,
+        "level_name": _level_name,
+        "silence_days": _silence_days,
+    }
+
+
 async def _execute_llm_bundle(user_id: int) -> None:
     """防抖结束后执行：打包未闭环窗口 → LLM → 校验 generation → 落库或叹号。"""
     try:
@@ -409,19 +533,6 @@ async def _execute_llm_bundle(user_id: int) -> None:
                 return
 
             last_user_text = pack_rows[-1].content
-            user_embedding = await _get_embedding(last_user_text)
-            memories_raw: list[dict] = []
-            if user_embedding:
-                try:
-                    memories_raw = await _search_memories(user_embedding, user_id)
-                except Exception as e:
-                    logger.error("向量检索失败: user_id=%d err=%s", user_id, e)
-
-            class _MemoryProxy:
-                def __init__(self, content: str):
-                    self.content = content
-
-            memories = [_MemoryProxy(m["content"]) for m in memories_raw if m.get("content")]
 
             recent_conversations = await _get_recent_conversations(user_id, db=db, limit=20)
             recent_10 = recent_conversations[-10:] if len(recent_conversations) > 10 else recent_conversations
@@ -431,15 +542,51 @@ async def _execute_llm_bundle(user_id: int) -> None:
                 user_id, db, redis_for_emotion
             )
 
+            # ── STEP-018：构建本轮内存上下文，供 Step1.5 / Step3 / Step6 共用 ──
+            time_description = _generate_time_description()
+            activity_description = await get_activity_description()
+
+            round_context = _build_round_context(
+                relationship_info=relationship_info,
+                time_description=time_description,
+                activity_description=activity_description,
+            )
+
+            # ── STEP-019 + STEP-020：Step1.5 查询重写 → Step2 多路向量检索 ──
+            r_for_persona = await get_redis()
+            _persona_text = await r_for_persona.get(REDIS_KEY_PERSONA)
+            if not _persona_text:
+                _persona_text = DEFAULT_PERSONA
+
+            query_rewrite_result = await execute_query_rewrite(
+                user_id=user_id,
+                last_user_text=last_user_text,
+                persona_text=_persona_text,
+                round_context=round_context,
+                recent_conversations=recent_10,
+                source="main",
+            )
+
+            retrieval_result = await execute_multi_vector_retrieval(
+                query_rewrite_result=query_rewrite_result,
+                user_id=user_id,
+            )
+
+            # Step2 检索结果：user_results 供 User Memory 模块，四路结果供模块 A
+            memories_raw = retrieval_result.user_memory_results
+            retrieval_for_prompt = retrieval_result.format_for_prompt()
+
             bundled = "\n".join(r.content for r in pack_rows)
             builder = PromptBuilder(db)
             prompt = await builder.build_chat_prompt(
                 user_id=user_id,
                 user_input=bundled,
-                memories=memories,
+                memories=memories_raw,
                 recent_conversations=recent_10,
                 relationship_info=relationship_info,
                 emotion_context=emotion_context,
+                round_context=round_context,
+                retrieval_results=retrieval_for_prompt,
             )
 
             gen_check = await redis_get_generation(user_id)
@@ -447,11 +594,11 @@ async def _execute_llm_bundle(user_id: int) -> None:
                 return
 
             try:
-                result = await llm_service.chat_with_parse_strict(
+                step5_result = await llm_service.chat_with_step5_parse(
                     prompt,
                     timeout_sec=get_llm_timeout_chat_seconds(),
                 )
-            except Exception as e:
+            except (Step5ParseError, Exception) as e:
                 logger.error("LLM 失败 user_id=%d: %s", user_id, e)
                 gen_after = await redis_get_generation(user_id)
                 if gen_after == gen_before:
@@ -466,6 +613,76 @@ async def _execute_llm_bundle(user_id: int) -> None:
             if gen_after_llm != gen_before:
                 return
 
+            # ── §9.1 内容安全：inner_monologue 检测（违规仅日志+替换空串，不拦截）──
+            step5_result.inner_monologue = await _check_inner_monologue_safety(
+                step5_result.inner_monologue, user_id
+            )
+
+            # ── §9.1 内容安全：Step5 messages 逐条检测（任一违规→整轮失败，不进5.5）──
+            step5_msgs_safe, step5_msgs_reason = await _check_messages_safety(
+                step5_result.messages
+            )
+            if not step5_msgs_safe:
+                logger.warning(
+                    "Step5 messages 内容安全拦截 user_id=%d: %s", user_id, step5_msgs_reason
+                )
+                await _mark_pack_failed(pack_rows, DELIVERY_STATUS_FAILED_BLOCKED)
+                await _resolve_generation_future(
+                    gen_before,
+                    {"error": True, "code": ERR_CONTENT_UNSAFE, "message": "内容安全拦截"},
+                )
+                return
+
+            # §2.9.3：Step5 解析成功即生成 round_id，后续落库和 Step6 入队复用同一值
+            round_id = str(uuid.uuid4())
+
+            # ── §2.9.3 CP1 消费点 3：Step6 入参快照，对 Step5 原始 messages 执行合并 ──
+            # R-BND-05：Step6 仅吃 Step5 原始产出，不使用 Step5.5 输出
+            step6_messages = merge_messages_if_exceed(step5_result.messages)
+
+            # ── Step5.5 响应润色（§2.7.1 双门闩 OR 触发）──
+            # STEP-018：从 round_context 取关系等级名称，与 Step3/Step6 共用同一份
+            _level_name = round_context["level_name"]
+
+            step5_5_result = await execute_step5_5(
+                step5_messages=step5_result.messages,
+                step5_inner_monologue=step5_result.inner_monologue,
+                step5_emotion_label=step5_result.emotion.label,
+                step5_emotion_confidence=step5_result.emotion.confidence,
+                step5_relation_change_delta=step5_result.relation_change.delta,
+                step5_future_time_natural=step5_result.future.time_natural,
+                step5_future_action=step5_result.future.action,
+                step5_knowledge_expand=step5_result.knowledge_expand,
+                level_name=_level_name,
+                user_hobby_name=round_context["user_hobby_name"] or None,
+                user_real_name=round_context["user_real_name"] or None,
+                recent_conversations=recent_10,
+            )
+
+            if step5_5_result is not None:
+                # ── §9.1 内容安全：Step5.5 输出逐条检测（违规→回退 Step5）──
+                step5_5_safe, step5_5_reason = await _check_messages_safety(
+                    step5_5_result
+                )
+                if step5_5_safe:
+                    final_messages = step5_5_result
+                else:
+                    logger.warning(
+                        "Step5.5 输出内容安全拦截，回退Step5 user_id=%d: %s",
+                        user_id, step5_5_reason,
+                    )
+                    final_messages = merge_messages_if_exceed(step5_result.messages)
+            else:
+                # Step5.5 未触发或失败回退：使用 Step5 原始 messages（经合并后的版本）
+                final_messages = merge_messages_if_exceed(step5_result.messages)
+
+            # 从 Step5 结构化输出提取兼容字段（使用合并后的 messages）
+            ai_reply = "\n".join(m.content for m in final_messages)
+            emotion_data = {
+                "label": step5_result.emotion.label,
+                "confidence": step5_result.emotion.confidence,
+            }
+
             memory_injected = [
                 {"content": m["content"], "score": m["score"]}
                 for m in memories_raw
@@ -475,9 +692,10 @@ async def _execute_llm_bundle(user_id: int) -> None:
             await _persist_bundle_success(
                 user_id=user_id,
                 pack_rows=pack_rows,
-                emotion_data=result["emotion"],
-                ai_reply=result["reply"],
+                emotion_data=emotion_data,
+                messages=final_messages,
                 memory_injected=memory_injected,
+                round_id=round_id,
             )
 
             first = pack_rows[0]
@@ -485,20 +703,55 @@ async def _execute_llm_bundle(user_id: int) -> None:
                 _post_bundle_success_tasks(
                     user_id=user_id,
                     bundled_user_text=bundled,
-                    ai_reply=result["reply"],
-                    emotion_data=result["emotion"],
+                    ai_reply=ai_reply,
+                    emotion_data=emotion_data,
                     persona_risk_flag=first.persona_risk_flag,
                     persona_risk_type=first.persona_risk_type,
                     memory_injected=memory_injected,
                 )
             )
 
+            # ── §2.9.3 / §2.8.4：Step6 异步入队（M2 半异步，不阻塞 SSE）──
+            # _persona_text 已在 Step1.5 阶段获取，此处直接复用
+            try:
+                _recent_conv_snapshot = [
+                    {"role": c.role, "content": c.content} for c in recent_10
+                ]
+
+                # STEP-018：从 round_context 取关系扩展字段，与 Step5.5 共用同一份
+                step6_snapshot = Step6Snapshot(
+                    user_id=user_id,
+                    round_id=round_id,
+                    step6_messages=step6_messages,
+                    user_input=bundled,
+                    persona_text=_persona_text,
+                    level_name=_level_name,
+                    relation_description=round_context["relation_description"] or None,
+                    user_real_name=round_context["user_real_name"] or None,
+                    user_hobby_name=round_context["user_hobby_name"] or None,
+                    user_description=round_context["user_description"] or None,
+                    character_purpose=round_context["character_purpose"] or None,
+                    character_attitude=round_context["character_attitude"] or None,
+                    recent_conversations=_recent_conv_snapshot,
+                    future_time_natural=step5_result.future.time_natural,
+                    future_action=step5_result.future.action,
+                )
+                asyncio.create_task(execute_step6(step6_snapshot))
+            except Exception:
+                logger.exception("Step6 入队失败(不影响主链): user_id=%d", user_id)
+
+            # 将合并后的结构化数据写入 Future payload，供 SSE / done / 后续环节使用
+            step5_dump = step5_result.model_dump()
+            step5_dump["messages"] = [m.model_dump() for m in final_messages]
             await _resolve_generation_future(
                 gen_before,
                 {
                     "error": False,
-                    "reply": result["reply"],
-                    "emotion": result["emotion"],
+                    "reply": ai_reply,
+                    "emotion": emotion_data,
+                    "step5": step5_dump,
+                    "round_id": round_id,
+                    "step6_messages": [m.model_dump() for m in step6_messages],
                 },
             )
     except Exception as e:
@@ -521,14 +774,15 @@ async def _sse_chat_wait_bundle(
     user_id: int,
     generation_id: str,
 ):
-    """首帧 meta generation_id；等待闭环结果后流式输出或 failed/obsolete。"""
-    meta = json.dumps({"type": "meta", "generation_id": generation_id}, ensure_ascii=False)
-    yield f"data: {meta}\n\n"
+    """§2.9.4 多气泡 SSE：meta(message_count) → delta(message_index) → done(messages+emotion)。"""
 
     fut = await _get_or_create_bundle_future(generation_id)
     try:
         payload = await asyncio.wait_for(fut, timeout=_BUNDLE_WAIT_TIMEOUT_SEC)
     except asyncio.TimeoutError:
+        # 超时也先发 meta，保证前端能识别流
+        meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0}, ensure_ascii=False)
+        yield f"data: {meta}\n\n"
         err = json.dumps(
             {"type": "failed", "code": ERR_LLM_FAILED, "message": "等待回复超时"},
             ensure_ascii=False,
@@ -541,11 +795,15 @@ async def _sse_chat_wait_bundle(
             _generation_results.pop(generation_id, None)
 
     if payload.get("obsolete"):
+        meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0}, ensure_ascii=False)
+        yield f"data: {meta}\n\n"
         obs = json.dumps({"type": "obsolete"}, ensure_ascii=False)
         yield f"data: {obs}\n\n"
         return
 
     if payload.get("error"):
+        meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0}, ensure_ascii=False)
+        yield f"data: {meta}\n\n"
         err = json.dumps(
             {
                 "type": "failed",
@@ -557,16 +815,43 @@ async def _sse_chat_wait_bundle(
         yield f"data: {err}\n\n"
         return
 
-    reply = payload.get("reply") or ""
+    # 提取多条 messages（Step5 结构化输出）
+    step5_data = payload.get("step5") or {}
+    messages_raw = step5_data.get("messages") or []
     emotion_data = payload.get("emotion") or {"label": "平静", "confidence": 1.0}
 
-    for i in range(0, len(reply), _SSE_CHUNK_SIZE):
-        chunk = reply[i : i + _SSE_CHUNK_SIZE]
-        event = json.dumps({"type": "delta", "content": chunk}, ensure_ascii=False)
-        yield f"data: {event}\n\n"
-        await asyncio.sleep(_SSE_CHUNK_DELAY)
+    # 兜底：若 step5.messages 为空则回退到 reply 单条
+    if not messages_raw:
+        reply = payload.get("reply") or ""
+        messages_raw = [{"type": "text", "content": reply}] if reply else []
 
-    done_event = json.dumps({"type": "done", "emotion": emotion_data}, ensure_ascii=False)
+    message_count = len(messages_raw)
+
+    # CP2：首包携带 message_count + generation_id
+    meta = json.dumps(
+        {"type": "meta", "generation_id": generation_id, "message_count": message_count},
+        ensure_ascii=False,
+    )
+    yield f"data: {meta}\n\n"
+
+    # 按条推送 delta：每条 message 按 chunk 拆分，携带 message_index
+    for msg_idx, msg in enumerate(messages_raw):
+        content = msg.get("content") or ""
+        for i in range(0, len(content), _SSE_CHUNK_SIZE):
+            chunk = content[i : i + _SSE_CHUNK_SIZE]
+            event = json.dumps(
+                {"type": "delta", "content": chunk, "message_index": msg_idx},
+                ensure_ascii=False,
+            )
+            yield f"data: {event}\n\n"
+            await asyncio.sleep(_SSE_CHUNK_DELAY)
+
+    # done 携带完整 messages 数组 + emotion（真相源）
+    done_messages = [{"type": m.get("type", "text"), "content": m.get("content", "")} for m in messages_raw]
+    done_event = json.dumps(
+        {"type": "done", "messages": done_messages, "emotion": emotion_data},
+        ensure_ascii=False,
+    )
     yield f"data: {done_event}\n\n"
 
 
@@ -583,10 +868,10 @@ async def chat_send(
     if not user_content:
         return ApiResponse.fail(ERR_CONTENT_EMPTY)
 
+    # R-L1L3-01：relationship 不在此处读取，统一在 _execute_llm_bundle 路径读取
     try:
-        recent_conversations, relationship_info, emotion_context, user_embedding = await asyncio.gather(
+        recent_conversations, emotion_context, user_embedding = await asyncio.gather(
             _get_recent_conversations(user_id, limit=20),
-            _get_relationship(user_id),
             _get_latest_emotion(user_id),
             _get_embedding(user_content),
         )
@@ -634,6 +919,19 @@ async def chat_send(
     )
     db.add(user_log)
     await db.commit()
+
+    # R-FUT-03：用户发新消息时将 proactive_times 清零
+    try:
+        async with async_session_maker() as _reset_db:
+            _rel_stmt = select(Relationship).where(Relationship.user_id == user_id)
+            _rel_result = await _reset_db.execute(_rel_stmt)
+            _rel = _rel_result.scalar_one_or_none()
+            if _rel is not None and _rel.proactive_times != 0:
+                _rel.proactive_times = 0
+                await _reset_db.commit()
+                logger.info("proactive_times 清零: user_id=%d", user_id)
+    except Exception:
+        logger.exception("proactive_times 清零失败: user_id=%d", user_id)
 
     async def _debounced_run() -> None:
         await _execute_llm_bundle(user_id)

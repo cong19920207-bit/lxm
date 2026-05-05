@@ -7,6 +7,7 @@ import time
 import httpx
 
 from backend.config import get_dashvector_api_key, get_dashvector_collection, get_dashvector_endpoint
+from backend.constants import VALID_MEMORY_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,8 @@ class DashVectorClient:
     async def search(
         self,
         vector: list[float],
-        user_id: int,
+        memory_type: str,
+        user_id: int | None = None,
         top_k: int = DEFAULT_TOP_K,
         threshold: float = SIMILARITY_THRESHOLD,
     ) -> list[dict]:
@@ -49,13 +51,22 @@ class DashVectorClient:
 
         Args:
             vector: 查询向量
-            user_id: 用户 ID（用于过滤）
+            memory_type: 向量类型（R-L1L3-08 四类常量之一）
+            user_id: 用户 ID（可选，有值时追加 user_id 过滤）
             top_k: 返回 Top K 条结果
             threshold: 相似度阈值，低于此值的结果被过滤
 
         Returns:
             [{"id": str, "score": float, "content": str, "fields": dict}, ...]
         """
+        if memory_type not in VALID_MEMORY_TYPES:
+            raise ValueError(f"非法的 memory_type: {memory_type}，合法值: {VALID_MEMORY_TYPES}")
+
+        if user_id is not None:
+            filter_str = f"type = '{memory_type}' AND user_id = {user_id}"
+        else:
+            filter_str = f"type = '{memory_type}'"
+
         start_time = time.monotonic()
         endpoint = get_dashvector_endpoint()
         collection = get_dashvector_collection()
@@ -68,7 +79,7 @@ class DashVectorClient:
                 json={
                     "vector": vector,
                     "topk": top_k,
-                    "filter": f"user_id = {user_id}",
+                    "filter": filter_str,
                     "include_vector": False,
                 },
                 timeout=DASHVECTOR_TIMEOUT,
@@ -106,6 +117,7 @@ class DashVectorClient:
         doc_id: str,
         vector: list[float],
         fields: dict,
+        memory_type: str,
     ) -> bool:
         """
         插入或更新向量文档。
@@ -114,10 +126,15 @@ class DashVectorClient:
             doc_id: 文档 ID
             vector: 向量
             fields: 附加字段（content, user_id, importance_score 等）
+            memory_type: 向量类型（R-L1L3-08 四类常量之一）
 
         Returns:
             是否成功
         """
+        if memory_type not in VALID_MEMORY_TYPES:
+            raise ValueError(f"非法的 memory_type: {memory_type}，合法值: {VALID_MEMORY_TYPES}")
+
+        merged_fields = {**fields, "type": memory_type}
         endpoint = get_dashvector_endpoint()
         collection = get_dashvector_collection()
 
@@ -130,13 +147,13 @@ class DashVectorClient:
                     "docs": [{
                         "id": doc_id,
                         "vector": vector,
-                        "fields": fields,
+                        "fields": merged_fields,
                     }],
                 },
                 timeout=DASHVECTOR_TIMEOUT,
             )
             response.raise_for_status()
-            logger.info("DashVector upsert 成功: doc_id=%s", doc_id)
+            logger.info("DashVector upsert 成功: doc_id=%s, type=%s", doc_id, memory_type)
             return True
 
         except Exception as e:

@@ -11,6 +11,7 @@ from backend.models.emotion_log import EmotionLog
 from backend.models.login_log import LoginLog
 from backend.models.memory import Memory
 from backend.models.relationship import Relationship
+from backend.models.relationship_change_history import RelationshipChangeHistory
 from backend.models.relationship_growth_log import RelationshipGrowthLog
 from backend.models.relationship_level_history import RelationshipLevelHistory
 from backend.models.user import User
@@ -25,6 +26,7 @@ __all__ = [
     "Memory",
     "EmotionLog",
     "Relationship",
+    "RelationshipChangeHistory",
     "RelationshipLevelHistory",
     "RelationshipGrowthLog",
     "AiDiary",

@@ -4,12 +4,13 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.constants import PERSONA_RISK_KEYWORDS
+from backend.constants import MEMORY_TYPE_USER, PERSONA_RISK_KEYWORDS
 from backend.database import async_session_maker
 from backend.models.agent_message import AgentMessage, TriggerType
 from backend.models.conversation_log import ConversationLog
@@ -39,6 +40,7 @@ AGENT_FALLBACK_REPLIES = {
     TriggerType.P2: "今天过得怎么样呀？",
     TriggerType.P3: "这么晚了还没睡呀，早点休息嘛。",
     TriggerType.P4: "想你了，你最近忙什么呢？",
+    TriggerType.FUTURE: "突然想起一件事想跟你说~",
 }
 
 # 触发类型权重
@@ -48,6 +50,7 @@ TRIGGER_WEIGHTS = {
     TriggerType.P2: 2,
     TriggerType.P3: 3,
     TriggerType.P4: 2,
+    TriggerType.FUTURE: 3,
 }
 
 # 关系等级权重（0级→1, 1级→2, 2级→3, 3级→4）
@@ -131,6 +134,14 @@ class AgentService:
         if not trigger_type:
             return False
 
+        # ── 路 B 优先级保护：Future 槽未过期时跳过定时扫描写入 ──
+        if await self._has_pending_future_slot(user_id):
+            logger.info(
+                "[Agent] 用户 %d 存在未过期 Future 槽，跳过定时扫描写入 (trigger=%s)",
+                user_id, trigger_type,
+            )
+            return False
+
         logger.info("[Agent] 用户 %d 命中触发: %s", user_id, trigger_type)
 
         # 频率限制检查
@@ -138,14 +149,14 @@ class AgentService:
         now = datetime.utcnow()
         today_str = now.strftime("%Y-%m-%d")
 
-        # a. 每日上限2次
+        # a. 每日上限 8 次（含 Future 槽消费计入，§2.2 变更 8.2）
         count_key = f"agent:count:{user_id}:{today_str}"
         daily_count = await r.get(count_key)
-        if daily_count and int(daily_count) >= 2:
+        if daily_count and int(daily_count) >= 8:
             logger.info("[Agent] 用户 %d 今日已触发 %s 次，跳过", user_id, daily_count)
             return False
 
-        # b. 两次间隔≥6小时
+        # b. 两次间隔 ≥30 分钟（§2.2 变更 8.2）
         async with async_session_maker() as db:
             stmt = (
                 select(AgentMessage)
@@ -155,8 +166,8 @@ class AgentService:
             )
             result = await db.execute(stmt)
             latest_msg = result.scalar_one_or_none()
-            if latest_msg and (now - latest_msg.created_at) < timedelta(hours=6):
-                logger.info("[Agent] 用户 %d 距上次主动消息不足6小时，跳过", user_id)
+            if latest_msg and (now - latest_msg.created_at) < timedelta(minutes=30):
+                logger.info("[Agent] 用户 %d 距上次主动消息不足30分钟，跳过", user_id)
                 return False
 
         # c. 黑名单检查（P0 不受限制）
@@ -347,6 +358,22 @@ class AgentService:
             ttl_seconds = max(int((end_of_day - now).total_seconds()), 60)
             await r.expire(count_key, ttl_seconds)
 
+            # R-FUT-03：proactive_times +1（上限 3）
+            try:
+                async with async_session_maker() as pt_db:
+                    pt_stmt = select(Relationship).where(Relationship.user_id == user_id)
+                    pt_result = await pt_db.execute(pt_stmt)
+                    pt_rel = pt_result.scalar_one_or_none()
+                    if pt_rel is not None and pt_rel.proactive_times < 3:
+                        pt_rel.proactive_times += 1
+                        await pt_db.commit()
+                        logger.info(
+                            "[Agent] proactive_times +1: user_id=%d, now=%d",
+                            user_id, pt_rel.proactive_times,
+                        )
+            except Exception:
+                logger.exception("[Agent] proactive_times +1 失败: user_id=%d", user_id)
+
             # 黑名单更新：最近2条 agent_message 都未读则加入黑名单
             await self._update_blacklist(user_id)
 
@@ -355,6 +382,78 @@ class AgentService:
         except Exception as e:
             logger.error("[Agent] 生成主动消息失败: user_id=%d, error=%s", user_id, str(e), exc_info=True)
             return False
+
+    # ================================================================
+    #  5. increment_agent_count_for_future —— Future 槽消费后计入频控计数器
+    # ================================================================
+
+    async def increment_agent_count_for_future(self, user_id: int) -> None:
+        """
+        R-AGT-02：Future 槽消费成功后，额外计入 agent:count:{user_id}:{date} 计数器，
+        让定时扫描 P0~P4 看到正确剩余次数。
+
+        Future 槽消费绕过「8 次/天 + 30min 间隔」频控限制，
+        但消费成功后须计入计数器。
+        """
+        try:
+            r = await get_redis()
+            now = datetime.utcnow()
+            today_str = now.strftime("%Y-%m-%d")
+            count_key = f"agent:count:{user_id}:{today_str}"
+            await r.incr(count_key)
+            end_of_day = now.replace(hour=23, minute=59, second=59)
+            ttl_seconds = max(int((end_of_day - now).total_seconds()), 60)
+            await r.expire(count_key, ttl_seconds)
+            logger.info("[Agent] Future 槽消费计入计数器: user_id=%d, key=%s", user_id, count_key)
+        except Exception:
+            logger.exception("[Agent] Future 槽消费计入计数器失败: user_id=%d", user_id)
+
+    # ================================================================
+    #  6. reset_inactive_proactive_times —— 30 天无活动清零
+    # ================================================================
+
+    async def reset_inactive_proactive_times(self) -> int:
+        """
+        R-FUT-03④：连续 30 天无任何对话或登录活动的用户，
+        自动清零 proactive_times 并清空 Future 槽，停止 Step8 触发。
+
+        Returns:
+            被清零的用户数量
+        """
+        reset_count = 0
+        threshold = datetime.utcnow() - timedelta(days=30)
+        try:
+            async with async_session_maker() as db:
+                stmt = select(Relationship).where(
+                    and_(
+                        Relationship.proactive_times > 0,
+                        (
+                            (Relationship.last_interaction_at == None)  # noqa: E711
+                            | (Relationship.last_interaction_at < threshold)
+                        ),
+                    )
+                )
+                result = await db.execute(stmt)
+                rels = list(result.scalars().all())
+
+                for rel in rels:
+                    rel.proactive_times = 0
+                    rel.future_timestamp = None
+                    rel.future_action = None
+                    reset_count += 1
+                    logger.info(
+                        "[Agent] 30天无活动清零: user_id=%d, proactive_times→0, future→cleared",
+                        rel.user_id,
+                    )
+
+                if reset_count > 0:
+                    await db.commit()
+
+            logger.info("[Agent] 30天无活动清零完成，共 %d 人", reset_count)
+        except Exception:
+            logger.exception("[Agent] 30天无活动清零任务异常")
+
+        return reset_count
 
     # ================================================================
     #  触发条件检查方法
@@ -557,8 +656,9 @@ class AgentService:
                 return []
 
             dv_results = await vector_service.search(
-                user_id=user_id,
                 query_embedding=query_embedding,
+                memory_type=MEMORY_TYPE_USER,
+                user_id=user_id,
                 top_k=top_k,
                 threshold=0.7,
             )
@@ -584,6 +684,27 @@ class AgentService:
             for kw in keywords:
                 if kw in text_lower:
                     return True
+        return False
+
+    async def _has_pending_future_slot(self, user_id: int) -> bool:
+        """
+        路 B 优先级保护：检查用户是否有未过期的 Future 槽。
+        未过期 = future_timestamp 不为空 且 > 当前时间。
+        """
+        try:
+            now_ts = int(time.time())
+            async with async_session_maker() as db:
+                stmt = select(Relationship.future_timestamp).where(
+                    Relationship.user_id == user_id
+                )
+                result = await db.execute(stmt)
+                future_ts = result.scalar_one_or_none()
+                if future_ts is not None and future_ts > now_ts:
+                    return True
+        except Exception:
+            logger.exception(
+                "[Agent] 检查 Future 槽状态失败: user_id=%d", user_id
+            )
         return False
 
     async def _update_blacklist(self, user_id: int) -> None:

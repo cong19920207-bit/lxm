@@ -40,16 +40,16 @@ _EDITABLE_MODULES = ("system", "relationship", "user_memory", "emotion", "recent
 
 # 各模块 Token 上限
 _MODULE_TOKEN_LIMITS = {
-    "system_prompt": 400,
+    "system_prompt": 1200,
     "persona_prompt": 600,
-    "relationship_prompt": 200,
+    "relationship_prompt": 250,
     "user_memory_prompt": 500,
     "emotion_prompt": 150,
     "recent_chat_prompt": 1000,
     "user_input_prompt": 500,
 }
 
-_TOTAL_TOKEN_LIMIT = 4096
+_TOTAL_TOKEN_LIMIT = 5200
 
 # 占位符校验规则：module_name → 必须包含的占位符列表
 _PLACEHOLDER_RULES = {

@@ -10,13 +10,14 @@ from backend.database import Base
 
 
 class TriggerType:
-    """主动消息触发类型常量：P0情绪跟进/P1长期沉默/P2日常问候/P3凌晨在线/P4轻度沉默"""
+    """主动消息触发类型常量：P0情绪跟进/P1长期沉默/P2日常问候/P3凌晨在线/P4轻度沉默/FUTURE Future槽"""
 
     P0 = "P0"  # 情绪跟进
     P1 = "P1"  # 长期沉默
     P2 = "P2"  # 日常问候
     P3 = "P3"  # 凌晨在线
     P4 = "P4"  # 轻度沉默
+    FUTURE = "FUTURE"  # Future 槽到期消费
 
 
 class AgentMessage(Base):

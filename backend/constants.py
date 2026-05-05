@@ -32,6 +32,10 @@ SENSITIVE_WORDS = [
     "林小梦", "管理员", "系统", "官方", "客服",
 ]
 
+# ============ 消息合并（§2.9.1）============
+MAX_MESSAGES_COUNT = 5            # messages 最大条数上限
+MAX_SINGLE_MESSAGE_LENGTH = 2000  # 合并后单条 content 最大字符数
+
 # ============ 对话模块 10100-10199 ============
 ERR_CONTENT_EMPTY = 10100  # 消息内容为空
 ERR_CONTENT_UNSAFE = 10101  # 内容安全检测不通过
@@ -48,6 +52,7 @@ DELIVERY_STATUS_DELIVERED = "delivered"
 DELIVERY_STATUS_PENDING_LLM = "pending_llm"
 DELIVERY_STATUS_FAILED_TIMEOUT = "failed_timeout"
 DELIVERY_STATUS_FAILED_ERROR = "failed_error"
+DELIVERY_STATUS_FAILED_BLOCKED = "failed_blocked"  # 内容安全拦截
 
 # ============ 记忆模块 10200-10299 ============
 ERR_MEMORY_NOT_FOUND = 10200  # 记忆不存在
@@ -65,6 +70,19 @@ RELATION_LEVEL_STRANGER = 0  # 陌生
 RELATION_LEVEL_FRIEND = 1  # 朋友（200分）
 RELATION_LEVEL_CLOSE = 2  # 亲密（800分）
 RELATION_LEVEL_SOULMATE = 3  # 知己（2000分）
+
+# ============ DashVector 向量类型常量（R-L1L3-08 / R-VEC-01）============
+MEMORY_TYPE_CHARACTER_GLOBAL = "character_global"       # 角色公开设定
+MEMORY_TYPE_CHARACTER_PRIVATE = "character_private"      # 角色私有设定
+MEMORY_TYPE_CHARACTER_KNOWLEDGE = "character_knowledge"  # 角色知识技能
+MEMORY_TYPE_USER = "user"                                # 用户画像
+
+VALID_MEMORY_TYPES = {
+    MEMORY_TYPE_CHARACTER_GLOBAL,
+    MEMORY_TYPE_CHARACTER_PRIVATE,
+    MEMORY_TYPE_CHARACTER_KNOWLEDGE,
+    MEMORY_TYPE_USER,
+}
 
 # ============ 错误信息映射 ============
 ERROR_MESSAGES = {

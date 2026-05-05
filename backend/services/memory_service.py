@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import MEMORY_TYPE_USER
 from backend.database import async_session_maker
 from backend.models.memory import Memory
 from backend.services.embedding_service import embedding_service
@@ -115,8 +116,9 @@ class MemoryService:
                 return []
 
             dv_results = await vector_service.search(
-                user_id=user_id,
                 query_embedding=query_embedding,
+                memory_type=MEMORY_TYPE_USER,
+                user_id=user_id,
                 top_k=top_k,
                 threshold=0.7,
             )
@@ -234,6 +236,7 @@ class MemoryService:
                             "importance_score": memory.importance_score,
                             "created_at": memory.created_at.isoformat(),
                         },
+                        memory_type=MEMORY_TYPE_USER,
                     )
             except Exception as e:
                 logger.error("更新记忆向量失败 memory_id=%d: %s", memory_id, str(e))
@@ -299,6 +302,7 @@ class MemoryService:
                             "importance_score": score,
                             "created_at": memory.created_at.isoformat(),
                         },
+                        memory_type=MEMORY_TYPE_USER,
                     )
                     memory.dashvector_id = dashvector_id
             except Exception as e:
@@ -381,8 +385,9 @@ class MemoryService:
         """去重合并后保存记忆：相似度 >= 0.92 视为重复，删旧保新"""
         # 检索高度相似的现有记忆
         similar_results = await vector_service.search(
-            user_id=user_id,
             query_embedding=embedding,
+            memory_type=MEMORY_TYPE_USER,
+            user_id=user_id,
             top_k=3,
             threshold=MERGE_THRESHOLD,
         )
@@ -432,6 +437,7 @@ class MemoryService:
                         "importance_score": score,
                         "created_at": memory.created_at.isoformat(),
                     },
+                    memory_type=MEMORY_TYPE_USER,
                 )
                 memory.dashvector_id = dashvector_id
             except Exception as e:

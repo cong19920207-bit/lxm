@@ -26,6 +26,7 @@ from backend.constants import (
     ADMIN_ERR_USER_NOT_BANNED,
     ADMIN_ERR_USER_NOT_FOUND,
     ADMIN_ERR_USER_STATUS_ACTION_INVALID,
+    MEMORY_TYPE_USER,
 )
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
@@ -563,6 +564,7 @@ async def update_memory(
                     "importance_score": memory.importance_score,
                     "created_at": memory.created_at.isoformat() if memory.created_at else "",
                 },
+                memory_type=MEMORY_TYPE_USER,
             )
     except Exception as e:
         logger.error("更新记忆向量失败: memory_id=%d, error=%s", memory_id, str(e))

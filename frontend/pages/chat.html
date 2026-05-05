@@ -549,12 +549,20 @@
       return row
     }
 
+    /**
+     * 多气泡流式渲染器：支持 message_count + message_index 按条填槽。
+     * 初始仅展示一个 thinking 气泡；收到 meta.message_count 后不预铺空气泡（§2.7.5）。
+     * delta 到达时按 message_index 动态创建/填充对应气泡行。
+     * done 到达后以 done.messages 为真相源纠偏定稿。
+     */
     function appendAIThinkingBubble() {
       const container = document.getElementById('chat-messages')
-      const row = document.createElement('div')
-      row.className = 'msg-row ai'
-      row.setAttribute('data-ai-in-flight', '1')
-      row.innerHTML = `
+
+      // 初始 thinking 行（收到首个 delta 后移除）
+      const thinkingRow = document.createElement('div')
+      thinkingRow.className = 'msg-row ai'
+      thinkingRow.setAttribute('data-ai-in-flight', '1')
+      thinkingRow.innerHTML = `
         <img class="msg-avatar" src="/static/images/avatar/default.png"
              onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
         <div class="msg-body">
@@ -564,30 +572,89 @@
           <div class="msg-meta msg-time"></div>
         </div>
       `
-      container.appendChild(row)
+      container.appendChild(thinkingRow)
 
-      const bubble = row.querySelector('.msg-bubble')
-      const timeMeta = row.querySelector('.msg-time')
+      // 多气泡槽位管理
+      let messageCount = 1
+      let bubbleSlots = []  // [{row, bubble, timeMeta}]
+      let thinkingRemoved = false
+
+      function removeThinking() {
+        if (!thinkingRemoved && thinkingRow.parentNode) {
+          thinkingRow.remove()
+          thinkingRemoved = true
+        }
+      }
+
+      function ensureSlot(index) {
+        while (bubbleSlots.length <= index) {
+          const row = document.createElement('div')
+          row.className = 'msg-row ai'
+          row.setAttribute('data-ai-in-flight', '1')
+          row.innerHTML = `
+            <img class="msg-avatar" src="/static/images/avatar/default.png"
+                 onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
+            <div class="msg-body">
+              <div class="msg-bubble"></div>
+              <div class="msg-meta msg-time"></div>
+            </div>
+          `
+          container.appendChild(row)
+          bubbleSlots.push({
+            row,
+            bubble: row.querySelector('.msg-bubble'),
+            timeMeta: row.querySelector('.msg-time'),
+          })
+        }
+        return bubbleSlots[index]
+      }
 
       return {
-        row,
+        row: thinkingRow,
+        setMessageCount(count) {
+          messageCount = count || 1
+        },
         removeRow() {
-          if (row.parentNode) row.remove()
+          removeThinking()
+          bubbleSlots.forEach(s => { if (s.row.parentNode) s.row.remove() })
+          bubbleSlots = []
         },
-        clearThinking() {
-          bubble.classList.remove('thinking-bubble')
-          bubble.innerHTML = ''
+        appendTextAt(index, text) {
+          removeThinking()
+          const slot = ensureSlot(index)
+          slot.bubble.innerHTML += escapeHtml(text)
         },
-        appendText(text) {
-          bubble.innerHTML += escapeHtml(text)
+        /** done 到达：以 messages 数组为真相源，纠偏所有气泡内容 */
+        finalize(messages, emotion) {
+          removeThinking()
+          // 按 done.messages 纠偏/定稿
+          for (let i = 0; i < messages.length; i++) {
+            const slot = ensureSlot(i)
+            slot.bubble.innerHTML = escapeHtml(messages[i].content || '')
+            slot.timeMeta.textContent = '刚刚'
+            slot.row.removeAttribute('data-ai-in-flight')
+          }
+          // 移除多余槽位（理论上不会出现，防御性处理）
+          while (bubbleSlots.length > messages.length) {
+            const extra = bubbleSlots.pop()
+            if (extra.row.parentNode) extra.row.remove()
+          }
         },
         markComplete() {
-          timeMeta.textContent = '刚刚'
-          row.removeAttribute('data-ai-in-flight')
+          removeThinking()
+          bubbleSlots.forEach(s => {
+            s.timeMeta.textContent = '刚刚'
+            s.row.removeAttribute('data-ai-in-flight')
+          })
         },
         showError(msg) {
-          bubble.classList.remove('thinking-bubble')
-          bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+          if (!thinkingRemoved) {
+            const bubble = thinkingRow.querySelector('.msg-bubble')
+            bubble.classList.remove('thinking-bubble')
+            bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+          } else if (bubbleSlots.length > 0) {
+            bubbleSlots[0].bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+          }
         }
       }
     }
@@ -624,14 +691,15 @@
     }
 
     /**
-     * 解析对话 SSE。sseCtx.userRowForFailure：仅 send 传入；failed 时标叹号态，done 时标 delivered（与后端一致）。
+     * 解析对话 SSE（§2.9.4 多气泡协议）。
+     * 协议：meta(message_count+generation_id) → delta(message_index+content) → done(messages+emotion)
+     * sseCtx.userRowForFailure：仅 send 传入；failed 时标叹号态，done 时标 delivered。
      */
     async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
       const userRowForFailure = sseCtx && sseCtx.userRowForFailure
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      let isFirstChunk = true
       /** N2（VX-A）：首段 SSE 响应体首包非空字节到达后只解锁一次 sending，不等待 meta */
       let n2StreamBodyStarted = false
       /** 本连接 meta 下发的代；delta 若带 generation_id 则须与此一致 */
@@ -659,7 +727,10 @@
               metaReceived = true
               const gid = data.generation_id
               streamGenerationId = (typeof gid === 'string' && gid.length > 0) ? gid : null
-              // VX-A：N3 仅记录本代 generation_id；sending 已在 N2（首包字节）解锁，此处不再改 sending
+              // §2.9.4 CP2：记录 message_count，不预铺空气泡（§2.7.5）
+              if (typeof data.message_count === 'number' && data.message_count > 0) {
+                aiBubble.setMessageCount(data.message_count)
+              }
               continue
             }
             if (!metaReceived) continue
@@ -680,17 +751,20 @@
               return
             }
             if (data.type === 'delta') {
-              if (isFirstChunk) {
-                aiBubble.clearThinking()
-                isFirstChunk = false
-              }
-              aiBubble.appendText(data.content)
+              // §2.9.4：按 message_index 填槽渲染
+              const msgIdx = (typeof data.message_index === 'number') ? data.message_index : 0
+              aiBubble.appendTextAt(msgIdx, data.content)
               scrollToBottom()
             } else if (data.type === 'done') {
-              aiBubble.markComplete()
+              // §2.7.5：done.messages 为真相源，纠偏/定稿所有气泡
+              const doneMessages = Array.isArray(data.messages) ? data.messages : []
+              if (doneMessages.length > 0) {
+                aiBubble.finalize(doneMessages, data.emotion)
+              } else {
+                aiBubble.markComplete()
+              }
               if (data.emotion && data.emotion.label) updateAvatarEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
-              // 成功收尾：与后端 DELIVERY_STATUS_DELIVERED 对齐，避免 pending_llm 虚高触发本地 5 条拦截
               if (userRowForFailure && userRowForFailure.parentNode && sessionAtStart === chatSendSession) {
                 userRowForFailure.setAttribute('data-delivery', 'delivered')
               }
