@@ -227,6 +227,28 @@
       background: rgba(24,144,255,0.1);
       color: #1890ff;
     }
+    /* 历史对话中来自 agent_message 的主动消息标识 */
+    .conv-item.is-agent-msg .conv-bubble {
+      border-left: 3px solid var(--primary, #1890ff);
+      padding-left: 11px;
+    }
+    .conv-agent-tags {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .conv-agent-tags span {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #f0f0f0;
+      color: var(--text-secondary);
+    }
+    .conv-agent-tags .tag-unread {
+      background: #fff7e6;
+      color: #d46b08;
+    }
 
     /* 加载更多 */
     .conv-load-more {
@@ -731,11 +753,26 @@ async function loadConversations(page) {
     var item = list[i];
     var isUser = item.role === 'user';
     var roleClass = isUser ? 'is-user' : 'is-ai';
+    var msgSrc = item.message_source || 'conversation';
+    var isAgentMsg = !isUser && msgSrc === 'agent';
+    if (isAgentMsg) {
+      roleClass += ' is-agent-msg';
+    }
     var senderText = isUser ? '用户' : '林小梦';
 
     html += '<div class="conv-item ' + roleClass + '">';
     html += '  <div class="conv-bubble-wrap">';
     html += '    <div class="conv-sender">' + esc(senderText) + '</div>';
+    if (isAgentMsg) {
+      html += '    <div class="conv-agent-tags">';
+      if (item.trigger_type) {
+        html += '<span>' + esc(String(item.trigger_type)) + '</span>';
+      }
+      if (item.is_read === false) {
+        html += '<span class="tag-unread">未读</span>';
+      }
+      html += '    </div>';
+    }
     if (isUser && item.delivery_status) {
       html += '    <div class="conv-delivery" style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">' +
         esc(convDeliveryLabel(item.delivery_status)) + '</div>';

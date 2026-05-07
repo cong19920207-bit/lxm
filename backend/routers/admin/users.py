@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
@@ -264,56 +264,125 @@ async def get_user_conversations(
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """查看用户历史对话记录（只读）"""
+    """查看用户历史对话记录（只读）：合并 conversation_log 与 agent_message，按 sort_seq 与用户端时间线一致。"""
     # 检查用户是否存在
     user_stmt = select(User.id).where(User.id == user_id)
     user_result = await db.execute(user_stmt)
     if not user_result.scalar():
         return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
 
-    stmt = select(ConversationLog).where(ConversationLog.user_id == user_id)
-
+    conv_filters = [ConversationLog.user_id == user_id]
+    agent_filters = [AgentMessage.user_id == user_id]
     if start_date:
-        stmt = stmt.where(ConversationLog.created_at >= start_date)
+        conv_filters.append(ConversationLog.created_at >= start_date)
+        agent_filters.append(AgentMessage.created_at >= start_date)
     if end_date:
-        stmt = stmt.where(ConversationLog.created_at <= end_date)
+        conv_filters.append(ConversationLog.created_at <= end_date)
+        agent_filters.append(AgentMessage.created_at <= end_date)
 
-    # 按created_at正序（最早的在前）
-    stmt = stmt.order_by(ConversationLog.created_at.asc())
+    count_conv_stmt = select(func.count()).select_from(ConversationLog).where(*conv_filters)
+    count_agent_stmt = select(func.count()).select_from(AgentMessage).where(*agent_filters)
+    total = (
+        (await db.execute(count_conv_stmt)).scalar() or 0
+    ) + ((await db.execute(count_agent_stmt)).scalar() or 0)
 
-    # 总数
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_result = await db.execute(count_stmt)
-    total = total_result.scalar() or 0
-
-    # 分页
-    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(stmt)
-    rows = result.scalars().all()
-
-    row_list = []
-    for row in rows:
-        if row.role == "assistant":
-            delivery_status = None
-            skipped_in_prompt = None
-        else:
-            delivery_status = row.delivery_status
-            skipped_in_prompt = bool(row.skipped_in_prompt)
-
-        row_list.append(
-            {
-                "id": row.id,
-                "role": row.role,
-                "content": row.content,
-                "emotion_label": row.emotion_label if row.role == "user" else None,
-                "emotion_confidence": row.emotion_confidence if row.role == "user" else None,
-                "persona_risk_flag": row.persona_risk_flag,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "sort_seq": row.sort_seq,
-                "delivery_status": delivery_status,
-                "skipped_in_prompt": skipped_in_prompt,
-            }
+    conv_keys = (
+        select(
+            ConversationLog.sort_seq,
+            ConversationLog.id,
+            literal("conversation").label("message_source"),
         )
+        .where(*conv_filters)
+    )
+    agent_keys = (
+        select(
+            AgentMessage.sort_seq,
+            AgentMessage.id,
+            literal("agent").label("message_source"),
+        )
+        .where(*agent_filters)
+    )
+    union_keys = union_all(conv_keys, agent_keys).subquery("admin_timeline_keys")
+    page_stmt = (
+        select(
+            union_keys.c.sort_seq,
+            union_keys.c.id,
+            union_keys.c.message_source,
+        )
+        .select_from(union_keys)
+        .order_by(union_keys.c.sort_seq.asc(), union_keys.c.id.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    page_result = await db.execute(page_stmt)
+    page_rows = list(page_result.all())
+
+    conv_ids = [r.id for r in page_rows if r.message_source == "conversation"]
+    agent_ids = [r.id for r in page_rows if r.message_source == "agent"]
+
+    conv_by_id: dict[int, ConversationLog] = {}
+    if conv_ids:
+        conv_q = await db.execute(select(ConversationLog).where(ConversationLog.id.in_(conv_ids)))
+        for row in conv_q.scalars():
+            conv_by_id[row.id] = row
+
+    agent_by_id: dict[int, AgentMessage] = {}
+    if agent_ids:
+        agent_q = await db.execute(select(AgentMessage).where(AgentMessage.id.in_(agent_ids)))
+        for row in agent_q.scalars():
+            agent_by_id[row.id] = row
+
+    row_list: list[dict] = []
+    for pr in page_rows:
+        if pr.message_source == "conversation":
+            row = conv_by_id.get(pr.id)
+            if row is None:
+                continue
+            if row.role == "assistant":
+                delivery_status = None
+                skipped_in_prompt = None
+            else:
+                delivery_status = row.delivery_status
+                skipped_in_prompt = bool(row.skipped_in_prompt)
+
+            row_list.append(
+                {
+                    "id": row.id,
+                    "message_source": "conversation",
+                    "role": row.role,
+                    "content": row.content,
+                    "emotion_label": row.emotion_label if row.role == "user" else None,
+                    "emotion_confidence": row.emotion_confidence if row.role == "user" else None,
+                    "persona_risk_flag": row.persona_risk_flag,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "sort_seq": row.sort_seq,
+                    "delivery_status": delivery_status,
+                    "skipped_in_prompt": skipped_in_prompt,
+                    "trigger_type": None,
+                    "is_read": None,
+                }
+            )
+        else:
+            am = agent_by_id.get(pr.id)
+            if am is None:
+                continue
+            row_list.append(
+                {
+                    "id": am.id,
+                    "message_source": "agent",
+                    "role": "assistant",
+                    "content": am.content,
+                    "emotion_label": None,
+                    "emotion_confidence": None,
+                    "persona_risk_flag": False,
+                    "created_at": am.created_at.isoformat() if am.created_at else None,
+                    "sort_seq": am.sort_seq,
+                    "delivery_status": None,
+                    "skipped_in_prompt": None,
+                    "trigger_type": am.trigger_type,
+                    "is_read": am.is_read,
+                }
+            )
 
     return ApiResponse.ok(
         data={"total": total, "page": page, "page_size": page_size, "list": row_list},

@@ -86,12 +86,11 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
         # ── Step1：并行装载上下文 ──
         logger.info("[Step8] 开始子链路: user_id=%d, action=%s", user_id, future_action)
 
+        # 同一 AsyncSession 禁止并发查询（asyncio.gather 会触发连接状态冲突）
         async with async_session_maker() as db:
-            recent_conversations, relationship_info, emotion_context = await asyncio.gather(
-                _get_recent_conversations(user_id, db),
-                _get_relationship(user_id, db),
-                _get_emotion_context(user_id, db),
-            )
+            recent_conversations = await _get_recent_conversations(user_id, db)
+            relationship_info = await _get_relationship(user_id, db)
+            emotion_context = await _get_emotion_context(user_id, db)
 
         recent_10 = recent_conversations[-10:] if len(recent_conversations) > 10 else recent_conversations
 

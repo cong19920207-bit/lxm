@@ -677,6 +677,8 @@
     let chatSendAbort = null
     /** 每次发起 send/resend 前递增；与 meta.generation_id 配合丢弃过期 SSE（对齐契约） */
     let chatSendSession = 0
+    /** 与后端 `_BUNDLE_WAIT_TIMEOUT_SEC`（120s）对齐：单次 send/resend 流式请求客户端最长等待 */
+    const CHAT_CLIENT_ABORT_MS = 120000
 
     function countOpenPendingUsers() {
       const users = [...document.querySelectorAll('#chat-messages .msg-row.user')]
@@ -693,10 +695,12 @@
     /**
      * 解析对话 SSE（§2.9.4 多气泡协议）。
      * 协议：meta(message_count+generation_id) → delta(message_index+content) → done(messages+emotion)
-     * sseCtx.userRowForFailure：仅 send 传入；failed 时标叹号态，done 时标 delivered。
+     * sseCtx.userRowForFailure：send 传入；failed 时标叹号态，done 时标 delivered 并移除叹号。
+     * sseCtx.clearAllFailedUserRowsOnDone：重发链路；done 成功后将列表内全部 failed_* user 行标 delivered 并移除叹号。
      */
     async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
       const userRowForFailure = sseCtx && sseCtx.userRowForFailure
+      const clearAllFailedUserRowsOnDone = !!(sseCtx && sseCtx.clearAllFailedUserRowsOnDone)
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -765,8 +769,20 @@
               }
               if (data.emotion && data.emotion.label) updateAvatarEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
-              if (userRowForFailure && userRowForFailure.parentNode && sessionAtStart === chatSendSession) {
-                userRowForFailure.setAttribute('data-delivery', 'delivered')
+              if (sessionAtStart === chatSendSession) {
+                if (clearAllFailedUserRowsOnDone) {
+                  document.querySelectorAll('#chat-messages .msg-row.user').forEach(function (row) {
+                    const ds = row.getAttribute('data-delivery') || ''
+                    if (ds === 'failed_timeout' || ds === 'failed_error') {
+                      row.setAttribute('data-delivery', 'delivered')
+                      row.querySelectorAll('.msg-bang').forEach(function (b) { b.remove() })
+                    }
+                  })
+                } else if (userRowForFailure && userRowForFailure.parentNode) {
+                  userRowForFailure.setAttribute('data-delivery', 'delivered')
+                  const bangEl = userRowForFailure.querySelector('.msg-bang')
+                  if (bangEl) bangEl.remove()
+                }
               }
             }
           } catch (e) {
@@ -807,7 +823,7 @@
         ('idemp-' + Date.now() + '-' + Math.random().toString(36).slice(2))
 
       try {
-        const timeoutId = setTimeout(() => chatSendAbort.abort(), 48000)
+        const timeoutId = setTimeout(() => chatSendAbort.abort(), CHAT_CLIENT_ABORT_MS)
         const response = await fetch(API_BASE + '/api/chat/send', {
           method: 'POST',
           headers: {
@@ -883,7 +899,7 @@
       const aiBubble = appendAIThinkingBubble()
       scrollToBottom()
       try {
-        const timeoutId = setTimeout(() => chatSendAbort.abort(), 48000)
+        const timeoutId = setTimeout(() => chatSendAbort.abort(), CHAT_CLIENT_ABORT_MS)
         const rid = (crypto.randomUUID && crypto.randomUUID()) ||
           ('resend-' + Date.now() + '-' + Math.random().toString(36).slice(2))
         const response = await fetch(API_BASE + '/api/chat/resend', {
@@ -925,7 +941,7 @@
           }
           return
         }
-        await consumeChatSse(response, aiBubble, sessionAtStart, null)
+        await consumeChatSse(response, aiBubble, sessionAtStart, { clearAllFailedUserRowsOnDone: true })
       } catch (err) {
         console.error('重发失败:', err)
         aiBubble.removeRow()
