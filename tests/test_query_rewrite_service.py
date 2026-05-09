@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # Step1.5 查询重写 LLM 单元测试（STEP-019）
 # 场景1：正常返回 → 3 组 QueryQuestion/Keywords 完整
-# 场景2：LLM 两次超时 → 降级路径 + 结构化日志
+# 场景2：LLM 单次失败（超时）→ 直接降级 + 日志
 # 场景3：InnerMonologue 仅内存字段（本服务不落库、不返前端）
-# 边界：非法 JSON → 两次失败后降级
+# 边界：非法 JSON → 一次失败后降级
 
 import json
 from unittest.mock import AsyncMock, patch
@@ -93,12 +93,12 @@ class TestScenario1NormalSuccess:
         assert o.UserProfileQueryKeywords.strip()
 
 
-# ============ 场景2：两次超时 → 降级 + 日志 ============
+# ============ 场景2：LLM 超时 → 直接降级 + 日志 ============
 
 
-class TestScenario2DoubleTimeoutFallback:
+class TestScenario2TimeoutFallback:
     @pytest.mark.asyncio
-    async def test_two_timeouts_then_fallback_embedding_and_logs(self, caplog):
+    async def test_timeout_then_fallback_embedding_and_logs(self, caplog):
         caplog.set_level("INFO")
 
         fake_vec = [0.01, 0.02, 0.03]
@@ -106,17 +106,11 @@ class TestScenario2DoubleTimeoutFallback:
         with patch(
             "backend.services.query_rewrite_service.llm_client.chat_sync",
             new_callable=AsyncMock,
-            side_effect=[
-                httpx.TimeoutException("timeout1"),
-                httpx.TimeoutException("timeout2"),
-            ],
+            side_effect=httpx.TimeoutException("timeout1"),
         ), patch(
             "backend.services.query_rewrite_service.embedding_service.get_embedding",
             new_callable=AsyncMock,
             return_value=fake_vec,
-        ), patch(
-            "backend.services.query_rewrite_service.asyncio.sleep",
-            new_callable=AsyncMock,
         ):
             result = await execute_query_rewrite(**_base_execute_kwargs())
 
@@ -158,7 +152,7 @@ class TestScenario3InnerMonologueMemoryOnly:
 
 class TestBoundaryIllegalJsonFallback:
     @pytest.mark.asyncio
-    async def test_illegal_json_twice_then_fallback(self):
+    async def test_illegal_json_once_then_fallback(self):
         fake_vec = [1.0, 2.0]
 
         with patch(
@@ -169,9 +163,6 @@ class TestBoundaryIllegalJsonFallback:
             "backend.services.query_rewrite_service.embedding_service.get_embedding",
             new_callable=AsyncMock,
             return_value=fake_vec,
-        ), patch(
-            "backend.services.query_rewrite_service.asyncio.sleep",
-            new_callable=AsyncMock,
         ):
             result = await execute_query_rewrite(**_base_execute_kwargs())
 

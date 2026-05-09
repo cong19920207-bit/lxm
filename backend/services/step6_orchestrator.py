@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 # M2 重试退避时间（§2.8.4：200ms～1s，默认 500ms）
 _RETRY_BACKOFF_SEC = 0.5
 
-# Step6 LLM 超时（非对话主链路，使用通用默认 15s）
-_STEP6_LLM_TIMEOUT_SEC = 15.0
+# Step6 LLM 单次超时（固定 45s，与主链 Step5 默认 LLM_TIMEOUT_CHAT 对齐；非环境变量）
+_STEP6_LLM_TIMEOUT_SEC = 45.0
 
 
 @dataclass
@@ -113,7 +113,7 @@ async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
         user_input=snapshot.user_input,
     )
 
-    # 3. 调用 LLM（非流式，timeout=15s）
+    # 3. 调用 LLM（非流式，timeout=_STEP6_LLM_TIMEOUT_SEC，默认 45s）
     raw_output = await llm_client.chat_sync(prompt, timeout_sec=_STEP6_LLM_TIMEOUT_SEC)
 
     # 4. 解析 Step6 JSON 输出

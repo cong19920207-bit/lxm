@@ -83,8 +83,8 @@ def get_volc_model() -> str:
 
 
 def get_llm_timeout_seconds() -> float:
-    """通用 LLM HTTP 超时（秒），非 H5 对话主链路使用，默认 15。"""
-    return float(os.getenv("LLM_TIMEOUT", "15"))
+    """通用 LLM HTTP 超时（秒）：日记、Agent、记忆提取、后台测试集等非 Step5 注入路径使用，默认 45（与主链路体验对齐，可按环境下调）。"""
+    return float(os.getenv("LLM_TIMEOUT", "45"))
 
 
 def get_llm_timeout_chat_seconds() -> float:

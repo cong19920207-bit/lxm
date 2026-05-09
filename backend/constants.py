@@ -206,6 +206,9 @@ ADMIN_ERR_TEST_CASE_NOT_FOUND = 20044  # 指定测试用例 ID 不存在
 # --- 操作日志 operation_logs ---
 ADMIN_ERR_OPERATION_LOG_NOT_FOUND = 20045  # 操作日志记录不存在
 
+# --- 向量召回与 Prompt Token 热配置（STEP-025）---
+ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID = 20046  # PATCH 体为空、合并后越界或类型不合法
+
 # ============ 管理后台错误信息映射（供路由与前端统一展示）============
 ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_AUTH_LOGIN_FAILED: "账号或密码错误",
@@ -253,4 +256,5 @@ ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_TEST_CASE_MIN_RETAIN: "至少需要保留规定条数的测试用例",
     ADMIN_ERR_TEST_CASE_NOT_FOUND: "未找到指定测试用例",
     ADMIN_ERR_OPERATION_LOG_NOT_FOUND: "日志记录不存在",
+    ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID: "配置参数不合法或请求体未包含任何待更新字段",
 }

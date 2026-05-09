@@ -120,7 +120,7 @@ class LLMClient:
 
         Args:
             prompt: 完整 prompt
-            timeout_sec: 单次请求超时（秒）；None 时使用 get_llm_timeout_seconds()（默认 15）
+            timeout_sec: 单次请求超时（秒）；None 时使用 get_llm_timeout_seconds()（默认 45）
         """
         effective_timeout = (
             timeout_sec if timeout_sec is not None else get_llm_timeout_seconds()

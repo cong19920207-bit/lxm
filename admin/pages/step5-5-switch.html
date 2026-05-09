@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step5.5 总开关 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <div class="page-card" id="sw-wrap">
+    <p style="color:#666;font-size:14px;margin-bottom:16px">
+      控制是否执行 Step5.5 润色（<code>admin_config</code> 键 <code>step5_5_enabled</code>）。与主链门闩配合使用。
+    </p>
+    <div class="status-bar-inner" style="margin-bottom:12px">
+      <span id="st-left">加载中…</span>
+      <span id="st-right"></span>
+    </div>
+    <div class="form-item">
+      <label>
+        <input type="checkbox" id="sw-enabled"> 启用 Step5.5 润色
+      </label>
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button type="button" class="btn btn-default" id="btn-save">保存草稿</button>
+      <button type="button" class="btn btn-default" id="btn-discard">丢弃草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-pub">发布</button>
+    </div>
+  </div>
+  <div class="page-card" style="margin-top:16px">
+    <div class="page-card-head-row"><h2>版本历史</h2></div>
+    <div id="hist-list">加载中…</div>
+  </div>
+</div>
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+(function () {
+  var ROLES = ['super_admin', 'ai_trainer'];
+  function bar(meta) {
+    document.getElementById('st-left').textContent = meta.version > 0 ? ('当前生效 V' + meta.version) : '尚未单独发布（运行时按默认关闭处理）';
+    var right = document.getElementById('st-right');
+    right.innerHTML = '';
+    if (meta.has_draft) {
+      var s = document.createElement('span');
+      s.style.color = 'var(--warning)';
+      s.textContent = '有未发布草稿 ';
+      right.appendChild(s);
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-default btn-sm';
+      b.textContent = '丢弃草稿';
+      b.onclick = function () {
+        showConfirm('丢弃草稿？', function () {
+          adminRequest('DELETE', '/api/admin/prompt/step5-5-switch/draft').then(function (r) {
+            if (r && r.code === 0) { showToast('已丢弃', 'success'); location.reload(); }
+          });
+        });
+      };
+      right.appendChild(b);
+    }
+  }
+  async function load() {
+    var r = await adminRequest('GET', '/api/admin/prompt/step5-5-switch');
+    if (!r || r.code !== 0) return;
+    var d = r.data || {};
+    bar({ version: d.version || 0, has_draft: !!d.has_draft });
+    document.getElementById('sw-enabled').checked = !!d.enabled;
+    if (d.draft_enabled !== null && d.draft_enabled !== undefined && d.has_draft) {
+      document.getElementById('sw-enabled').checked = !!d.draft_enabled;
+    }
+  }
+  async function loadHist() {
+    var r = await adminRequest('GET', '/api/admin/prompt/step5-5-switch/history?page=1&page_size=10');
+    var box = document.getElementById('hist-list');
+    if (!r || r.code !== 0 || !r.data || !r.data.list || !r.data.list.length) {
+      box.textContent = '暂无历史';
+      return;
+    }
+    var html = '<div class="timeline-wrap" style="padding-left:20px">';
+    r.data.list.forEach(function (row) {
+      html += '<div style="margin-bottom:12px;border-left:2px solid #1890ff;padding-left:12px">';
+      html += '<strong>V' + row.version + '</strong> ';
+      html += row.is_active ? '<span class="tag tag-blue">生效</span>' : '';
+      html += '<div style="font-size:13px;color:#888">' + (row.updated_by || '-') + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+  document.getElementById('btn-save').onclick = async function () {
+    var en = document.getElementById('sw-enabled').checked;
+    var r = await adminRequest('PUT', '/api/admin/prompt/step5-5-switch/draft', { enabled: en });
+    if (r && r.code === 0) { showToast('草稿已保存', 'success'); await load(); }
+  };
+  document.getElementById('btn-discard').onclick = function () {
+    showConfirm('丢弃草稿？', function () {
+      adminRequest('DELETE', '/api/admin/prompt/step5-5-switch/draft').then(function (r) {
+        if (r && r.code === 0) { showToast('已丢弃', 'success'); location.reload(); }
+      });
+    });
+  };
+  document.getElementById('btn-pub').onclick = function () {
+    showConfirmInput('发布 Step5.5 开关', '输入 CONFIRM 发布', '确认发布', async function () {
+      var r = await adminRequest('POST', '/api/admin/prompt/step5-5-switch/publish', {
+        confirm_text: 'CONFIRM',
+        test_passed: true
+      });
+      if (r && r.code === 0) { showToast('发布成功', 'success'); location.reload(); }
+    });
+  };
+  document.addEventListener('DOMContentLoaded', async function () {
+    if (!checkAdminLogin()) return;
+    if (ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('step55switch');
+    document.getElementById('header-mount').innerHTML = renderHeader('Step5.5 总开关');
+    await load();
+    await loadHist();
+  });
+})();
+</script>
+</body>
+</html>

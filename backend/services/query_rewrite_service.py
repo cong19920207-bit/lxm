@@ -2,7 +2,6 @@
 # Step1.5 查询重写 LLM 服务：分析用户意图，生成 3 组检索 QueryQuestion/Keywords
 # 需求来源：R-L1L3-09 / R-L1L3-12 / R-L1L3-13 / R-L1L3-14
 
-import asyncio
 import json
 import logging
 import re
@@ -16,11 +15,8 @@ from backend.utils.llm_client import llm_client
 
 logger = logging.getLogger(__name__)
 
-# Step1.5 专用超时（R-L1L3-13：timeout=15s）
-_STEP1_5_TIMEOUT_SEC = 15.0
-# R-L1L3-13：retry=1（共 2 次尝试），退避 500ms
-_STEP1_5_MAX_ATTEMPTS = 2
-_STEP1_5_RETRY_DELAY_SEC = 0.5
+# Step1.5 专用超时：单次 HTTP 上限 45s（传入 llm_client.chat_sync；内层仍最多 3 次 HTTP + 退避）
+_STEP1_5_TIMEOUT_SEC = 45.0
 
 # JSON 提取正则：匹配第一个 { ... } 块（支持嵌套）
 _JSON_PATTERN = re.compile(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}")
@@ -198,7 +194,7 @@ async def execute_query_rewrite(
     执行 Step1.5 查询重写 LLM。
 
     正常路径：LLM 输出 3 组 QueryQuestion/Keywords + InnerMonologue。
-    失败路径：首次失败 → 退避 500ms → 重试 → 仍失败 → 降级。
+    失败路径：整轮「LLM + 解析」仅 1 次，失败后直接降级（不再第二次查询重写）。
     降级路径（R-L1L3-12）：用 last_user_text 生成单 Embedding 作为统一 fallback。
 
     Args:
@@ -222,35 +218,29 @@ async def execute_query_rewrite(
 
     last_error: str = ""
 
-    for attempt in range(_STEP1_5_MAX_ATTEMPTS):
-        if attempt > 0:
-            await asyncio.sleep(_STEP1_5_RETRY_DELAY_SEC)
+    start_time = time.monotonic()
+    try:
+        raw_text = await llm_client.chat_sync(
+            prompt, timeout_sec=_STEP1_5_TIMEOUT_SEC
+        )
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        output = _parse_query_rewrite_output(raw_text)
 
-        start_time = time.monotonic()
-        try:
-            raw_text = await llm_client.chat_sync(
-                prompt, timeout_sec=_STEP1_5_TIMEOUT_SEC
-            )
-            elapsed_ms = int((time.monotonic() - start_time) * 1000)
-            output = _parse_query_rewrite_output(raw_text)
+        logger.info(
+            "Step1.5 查询重写成功: user_id=%d elapsed=%dms source=%s",
+            user_id, elapsed_ms, source,
+        )
+        return QueryRewriteResult(success=True, output=output)
 
-            logger.info(
-                "Step1.5 查询重写成功: user_id=%d attempt=%d elapsed=%dms source=%s",
-                user_id, attempt + 1, elapsed_ms, source,
-            )
-            return QueryRewriteResult(success=True, output=output)
+    except Exception as e:
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        last_error = str(e)
+        logger.warning(
+            "Step1.5 查询重写失败: user_id=%d elapsed=%dms error=%s source=%s",
+            user_id, elapsed_ms, last_error, source,
+        )
 
-        except Exception as e:
-            elapsed_ms = int((time.monotonic() - start_time) * 1000)
-            last_error = str(e)
-            logger.warning(
-                "Step1.5 查询重写失败: user_id=%d attempt=%d/%d "
-                "elapsed=%dms error=%s source=%s",
-                user_id, attempt + 1, _STEP1_5_MAX_ATTEMPTS,
-                elapsed_ms, last_error, source,
-            )
-
-    # 两次均失败 → 降级（R-L1L3-12）
+    # 本轮失败后直接降级（R-L1L3-12）
     logger.error(
         "Step1.5 查询重写最终失败，启动降级: user_id=%d "
         "last_error=%s source=%s",

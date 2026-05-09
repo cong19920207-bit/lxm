@@ -85,6 +85,7 @@ async def _build_prompt(builder, relationship_info=None, **kwargs):
     defaults.update(kwargs)
     with patch.object(builder, "_get_persona_from_cache", new_callable=AsyncMock, return_value=None), \
          patch("backend.services.prompt_builder.get_activity_description", new_callable=AsyncMock, return_value=""), \
+         patch("backend.services.prompt_builder.admin_config_service.get_active_config", new_callable=AsyncMock, return_value=None), \
          patch.object(builder, "_load_token_limits", new_callable=AsyncMock, return_value=(MAX_TOTAL_TOKENS, dict(MODULE_TOKEN_LIMITS))):
         return await builder.build_chat_prompt(**defaults)
 
@@ -337,6 +338,7 @@ async def test_trim_recent_chat_then_memory():
 
     with patch.object(builder, "_get_persona_from_cache", new_callable=AsyncMock, return_value=None), \
          patch("backend.services.prompt_builder.get_activity_description", new_callable=AsyncMock, return_value=""), \
+         patch("backend.services.prompt_builder.admin_config_service.get_active_config", new_callable=AsyncMock, return_value=None), \
          patch.object(builder, "_load_token_limits", new_callable=AsyncMock, return_value=(small_budget, small_limits)):
         prompt = await builder.build_chat_prompt(
             user_id=1,
@@ -417,6 +419,7 @@ async def test_hot_config_overrides_defaults():
 
     with patch.object(builder, "_get_persona_from_cache", new_callable=AsyncMock, return_value=None), \
          patch("backend.services.prompt_builder.get_activity_description", new_callable=AsyncMock, return_value=""), \
+         patch("backend.services.prompt_builder.admin_config_service.get_active_config", new_callable=AsyncMock, return_value=None), \
          patch.object(builder, "_load_token_limits", new_callable=AsyncMock, return_value=(MAX_TOTAL_TOKENS, custom_limits)):
         prompt = await builder.build_chat_prompt(
             user_id=1,

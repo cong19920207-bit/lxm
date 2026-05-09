@@ -152,7 +152,7 @@ class TestChatLlmTimeout:
 
     @pytest.mark.asyncio
     async def test_chat_with_parse_default_uses_general_timeout(self):
-        """未传 timeout_sec 时由 llm_client 使用 get_llm_timeout_seconds()（默认 15）"""
+        """未传 timeout_sec 时由 llm_client 使用 get_llm_timeout_seconds()（默认 45）"""
         from backend.services.llm_service import LLMService
 
         svc = LLMService()

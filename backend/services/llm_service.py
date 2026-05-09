@@ -244,7 +244,7 @@ class LLMService:
         Args:
             prompt: 完整的 Prompt 文本
             is_test: 后台测试调用时为True，跳过统计写入
-            timeout_sec: 单次 LLM HTTP 超时（秒）。None 表示使用通用超时（默认 15s）。
+            timeout_sec: 单次 LLM HTTP 超时（秒）。None 表示使用通用超时（默认 45s，见 LLM_TIMEOUT）。
                 H5 对话主链路应传入 config.get_llm_timeout_chat_seconds()（默认 45s）。
 
         Returns:

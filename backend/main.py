@@ -109,6 +109,7 @@ from backend.routers.admin import agent_mgmt as admin_agent  # noqa: E402
 from backend.routers.admin import relationship_mgmt as admin_relationship  # noqa: E402
 from backend.routers.admin import stats as admin_stats  # noqa: E402
 from backend.routers.admin import system_monitor as admin_system_monitor  # noqa: E402
+from backend.routers.admin import vector_config as admin_vector_config  # noqa: E402
 
 app.include_router(admin_auth.router,
     prefix="/api/admin/auth", tags=["admin-auth"])
@@ -140,6 +141,8 @@ app.include_router(admin_stats.router,
     prefix="/api/admin", tags=["admin-stats"])
 app.include_router(admin_system_monitor.router,
     prefix="/api/admin", tags=["admin-system"])
+app.include_router(admin_vector_config.router,
+    prefix="/api/admin/configs", tags=["admin-configs"])
 
 # ============ 静态资源 & 页面路由（必须放在所有API路由之后） ============
 

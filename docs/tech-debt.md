@@ -14,19 +14,16 @@
 - 触发时机：H5 客户端有用户资料相关改动时一并处理
 - 风险等级：低
 
-### [TD-002] 后台 Prompt 模块未接入对话链路
+### [TD-002] 后台 Prompt 与主链 Step5 / Step5.5 热加载 — **已清偿（STEP-026，2026-05-07）**
 
-- 配置：`admin_config.config_key = prompt_modules`，发布后 Redis `active_config:prompt_modules` 同步更新
-- 问题：管理端 `prompt_mgmt` 可编辑/发布 System、Relationship、User Memory、Emotion、Recent Chat 等模块模板，但 `PromptBuilder`（H5 真实对话拼装）**不读取**该配置，仍使用 `prompt_builder.py` 内写死的 `SYSTEM_PROMPT_TEXT`、`LEVEL_DEFINITIONS`、`EMPATHY_RULES` 及各 `_build`_* 逻辑；运营在后台改模板对用户端提示词**无效果**（仅 `POST /prompt/test` 等后台测试会使用已存模板）
-- 关联：`persona` 已接入 `_build_persona_prompt()`，但 Redis 中多为 JSON 字符串，存在未展平为五层叙述正文即拼进 Prompt 的风险，宜与接入 `prompt_modules` 时一并核对
-- 当前处理：无；数据层已具备，无需为此前提加表加字段
-- 待处理：
-  1. `PromptBuilder` 优先读 Redis/MySQL 生效的 `prompt_modules`，解析各 `*_prompt.content`
-  2. 占位符与运行时数据对齐（`{{关系等级名称}}`、`{{Top5记忆列表}}`、`{{用户情绪}}`、`{{AI联动情绪}}` 等），沉默修正与关系文案策略统一（模板 vs 代码拼接）
-  3. 保留无配置或解析失败时回退到当前代码内默认实现，避免线上空白 Prompt
-  4. 人格发布侧若仍为 JSON，统一在读取处格式化为与 PRD 一致的五段结构后再注入
-- 触发时机：后台 Prompt 管理功能开发收尾后，或需要运营可调 System/关系/情绪等文案时优先排期
-- 风险等级：中（功能与产品预期不一致，易造成「已发布却不生效」的误判）
+- **原问题**：旧版七模块 `prompt_modules` 与 `PromptBuilder` 主链未对齐，运营调模板易误判已生效。
+- **当前实现**：
+  1. **Step5 模块1 System**：`admin_config.config_key = step5_system_prompt`（JSON `{"content"}`），发布后 `active_config:step5_system_prompt`；`PromptBuilder` 经 `_load_step5_system_template_raw` 热加载，缺省回退 `SYSTEM_PROMPT_TEXT`。
+  2. **Step5.5**：`step5_5_prompt_fragments` 六段 + `step5_5_prompt_fragments.py` 占位符/默认合并；总开关 **`step5_5_enabled`**（STEP-009，独立页发布）。
+  3. **废弃**：旧 **`prompt_modules`** 管理接口已移除，运行时**不再读取** `prompt_modules`。
+  4. **在线测试**：`POST /api/admin/prompt/test` 使用 **`PromptBuilder.build_chat_prompt`** + `chat_with_step5_parse(..., is_test=true)`，与主链一致；`use_draft` 覆盖 Step5 System 草稿。
+- **契约 / 单测**：见 **`docs/contract.md`**「STEP-026」；**`tests/test_step026_prompt_config.py`**。
+- **残留备注**：除模块1 System 与 Step5.5 六段外，其余 Prompt 模块（Persona、Relationship、Memory 等）仍以代码拼装为主；若未来需运营级全模块模板化，另立需求与条目。
 
 ### [TD-003] Prompt 管理页版本历史分页失败时列表不刷新
 
@@ -51,7 +48,7 @@
   2. 用配置替换 `_check_p1` / `_check_p2` / `_check_p4` 及 `check_and_trigger` 内频率、评分门槛等硬编码，字段名与 `AgentRulesRequest` / 管理端表单一致
   3. 缺配置或解析失败时回退到当前硬编码行为，避免线上逻辑真空
 - 触发时机：需要「后台改 Agent 规则即生效」时排期；可与 Agent 配置页（`agent-rules.html`）联调验收
-- 风险等级：**中**（与 TD-002 同类：易误判「已保存配置 = 已生效」）
+- 风险等级：**中**（同类「后台配置未接入运行时」债务：易误判「已保存配置 = 已生效」）
 
 ### [TD-005] 关系规则（relationship_rules）已入库但运行时仍读硬编码
 
@@ -66,7 +63,7 @@
   3. `**_calc_level` / `get_relationship_info` / `get_relationship_detail**`：按配置 `levels[].threshold` 计算等级；`level_name`、权益描述等优先用配置，缺字段再回退硬编码。
   4. 全局检索仍写死 `200`/`800`/`2000` 或仅读 `LEVEL_CONFIG` 的调用点，一并改为读配置或单点封装。
 - **触发时机**：需要「后台改关系/成长即对用户端生效」时排期；可与 `relationship-rules.html` 联调验收。
-- **风险等级**：**中**（与 TD-002、TD-004 同类：易误判「已保存配置 = 已生效」）
+- **风险等级**：**中**（与 TD-004 同类：易误判「已保存配置 = 已生效」）
 
 ### [TD-006] 日记历史接口已具备，管理列表页待建 — **已清偿（2026-04-07）**
 
@@ -167,7 +164,7 @@
   2. 发布第三方配置后视需要缩短缓存或广播刷新，避免长 TTL 内新旧混用（与现有 `active_config` 策略对齐）。
   3. `docs/contract.md`「`third-party.html`」小节与清偿后本条按团队惯例标 **已修复** 或删行。
 - **触发时机**：需要「后台改 Key/Endpoint 即对线上生效、无需改 env 重启」时排期。
-- **风险等级**：**中**（与 TD-002、TD-004、TD-005 同类：配置与运行时易不一致）
+- **风险等级**：**中**（与 TD-004、TD-005 同类：配置与运行时易不一致）
 
 ### [TD-015] H5 对话调度与持久化：单路 SSE、落库时机 vs「历史 / 新消息」队列体验（**部分清偿 · 2026-04-16：主链 + H5 N2/VX-A + 契约主文已对齐**）
 
