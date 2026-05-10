@@ -231,13 +231,24 @@
     pageState[logType].hasQueried = true;
     renderLogList(logType, data.list || []);
 
+    // renderPagination 将回调拼进 onclick，传入匿名函数会 toString 丢闭包；改用 window 上的具名函数
+    var paginationCb =
+      logType === 'system' ? 'window.systemLogsGoPage_system' : 'window.systemLogsGoPage_error';
     renderPagination(
       'pagination-' + logType,
       page,
       pageState[logType].total,
       PAGE_SIZE,
-      function (p) { queryLogs(logType, p); }
+      paginationCb
     );
+  };
+
+  // 须在 queryLogs 定义之后赋值；须用 window.queryLogs（匿名函数无局部名）
+  window.systemLogsGoPage_system = function (p) {
+    window.queryLogs('system', p);
+  };
+  window.systemLogsGoPage_error = function (p) {
+    window.queryLogs('error', p);
   };
 
   window.exportLogs = async function (logType) {

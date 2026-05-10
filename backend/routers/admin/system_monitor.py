@@ -645,7 +645,7 @@ def _read_and_filter_logs(
     start_date: datetime.date,
     end_date: datetime.date,
 ) -> list[dict]:
-    """读取多个日志文件并按条件过滤，返回倒序结果"""
+    """读取多个日志文件并按条件过滤，按 time 降序（最新在前）返回"""
     all_entries = []
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
@@ -669,7 +669,8 @@ def _read_and_filter_logs(
         except Exception as e:
             logger.warning("读取日志文件失败 [%s]: %s", fp, e)
 
-    all_entries.reverse()
+    # 跨多个轮转文件时不能依赖拼接顺序 + reverse，须按时间戳全局降序
+    all_entries.sort(key=lambda e: e["time"], reverse=True)
     return all_entries
 
 
