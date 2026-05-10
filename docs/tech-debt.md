@@ -166,9 +166,9 @@
 - **触发时机**：需要「后台改 Key/Endpoint 即对线上生效、无需改 env 重启」时排期。
 - **风险等级**：**中**（与 TD-004、TD-005 同类：配置与运行时易不一致）
 
-### [TD-015] H5 对话调度与持久化：单路 SSE、落库时机 vs「历史 / 新消息」队列体验（**部分清偿 · 2026-04-16：主链 + H5 N2/VX-A + 契约主文已对齐**）
+### [TD-015] H5 对话调度与持久化：单路 SSE、落库时机 vs「历史 / 新消息」队列体验（**部分清偿 · 2026-05-09：主链 + H5 连发门闩（SSE 建连后释放 `sending`）+ 契约已同步**）
 
-> **记录策略**：本条保留**定稿表、术语与排期边界**；**`docs/contract.md`** 已随主链与 **VX-A（N2）** 多轮同步。后续体验工单若再改 H5，**优先改契约 + 本节「首版主链 vs 后续排期」**，避免与代码脱钩。  
+> **记录策略**：本条保留**定稿表、术语与排期边界**；**`docs/contract.md`** 已随主链与 **VX-A（连发门闩 / `sending`）** 多轮同步。后续体验工单若再改 H5，**优先改契约 + 本节「首版主链 vs 后续排期」**，避免与代码脱钩。  
 > **详细实施步骤（阶段、迁移、接口、文件清单）**：见 **`docs/chat-refactor-implementation-plan.md`**。  
 > **产品开发方案（两大目标、范围 Must/Should、旅程与规则表）**：见 **`docs/product-development-plan-h5-chat.md`**。
 
@@ -183,7 +183,7 @@
 - **后端**：单次 `POST /api/chat/send` → LLM → SSE 模拟流式；**SSE 生成器跑完后**才 `asyncio.create_task(_post_chat_tasks)` 写 `conversation_log` / `emotion_log`。用户断连或未完成流时，**整轮可能不落库**。
 - **结论**：当前是「**一问一答单通道**」，与下面「多句新消息排队 + 打断上一轮」的期望**不一致**。
 
-**（2026-04 勘误 · 避免与主链已交付混淆）**：**后端**已按定稿落地「**入队即写 user**、**`generation_id` 作废**、**防抖打包调度**、**多 user 一包**」等（见 `backend/routers/chat.py` 等）。**H5** 已实现 **VX-A（N2）**：SSE **响应体首包非空字节**到达后即可 **`sending=false` 再发**（见 `frontend/pages/chat.html` → `consumeChatSse` 与 **`docs/contract.md`** 文首）。上表「历史行为」关于旧网「一问一答单通道 / SSE 跑完才落库 / sending 贯通至整段结束」仅作**归档描述**，**不得**当作当前实现验收依据。实施后续工单项时 **勿重复** 实现已在后端完成的调度/作废逻辑。
+**（2026-04 勘误 · 避免与主链已交付混淆）**：**后端**已按定稿落地「**入队即写 user**、**`generation_id` 作废**、**防抖打包调度**、**多 user 一包**」等（见 `backend/routers/chat.py` 等）。**H5** 已实现 **VX-A**：在 **`fetch` 成功且响应为 SSE（`text/event-stream`）** 后、**`consumeChatSse` 前** 即 **`sending=false`** 以支持流中再发；`consumeChatSse` 内对响应体首段非空字节再次置 `false` 为幂等（见 `frontend/pages/chat.html` 与 **`docs/contract.md`**「H5 实现说明」）。上表「历史行为」关于旧网「一问一答单通道 / SSE 跑完才落库 / sending 贯通至整段结束」仅作**归档描述**，**不得**当作当前实现验收依据。实施后续工单项时 **勿重复** 实现已在后端完成的调度/作废逻辑。
 
 #### 产品期望（目标体验）
 
@@ -260,7 +260,7 @@
 | 类别 | 说明 |
 |------|------|
 | **已在首版 TD-015 任务 1–8 范围交付（代码侧，勿重做）** | 聊天 **45s**、**`CHAT_DEBOUNCE_MS`**、**`delivery_status` / `skipped_in_prompt`**（库须已迁移）、**入队即 INSERT user**、Redis **`generation_id`** 与作废、**防抖打包**、**未闭环窗口 ≤10 + Q14**、**叹号 + `POST /api/chat/resend` + 2 次/分钟**、**幂等键**、**`GET /api/chat/timeline`** / **Admin `GET .../conversations`** 字段对齐、H5 **Abort + `meta.generation_id` + ≤5/叹号例外**、`docs/contract.md` **主文**已多轮同步等。 |
-| **仍待后续排期（产品工单驱动，非主链阻塞）** | **H5 N2（VX-A）已交付**：`sending` 在 **SSE 响应体首包非空字节** 后解锁（见 `frontend/pages/chat.html`、`docs/contract.md`）。**S4 回归清单**、气泡/叹号边角体验等见 **`docs/chat-refactor-agent-tasks.md` →「后续里程碑」**、**`docs/chat-refactor-implementation-plan.md` →「十三、后续增量」**；**勿**重复实现后端入队/作废/防抖。 |
+| **仍待后续排期（产品工单驱动，非主链阻塞）** | **H5 连发门闩已交付**：`sending` 在 **HTTP 成功且确认为 SSE** 后、**`consumeChatSse` 前** 解锁（见 `frontend/pages/chat.html`、`docs/contract.md`「H5 实现说明」）；`consumeChatSse` 首包字节处幂等。**S4 回归清单**、气泡/叹号边角体验等见 **`docs/chat-refactor-agent-tasks.md` →「后续里程碑」**、**`docs/chat-refactor-implementation-plan.md` →「十三、后续增量」**；**勿**重复实现后端入队/作废/防抖。 |
 | **与 TD-016 / TD-020 边界** | **TD-016**：`round_id`、按轮 `emotion_log`、**Admin「情绪日志」只读 Tab**（V2-C）**已交付**。**TD-020**：**广义后台情绪**（短期属性 Admin 写入/修订、Agent/统计读边、产品文案）**仍进行中**（V3-A 基座已落地）。H5 连发与 **TD-020** **互不阻塞**。 |
 
 #### 清偿 TD-015 时建议改动的页面/接口清单（简表，与上表互补）

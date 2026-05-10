@@ -320,7 +320,7 @@
 | 范围 | 状态 | 说明 |
 |------|------|------|
 | **任务 1–8** | **已完成（主链）** | 以仓库当前 `backend/routers/chat.py`、`frontend/pages/chat.html`、`docs/contract.md` 等为准；验收过即 **关闭**，勿回退重造。 |
-| **本节「后续里程碑」** | **部分已交付（S1–S3、**VX-A（N2）**、任务 9 / TD-016）；S4 进行中；TD-020 V3-A 基座已落地** | **VX-A**：H5 **`sending` N2 解锁** + `contract.md` / 本节附录与手工用例已同步。**S4** 手工清单见 **`docs/chat-refactor-s4-manual-regression-checklist.md`**（逐项勾选完成后将本行状态改为已完成）；e2e 视团队仍可用 `scripts/test_chat_e2e.py`；**TD-020** 剩余 Admin/策略见 `tech-debt.md`。 |
+| **本节「后续里程碑」** | **部分已交付（S1–S3、VX-A 连发门闩、`sending` 于 SSE 建连后释放、任务 9 / TD-016）；S4 进行中；TD-020 V3-A 基座已落地** | **VX-A**：H5 **`sending`** 在 **`fetch` 成功且为 SSE** 后解锁 + `contract.md` / 本节附录与手工用例已同步。**S4** 手工清单见 **`docs/chat-refactor-s4-manual-regression-checklist.md`**（逐项勾选完成后将本行状态改为已完成）；e2e 视团队仍可用 `scripts/test_chat_e2e.py`；**TD-020** 剩余 Admin/策略见 `tech-debt.md`。 |
 
 ### 需求快照（产品已确认）
 
@@ -341,7 +341,7 @@
 | S3 | **契约**：`contract.md` **H5 实现说明** 增加「**允许流中再 `send`**」及与 **Abort/session/generation** 的关系 | `docs/contract.md` | **已交付**；勿改写已实现 **SSE 事件类型**表意以外的后端契约 |
 | S4 | **回归**：手工 / e2e — 连发、打断、5 条满、叹号破 5、超时叹号与气泡消失 | **`docs/chat-refactor-s4-manual-regression-checklist.md`**；`scripts/test_chat_e2e.py` 等（视团队） | **进行中**（手工清单已产出，全场景勾选并确认无缺陷后再标完成）；勿重跑已实现的后端单测场景当「新功能」 |
 
-> **VX-A（2026-04-15）**：**S1** 历史交付描述曾为 **N3（`meta`）解锁 `sending`**；当前仓库实现为 **N2（SSE 响应体首包非空字节）**，以 **`docs/contract.md` → `POST /api/chat/send`「H5 实现说明」** 为真源。
+> **VX-A（2026-04-15）**：**S1** 历史交付描述曾为 **N3（`meta`）解锁 `sending`**；附录 **N2** 原义为 **SSE 响应体首包非空字节**；**后端**可能在 **`meta` 之前长时间不写入 body**，故 H5 **以「HTTP 成功且已确认为 `text/event-stream`（SSE 建连）」后、`consumeChatSse` 前** 置 **`sending=false`** 为实际解锁点（与 **`docs/contract.md` → `POST /api/chat/send`「H5 实现说明」** 一致）；`consumeChatSse` 内首包字节处再次置 `false` 幂等。叹号与 **`send` 仍共用 `sending`**（确认点 1）。
 
 #### 已定稿（沟通收口 · 2026-04）
 
@@ -373,6 +373,8 @@
 | **N3** | 已解析 **`meta`**，拿到 **`generation_id`** | **false**（与 N2 后一致）；**仅记录代**，不再负责改 `sending` |
 | **N4…** | `delta` 流式输出中 | **false**（允许 msg2 / 叹号规则见确认点 1） |
 | **Nk** | `done` / `failed` / 断流 | **false**（`handleSend` 末尾守卫仍可兜底） |
+
+**现网补充（2026-05）**：服务端可能在 **`meta` 之前较长时间不向响应体写入字节**；H5 在 **已确认 HTTP 成功且 `Content-Type` 为 `text/event-stream`（SSE 建连）** 之后、**进入 `consumeChatSse` 读取 body 之前** 即 **`sending=false`**，使连发不必等待「首段非空 body」。下表 **N2** 行中「首包非空字节」处再次 **`sending=false`** 为幂等。
 
 **场景 S-A（首包慢）**  
 - **经过**：N2 已到，**N3 延迟**（弱网、网关缓冲）。  

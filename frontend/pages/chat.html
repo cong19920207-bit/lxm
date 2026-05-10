@@ -867,6 +867,8 @@
           return
         }
 
+        /* 流中再发：HTTP 已成功且确认为 SSE 后即可解锁，不等待响应体首字节（与契约 H5 实现说明一致；consumeChatSse 内 N2 仍幂等置 false） */
+        if (sessionAtStart === chatSendSession) sending = false
         await consumeChatSse(response, aiBubble, sessionAtStart, { userRowForFailure: userRow })
       } catch (err) {
         console.error('发送失败:', err)
@@ -941,6 +943,8 @@
           }
           return
         }
+        /* 叹号重发：与 send 同策略，确认进入 SSE 后解锁，便于流中再点叹号或发新消息 */
+        if (sessionAtStart === chatSendSession) sending = false
         await consumeChatSse(response, aiBubble, sessionAtStart, { clearAllFailedUserRowsOnDone: true })
       } catch (err) {
         console.error('重发失败:', err)
