@@ -1,7 +1,7 @@
 # H5 对话改造：Vibe Coding 开发计划 + 提示词
 
 > **用途**：给「边对齐边写」的迭代开发用——**小步、可验收、少回炉**；与 **`docs/chat-refactor-agent-tasks.md`**、**`docs/product-development-plan-h5-chat.md`**、**`docs/chat-refactor-implementation-plan.md`**、**`docs/tech-debt.md`（TD-015 / TD-016 / TD-020）**、**`docs/contract.md`** 一致。  
-> **前提（已定稿）**：主链 **任务 1–8** 与 **S1–S3**（N3 解锁、`sending`、进行中 AI 气泡、契约补句）**已交付**；**确认点 1–4** 见 `chat-refactor-agent-tasks.md`「后续里程碑」；**N2** 仅当产品与工单认为 **N3 体验不足** 时再开**独立小版本**（无预设埋点门槛）。
+> **前提（已定稿）**：主链 **任务 1–8** 与 **S1–S3**（连发/打断、`Abort`/`chatSendSession`、进行中 AI 气泡、契约补句）**已交付**；**2026-05-11** 起 H5 **已移除 `sending`**，改为 **300ms 防抖 + IME**。历史 **N2/N3 `sending` 解锁** 讨论见 `chat-refactor-agent-tasks.md` 附录（**已归档**）。**确认点 1–4** 见该文档「后续里程碑」；**勿**再以旧 `sending` 语义写新验收。
 
 ---
 
@@ -31,10 +31,10 @@
 
 | 状态 | 内容 |
 |------|------|
-| **已完成（勿回炉）** | 入队即落 user、`generation_id` 作废、防抖打包、45s 聊天超时、叹号 **resend** 限流、幂等、timeline/Admin 字段对齐、SSE `meta`/`failed`/`obsolete`、`chat.html` **S1–S3**（N3 后 `sending=false`、移除进行中 AI 行、会话末尾门闩防竞态）、`contract.md` 流中再发与多端半句 |
+| **已完成（勿回炉）** | 入队即落 user、`generation_id` 作废、防抖打包、45s 聊天超时、叹号 **resend** 限流、幂等、timeline/Admin 字段对齐、SSE `meta`/`failed`/`obsolete`、`chat.html` **S1–S3**（**无 `sending`**、**300ms 防抖**、**IME**、移除进行中 AI 行、`Abort`/`chatSendSession`）、`contract.md` 流中再发与多端半句 |
 | **明确不做（本期）** | Admin 代用户重发（**L1**）、全链路改 **TD-017** 检索改写；管理端情绪区**仅只读**（无代发、无改写 DB） |
-| **下一波（按序）** | **S4** 回归 → **TD-020** → **VX-A（N2）已交付（2026-04-15）**（**TD-016 / 任务 9 / V2-A–C** 已合并） |
-| **N2 触发条件** | **确认点 4·选项 1**：**无**量化达标线；**产品与工单**认定 **S-A**（N2～N3 间隙）伤害连发体验时再立项 |
+| **下一波（按序）** | **S4** 回归（清单须按 **2026-05-11** 勘误更新）→ **TD-020** → **TD-016 / 任务 9 / V2-A–C** 已合并 |
+| **N2 触发条件** | **已归档**：历史上 **N2/N3 与 `sending`** 的讨论见 `chat-refactor-agent-tasks.md` 附录；**现网**以 **`contract.md` + `chat.html`** 为准，**不再**以 `sending` 解锁作立项条件 |
 
 ---
 
@@ -45,7 +45,7 @@
 | 切片 | 交付物 | DoD（验收） |
 |------|--------|-------------|
 | **V1-A** | **S4** 手工回归清单（可贴到工单）；清单路径：`docs/chat-refactor-s4-manual-regression-checklist.md` | 连发、打断、满 5、叹号破 5、超时叹号、气泡消失、登出/401；**不**回归测后端状态机「从零实现」 |
-| **V1-B** | （可选）`scripts/test_chat_e2e.py` 增补 **HTTP+SSE** 场景 | 至少覆盖：收到 `meta` 后可发第二条（或脚本层模拟 session）；失败路径不断言已删功能；脚本已覆盖 ✓ |
+| **V1-B** | （可选）`scripts/test_chat_e2e.py` 增补 **HTTP+SSE** 场景 | 至少覆盖：**首包慢时** 在 **300ms 防抖间隔外** 可发第二条（或脚本层模拟 session）；失败路径不断言已删功能；脚本已覆盖 ✓ |
 
 ### 阶段 V2 · TD-016 / 任务 9（与 H5 连发解耦）
 
@@ -61,18 +61,18 @@
 |------|--------|-----|
 | **V3-A** | 用户短期情绪：Redis/DB 真相源与读写边界 | **进行中（2026-04-15）**：`user_emotion:{user_id}` + `user_short_term_emotion`；读仅 `_execute_llm_bundle`；`send` 首段无新 Redis；与 [TD-020] 一致 |
 
-### 阶段 VX ·（仅立项后）N2 解锁实验
+### 阶段 VX ·（已并入主线，归档）
 
 | 切片 | 交付物 | DoD |
 |------|--------|-----|
-| **VX-A** | 契约 + H5：在 **N2（SSE 响应体首包非空字节）** 解锁 `sending` 的边界与风险说明 | **已交付（2026-04-15）**：`chat.html` + `contract.md` + `agent-tasks`（含可勾选用例）；**不改**后端打包/代语义 |
+| **VX-A（归档）** | 历史上 **N2 与 `sending` 解锁** 的契约与风险说明 | **已由 2026-05-11 演进取代**：H5 **移除 `sending`**，改 **300ms 防抖 + IME**；**不改**后端打包/代语义。详见 **`docs/contract.md`**。 |
 
 ---
 
 ## 五、通用「Vibe 基座」提示词（每次开新会话可粘贴）
 
 ```
-你是本仓库的开发者。上下文：林小梦 H5 对话 TD-015 主链与 S1–S3 已交付。
+你是本仓库的开发者。上下文：林小梦 H5 对话 TD-015 主链与 S1–S3 已交付；**H5 `chat.html`（2026-05-11+）无全局 `sending`**，连发靠 **`Abort`/`chatSendSession`** + **300ms 防抖**，详见 **`docs/contract.md`**「H5 实现说明」。
 
 硬约束：
 1. 不要重写 backend/routers/chat.py 的入队、打包、generation 作废、10104、防抖语义；除非我明确要求且附带设计理由。
@@ -93,11 +93,11 @@
 ```
 【角色】测试与脚本维护。
 
-【背景】H5 chat.html 已实现：N3（meta + generation_id）后 sending=false；Abort + chatSendSession 递增；removeAiInFlightRows；failed/obsolete 移除进行中 AI；send 失败时 user 行 failed_* + 叹号；会话末尾仅在 sessionAtStart===chatSendSession 时写 sending。
+【背景】H5 `chat.html`（2026-05-11+）：**无全局 `sending`**；**`lastSendOrResendAt` + 300ms**（`send`/叹号共用）仅防连点；**`Abort` + `chatSendSession` 递增**；`removeAiInFlightRows`；`failed`/`obsolete` 移除进行中 AI；`send` 失败时 user 行 `failed_*` + 叹号；**`CHAT_CLIENT_ABORT_MS`（120s）** 客户端中止。详见 **`docs/contract.md`**「H5 实现说明」与 **`docs/chat-refactor-s4-manual-regression-checklist.md`**（须按清单内 **2026-05-11 勘误** 执行）。
 
 【任务】
-1. 输出一份「手工回归清单」Markdown：覆盖连发、首包慢（meta 前不可发第二条）、打断、满 5、叹号破 5、SSE failed、超时 Abort、401。
-2. （若我要求）在 scripts/test_chat_e2e.py 增加最小断言：不 mock 主链；失败时打印可读日志。
+1. 按 **`docs/chat-refactor-s4-manual-regression-checklist.md`** 勾选：连发、首包慢（**300ms 外**可再发、与旧 `sending` 预期不同）、打断、满 5、叹号破 5、SSE `failed`、超时 `Abort`、401。
+2. （若我要求）在 `scripts/test_chat_e2e.py` 增加最小断言：不 mock 主链；失败时打印可读日志。
 
 【禁止】把后端 chat 状态机从零写一遍或改 10104 语义。
 
@@ -138,21 +138,18 @@
 【验收】单元或最小集成可重复跑；无密钥写进仓库。
 ```
 
-### 6.4 产品驱动 · N2 解锁小版本（仅立项后 VX）
+### 6.4 ~~产品驱动 · N2 解锁小版本~~（**已归档 · 2026-05-11**）
+
+> **说明**：历史上 **N2 与 `sending` 解锁** 的 VX 切片已由 **「移除 `sending` + 300ms 防抖 + IME」** 取代；**勿**再按下列提示词新开「仅改 N2 解锁点」工单。若产品仍有 **SSE 首包时序** 类新需求，请**新建立项**并对照现 **`contract.md` + `chat.html`**。
 
 ```
+【归档 · 勿直接执行】以下内容为 2026-04 历史稿，仅供理解旧讨论：
+
 【角色】H5 + 契约；必要时只读后端 SSE 首包时序。
 
-【背景】当前已定 N3：meta 后 sending=false。产品与工单认定 S-A 窗口过长需改为 N2（HTTP 200 + text/event-stream 后即解锁）。确认点 4：无预设埋点线，立项由产品拍板。
+【背景】曾讨论 N2（HTTP 200 + `text/event-stream`）与 N3（`meta`）与 `sending` 的先后关系；现网已演进为无 `sending`、Abort/session 主导连发。
 
-【任务】
-1. 在 chat.html 将 sending 解锁点改为 N2，并列出与 N3 的行为差异表（含叹号与 meta 前重发）。
-2. 更新 docs/contract.md H5 实现说明 + 风险半句；不动 chat.py 打包/代语义。
-3. 补双 Tab / 双连接 手工用例 3 条。
-
-【禁止】顺便重构 chat.html 无关模块或全项目格式化。
-
-【验收】确认点 1（叹号与 send 同门闠）仍成立或显式记录例外并产品签字。
+【任务】（已不执行）若仍考古，只读 `chat-refactor-agent-tasks.md` 附录归档段与 `contract.md`。
 ```
 
 ### 6.5 契约-only 同步（任意阶段）
@@ -174,7 +171,7 @@
 | 产品方案 | 工程落点 |
 |----------|----------|
 | 目标 A 可恢复 | 主链已 R1/R4 + timeline；后续只做回归与 TD-016 展示 |
-| 目标 B 连贯可控 | 主链 + **S1–S3**；**S4** 锁质量；**N2** 仅产品驱动可选 |
+| 目标 B 连贯可控 | 主链 + **S1–S3**；**S4** 锁质量；**H5 发送策略** 以 **`contract.md` + `chat.html`** 为准 |
 | Must M1–M10 | 任务 1–8 + contract |
 | Should S1 TD-016 | 阶段 V2 |
 | Should TD-020 | 阶段 V3 |
@@ -183,7 +180,7 @@
 
 ## 八、小结
 
-**当前默认节奏**：**V1（S4）→ V2（TD-016）→ V3（TD-020）**；**N2** 不入默认排期。开发时用 **第五节基座提示词 + 第六节对应切片**，可保持与已定需求、产品计划、契约三方对齐。
+**当前默认节奏**：**V1（S4）→ V2（TD-016）→ V3（TD-020）**；**历史 N2 解锁切片** 已归档（见 §6.4）。开发时用 **第五节基座提示词 + 第六节对应切片**，可保持与已定需求、产品计划、契约三方对齐。
 
 ---
 
@@ -234,7 +231,7 @@
 | **仅 H5** `chat.html` 行为（无后端字段变化） | `docs/contract.md` 中 **POST /api/chat/send** 或 **H5 实现说明**（若 UX 与契约描述不一致则必改）+ 顶部日期 | `docs/chat-refactor-agent-tasks.md`「后续里程碑」**状态**（如 S4 完成勾选） |
 | **仅脚本 / e2e** | `docs/contract.md` 仅当脚本**改变了对接方式**（例如默认测新接口）；否则在 **`docs/chat-refactor-vibe-coding-plan.md` 第四节** 或脚本顶部注释写 **运行方式** | `docs/chat-refactor-vibe-coding-plan.md` 的 DoD 表可加「脚本已覆盖」脚注 |
 | **TD-016 / TD-020** 进度变化 | `docs/tech-debt.md` 对应 TD 小节状态说明 | `docs/chat-refactor-agent-tasks.md` 任务 9 等 |
-| **产品确认点**（如 N2 立项、确认点变更） | `docs/chat-refactor-agent-tasks.md`「已定稿」 | `docs/chat-refactor-implementation-plan.md` §十三 |
+| **产品确认点**（如 H5 发送策略变更） | `docs/chat-refactor-agent-tasks.md`「已定稿 / 后续里程碑」 | `docs/chat-refactor-implementation-plan.md` §十三 |
 | **纯文档**（无代码） | 被改文档自身 + `contract.md` 日期若你改了契约正文 | — |
 
 **合并前自检口令（可贴给 Agent）：**

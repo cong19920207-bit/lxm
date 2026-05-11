@@ -5,9 +5,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装依赖
+# 安装依赖（国内构建常用清华 PyPI 镜像，避免访问 pypi.org / files.pythonhosted.org 超时）
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+ENV PIP_DEFAULT_TIMEOUT=120
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    -r requirements.txt
 
 # 复制项目代码（.env 由 docker-compose 通过 env_file 注入，不打包进镜像）
 COPY backend/ ./backend/

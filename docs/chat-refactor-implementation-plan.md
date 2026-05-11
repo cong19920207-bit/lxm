@@ -202,7 +202,7 @@
 
 - **连发**：在 AI **流式输出未完成**时允许再 `send`；**Abort** 旧连接；**多条 user**（2～5，示例 msg1/msg2）进入**既有**未闭环打包。  
 - **气泡**：打断 → **移除**旧进行中 AI 气泡，新气泡在 **当前未闭环 user 序列之后**；超时/失败 → **移除**进行中 AI 气泡，**叹号在 user**；**不重改**叹号破 5 规则。  
-- **契约**：`docs/contract.md` 明示 **「允许未完成 SSE 再 `send`」** 与 **Abort / `chatSendSession` / `generation_id`** 的关系（**文档 + H5 `sending`**，后端语义不变）。  
+- **契约**：`docs/contract.md` 明示 **「允许未完成 SSE 再 `send`」** 与 **Abort / `chatSendSession` / `generation_id`** 的关系（**文档 + H5**：**无 `sending`**、**300ms 防抖**、**IME**；后端语义不变）。  
 - **数据模型 `round_id`**：仍归 **TD-016 / P7 / `chat-refactor-agent-tasks` 任务 9**，**不在本节展开 DDL**。  
 - **用户短期情绪属性**：**TD-020**，与句级/轮级分层；**本期不大改**句级识别主链路。
 
@@ -210,7 +210,7 @@
 
 | 增量项 | 主要落点 | 备注 |
 |--------|----------|------|
-| `sending` 与流中再发 | `frontend/pages/chat.html` | **已定**：收到 **`meta`（N3）后** `sending=false`；不达标再评估 **N2**，见 `chat-refactor-agent-tasks.md` 附录 |
+| `CHAT_SEND_DEBOUNCE_MS` 与流中再发 | `frontend/pages/chat.html` | **已定（2026-05-11）**：**移除 `sending`**；`send`/叹号共用 **`lastSendOrResendAt` + 300ms**；连发/打断仍靠 **`Abort`/`chatSendSession`**；详见 `contract.md`「H5 实现说明」 |
 | 气泡生命周期 | 同上 | 与 **§八** 叹号/UI 共存，**增量**修改 |
 | 契约补句 | `docs/contract.md` → `POST /api/chat/send` | **不重写**已实现 SSE 字段定义 |
 | `round_id` / 按轮 emotion | TD-016、任务 9 | **勿并入**本节首版排期必做 |

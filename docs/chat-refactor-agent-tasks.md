@@ -6,7 +6,7 @@
 > **契约**：`docs/contract.md` 建议在 **阶段任务 8** 或与后端 API 稳定后**一次性**更新，避免半成品契约。  
 > **TD-016**（`round_id`、按轮 emotion、后台情绪）：与下列任务 **解耦**，可在 **任务 8 之后** 单独立项或并行由另一分支完成。  
 > **TD-020**（用户短期情绪属性、Redis/DB 真相源）：见 `docs/tech-debt.md`；与 **「后续里程碑」** 并列留痕，**勿与任务 1–8 重复实现**。  
-> **主链 vs 增量**：任务 **1–8** 视为 **已交付**；**H5 流中再发、`sending`、气泡、契约补句** 见本文 **「后续里程碑」**，实施时 **勿重做** 后端调度与入队逻辑。
+> **主链 vs 增量**：任务 **1–8** 视为 **已交付**；**H5 流中再发、300ms 防抖/IME、气泡、契约补句** 见本文 **「后续里程碑」**，实施时 **勿重做** 后端调度与入队逻辑。
 
 ---
 
@@ -320,7 +320,7 @@
 | 范围 | 状态 | 说明 |
 |------|------|------|
 | **任务 1–8** | **已完成（主链）** | 以仓库当前 `backend/routers/chat.py`、`frontend/pages/chat.html`、`docs/contract.md` 等为准；验收过即 **关闭**，勿回退重造。 |
-| **本节「后续里程碑」** | **部分已交付（S1–S3、VX-A 连发门闩、`sending` 于 SSE 建连后释放、任务 9 / TD-016）；S4 进行中；TD-020 V3-A 基座已落地** | **VX-A**：H5 **`sending`** 在 **`fetch` 成功且为 SSE** 后解锁 + `contract.md` / 本节附录与手工用例已同步。**S4** 手工清单见 **`docs/chat-refactor-s4-manual-regression-checklist.md`**（逐项勾选完成后将本行状态改为已完成）；e2e 视团队仍可用 `scripts/test_chat_e2e.py`；**TD-020** 剩余 Admin/策略见 `tech-debt.md`。 |
+| **本节「后续里程碑」** | **部分已交付（S1–S3、任务 9 / TD-016）；H5 发送策略 2026-05-11 演进（无 `sending`、`lastSendOrResendAt`+300ms、`compositionend`）；S4 进行中；TD-020 V3-A 基座已落地** | **H5**：以 **`docs/contract.md` → `POST /api/chat/send`「H5 实现说明」** 与 **`frontend/pages/chat.html`** 为准。**S4** 手工清单见 **`docs/chat-refactor-s4-manual-regression-checklist.md`**（须含 **2026-05-11 勘误**）；e2e 视团队仍可用 `scripts/test_chat_e2e.py`；**TD-020** 剩余 Admin/策略见 `tech-debt.md`。 |
 
 ### 需求快照（产品已确认）
 
@@ -328,7 +328,7 @@
 2. **背压**：与现网一致 — **最多 5 条**未处理新消息，超过则 **H5 锁输入 + 服务端 10104**；**叹号重发等可破 5**，**不重改**已实现逻辑。  
 3. **气泡生命周期**：**打断** → 移除**进行中**的旧林小梦气泡，**仅保留**与**当前有效代**相关的新气泡（新气泡出现在**当前未闭环 user 序列之后**，如最后一条 user 之后）；**超时/失败** → 进行中 AI 气泡**移除**，**叹号在 user**；气泡语义 **只绑当前最新一轮生成**。  
 4. **情绪分层（本期不大改句级/轮级实现）**：句级 `conversation_log.emotion_label` 仍表示**该句**；轮级与 **TD-016** 对齐；**用户短期情绪属性** 见 **`docs/tech-debt.md` [TD-020]**。  
-5. **契约**：在 **`docs/contract.md`** **`POST /api/chat/send`** 节 **显式补充** — 允许 **未完成 SSE 时再发起 `send`**，仍以 **Abort + `chatSendSession` + `meta.generation_id`** 防串台（**仅文档与 H5 门闩**，**不改**后端已具备的作废/入队语义）。  
+5. **契约**：在 **`docs/contract.md`** **`POST /api/chat/send`** 节 **显式补充** — 允许 **未完成 SSE 时再发起 `send`**，仍以 **Abort + `chatSendSession` + `meta.generation_id`** 防串台；**H5 无 `sending`**，辅以 **300ms 防抖与 IME**（**仅文档与 H5**，**不改**后端已具备的作废/入队语义）。  
 6. **数据模型（后续独立迭代）**：**`round_id` 贯穿本轮 user+assistant** — 归 **TD-016 / 任务 9**，**不在**本节重复 DB 设计细节。  
 7. **管理后台情绪日志 Tab**：**V2-C 已交付**（`emotion-rounds` + Tab）；**不阻塞** 本节 1–3 的 H5 连发项。
 
@@ -336,79 +336,69 @@
 
 | 步骤 | 交付物 | 涉及文件（主要） | **勿重复（已有能力）** |
 |------|--------|------------------|-------------------------|
-| S1 | **`sending` 门闩**：在 **收到 SSE `meta` 且已解析 `generation_id`（节点 N3）之后** 置 **`sending=false`**，允许下一次 `send`；**不改变** `pending≥5` / `hasBang` 判断 | `frontend/pages/chat.html` | **已交付**；勿改后端 **10104**、**`_should_block_new_send`** 语义 |
+| S1 | **H5 发送防抖（2026-05-11）**：**移除 `sending`**；`send`/叹号 **`resend`** 共用 **`lastSendOrResendAt` + `CHAT_SEND_DEBOUNCE_MS`（300ms）**（通过内容非空与 **`countOpenPendingUsers`** 后、**`fetch` 前**打时间戳；不足 300ms 则静默 `return`）；**`oncompositionend`/`onkeyup`** → **`updateSendBtn`**；**不改变** `pending≥5` / `hasBang` | `frontend/pages/chat.html` | **已交付**；勿改后端 **10104**、**`_should_block_new_send`** 语义；详见 **`docs/contract.md`**「H5 实现说明」 |
 | S2 | **气泡 DOM**：新 `send` 触发 **Abort** 后 **移除**旧「进行中」**`.msg-row.ai`**；新代仅 **一条**进行中 AI 气泡；**failed/obsolete** 同样移除进行中气泡 | `frontend/pages/chat.html` | **已交付**；勿重复实现 **generation** 丢弃逻辑（已有 `consumeChatSse`） |
 | S3 | **契约**：`contract.md` **H5 实现说明** 增加「**允许流中再 `send`**」及与 **Abort/session/generation** 的关系 | `docs/contract.md` | **已交付**；勿改写已实现 **SSE 事件类型**表意以外的后端契约 |
 | S4 | **回归**：手工 / e2e — 连发、打断、5 条满、叹号破 5、超时叹号与气泡消失 | **`docs/chat-refactor-s4-manual-regression-checklist.md`**；`scripts/test_chat_e2e.py` 等（视团队） | **进行中**（手工清单已产出，全场景勾选并确认无缺陷后再标完成）；勿重跑已实现的后端单测场景当「新功能」 |
 
-> **VX-A（2026-04-15）**：**S1** 历史交付描述曾为 **N3（`meta`）解锁 `sending`**；附录 **N2** 原义为 **SSE 响应体首包非空字节**；**后端**可能在 **`meta` 之前长时间不写入 body**，故 H5 **以「HTTP 成功且已确认为 `text/event-stream`（SSE 建连）」后、`consumeChatSse` 前** 置 **`sending=false`** 为实际解锁点（与 **`docs/contract.md` → `POST /api/chat/send`「H5 实现说明」** 一致）；`consumeChatSse` 内首包字节处再次置 `false` 幂等。叹号与 **`send` 仍共用 `sending`**（确认点 1）。
+> **VX-A（归档）**：历史上曾以 **`sending` + N2/N3 解锁** 描述连发门闩；**2026-05-11 起现网 H5 已移除 `sending`**，**`send`/叹号** 共用 **`lastSendOrResendAt` + 300ms**（`CHAT_SEND_DEBOUNCE_MS`），并辅以 **IME**（`compositionend`/`keyup` → `updateSendBtn`）。**防串台** 仍以 **`AbortController` + `chatSendSession` + `meta.generation_id`** 为准。权威说明见 **`docs/contract.md` → `POST /api/chat/send`「H5 实现说明」** 与 **`frontend/pages/chat.html`**。
 
-#### 已定稿（沟通收口 · 2026-04）
+#### 已定稿（沟通收口 · 2026-04）与 **2026-05-11 勘误**
 
-- **确认点 1（已定）**：**选项 1** — **叹号重发**与 **`send` 共用 `sending` 规则**；**在收到 SSE `meta` 之前** 若 `sending===true`，**重发入口同样不可点**（与 `handleSend` 门闠一致）。（**VX-A**：解锁阈值前移至 **N2** 后，「**`meta` 前**」字面不再与旧表一致；**仍**共用同一 **`sending` 变量**。若产品要求 **N2～N3 间隙内禁叹号**，需第二门闩 — **需产品签字** 后另开切片。）  
-- **确认点 3（已定）**：`docs/contract.md` 采用 **「H5 实现说明」为主写清流中再 `send`**，并在 **`POST /api/chat/send` 语义摘要** 加 **半句** 说明「**多端并发连接时服务端仍以单用户代与打包调度为准、非双 LLM 并行**」，避免对接方误读（由 **S3** 落地时写入）。  
-- **确认点 2（已定）**：**选项 α = N3** — 在 **收到 `meta`（节点 N3）之后** `sending=false`；若上线后体验仍不达标，**再评估** 选项 β（N2），见附录 **「演进策略」**。（**VX-A 已立项执行**：现网 H5 采用 **选项 β = N2** 解锁，见附录表与 **`contract.md`**。）  
-- **确认点 4（已定）**：**选项 1** — **不设**上线前硬性埋点/量化达标线；是否启动 **N2** 小版本以 **产品与工单反馈** 驱动再议。（**已立项；VX-A 已交付（2026-04-15）**。）
+以下为 **历史沟通结论**，**行为描述以勘误为准**：
 
-#### 附录：`sending` 解锁时机（确认点 2 · 节点图与场景）
+- **确认点 1（历史）**：曾约定叹号与 **`send` 共用** 某一 **布尔门闩**；**勘误**：现网 **无 `sending`**，二者共用 **300ms 防抖时间戳**（通过内容非空与 **`countOpenPendingUsers`** 后、**`fetch` 前** 打点）。  
+- **确认点 3（仍有效）**：`docs/contract.md` 以 **「H5 实现说明」** 写清 **流中再 `send`**、**Abort/session/generation** 与 **多端单代** 半句（由 **S3** 已落地）。  
+- **确认点 2 / N2·N3（历史）**：曾讨论 **N3 或 N2** 解锁 `sending`；**勘误**：该讨论 **已被「移除 `sending`」方案取代**，附录节点名 **仅作排障对照**。  
+- **确认点 4（仍有效）**：不以埋点门槛阻塞迭代；后续体验问题以工单驱动。
 
-下列为 **同一次** `POST /api/chat/send`（msg1）从点击到流结束的一条时间轴；**竖线右侧**为「若在此刻之前 `sending` 仍为 true，则 **第二条 send / 叹号重发** 被挡住」的示意。
+#### 附录：N0–Nk 节点（归档 · 排障对照）
+
+下列为 **同一次** `POST /api/chat/send`（msg1）从点击到流结束的 **客户端时间轴**；**不再**用 **`sending`** 描述「能否再发」— **再发** 由 **300ms 防抖** + **`Abort`/session** 约束。
 
 ```text
   N0          N1              N2                         N3                    N4 …           Nk
   │           │               │                          │                     │              │
   ▼           ▼               ▼                          ▼                     ▼              ▼
-用户点击    sending=true    HTTP 200 且               收到首条可解析         首条 delta      done / failed /
-发 msg1     fetch 已发出    Content-Type 为            SSE：`type=meta`      （界面开始      连接结束
-                            text/event-stream          含 generation_id      打字）          （VX-A：`sending=false`
-                            （响应头已到，              （本代可判定）                          在 N2 首字节）
+用户点击    fetch 已发出     HTTP 200 且                收到首条可解析         首条 delta      done / failed /
+发 msg1                     Content-Type 为            SSE：`type=meta`      （界面开始      连接结束
+                            text/event-stream          含 generation_id      打字）
+                            （响应头已到，
                             body 可读前或刚读）
 ```
 
-| 节点 | 含义（客户端视角） | `sending`（当前/待改目标） |
-|------|-------------------|---------------------------|
-| **N0** | 用户点击发送 msg1 | 点击后即将 **true**（与现网一致） |
-| **N1** | `fetch` 已发出，尚未收到响应 | **true** |
-| **N2** | 已确认 **HTTP 成功** 且 **SSE Content-Type**；**响应体首包非空字节** 已读入 | **VX-A：`sending=false`（解锁点）**；此前为 true |
-| **N3** | 已解析 **`meta`**，拿到 **`generation_id`** | **false**（与 N2 后一致）；**仅记录代**，不再负责改 `sending` |
-| **N4…** | `delta` 流式输出中 | **false**（允许 msg2 / 叹号规则见确认点 1） |
-| **Nk** | `done` / `failed` / 断流 | **false**（`handleSend` 末尾守卫仍可兜底） |
+| 节点 | 含义（客户端视角） | 与现网 H5 的关系（2026-05-11+） |
+|------|-------------------|--------------------------------|
+| **N0** | 用户点击发送 msg1 | 通过校验后 **`fetch` 前** 更新 **`lastSendOrResendAt`** |
+| **N1** | `fetch` 已发出，尚未收到响应 | 300ms 内再次点击 **静默 `return`** |
+| **N2** | 已确认 **HTTP 成功** 且 **SSE Content-Type**；**响应体首包非空字节** 已读入（若网关迟滞，可能晚于响应头） | **无 `sending` 语义**；旧流由新 **`send` 的 `Abort`** 终止 |
+| **N3** | 已解析 **`meta`**，拿到 **`generation_id`** | **绑定本代**；与能否连发 **无布尔门闩关系** |
+| **N4…** | `delta` 流式输出中 | 仍受 **≤5 / 叹号例外** 与 **300ms** 约束 |
+| **Nk** | `done` / `failed` / 断流 | 错误路径须 **`chatSendSession`/UI** 不卡死（见 **`contract.md`**） |
 
-**现网补充（2026-05）**：服务端可能在 **`meta` 之前较长时间不向响应体写入字节**；H5 在 **已确认 HTTP 成功且 `Content-Type` 为 `text/event-stream`（SSE 建连）** 之后、**进入 `consumeChatSse` 读取 body 之前** 即 **`sending=false`**，使连发不必等待「首段非空 body」。下表 **N2** 行中「首包非空字节」处再次 **`sending=false`** 为幂等。
-
-**场景 S-A（首包慢）**  
-- **经过**：N2 已到，**N3 延迟**（弱网、网关缓冲）。  
+**场景 S-A（首包慢 / `meta` 迟）**  
+- **经过**：**N2～N3 间隙** 较长（弱网、网关缓冲）。  
 - **用户动作**：想在「AI 还没出字」时就发 **msg2**。  
-- **选项 α（N3 解锁）**：此窗口内 **`sending` 仍为 true** → **不能发** msg2、**叹号也不能**（确认点 1）。  
-- **选项 β（N2 解锁）**：N2 后即 **`sending=false`** → **可发** msg2；**风险**：`generation_id` 未到时须仅靠 **Abort + session** 丢包，**实现与排错略复杂**。
+- **现网**：**无 `sending` 卡住第二条**；若 **300ms** 内连点则第二条被防抖吞掉；否则 **`fetch` 发起**，旧 SSE 由 **`Abort`** 终止。
 
 **场景 S-B（已出字）**  
 - **经过**：已过 **N3**，正在 **N4…** 流式。  
 - **用户动作**：发 **msg2** 或点叹号。  
-- **选项 α / β**：只要解锁点已过，**二者均允许**（仍受 **≤5 / 叹号例外** 约束）；**确认点 1** 下叹号与 send **同门闠**。
+- **现网**：受 **300ms**、**≤5 / 叹号例外** 约束；**`Abort`/session** 防串台。
 
 **场景 S-C（仅 JSON 错误、未进 SSE）**  
 - **经过**：N1 后收到 **4xx/5xx 或 JSON 信封**（未形成 SSE）。  
-- **建议**：**立即 `sending=false`**（与「流中再发」无关，属错误路径），避免卡死。
+- **现网**：**不得**因缺少布尔门闩而卡死输入；须能再次 **`send`**（见 **`chat.html`** 错误分支与 **`updateSendBtn`**）。
 
-**已定稿（确认点 2）**  
-- **采用**：**选项 α = N3** — 在 **N3（`meta`）之后** `sending=false`。  
-- **原因**：与契约「**收到 `meta` 后记录 `generation_id`」**一致；与 **确认点 1**（`meta` 前不重发）**同一阈值**，状态机最简单。
+#### VX-A 手工用例（归档 · 可勾选）
 
-**演进策略（不达标再评估 N2）**  
-- **先上线 N3**（**确认点 4·选项 1**）：**不**预设埋点门槛或量化达标线；以 **工单与产品反馈** 判断 **S-A**（N2～N3 间隙过长）是否构成显著体验问题。  
-- **若需升级到 β（N2 解锁）**：须单独立小版本：补 **N2～N3 间隙** 的 SSE 解析与 **Abort** 验收、**双连接** UI 用例、契约 **半句** 说明；**仍不改** 后端打包/代语义。  
-- **VX-A（2026-04-15）**：**β（N2）** 已在 H5 落地；下列手工用例供回归勾选。
-
-#### VX-A 手工用例（可勾选）
-
-- [ ] **用例 1（双 Tab 并发发送）**：两窗口同一账号几乎同时点 **`send`**，确认仅一条进行中 AI、**Abort** 与 **`chatSendSession`** 行为符合预期，**`sending`** 不卡死。  
-- [ ] **用例 2（N2 解锁后、`meta` 未到前点叹号）**：先有一条 **failed_** user 行带叹号，再 **`send`**，在 **首包已到达、尚未依赖 `meta` 出字** 的窗口内点叹号 — 记录 **允许 resend** 或 **101xx** 等与 **`contract.md`** 一致；若与产品预期不符 → **需产品签字** 是否加第二门闩。  
-- [ ] **用例 3（Abort 后 `chatSendSession` 递增再发）**：超时或打断后 **`chatSendSession`** 已变，再次 **`send`** 正常、**`sending`** 不残留。
+- [ ] **用例 1（双 Tab 并发发送）**：两窗口同一账号几乎同时点 **`send`**，确认仅一条进行中 AI、**Abort** 与 **`chatSendSession`** 行为符合预期，**输入区不因旧逻辑卡死**。  
+- [ ] **用例 2（`meta` 未到前连发）**：弱网下 **`meta` 延迟**，在 **首包/出字前后** 快速连点 **`send`** — 确认 **300ms 防抖** 与 **`Abort`** 与 **`contract.md`** 一致。  
+- [ ] **用例 3（Abort 后 `chatSendSession` 递增再发）**：超时或打断后 **`chatSendSession`** 已变，再次 **`send`** 正常、**无「假死」**。
 
 ### 与任务 7 / 任务 9 / TD-020 的分工
 
-- **任务 7（已完成）**：叹号、Abort、generation、幂等、≤5、重发、timeline 纠偏 — **勿回炉重造**，仅在本节 **增量调整 `sending` 与气泡生命周期**。  
+- **任务 7（已完成）**：叹号、Abort、generation、幂等、≤5、重发、timeline 纠偏 — **勿回炉重造**，仅在本节 **增量维护发送防抖与气泡生命周期**（以 **`contract.md` + `chat.html`** 为准）。  
 - **任务 9 / TD-016（主交付已完成）**：`round_id`、按轮 `emotion_log`、Admin 情绪 Tab — **见任务 9 / `tech-debt.md` [TD-016]**；与本节 H5 增量 **可并行**；**勿把 `round_id` 写进本节 S1–S3 的必做前置**。  
 - **TD-020（进行中 · V3-A）**：短期情绪 Redis **`user_emotion:{user_id}`** + DB **`user_short_term_emotion`**、读写边界 — **见 `tech-debt.md` [TD-020]** 与 **`docs/contract.md`**（无新 HTTP）。
 
@@ -416,4 +406,4 @@
 
 ## 小结（给 Plan 用的一句话）
 
-**任务 1→8** 为 TD-015 **主链已交付**；**任务 9 / TD-016**（`round_id` + Admin 情绪 Tab）**已交付**；**后续里程碑**（H5 连发门闩 + 气泡 + 契约补充）与 **TD-020** 等为 **待排期或进行中增量**，实施时 **勿与主链重复开发**；检索改写 **TD-017** 仍不纳入本清单。
+**任务 1→8** 为 TD-015 **主链已交付**；**任务 9 / TD-016**（`round_id` + Admin 情绪 Tab）**已交付**；**后续里程碑**（H5 **无 `sending`**、**300ms 防抖 + IME**、气泡、契约补充）与 **TD-020** 等为 **待排期或进行中增量**，实施时 **勿与主链重复开发**；检索改写 **TD-017** 仍不纳入本清单。

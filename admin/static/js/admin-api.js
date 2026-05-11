@@ -301,10 +301,86 @@ function renderHeader(pageTitle) {
       '<div style="display:flex;align-items:center;gap:12px">' +
         '<span class="tag tag-blue">' + roleText + '</span>' +
         '<span style="color:#333;font-size:14px">' + getAdminUsername() + '</span>' +
-        '<button class="btn btn-default" onclick="handleAdminLogout()">退出登录</button>' +
+        '<button type="button" class="btn btn-default" onclick="showChangePasswordModal()">修改密码</button>' +
+        '<button type="button" class="btn btn-default" onclick="handleAdminLogout()">退出登录</button>' +
       '</div>' +
     '</div>'
   );
+}
+
+// ─── 修改密码（当前登录用户，调用 POST /api/admin/auth/change-password）───
+
+function showChangePasswordModal() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML =
+    '<div class="modal-content" style="min-width:400px;max-width:480px">' +
+      '<div class="modal-header">' +
+        '<h3>修改密码</h3>' +
+        '<button type="button" class="btn btn-link" id="__cp_close">✕</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<p style="margin:0 0 12px;font-size:13px;color:#666;line-height:1.5">' +
+          '新密码须≥12位，且含大写字母、小写字母、数字、特殊字符（非字母数字），与创建管理员账号规则一致。' +
+        '</p>' +
+        '<div class="form-item" style="margin-bottom:12px">' +
+          '<label>当前密码</label>' +
+          '<input type="password" id="__cp_old" class="form-control" autocomplete="current-password">' +
+        '</div>' +
+        '<div class="form-item" style="margin-bottom:12px">' +
+          '<label>新密码</label>' +
+          '<input type="password" id="__cp_new" class="form-control" autocomplete="new-password">' +
+        '</div>' +
+        '<div class="form-item" style="margin-bottom:0">' +
+          '<label>确认新密码</label>' +
+          '<input type="password" id="__cp_confirm" class="form-control" autocomplete="new-password">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-default" id="__cp_cancel">取消</button>' +
+        '<button type="button" class="btn btn-primary" id="__cp_ok">保存</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  function close() {
+    overlay.remove();
+  }
+
+  overlay.querySelector('#__cp_close').onclick = close;
+  overlay.querySelector('#__cp_cancel').onclick = close;
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) close();
+  });
+
+  overlay.querySelector('#__cp_ok').onclick = async function () {
+    var oldP = overlay.querySelector('#__cp_old').value;
+    var newP = overlay.querySelector('#__cp_new').value;
+    var cfm = overlay.querySelector('#__cp_confirm').value;
+    if (!oldP || !newP || !cfm) {
+      showToast('请填写完整', 'error');
+      return;
+    }
+    if (newP !== cfm) {
+      showToast('两次新密码不一致', 'error');
+      return;
+    }
+    var result = await adminRequest('POST', '/api/admin/auth/change-password', {
+      old_password: oldP,
+      new_password: newP,
+      confirm_password: cfm
+    });
+    if (result && result.code === 0) {
+      close();
+      showToast('密码已修改，请重新登录', 'success');
+      clearAdminToken();
+      window.location.href = '/admin/pages/login.html';
+    }
+  };
+
+  setTimeout(function () {
+    overlay.querySelector('#__cp_old').focus();
+  }, 100);
 }
 
 // ─── 退出登录 ───

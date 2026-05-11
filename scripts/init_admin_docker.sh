@@ -28,6 +28,7 @@ fi
 
 echo "ℹ️  使用网络「${NET}」，主机 mysql:3306（与 backend 容器一致）"
 
+# pip 使用清华镜像，避免国内 ECS 访问 files.pythonhosted.org 超时（与 Dockerfile 策略一致）
 docker run --rm \
   --network "${NET}" \
   -v "${ROOT}:/work" \
@@ -35,5 +36,11 @@ docker run --rm \
   --env-file "${ROOT}/.env" \
   -e MYSQL_HOST=mysql \
   -e DATABASE_URL= \
+  -e PIP_DEFAULT_TIMEOUT=120 \
   python:3.11-slim bash -c \
-  'pip install -q pymysql bcrypt python-dotenv sqlalchemy && python scripts/init_admin.py'
+  'pip install -q --upgrade pip && \
+   pip install -q \
+     -i https://pypi.tuna.tsinghua.edu.cn/simple \
+     --trusted-host pypi.tuna.tsinghua.edu.cn \
+     pymysql bcrypt python-dotenv sqlalchemy && \
+   python scripts/init_admin.py'
