@@ -279,19 +279,27 @@
     .send-btn {
       width: 44px;
       height: 44px;
+      border: none;
       border-radius: 50%;
       background: var(--color-primary);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 18px;
       flex-shrink: 0;
-      transition: opacity 0.2s;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
     }
 
+    /* 空内容：与系统键盘「发送」禁用态一致的浅灰底 + 低对比符号 */
+    .send-btn:disabled,
     .send-btn.disabled {
-      opacity: 0.5;
+      background: #D8D8DC;
+      color: #8E8E93;
+      cursor: not-allowed;
       pointer-events: none;
+      opacity: 1;
     }
 
     /* AI思考动画 */
@@ -398,10 +406,12 @@
 
     <!-- 底部输入区 -->
     <div class="input-area">
-      <textarea id="msg-input" placeholder="想和我说什么..." rows="1"
+      <textarea id="msg-input" placeholder="想和我说什么..." rows="1" enterkeyhint="send"
                 oninput="autoResize(this); updateSendBtn(); saveDraft()"
+                oncompositionend="autoResize(this); updateSendBtn(); saveDraft()"
+                onkeyup="updateSendBtn()"
                 onkeydown="handleEnterKey(event)"></textarea>
-      <button class="send-btn disabled" id="send-btn" onclick="handleSend()">➤</button>
+      <button type="button" class="send-btn disabled" id="send-btn" disabled onclick="handleSend()">➤</button>
     </div>
   </div>
 
@@ -449,7 +459,10 @@
     function updateSendBtn() {
       const btn = document.getElementById('send-btn')
       const input = document.getElementById('msg-input')
-      btn.classList.toggle('disabled', !input.value.trim())
+      if (!btn || !input) return
+      const empty = !input.value.trim()
+      btn.classList.toggle('disabled', empty)
+      btn.disabled = empty
     }
 
     function handleEnterKey(e) {
@@ -457,6 +470,14 @@
         e.preventDefault()
         handleSend()
       }
+    }
+
+    /** 发送键拦截默认按下行为，避免焦点从输入框移到按钮导致移动端键盘收起；发送仍走 click → handleSend */
+    function setupSendBtnKeepKeyboard() {
+      const btn = document.getElementById('send-btn')
+      if (!btn) return
+      btn.addEventListener('mousedown', function (e) { e.preventDefault() })
+      btn.addEventListener('touchstart', function (e) { e.preventDefault() }, { passive: false })
     }
 
     /* ====== 草稿保存 ====== */
@@ -673,12 +694,14 @@
     }
 
     /* ====== 发送消息（TD-015：Abort 打断、meta.generation_id、幂等键、队列满） ====== */
-    let sending = false
     let chatSendAbort = null
     /** 每次发起 send/resend 前递增；与 meta.generation_id 配合丢弃过期 SSE（对齐契约） */
     let chatSendSession = 0
     /** 与后端 `_BUNDLE_WAIT_TIMEOUT_SEC`（120s）对齐：单次 send/resend 流式请求客户端最长等待 */
     const CHAT_CLIENT_ABORT_MS = 120000
+    /** send 与叹号 resend 共用：通过校验后、发起 fetch 前打时间戳；300ms 内重复操作静默忽略（防连点，不挡整段 SSE） */
+    const CHAT_SEND_DEBOUNCE_MS = 300
+    let lastSendOrResendAt = 0
 
     function countOpenPendingUsers() {
       const users = [...document.querySelectorAll('#chat-messages .msg-row.user')]
@@ -704,8 +727,6 @@
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      /** N2（VX-A）：首段 SSE 响应体首包非空字节到达后只解锁一次 sending，不等待 meta */
-      let n2StreamBodyStarted = false
       /** 本连接 meta 下发的代；delta 若带 generation_id 则须与此一致 */
       let streamGenerationId = null
       let metaReceived = false
@@ -713,12 +734,6 @@
         const { done, value } = await reader.read()
         if (sessionAtStart !== chatSendSession) break
         if (done) break
-        if (!n2StreamBodyStarted && value && value.byteLength > 0) {
-          n2StreamBodyStarted = true
-          if (sessionAtStart === chatSendSession) {
-            sending = false
-          }
-        }
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
@@ -795,7 +810,7 @@
     async function handleSend() {
       const input = document.getElementById('msg-input')
       const content = input.value.trim()
-      if (!content || sending) return
+      if (!content) return
 
       const { pending, hasBang } = countOpenPendingUsers()
       if (pending >= 5 && !hasBang) {
@@ -803,12 +818,15 @@
         return
       }
 
+      const now = Date.now()
+      if (now - lastSendOrResendAt < CHAT_SEND_DEBOUNCE_MS) return
+      lastSendOrResendAt = now
+
       if (chatSendAbort) chatSendAbort.abort()
       const sessionAtStart = ++chatSendSession
       removeAiInFlightRows()
       chatSendAbort = new AbortController()
 
-      sending = true
       const userRow = appendUserBubble(content, null, 'pending_llm')
       input.value = ''
       input.style.height = 'auto'
@@ -839,7 +857,6 @@
         if (response.status === 401) {
           aiBubble.removeRow()
           if (userRow.parentNode) userRow.remove()
-          if (sessionAtStart === chatSendSession) sending = false
           clearToken()
           window.location.href = '/pages/login.html'
           return
@@ -851,7 +868,6 @@
             userRow.setAttribute('data-delivery', 'failed_error')
             ensureUserRowBangButton(userRow)
           }
-          if (sessionAtStart === chatSendSession) sending = false
           return
         }
 
@@ -863,12 +879,9 @@
             userRow.setAttribute('data-delivery', 'failed_error')
             ensureUserRowBangButton(userRow)
           }
-          if (sessionAtStart === chatSendSession) sending = false
           return
         }
 
-        /* 流中再发：HTTP 已成功且确认为 SSE 后即可解锁，不等待响应体首字节（与契约 H5 实现说明一致；consumeChatSse 内 N2 仍幂等置 false） */
-        if (sessionAtStart === chatSendSession) sending = false
         await consumeChatSse(response, aiBubble, sessionAtStart, { userRowForFailure: userRow })
       } catch (err) {
         console.error('发送失败:', err)
@@ -884,20 +897,19 @@
           }
         }
       }
-
-      if (sessionAtStart === chatSendSession) sending = false
     }
 
     document.getElementById('chat-messages').addEventListener('click', async function (e) {
       const btn = e.target.closest('.msg-bang')
       if (!btn || btn.disabled) return
-      if (sending) return
+      const tNow = Date.now()
+      if (tNow - lastSendOrResendAt < CHAT_SEND_DEBOUNCE_MS) return
+      lastSendOrResendAt = tNow
       btn.disabled = true
       if (chatSendAbort) chatSendAbort.abort()
       const sessionAtStart = ++chatSendSession
       removeAiInFlightRows()
       chatSendAbort = new AbortController()
-      sending = true
       const aiBubble = appendAIThinkingBubble()
       scrollToBottom()
       try {
@@ -917,43 +929,29 @@
         clearTimeout(timeoutId)
         if (response.status === 401) {
           aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) {
-            sending = false
-            btn.disabled = false
-          }
+          if (sessionAtStart === chatSendSession) btn.disabled = false
           clearToken()
           window.location.href = '/pages/login.html'
           return
         }
         if (!response.ok) {
           aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) {
-            sending = false
-            btn.disabled = false
-          }
+          if (sessionAtStart === chatSendSession) btn.disabled = false
           return
         }
         const ct = response.headers.get('content-type') || ''
         if (ct.includes('application/json')) {
           await response.json().catch(() => ({}))
           aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) {
-            sending = false
-            btn.disabled = false
-          }
+          if (sessionAtStart === chatSendSession) btn.disabled = false
           return
         }
-        /* 叹号重发：与 send 同策略，确认进入 SSE 后解锁，便于流中再点叹号或发新消息 */
-        if (sessionAtStart === chatSendSession) sending = false
         await consumeChatSse(response, aiBubble, sessionAtStart, { clearAllFailedUserRowsOnDone: true })
       } catch (err) {
         console.error('重发失败:', err)
         aiBubble.removeRow()
       }
-      if (sessionAtStart === chatSendSession) {
-        sending = false
-        btn.disabled = false
-      }
+      if (sessionAtStart === chatSendSession) btn.disabled = false
     })
 
     /* ====== 加载统一时间线 ====== */
@@ -1151,6 +1149,7 @@
 
       syncChatBottomPadding()
       setupInputAreaBottomSync()
+      setupSendBtnKeepKeyboard()
 
       await loadTimeline(true)
 
