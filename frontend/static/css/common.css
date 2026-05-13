@@ -2,17 +2,21 @@
 /* 林小梦 H5 公共样式 */
 
 :root {
-  --color-primary: #FFE4E1;
-  --color-bg: #FFF8F0;
-  --color-blue: #E8F4FD;
-  --color-text: #333333;
-  --color-gray: #999999;
+  /* 主色：用于头像底色、进度条等；与 h5-theme 中渐变按钮并存 */
+  --color-primary: #ffb8d9;
+  --color-bg: #faf7ff;
+  --color-blue: #dbeafe;
+  --color-text: #1f2937;
+  --color-gray: #6b7280;
   --color-danger: #FF4D4F;
   --border-radius: 16px;
   --color-white: #FFFFFF;
-  --color-border: #F0E8E0;
+  --color-border: #e5e7eb;
   --color-success: #52C41A;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --h5-motion-fast: 0.2s;
+  --h5-motion-mid: 0.35s;
+  --h5-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ====== 基础 Reset ====== */
@@ -223,7 +227,7 @@ button {
 /* ====== 骨架屏 ====== */
 
 .skeleton {
-  background: linear-gradient(90deg, #F0E8E0 25%, #F8F2EC 50%, #F0E8E0 75%);
+  background: linear-gradient(90deg, #ede9fe 25%, #fce7f3 50%, #ede9fe 75%);
   background-size: 200% 100%;
   animation: skeleton-breathe 1.5s ease-in-out infinite;
   border-radius: 8px;

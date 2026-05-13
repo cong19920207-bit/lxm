@@ -1,0 +1,567 @@
+/* -*- coding: utf-8 -*- */
+/**
+ * 林小梦 H5 主题层（漫画风 / neo-brush 表现）。
+ * 依赖 common.css 中的类名与结构；不引入 Demo 工程，仅沉淀视觉变量与装饰动画。
+ */
+
+:root {
+  --h5-neo-border: #121212;
+  --h5-neo-shadow: 5px 5px 0 rgba(18, 18, 18, 0.22);
+  --h5-neo-shadow-sm: 3px 3px 0 rgba(18, 18, 18, 0.2);
+  --h5-neo-shadow-lg: 8px 8px 0 rgba(18, 18, 18, 0.22);
+  --h5-gradient-page: linear-gradient(145deg, #fce7f3 0%, #ede9fe 42%, #dbeafe 100%);
+  --h5-gradient-cta: linear-gradient(90deg, #3b82f6 0%, #9333ea 100%);
+  --h5-gradient-title: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+  --h5-radius-card: 1.5rem;
+  --h5-radius-control: 1rem;
+  --h5-font-display: ui-rounded, "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ========== 全页渐变底（与各页 body.h5-skin 联用） ========== */
+
+/* 避免仅 body 着色时 overscroll 露白 */
+html:has(> body.h5-skin) {
+  background: var(--h5-gradient-page);
+  background-attachment: fixed;
+}
+
+html.h5-skin,
+body.h5-skin {
+  background: var(--h5-gradient-page);
+  background-attachment: fixed;
+}
+
+body.h5-skin {
+  font-family: var(--h5-font-display), -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+}
+
+/* ========== 顶栏：粗线底 + 轻悬浮 ========== */
+
+body.h5-skin .top-bar,
+body.h5-skin .chat-top-bar {
+  background: #fff;
+  border-bottom: 3px solid var(--h5-neo-border);
+  box-shadow: 0 4px 0 rgba(18, 18, 18, 0.06);
+}
+
+body.h5-skin .top-bar .back-btn:active,
+body.h5-skin .chat-top-bar .back-btn:active,
+body.h5-skin .top-bar .settings-btn:active {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+/* ========== 卡片 neo ========== */
+
+body.h5-skin .card {
+  background: #fff;
+  border: 3px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-card);
+  box-shadow: var(--h5-neo-shadow);
+}
+
+/* ========== 主按钮（登录/首页等，非聊天发送钮） ========== */
+
+body.h5-skin .btn-primary:not(.send-btn) {
+  background: var(--h5-gradient-cta);
+  color: #fff;
+  border: 4px solid var(--h5-neo-border);
+  border-radius: 999px;
+  box-shadow: var(--h5-neo-shadow-lg);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+body.h5-skin .btn-primary:not(.send-btn):active {
+  transform: translate(2px, 2px) scale(0.98);
+  box-shadow: 4px 4px 0 rgba(18, 18, 18, 0.22);
+}
+
+body.h5-skin .btn-primary:not(.send-btn):disabled,
+body.h5-skin .btn-primary:not(.send-btn).disabled {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+  transform: none;
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+body.h5-skin .btn-secondary {
+  background: #fff;
+  border: 3px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-control);
+  box-shadow: var(--h5-neo-shadow-sm);
+  font-weight: 700;
+}
+
+body.h5-skin .btn-secondary:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 rgba(18, 18, 18, 0.18);
+}
+
+body.h5-skin .btn-danger {
+  border-width: 3px;
+  border-radius: var(--h5-radius-control);
+  box-shadow: var(--h5-neo-shadow-sm);
+  font-weight: 700;
+}
+
+/* ========== 输入框 neo ========== */
+
+body.h5-skin .input-field {
+  min-height: 52px;
+  background: #fff;
+  border: 4px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-control);
+  box-shadow: var(--h5-neo-shadow-sm);
+  font-weight: 600;
+}
+
+body.h5-skin .input-field:focus {
+  border-color: #7c3aed;
+  box-shadow: 5px 5px 0 rgba(124, 58, 237, 0.35);
+}
+
+body.h5-skin .input-field.error {
+  border-color: var(--color-danger);
+  box-shadow: 4px 4px 0 rgba(255, 77, 79, 0.35);
+}
+
+/* ========== 认证页 ========== */
+
+.h5-auth-wrap {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px 32px;
+  overflow: hidden;
+}
+
+.h5-auth-decor {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.h5-auth-decor::before,
+.h5-auth-decor::after {
+  content: "";
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  animation: h5-float-y 3s ease-in-out infinite;
+}
+
+.h5-auth-decor::before {
+  top: 8%;
+  left: 6%;
+  animation-delay: 0s;
+}
+
+.h5-auth-decor::after {
+  bottom: 14%;
+  left: 10%;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  animation-delay: 0.6s;
+}
+
+.h5-auth-spark {
+  position: absolute;
+  top: 12%;
+  right: 8%;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fb7185, #ec4899);
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  animation: h5-wiggle 2.4s ease-in-out infinite;
+}
+
+.h5-auth-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  animation: h5-card-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.h5-auth-card {
+  background: #fff;
+  border: 4px solid var(--h5-neo-border);
+  border-radius: 1.75rem;
+  box-shadow: var(--h5-neo-shadow-lg);
+  padding: 1.75rem 1.35rem 1.5rem;
+}
+
+.h5-brand-title {
+  font-size: clamp(2rem, 8vw, 2.75rem);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  margin-bottom: 0.35rem;
+  background: var(--h5-gradient-title);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--h5-neo-border);
+  paint-order: stroke fill;
+}
+
+.h5-brand-sub {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+body.h5-skin .h5-auth-card .form-group label {
+  font-weight: 700;
+  color: #374151;
+}
+
+body.h5-skin .remember-row {
+  font-weight: 600;
+}
+
+body.h5-skin .switch-links a {
+  color: #db2777;
+  font-weight: 700;
+}
+
+body.h5-skin .toggle-pwd {
+  top: 50%;
+  transform: translateY(-50%);
+  height: 44px;
+  border-radius: 12px;
+}
+
+/* ========== 首页 ========== */
+
+.h5-home-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.h5-home-decor {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.h5-home-decor::before {
+  content: "";
+  position: absolute;
+  top: 72px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fcd34d, #fbbf24);
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  animation: h5-wiggle 2.5s ease-in-out infinite;
+}
+
+.h5-home-decor::after {
+  content: "";
+  position: absolute;
+  top: 100px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fb7185, #f472b6);
+  border: 3px solid var(--h5-neo-border);
+  animation: h5-float-y 2.8s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+.h5-home-main {
+  position: relative;
+  z-index: 1;
+}
+
+body.h5-skin .h5-home-main {
+  animation: h5-page-fade 0.38s var(--h5-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+body.h5-skin .page .top-bar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+body.h5-skin .user-avatar {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  background: linear-gradient(135deg, #93c5fd, #c4b5fd) !important;
+  color: #111 !important;
+}
+
+body.h5-skin .settings-btn {
+  border: 3px solid var(--h5-neo-border);
+  border-radius: 50%;
+  background: #e5e7eb;
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+body.h5-skin .avatar-section .name {
+  font-size: clamp(1.75rem, 7vw, 2.25rem);
+  font-weight: 900;
+  background: var(--h5-gradient-title);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--h5-neo-border);
+  paint-order: stroke fill;
+}
+
+body.h5-skin .avatar-wrapper img,
+body.h5-skin .avatar-fallback {
+  border: 5px solid var(--h5-neo-border) !important;
+  box-shadow: var(--h5-neo-shadow-lg) !important;
+}
+
+body.h5-skin .progress-bar {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+body.h5-skin .progress-bar .progress-fill {
+  background: var(--h5-gradient-cta);
+}
+
+/* ========== 日记 / 记忆 列表卡片增强 ========== */
+
+body.h5-skin .diary-card.card,
+body.h5-skin .memory-card.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.h5-skin .diary-card.card:active,
+body.h5-skin .memory-card.card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 rgba(18, 18, 18, 0.18);
+}
+
+/* ========== 关系页 milestone neo ========== */
+
+body.h5-skin .milestone-item {
+  border: 2px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+body.h5-skin .level-card {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow);
+}
+
+/* ========== 聊天页（保留 #send-btn 禁用色契约） ========== */
+
+body.h5-skin .chat-page {
+  background: var(--h5-gradient-page);
+}
+
+body.h5-skin .chat-messages {
+  background: transparent;
+}
+
+body.h5-skin .msg-row.ai .msg-bubble {
+  background: #fff;
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  animation: h5-bubble-in 0.35s ease both;
+}
+
+body.h5-skin .msg-row.user .msg-bubble {
+  border: 3px solid #15803d;
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+body.h5-skin .input-area {
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 3px solid var(--h5-neo-border);
+  box-shadow: 0 -6px 0 rgba(18, 18, 18, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+body.h5-skin .input-area textarea {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  background: #fff;
+}
+
+/* 发送钮：启用态 neo；禁用态完全交给 chat.html 内联规则，此处不覆盖 disabled */
+body.h5-skin .send-btn:not(:disabled):not(.disabled) {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+  background: var(--h5-gradient-cta);
+  color: #fff;
+}
+
+/* 记忆页顶部「新增」强调色与主题一致 */
+body.h5-skin .top-bar .add-btn {
+  color: #db2777;
+  font-weight: 700;
+}
+
+body.h5-skin .agent-tip {
+  border-bottom: 2px solid var(--h5-neo-border);
+}
+
+/* 叹号重发按钮：与主题粗线一致 */
+body.h5-skin .msg-bang {
+  border: 2px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+/* 升级底部提示条 */
+body.h5-skin .levelup-tip {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow);
+}
+
+/* 思考占位气泡 */
+body.h5-skin .thinking-bubble .msg-bubble {
+  border: 3px dashed var(--h5-neo-border);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* ========== 关系页：非 .card 的区块统一 neo ========== */
+
+body.h5-skin .progress-section,
+body.h5-skin .today-section,
+body.h5-skin .timeline-section,
+body.h5-skin .log-section {
+  background: #fff;
+  border: 3px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-card);
+  box-shadow: var(--h5-neo-shadow);
+}
+
+body.h5-skin .detail-progress-bar {
+  border: 2px solid var(--h5-neo-border);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* ========== 记忆页：底部面板 neo ========== */
+
+body.h5-skin .add-panel {
+  border: 3px solid var(--h5-neo-border);
+  border-bottom: none;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 -8px 0 rgba(18, 18, 18, 0.08);
+}
+
+body.h5-skin .memory-edit textarea {
+  border: 3px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-control);
+  box-shadow: var(--h5-neo-shadow-sm);
+}
+
+body.h5-skin .memory-edit .edit-save {
+  background: var(--h5-gradient-cta);
+  color: #fff;
+  border: 3px solid var(--h5-neo-border);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+body.h5-skin .memory-edit .edit-cancel {
+  border: 2px solid var(--h5-neo-border);
+  border-radius: var(--h5-radius-control);
+  font-weight: 600;
+}
+
+/* ========== 子页进入：轻量淡入（不影响脚本） ========== */
+
+body.h5-skin .page-body {
+  animation: h5-page-fade 0.38s var(--h5-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes h5-page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.h5-skin .modal-box {
+  border: 3px solid var(--h5-neo-border);
+  box-shadow: var(--h5-neo-shadow-lg);
+}
+
+body.h5-skin .toast-item {
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+@keyframes h5-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes h5-float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes h5-wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  35% { transform: rotate(-8deg) scale(1.05); }
+  70% { transform: rotate(8deg) scale(1.02); }
+}
+
+@keyframes h5-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========== 减少动态效果 ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  .h5-auth-inner,
+  .h5-auth-decor::before,
+  .h5-auth-decor::after,
+  .h5-auth-spark,
+  .h5-home-decor::before,
+  .h5-home-decor::after {
+    animation: none !important;
+  }
+
+  body.h5-skin .msg-row.ai .msg-bubble {
+    animation: none !important;
+  }
+
+  body.h5-skin .page-body,
+  body.h5-skin .h5-home-main {
+    animation: none !important;
+  }
+}

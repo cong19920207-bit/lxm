@@ -5,36 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>林小梦 - 登录</title>
   <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/h5-theme.css">
   <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px 20px;
-    }
-
-    .brand {
+    .h5-auth-wrap .brand {
       text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .brand h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--color-text);
-      margin-bottom: 8px;
-    }
-
-    .brand p {
-      font-size: 14px;
-      color: var(--color-gray);
+      margin-bottom: 1.25rem;
     }
 
     .form-container {
       width: 100%;
-      max-width: 360px;
+      max-width: 100%;
     }
 
     .form-panel {
@@ -114,13 +94,16 @@
     }
   </style>
 </head>
-<body>
-  <div class="brand">
-    <h1>林小梦</h1>
-    <p>你专属的数字人格陪伴</p>
-  </div>
+<body class="h5-skin">
+  <div class="h5-auth-wrap">
+    <div class="h5-auth-decor" aria-hidden="true"><div class="h5-auth-spark"></div></div>
+    <div class="h5-auth-inner">
+      <div class="brand">
+        <h1 class="h5-brand-title">林小梦</h1>
+        <p class="h5-brand-sub">你专属的数字人格陪伴</p>
+      </div>
 
-  <div class="form-container">
+      <div class="form-container h5-auth-card">
     <!-- 登录表单 -->
     <div class="form-panel active" id="panel-login">
       <div class="form-group">
@@ -203,6 +186,8 @@
       <button class="btn-primary submit-btn disabled" id="btn-reset" onclick="handleReset()">重置密码</button>
       <div class="switch-links">
         <a onclick="switchPanel('login')">返回登录</a>
+      </div>
+    </div>
       </div>
     </div>
   </div>
