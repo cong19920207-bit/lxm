@@ -6,45 +6,44 @@
 
 ## 1. 发布 / 验收门禁（复制到发布 checklist 即可）
 
-- **H5 对话须可用**：日记与对话共用 `VOLC_`* 与 `llm_client`。**若对话不可用，不验收日记生成阶段（TD-007 阶段 B/C）上线。**
+- **H5 对话须可用**：日记与对话共用 `**VOLC_`*** 与 `llm_client`。**若对话不可用，不验收日记生成阶段（TD-007 阶段 B/C）上线。**
 
 ---
 
-## 2. 时间与「今日」口径（UTC）
+## 2. 时间与「统计窗」口径（Asia/Shanghai）
 
-- **APScheduler 的 Cron** 与 `**DiaryService` 内「今日是否已生成 / 当日对话」**均以 **UTC** 为准，直至全项目统一业务时区。
-- 运维排期、值班沟通时**勿按仅本地时区**理解「凌晨任务」。
+- **APScheduler 的日记 Cron** 使用 **`Asia/Shanghai`**，**`generation_hour` / `generation_minute`** 与后台「日记规则」一致，表示**北京时间**触发点（默认建议 **0:15**）。
+- **`DiaryService`**：批跑开始时取一次上海锚点日历日 **D**，对话统计窗为 **`[D−1 00:00, D 00:00)`**（上海）；入库字段 **`covers_beijing_date = D−1`**（北京日历日）。与 UTC 自然日无强制对齐要求。
+- **运维排期**：沟通「凌晨任务」时请以 **北京时间** 理解日记任务。
 
 ---
 
 ## 3. 手动触发每日日记批跑（M2a / TD-013）
 
-**适用**：宿主机休眠、misfire 日志、满足生成条件但当日未见新日记等。
+**适用**：宿主机休眠、misfire 日志、满足生成条件但未见新日记等。
 
 **注意**：
 
-- **同一 UTC 自然日**已为某用户生成过日记的，会**跳过**，不会同一天插两条。
+- **同一覆盖日（`covers_beijing_date`，北京）**已为某用户生成过日记的，会**跳过**，不会同一天（覆盖日）插两条。
+- **补跑语义（M1）**：手动执行时刻的锚点 **D = 当前上海日历日**，总结的是 **D−1** 的对话；**不能**通过该入口指定「漏跑的那一天」——晚几天补跑即总结「执行日的前一天」。
 - 尽量避免与定时任务触发**同一时刻**并行执行（极端竞态下理论风险极低）。
 
-**命令**（容器名以 `docker compose ps` 为准，示例为 `lxm_backend`）：
+**推荐命令**（与定时任务同源：`DiaryService.run_daily_diary_task`；仓库脚本 **`scripts/run_diary_batch.py`**，模块入口 **`python -m scripts.run_diary_batch`**）：
+
+本地（项目根目录）：
 
 ```bash
-docker exec lxm_backend sh -c 'cd /app && python -c "
-import asyncio
-from backend.database import async_session_maker
-from backend.services.diary_service import DiaryService
-
-async def run():
-    async with async_session_maker() as db:
-        svc = DiaryService(db)
-        await svc.run_daily_diary_task()
-
-asyncio.run(run())
-"'
+PYTHONPATH=. python -m scripts.run_diary_batch
 ```
 
-- 示例为**静态命令**，勿与用户输入拼接进 shell。
-- 若 `asyncio.run` 在特殊环境报错，可改为在容器内执行独立 `.py` 脚本。
+容器内（容器名以 `docker compose ps` 为准，示例为 `lxm_backend`；应用根目录一般为 `/app`）：
+
+```bash
+docker exec lxm_backend sh -c 'cd /app && python -m scripts.run_diary_batch'
+```
+
+- 上述示例为**静态命令**，勿与用户输入拼接进 shell。
+- **备选**（与旧版等价，不推荐长期维护）：`docker exec` 内 `python -c '…'` 内联 `asyncio` + `async_session_maker` + `DiaryService.run_daily_diary_task()`，逻辑与上表一致。
 
 ---
 
@@ -52,7 +51,7 @@ asyncio.run(run())
 
 1. 看 `**logs/error.log`** / 容器 `docker logs lxm_backend` 是否含 `日记 LLM`、`LLM 非流式` 等错误。
 2. 确认 `**.env` / 容器环境** 中 `**VOLC_`*** 与线上一致，容器可访问火山 **HTTPS**。
-3. 确认用户是否满足 **PRD**：0 级不生成；1 级且无当日（UTC）互动不生成等。
+3. 确认用户是否满足 **PRD**：0 级不生成；1 级且**统计窗内**无互动不生成等。
 4. 查 **火山配额 / 限流** 是否与对话侧同时异常。
 
 ---
@@ -69,4 +68,4 @@ asyncio.run(run())
 
 ---
 
-*最后更新：2026-04-07*
+*最后更新：2026-05-17*

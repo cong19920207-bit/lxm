@@ -137,11 +137,21 @@
       document.getElementById('empty-error').style.display = 'none'
     }
 
-    /* ====== 日期格式化 ====== */
-    function formatDiaryDate(isoString) {
-      if (!isoString) return ''
-      const date = new Date(isoString)
-      return (date.getMonth() + 1) + '月' + date.getDate() + '日'
+    /* ====== 列表日期：优先北京覆盖日，旧数据无字段时回退 created_at ====== */
+    function formatDiaryListDate(diary) {
+      if (diary.covers_beijing_date) {
+        var p = String(diary.covers_beijing_date).split('-')
+        if (p.length === 3) {
+          var m = parseInt(p[1], 10)
+          var d = parseInt(p[2], 10)
+          if (!isNaN(m) && !isNaN(d)) return m + '月' + d + '日'
+        }
+      }
+      if (diary.created_at) {
+        const date = new Date(diary.created_at)
+        return (date.getMonth() + 1) + '月' + date.getDate() + '日'
+      }
+      return ''
     }
 
     /* ====== 加载日记 ====== */
@@ -225,7 +235,7 @@
 
       card.innerHTML = `
         ${diary.is_read ? '' : '<div class="unread-dot"></div>'}
-        <div class="diary-date">${formatDiaryDate(diary.created_at)}</div>
+        <div class="diary-date">${formatDiaryListDate(diary)}</div>
         <div class="diary-content">${escapeHtml(diary.content)}</div>
         <span class="expand-btn">展开全文</span>
       `

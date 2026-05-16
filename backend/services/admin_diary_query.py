@@ -88,6 +88,9 @@ async def fetch_admin_diary_list_page(
                 "relationship_level_at_creation": diary.relationship_level_at_creation,
                 "is_read": diary.is_read,
                 "created_at": diary.created_at.isoformat() if diary.created_at else None,
+                "covers_beijing_date": diary.covers_beijing_date.isoformat()
+                if diary.covers_beijing_date
+                else None,
             }
             for diary, username in list_rows
         ],

@@ -15,8 +15,8 @@
 
 ### 0.2 业务分支与 PRD（**风险：高**，误改易错生成/漏生成）
 
-- PRD 规则已在 `generate_diary_for_user` 中实现：**0 级不生成**、**1 级且无当日互动不生成**、**≥2 无互动可生成想念向**、**当日已有一条则跳过**等 **early-return 必须保留**。
-- **硬性条款（阶段 B）**：**禁止**仅替换 Prompt 而删除或合并这些分支。正确顺序为：**先**完成等级 / 当日是否已有日记 / `has_interaction` 等判定与 **early-return**，**再**在各**已命中的分支内**组装「来自 `diary_rules` 的模板与占位符」或回退硬编码文案。
+- PRD 规则已在 `generate_diary_for_user` 中实现：**0 级不生成**、**1 级且统计窗内无互动不生成**、**≥2 无互动可生成想念向**、**同一 `covers_beijing_date` 已有一条则跳过**等 **early-return 必须保留**。
+- **硬性条款（阶段 B）**：**禁止**仅替换 Prompt 而删除或合并这些分支。正确顺序为：**先**完成等级 / 覆盖日是否已有日记 / `has_interaction` 等判定与 **early-return**，**再**在各**已命中的分支内**组装「来自 `diary_rules` 的模板与占位符」或回退硬编码文案。
 - **测试清单**须包含：**0 级跳过**、**1 级无当日互动不生成**（见 §四）。
 
 ### 0.3 笔误修正
@@ -37,9 +37,10 @@
 - `res.code !== 0`：**不得**继续触底累加；应 Toast/提示并保持当前列表状态。
 - `total` 缺失或非数字时：**勿**用 `totalLoaded + items.length >= total`（易 **NaN**）；回退策略：**本页 `items.length < (res.data.page_size || 20)` 则 `noMore = true`**。
 
-### 0.7 UTC 与运维心智（**风险：中**）
+### 0.7 Asia/Shanghai 与运维心智（**风险：中**）
 
-- **APScheduler Cron** 与 `**DiaryService` 内「今日」**均以 **UTC** 为准，与现网 Docker 日志中 UTC 表现一致；直至「服务器/业务时区统一」改造前，**阶段 C、阶段 E** 须在文档中显式写出，避免值班按仅本地时间理解「凌晨任务」。
+- **APScheduler 日记 Cron** 与 **`DiaryService`** 内统计窗、**`covers_beijing_date`** 均以 **`Asia/Shanghai`** 为准（详见 **`docs/contract.md`**、**`docs/ops-diary.md`**）。若本文其它段落仍写 UTC「今日」，以契约与运维文档为准。
+- 直至其它子系统统一业务时区前，**阶段 C、阶段 E** 须在对外说明中显式写出，避免值班按错误时区理解「凌晨任务」。
 
 ### 0.8 `generation_hour` 脏数据
 
@@ -127,7 +128,7 @@
 
 **改动要点**：
 
-1. **业务顺序（硬性）**：**不得**改动或绕过现有 **level / 当日已生成 / has_interaction** 等分支与 **early-return**（§〇.2）。仅在进入「允许生成」分支后，用配置化文案替换原硬编码 Prompt 组装逻辑。
+1. **业务顺序（硬性）**：**不得**改动或绕过现有 **level / 覆盖日已生成 / has_interaction** 等分支与 **early-return**（§〇.2）。仅在进入「允许生成」分支后，用配置化文案替换原硬编码 Prompt 组装逻辑。
 2. **读取配置**：`await admin_config_service.get_active_config("diary_rules", use_cache=True)`（单例 `admin_config_service`，**必须 await**；签名见 §〇.5）。
 3. **解析结构（与契约 / `DiaryRulesRequest` 同步改造）**：**已定案**以 `**prompt_with_interaction`**、`**prompt_without_interaction`**、`max_length`、`frequency`、`generation_hour`、`generation_minute` 为权威字段；不再以单一 `generation_prompt` 为唯一来源。若已发布 JSON 仍只有旧键 `**generation_prompt**`，须在 loader 内 **兼容**（例如：两新字段均缺时，有/无互动分支暂用同一旧文案，或后台引导重新保存一次）——具体策略在开发任务中写明并加日志。
 4. **模板选用**：按 `has_interaction` 在 `prompt_with_interaction` / `prompt_without_interaction` 中择一，再替换占位符；与后台双框、`PUT /api/admin/diary-rules` 同时上线，避免半套 API。
@@ -151,8 +152,8 @@
 
 **改动要点**：
 
-1. **UTC 说明**：Cron 触发时间与 `DiaryService` 的「今日」均为 **UTC**（§〇.7）；文档与运维须知一致写出。
-2. **启动时**读取生效 `diary_rules` 的 `generation_hour`（合法范围与 PUT 一致 **0–5**）、`generation_minute`（**0–59**）。**越界或非法**时 **clamp/回退 `0:30 UTC`** 并 **warning**（§〇.8）。
+1. **上海时区说明**：Cron 触发时间与 `DiaryService` 统计窗均为 **`Asia/Shanghai`**（§〇.7）；文档与运维须知一致写出。
+2. **启动时**读取生效 `diary_rules` 的 `generation_hour`（合法范围与 PUT 一致 **0–23**）、`generation_minute`（**0–59**）。**越界或非法**时 **回退 `0:15`（上海）** 并 **warning**（§〇.8）。
 3. **与 FastAPI 生命周期衔接**：`lifespan` 内 `**await`** 读配置后再 `start_scheduler(hour, minute)`，避免同步上下文滥用 `asyncio.run`。
 4. **TD-013**：不做热更新；`**diary-rules` 保存后须重启 `lxm_backend`** 才应用新时刻。`diary-rules.html` 保存成功 Toast 或横幅提示（清偿 TD-007 后更新横幅文案，避免仍写「未读配置」）。
 

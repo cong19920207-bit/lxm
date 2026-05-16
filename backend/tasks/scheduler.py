@@ -66,15 +66,14 @@ async def _run_inactive_reset() -> None:
         logger.error("[定时任务] 30 天无活动清零任务异常: %s", str(e), exc_info=True)
 
 
-def start_scheduler(diary_hour: int = 0, diary_minute: int = 30) -> None:
-    """注册并启动所有定时任务。日记 Cron 使用 UTC，时刻由 diary_rules 在启动时解析后传入。"""
-    # 与 DiaryService「今日」日界一致，使用 UTC（见 docs/diary-refactor-plan.md §0.7）
+def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
+    """注册并启动所有定时任务。日记 Cron 使用 Asia/Shanghai，时刻由 diary_rules 在启动时解析后传入。"""
     scheduler.add_job(
         _run_daily_diary_task,
         trigger=CronTrigger(
             hour=diary_hour,
             minute=diary_minute,
-            timezone=ZoneInfo("UTC"),
+            timezone=ZoneInfo("Asia/Shanghai"),
         ),
         id="daily_diary_task",
         name="每日AI日记生成",
@@ -115,9 +114,9 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 30) -> None:
         if j.id == "daily_diary_task" and j.next_run_time:
             nrt = j.next_run_time
             if nrt.tzinfo is not None:
-                nrt = nrt.astimezone(ZoneInfo("UTC"))
+                nrt = nrt.astimezone(ZoneInfo("Asia/Shanghai"))
             logger.info(
-                "[定时任务] 每日日记下次执行（UTC）: %s",
+                "[定时任务] 每日日记下次执行（Asia/Shanghai）: %s",
                 nrt.strftime("%Y-%m-%d %H:%M:%S %Z"),
             )
 

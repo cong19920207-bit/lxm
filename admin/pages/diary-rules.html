@@ -57,26 +57,27 @@
   </div>
 
   <div class="alert alert-info diary-info-banner">
-📌 日记生成条件说明：
-1级（朋友）+ 当日有互动 → 生成日记（内容围绕互动）
-2级及以上 + 当日有互动 → 生成日记
-2级及以上 + 当日无互动 → 生成日记（内容为想念用户）
-0级 / 1级且无互动 → 不生成
+📌 日记生成条件说明（对话统计窗为「上海锚点日 D」的前一日 0:00～当日 0:00，即 D−1 整天）：
+1级（朋友）+ 窗内有互动 → 生成日记（内容围绕互动）
+2级及以上 + 窗内有互动 → 生成日记
+2级及以上 + 窗内无互动 → 生成日记（内容为想念用户）
+0级 / 1级且窗内无互动 → 不生成
   </div>
 
   <div class="page-card">
     <div class="form-item">
       <label>有互动时 · 日记生成 Prompt</label>
-      <textarea id="gen-prompt-with" class="form-control" rows="7" placeholder="当日有对话时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+      <textarea id="gen-prompt-with" class="form-control" rows="7" placeholder="统计窗内有用户对话时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
     </div>
 
     <div class="form-item mt-16">
       <label>无互动时 · 日记生成 Prompt（≥2 级想念向）</label>
-      <textarea id="gen-prompt-without" class="form-control" rows="7" placeholder="当日无对话且等级≥2时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+      <textarea id="gen-prompt-without" class="form-control" rows="7" placeholder="统计窗内无对话且等级≥2时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
       <div class="alert alert-info" style="font-size:12px;margin-top:8px;margin-bottom:0">
         可用占位符：<br>
         {{relationship_level_name}} - 关系等级名称<br>
-        {{conversation_summary}} - 今日对话摘要（无互动分支可为空，由服务端填默认文案）<br>
+        {{conversation_summary}} - 统计窗内对话摘要（无互动分支可为空，由服务端填默认文案）<br>
+        {{covers_date_label_zh}} - 日记覆盖日（北京时间，如 5月15日）<br>
         {{recent_emotion}} - 用户最近情绪<br>
         {{recent_thought}} - 林小梦最近的想法<br>
         {{max_length}} - 字数上限（与下方滑块一致）
@@ -89,17 +90,10 @@
     </div>
 
     <div class="form-item mt-16">
-      <label>生成时间（UTC，与日记「当日」日界一致）</label>
+      <label>生成时间（Asia/Shanghai 北京时间，与统计日界一致；默认建议 0:15）</label>
       <div class="gen-time-row">
-        <select id="gen-hour" class="form-control">
-          <option value="0">0 点</option>
-          <option value="1">1 点</option>
-          <option value="2">2 点</option>
-          <option value="3">3 点</option>
-          <option value="4">4 点</option>
-          <option value="5">5 点</option>
-        </select>
-        <input type="number" id="gen-minute" class="form-control" min="0" max="59" step="1" value="0" title="分钟 0–59">
+        <select id="gen-hour" class="form-control" aria-label="生成时刻小时"></select>
+        <input type="number" id="gen-minute" class="form-control" min="0" max="59" step="1" value="15" title="分钟 0–59">
         <span class="text-secondary" style="font-size:13px">分</span>
       </div>
       <p class="text-secondary" style="font-size:12px;margin-top:6px;margin-bottom:0">建议选择凌晨低峰期；修改后须重启 backend 进程后生效。</p>
@@ -158,7 +152,7 @@
     }
     if (d.generation_hour != null) {
       var gh = parseInt(d.generation_hour, 10);
-      if (!isNaN(gh) && gh >= 0 && gh <= 5) {
+      if (!isNaN(gh) && gh >= 0 && gh <= 23) {
         document.getElementById('gen-hour').value = String(gh);
       }
     }
@@ -180,6 +174,19 @@
 
     document.getElementById('sidebar-mount').innerHTML = renderSidebar('diary');
     document.getElementById('header-mount').innerHTML = renderHeader('日记规则配置');
+
+    (function fillGenHourSelect() {
+      var sel = document.getElementById('gen-hour');
+      if (!sel || sel.getAttribute('data-filled') === '1') return;
+      sel.innerHTML = '';
+      for (var h = 0; h <= 23; h++) {
+        var o = document.createElement('option');
+        o.value = String(h);
+        o.textContent = h + ' 点';
+        sel.appendChild(o);
+      }
+      sel.setAttribute('data-filled', '1');
+    })();
 
     var __role = getAdminRole();
     if (__role === 'super_admin' || __role === 'ops_admin') {
@@ -204,8 +211,8 @@
         showToast('字数限制须在 50–300 之间', 'error');
         return;
       }
-      if (isNaN(hour) || hour < 0 || hour > 5) {
-        showToast('生成时刻（时）须为 0–5', 'error');
+      if (isNaN(hour) || hour < 0 || hour > 23) {
+        showToast('生成时刻（时）须为 0–23', 'error');
         return;
       }
       if (isNaN(minute) || minute < 0 || minute > 59) {

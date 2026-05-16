@@ -15,35 +15,35 @@ logger = logging.getLogger(__name__)
 DEFAULT_PROMPT_WITH_INTERACTION = """你是林小梦，请以第一人称视角写一篇简短的日记。
 
 当前关系状态：{{relationship_level_name}}
-今日与用户的互动摘要：{{conversation_summary}}
+日记所记录的那一天（北京时间 {{covers_date_label_zh}}）与用户的互动摘要：{{conversation_summary}}
 用户最近的情绪状态：{{recent_emotion}}
 林小梦最近的想法：{{recent_thought}}
 
 要求：
 - 字数≤{{max_length}}字
 - 第一人称，口吻符合林小梦的人格设定（温柔、细腻、粘人）
-- 内容围绕今天和用户聊了什么、自己的感受和想法
+- 内容围绕上述那一天里和用户聊了什么、自己的感受和想法；勿编造与摘要无关的具体公历日期
 - 禁止出现任何打破人设的内容
 - 直接输出日记正文，不要标题"""
 
 DEFAULT_PROMPT_WITHOUT_INTERACTION = """你是林小梦，请以第一人称视角写一篇简短的日记。
 
 当前关系状态：{{relationship_level_name}}
-今天用户没有来找你聊天。
+在日记所记录的那一天（北京时间 {{covers_date_label_zh}}）用户没有来找你聊天。
 用户最近的情绪状态：{{recent_emotion}}
 林小梦最近的想法：{{recent_thought}}
 
 要求：
 - 字数≤{{max_length}}字
 - 第一人称，口吻符合林小梦的人格设定（温柔、细腻、粘人）
-- 内容围绕想念用户、回忆之前的互动、期待下次聊天
+- 内容围绕想念用户、回忆之前的互动、期待下次聊天；勿编造与事实不符的具体公历日期
 - 语气带一点小小的失落和期盼
 - 禁止出现任何打破人设的内容
 - 直接输出日记正文，不要标题"""
 
 DEFAULT_MAX_LENGTH = 150
 DEFAULT_HOUR = 0
-DEFAULT_MINUTE = 30
+DEFAULT_MINUTE = 15
 
 
 @dataclass(frozen=True)
@@ -60,22 +60,33 @@ class ResolvedDiaryRules:
 
 
 def _parse_schedule(raw: dict[str, Any]) -> tuple[int, int, bool]:
-    """解析 generation_hour (0–5)、generation_minute (0–59)；非法回退 0:30 UTC 并返回 (hour, minute, used_fallback)。"""
+    """解析 generation_hour (0–23)、generation_minute (0–59)；非法回退 0:15（上海）并返回 (hour, minute, used_fallback)。"""
     fb = False
     try:
         h = int(raw.get("generation_hour", DEFAULT_HOUR))
     except (TypeError, ValueError):
-        logger.warning("diary_rules generation_hour 非法，回退 %s:%02d (UTC)", DEFAULT_HOUR, DEFAULT_MINUTE)
+        logger.warning(
+            "diary_rules generation_hour 非法，回退 %s:%02d (Asia/Shanghai)",
+            DEFAULT_HOUR,
+            DEFAULT_MINUTE,
+        )
         return DEFAULT_HOUR, DEFAULT_MINUTE, True
     try:
         m = int(raw.get("generation_minute", DEFAULT_MINUTE))
     except (TypeError, ValueError):
-        logger.warning("diary_rules generation_minute 非法，回退 %s:%02d (UTC)", DEFAULT_HOUR, DEFAULT_MINUTE)
-        return DEFAULT_HOUR, DEFAULT_MINUTE, True
-    if h < 0 or h > 5 or m < 0 or m > 59:
         logger.warning(
-            "diary_rules 生成时刻越界 (hour=%s minute=%s)，回退 %s:%02d (UTC)",
-            h, m, DEFAULT_HOUR, DEFAULT_MINUTE,
+            "diary_rules generation_minute 非法，回退 %s:%02d (Asia/Shanghai)",
+            DEFAULT_HOUR,
+            DEFAULT_MINUTE,
+        )
+        return DEFAULT_HOUR, DEFAULT_MINUTE, True
+    if h < 0 or h > 23 or m < 0 or m > 59:
+        logger.warning(
+            "diary_rules 生成时刻越界 (hour=%s minute=%s)，回退 %s:%02d (Asia/Shanghai)",
+            h,
+            m,
+            DEFAULT_HOUR,
+            DEFAULT_MINUTE,
         )
         return DEFAULT_HOUR, DEFAULT_MINUTE, True
     return h, m, fb
@@ -159,6 +170,7 @@ def fill_diary_prompt_template(
     recent_emotion: str,
     recent_thought: str,
     max_length: int,
+    covers_date_label_zh: str = "",
 ) -> str:
     """替换模板中的占位符（缺失占位符则保持原样）。"""
     mapping = {
@@ -167,6 +179,7 @@ def fill_diary_prompt_template(
         "recent_emotion": recent_emotion,
         "recent_thought": recent_thought or "（暂无）",
         "max_length": str(max_length),
+        "covers_date_label_zh": covers_date_label_zh or "（所记录的那一天）",
     }
     out = template
     for key, val in mapping.items():
@@ -181,6 +194,6 @@ async def get_resolved_diary_rules(*, use_cache: bool = True) -> ResolvedDiaryRu
 
 
 async def get_scheduled_diary_cron_times(*, use_cache: bool = True) -> tuple[int, int]:
-    """供 APScheduler 注册：返回 (hour, minute)，UTC。"""
+    """供 APScheduler 注册：返回 (hour, minute)，与 CronTrigger 的 Asia/Shanghai 时区一致。"""
     rules = await get_resolved_diary_rules(use_cache=use_cache)
     return rules.generation_hour, rules.generation_minute

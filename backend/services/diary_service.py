@@ -3,9 +3,11 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, func, and_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import async_session_maker
@@ -24,6 +26,37 @@ from backend.services.diary_rules_loader import (
 
 logger = logging.getLogger(__name__)
 
+_SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+_UTC_TZ = ZoneInfo("UTC")
+
+
+def compute_shanghai_diary_batch_window(
+    now_sh: datetime | None = None,
+) -> tuple[date, date, datetime, datetime]:
+    """
+    以当前上海时刻的日历日为锚点 D，日记覆盖日为 D-1。
+    对话统计窗为 [D-1 00:00, D 00:00)（上海），返回 naive UTC 与库中 created_at 对齐。
+    """
+    if now_sh is None:
+        now_sh = datetime.now(_SHANGHAI_TZ)
+    elif now_sh.tzinfo is None:
+        now_sh = now_sh.replace(tzinfo=_SHANGHAI_TZ)
+    else:
+        now_sh = now_sh.astimezone(_SHANGHAI_TZ)
+
+    anchor_d = now_sh.date()
+    covers_d = anchor_d - timedelta(days=1)
+    win_start_sh = datetime.combine(covers_d, time.min, tzinfo=_SHANGHAI_TZ)
+    win_end_sh = datetime.combine(anchor_d, time.min, tzinfo=_SHANGHAI_TZ)
+    win_start_utc = win_start_sh.astimezone(_UTC_TZ).replace(tzinfo=None)
+    win_end_utc = win_end_sh.astimezone(_UTC_TZ).replace(tzinfo=None)
+    return anchor_d, covers_d, win_start_utc, win_end_utc
+
+
+def _format_zh_covers_day(d: date) -> str:
+    """北京覆盖日的中文展示片段（如 5月15日），供 Prompt 与前端一致口径。"""
+    return f"{d.month}月{d.day}日"
+
 
 class DiaryService:
     """AI 日记生成服务"""
@@ -40,6 +73,7 @@ class DiaryService:
         conversation_summary: str,
         recent_emotion: str,
         max_len: int,
+        covers_date_label_zh: str = "",
     ) -> str | None:
         """调用 LLM 生成日记；失败或空内容时用硬编码模板再试一次。"""
         try:
@@ -58,6 +92,7 @@ class DiaryService:
             recent_emotion=recent_emotion,
             recent_thought="（暂无）",
             max_length=max_len,
+            covers_date_label_zh=covers_date_label_zh,
         )
         try:
             text2 = await llm_client.chat_sync(fallback_prompt)
@@ -67,20 +102,31 @@ class DiaryService:
             logger.error("用户 %d 日记 LLM 硬编码模板仍失败: %s", user_id, str(e))
         return None
 
-    async def generate_diary_for_user(self, user_id: int) -> bool:
+    async def generate_diary_for_user(
+        self,
+        user_id: int,
+        *,
+        covers_beijing_date: date | None = None,
+        conv_start_naive_utc: datetime | None = None,
+        conv_end_naive_utc: datetime | None = None,
+    ) -> bool:
         """
-        为单个用户生成当日 AI 日记。
+        为单个用户生成 AI 日记（覆盖日为上海前一日 D-1，对话窗 [D-1 00:00, D 00:00)）。
 
-        生成规则（两条独立规则）：
-        - 规则一：关系等级≥1 且当日有互动 → 生成（内容围绕互动）
-        - 规则二：关系等级≥2 且当日无互动 → 生成（内容为想念用户）
-        - 1级且无互动 → 不生成
-        - 0级 → 不生成
+        生成规则：
+        - 关系等级≥1 且统计窗内有互动 → 生成（内容围绕该窗内互动）
+        - 关系等级≥2 且统计窗内无互动 → 生成（想念用户）
+        - 1 级且无互动 → 不生成
+        - 0 级 → 不生成
+
+        未传入时间窗参数时，按「当前上海时刻」现场计算（便于单用户手动试跑）。
 
         Returns:
             True 表示成功生成，False 表示不满足条件或生成失败
         """
-        # 获取关系状态
+        if covers_beijing_date is None or conv_start_naive_utc is None or conv_end_naive_utc is None:
+            _, covers_beijing_date, conv_start_naive_utc, conv_end_naive_utc = compute_shanghai_diary_batch_window()
+
         stmt = select(Relationship).where(Relationship.user_id == user_id)
         result = await self.db.execute(stmt)
         relationship = result.scalar_one_or_none()
@@ -92,33 +138,30 @@ class DiaryService:
         level = relationship.level
         level_name = LEVEL_CONFIG.get(level, {}).get("name", "未知")
 
-        # 检查今日是否已生成日记（避免重复生成）
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
+        # 同一用户、同一覆盖日（北京）仅允许一条（幂等）
         existing_stmt = select(func.count()).select_from(AiDiary).where(
             and_(
                 AiDiary.user_id == user_id,
-                AiDiary.created_at >= today_start,
-                AiDiary.created_at < today_end,
+                AiDiary.covers_beijing_date == covers_beijing_date,
             )
         )
         existing_result = await self.db.execute(existing_stmt)
         if existing_result.scalar() > 0:
-            logger.debug("用户 %d 今日已有日记，跳过", user_id)
+            logger.debug(
+                "用户 %d 在覆盖日 %s 已有日记，跳过",
+                user_id,
+                covers_beijing_date.isoformat(),
+            )
             return False
 
-        # 获取当日对话记录（最多5轮用户消息）
-        has_interaction, conversation_summary = await self._get_today_conversation_summary(user_id)
+        has_interaction, conversation_summary = await self._get_conversation_summary_in_window(
+            user_id, conv_start_naive_utc, conv_end_naive_utc
+        )
 
-        # 应用规则判断
         if level == 1 and not has_interaction:
-            logger.debug("用户 %d 关系等级1且无互动，不生成日记", user_id)
+            logger.debug("用户 %d 关系等级1且统计窗内无互动，不生成日记", user_id)
             return False
 
-        # level>=1 且有互动 → 生成
-        # level>=2 且无互动 → 生成（想念用户）
-
-        # 获取用户最近情绪
         recent_emotion = await self._get_recent_emotion(user_id)
 
         rules = await get_resolved_diary_rules(use_cache=True)
@@ -127,6 +170,7 @@ class DiaryService:
 
         max_len = rules.max_length
         template = rules.prompt_with_interaction if has_interaction else rules.prompt_without_interaction
+        date_zh = _format_zh_covers_day(covers_beijing_date)
         prompt = fill_diary_prompt_template(
             template,
             relationship_level_name=level_name,
@@ -134,6 +178,7 @@ class DiaryService:
             recent_emotion=recent_emotion,
             recent_thought="（暂无）",
             max_length=max_len,
+            covers_date_label_zh=date_zh,
         )
 
         diary_content = await self._generate_diary_llm_with_fallback(
@@ -144,6 +189,7 @@ class DiaryService:
             conversation_summary=conversation_summary,
             recent_emotion=recent_emotion,
             max_len=max_len,
+            covers_date_label_zh=date_zh,
         )
         if not diary_content:
             return False
@@ -152,27 +198,49 @@ class DiaryService:
         if len(diary_content) > max_len:
             diary_content = diary_content[:max_len]
 
-        # 写入数据库
         diary = AiDiary(
             user_id=user_id,
             content=diary_content,
             relationship_level_at_creation=level,
+            covers_beijing_date=covers_beijing_date,
         )
         self.db.add(diary)
-        await self.db.flush()
+        try:
+            await self.db.flush()
+        except IntegrityError:
+            await self.db.rollback()
+            logger.warning(
+                "用户 %d 覆盖日 %s 日记并发或唯一约束冲突，跳过",
+                user_id,
+                covers_beijing_date.isoformat(),
+            )
+            return False
 
-        logger.info("用户 %d 日记生成成功，日记 ID=%d", user_id, diary.id)
+        logger.info(
+            "用户 %d 日记生成成功，日记 ID=%d，覆盖日(北京)=%s",
+            user_id,
+            diary.id,
+            covers_beijing_date.isoformat(),
+        )
         return True
 
     async def run_daily_diary_task(self) -> None:
         """
         批量为所有符合条件的用户生成日记。
 
-        定时任务调用入口，使用 Semaphore 控制并发，避免同时发起太多 LLM 调用。
+        整批任务共用一次「上海锚点」时间窗，避免跨点误差。
         """
         logger.info("开始执行每日日记批量生成任务")
 
-        # 查询所有关系等级≥1的用户
+        anchor_d, covers_d, conv_start_utc, conv_end_utc = compute_shanghai_diary_batch_window()
+        logger.info(
+            "日记批跑：上海锚点日 D=%s，覆盖日=%s，对话窗 naive_UTC=[%s, %s)",
+            anchor_d.isoformat(),
+            covers_d.isoformat(),
+            conv_start_utc.isoformat(),
+            conv_end_utc.isoformat(),
+        )
+
         async with async_session_maker() as db:
             stmt = select(Relationship.user_id).where(Relationship.level >= 1)
             result = await db.execute(stmt)
@@ -193,7 +261,12 @@ class DiaryService:
                 try:
                     async with async_session_maker() as session:
                         svc = DiaryService(session)
-                        generated = await svc.generate_diary_for_user(uid)
+                        generated = await svc.generate_diary_for_user(
+                            uid,
+                            covers_beijing_date=covers_d,
+                            conv_start_naive_utc=conv_start_utc,
+                            conv_end_naive_utc=conv_end_utc,
+                        )
                         await session.commit()
                         return generated
                 except Exception as e:
@@ -209,32 +282,37 @@ class DiaryService:
                 fail_count += 1
             elif res:
                 success_count += 1
-            # res 为 False 表示不满足条件或已生成，不计入失败
 
         logger.info(
             "每日日记任务完成：成功=%d，失败=%d，总候选=%d",
-            success_count, fail_count, len(user_ids),
+            success_count,
+            fail_count,
+            len(user_ids),
         )
 
-    async def _get_today_conversation_summary(self, user_id: int) -> tuple[bool, str]:
+    async def _get_conversation_summary_in_window(
+        self,
+        user_id: int,
+        start_naive_utc: datetime,
+        end_naive_utc: datetime,
+    ) -> tuple[bool, str]:
         """
-        获取用户当日对话摘要。
+        获取指定 naive UTC 时间窗内的对话摘要（与 conversation_log.created_at 对齐）。
 
         Returns:
             (是否有互动, 摘要字符串)
         """
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-
         stmt = (
             select(ConversationLog)
             .where(
                 and_(
                     ConversationLog.user_id == user_id,
-                    ConversationLog.created_at >= today_start,
+                    ConversationLog.created_at >= start_naive_utc,
+                    ConversationLog.created_at < end_naive_utc,
                 )
             )
             .order_by(ConversationLog.created_at.asc())
-            .limit(10)  # 最多取10条（5轮 = 用户+AI 各5条）
+            .limit(10)
         )
         result = await self.db.execute(stmt)
         conversations = result.scalars().all()
@@ -242,18 +320,16 @@ class DiaryService:
         if not conversations:
             return False, ""
 
-        # 拼接摘要：取前5轮用户消息内容
         user_messages = [c.content for c in conversations if c.role == "user"][:5]
         summary = "；".join(user_messages)
 
-        # 限制摘要长度
         if len(summary) > 500:
             summary = summary[:500] + "..."
 
         return True, summary
 
     async def _get_recent_emotion(self, user_id: int) -> str:
-        """获取用户最近一条情绪标签"""
+        """获取用户最近一条情绪标签（全时间，不按统计窗裁剪）。"""
         stmt = (
             select(EmotionLog.emotion_label)
             .where(EmotionLog.user_id == user_id)

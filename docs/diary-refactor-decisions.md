@@ -21,8 +21,8 @@
 | 历史字段 | 以 **`docs/contract.md`** 中 `data.list[]` 为准 | |
 | `diary_rules` 与 Cron | **H1**：`generation_hour` / `generation_minute` 接入后，**修改配置须重启 `backend` 进程（如 Docker 重启 `lxm_backend`）** 后新的触发时刻才生效 | **不作为功能缺陷**，记为 **TD-013** |
 | 配置解析失败 | **回退** 当前硬编码 Prompt + 原默认调度（与 TD-007 实现约定一致） | |
-| Misfire / 补跑 | **M2a**：以 **运维文档 + `docker exec` 手动触发** 批跑为准；**无**管理端按钮、无受控 API | 记为 **TD-013** 子项，后续可选升级为 M2b |
-| 时区 / 日界 | **当前不改**：仍以代码现状 **`datetime.utcnow()` 截 UTC 自然日**；与服务器/业务时区统一 **排期后置** | 避免与本次改造混谈 |
+| Misfire / 补跑 | **M2a**：以 **运维文档**（推荐 **`python -m scripts.run_diary_batch`**，容器内可用 **`docker exec` + 同上模块入口**）手动触发批跑为准；**无**管理端按钮、无受控 API | 记为 **TD-013** 子项，后续可选升级为 M2b |
+| 时区 / 日界 | **已迁移（2026-05-16）**：日记批跑与统计窗以 **`Asia/Shanghai`** 为准；详见 **`docs/contract.md`** / **`docs/ops-diary.md`** | 历史表格中「UTC 日界」表述作废 |
 
 ## 3. 问题 5：若列表只用 `items`，「旧的」`diaries` 是否还有其它影响？
 
@@ -67,7 +67,7 @@
 | # | 议题 | 定案 |
 |---|------|------|
 | 1 | **内容安全** | **选项 A**：日记 LLM 产出**不做**独立 `check_content`，与现网一致；合规预期见契约/PRD 备忘（**风险：中**已接受）。 |
-| 2 | **日记 Prompt 配置形态** | **`prompt_with_interaction`** / **`prompt_without_interaction`** 双字段，对应「有当日互动 / 无当日互动」分支。**实现 TD-007 时**同步修改：`DiaryRulesRequest`、`PUT /api/admin/diary-rules`、后台表单与 `DiaryService`；须兼容仅含旧 `generation_prompt` 的已存配置（回退或迁移策略在开发任务中写明）。 |
+| 2 | **日记 Prompt 配置形态** | **`prompt_with_interaction`** / **`prompt_without_interaction`** 双字段，对应「统计窗内有互动 / 无互动」分支。**实现 TD-007 时**同步修改：`DiaryRulesRequest`、`PUT /api/admin/diary-rules`、后台表单与 `DiaryService`；须兼容仅含旧 `generation_prompt` 的已存配置（回退或迁移策略在开发任务中写明）。 |
 | 3 | **APScheduler misfire** | **选项 a**：不调 `misfire_grace_time` / `coalesce`，漏跑靠 **`docs/ops-diary.md` 手动批跑** + 次日 Cron。 |
 | 4 | **发布门禁话术** | 已写入 **`docs/ops-diary.md` §1**，发布 checklist 可原文复制。 |
 | 5 | **运维文档** | **增加**「批跑成功数为 0 / LLM 失败」排查，见 **`docs/ops-diary.md` §4**。 |

@@ -2,7 +2,7 @@
 
 陪伴型 AI 虚拟人 H5 产品，包含用户端 H5 和管理后台。
 
-**AI 日记运维**（UTC 日界、手动补跑、门禁）：见 [docs/ops-diary.md](docs/ops-diary.md)。
+**AI 日记运维**（上海日界与统计窗、手动补跑、门禁）：见 [docs/ops-diary.md](docs/ops-diary.md)。手动批跑与 APScheduler 同源：`PYTHONPATH=. python -m scripts.run_diary_batch`（详见该文档 §3）。
 
 ## 开发与测试
 

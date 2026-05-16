@@ -53,6 +53,7 @@ async def get_diary_list(
             relationship_level_at_creation=d.relationship_level_at_creation,
             is_read=d.is_read,
             created_at=d.created_at,
+            covers_beijing_date=d.covers_beijing_date,
         )
         for d in diaries
     ]

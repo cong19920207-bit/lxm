@@ -12,7 +12,7 @@
 | **L2 API（推荐 CI）** | `/api/diary/*`、`/api/admin/diary-*` | `pytest` + `httpx.AsyncClient` + SQLite 内存库 | 与 `tests/test_auth.py` 同构：`get_db` 覆盖 + 启动期依赖打桩 |
 | **L3 浏览器 E2E（可选）** | `diary.html`、`diary-rules.html`、`diary-history.html` 真实交互 | Playwright / Cypress | 需起后端 + 静态资源 + 测试账号；本仓库**未默认引入**，可在有前端 CI 时补 |
 
-当前交付：**L1 + L2**（`tests/test_diary.py`）+ 下文 **手工/脚本冒烟**。
+当前交付：**L1 + L2**（`tests/test_diary.py`）+ **`tests/test_run_diary_batch_script.py`**（运维脚本 `scripts/run_diary_batch.py` 调用链打桩）+ 下文 **手工/脚本冒烟**。
 
 ---
 
@@ -20,7 +20,7 @@
 
 - **SQLite 内存库**：仅路由里 `Depends(get_db)` 的请求走测试库；`admin_config_service.get_active_config(use_cache=True)` 在缓存未命中时会走**全局** `async_session_maker`（生产库）。**`tests/test_diary.py`** 在 **`autouse` fixture** 里将 **`admin_config_service.get_active_config` 默认打桩为 `None`**，避免误连生产库；单测 **`test_get_rules_with_stub_config`** 再覆盖为固定字典。
 - **用户 JWT**：`get_current_user` 会 **`await get_redis().get("user_banned:…")`**，无 Redis 时测试失败。同一 **`autouse`** 内对 **`backend.utils.auth_middleware.get_redis`** 与 **`backend.services.admin_config_service.get_redis`** 返回 **内存 AsyncMock**（`get` → `None`，`setex` → 成功）。
-- **启动生命周期**：`main.lifespan` 会执行 `create_all_tables`、`get_scheduled_diary_cron_times`、`start_scheduler(...)`。测试中 **`monkeypatch`**：`create_all_tables` → **AsyncMock**，`get_scheduled_diary_cron_times` → 固定 **`(0, 30)`**；**`backend.tasks.scheduler.start_scheduler` 接受 `*a, **k`**，与现网 `lifespan` 关键字参数一致。
+- **启动生命周期**：`main.lifespan` 会执行 `create_all_tables`、`get_scheduled_diary_cron_times`、`start_scheduler(...)`。测试中 **`monkeypatch`**：`create_all_tables` → **AsyncMock**，`get_scheduled_diary_cron_times` → 固定 **`(0, 15)`**；**`backend.tasks.scheduler.start_scheduler` 接受 `*a, **k`**，与现网 `lifespan` 关键字参数一致。
 - **Python 依赖**：运行全量 `pytest` 需 **`pip install -r requirements.txt`**（含 **`psutil`** 等，`main` 导入监控路由时会用到）。
 
 ---
@@ -68,9 +68,9 @@ PYTHONPATH=. pytest tests/test_diary.py -v -k "DiaryRulesLoader"
 
 1. 用户登录取 `token`，请求 `GET /api/diary/list?page=1&page_size=20`，检查 JSON 中 **`items`**。
 2. 管理员登录取 `admin_token`，请求 `GET /api/admin/diary-history?page=1&page_size=20`。
-3. `PUT /api/admin/diary-rules` 提交双 Prompt（见 `docs/contract.md` `DiaryRulesRequest`），然后 **重启 backend**，看日志中 **每日日记下次执行（UTC）** 是否与配置一致。
+3. `PUT /api/admin/diary-rules` 提交双 Prompt（见 `docs/contract.md` `DiaryRulesRequest`），然后 **重启 backend**，看日志中 **每日日记 Cron（`Asia/Shanghai`，与配置时刻一致）** 是否已按预期注册。
 
-可将上述步骤写成 `curl` 序列，使用环境变量 `BASE_URL`、`USER_TOKEN`、`ADMIN_TOKEN`；若需要可再增加 `scripts/smoke_diary.sh`（按需自行拷贝 env 模板）。
+可将上述步骤写成 `curl` 序列，使用环境变量 `BASE_URL`、`USER_TOKEN`、`ADMIN_TOKEN`；预发/联调手动批跑与定时同源：`PYTHONPATH=. python -m scripts.run_diary_batch`（见 **`docs/ops-diary.md`** §3）。若需要可再增加 `scripts/smoke_diary.sh`（按需自行拷贝 env 模板）。
 
 ---
 

@@ -43,7 +43,7 @@ class DiaryRulesRequest(BaseModel):
     """日记规则：须同时提供双 Prompt，或仅提供旧字段 generation_prompt（二者择一）。"""
     max_length: int = Field(..., ge=50, le=300)
     frequency: str = "daily"
-    generation_hour: int = Field(..., ge=0, le=5)
+    generation_hour: int = Field(..., ge=0, le=23)
     generation_minute: int = Field(default=0, ge=0, le=59)
     generation_prompt: Optional[str] = None
     prompt_with_interaction: Optional[str] = None
@@ -220,9 +220,12 @@ async def update_diary_rules(
     if not (50 <= body.max_length <= 300):
         return ApiResponse.fail(ADMIN_ERR_DIARY_RULE_PARAM_INVALID, message="max_length 范围为50-300")
 
-    # 校验 generation_hour
-    if not (0 <= body.generation_hour <= 5):
-        return ApiResponse.fail(ADMIN_ERR_DIARY_RULE_PARAM_INVALID, message="generation_hour 范围为0-5（凌晨生成）")
+    # 校验 generation_hour（与 APScheduler CronTrigger 的 Asia/Shanghai 本地时刻一致）
+    if not (0 <= body.generation_hour <= 23):
+        return ApiResponse.fail(
+            ADMIN_ERR_DIARY_RULE_PARAM_INVALID,
+            message="generation_hour 范围为0-23（北京时间，与调度时区一致）",
+        )
 
     if not (0 <= body.generation_minute <= 59):
         return ApiResponse.fail(ADMIN_ERR_DIARY_RULE_PARAM_INVALID, message="generation_minute 范围为0-59")

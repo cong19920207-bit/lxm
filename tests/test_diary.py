@@ -65,7 +65,7 @@ def _patch_lifespan_for_diary(monkeypatch):
     monkeypatch.setattr("backend.main.create_all_tables", AsyncMock())
 
     async def _fake_schedule(*, use_cache=True):
-        return (0, 30)
+        return (0, 15)
 
     monkeypatch.setattr(
         "backend.services.diary_rules_loader.get_scheduled_diary_cron_times",
@@ -174,7 +174,7 @@ class TestDiaryRulesLoader:
         assert r.generation_hour == 2
         assert r.generation_minute == 15
 
-    def test_invalid_hour_falls_back_utc_0_30(self):
+    def test_invalid_hour_falls_back_shanghai_0_15(self):
         from backend.services.diary_rules_loader import resolve_diary_rules_dict
 
         raw = {
@@ -186,10 +186,37 @@ class TestDiaryRulesLoader:
         }
         r = resolve_diary_rules_dict(raw)
         assert r.generation_hour == 0
-        assert r.generation_minute == 30
+        assert r.generation_minute == 15
+
+    def test_valid_hour_22_schedule(self):
+        from backend.services.diary_rules_loader import resolve_diary_rules_dict
+
+        raw = {
+            "prompt_with_interaction": "a",
+            "prompt_without_interaction": "b",
+            "max_length": 100,
+            "generation_hour": 22,
+            "generation_minute": 5,
+        }
+        r = resolve_diary_rules_dict(raw)
+        assert r.generation_hour == 22
+        assert r.generation_minute == 5
 
 
-# ──────────────────── L2：H5 日记 API ────────────────────
+class TestShanghaiDiaryWindow:
+    def test_compute_shanghai_diary_batch_window_midnight_region(self):
+        """锚点 D=上海日历日，覆盖日 D-1，对话窗 naive UTC 与 [D-1 00:00, D 00:00) 上海一致。"""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        from backend.services.diary_service import compute_shanghai_diary_batch_window
+
+        fixed = datetime(2026, 5, 17, 0, 20, tzinfo=ZoneInfo("Asia/Shanghai"))
+        anchor_d, covers_d, s_utc, e_utc = compute_shanghai_diary_batch_window(fixed)
+        assert anchor_d.isoformat() == "2026-05-17"
+        assert covers_d.isoformat() == "2026-05-16"
+        assert s_utc == datetime(2026, 5, 15, 16, 0, 0)
+        assert e_utc == datetime(2026, 5, 16, 16, 0, 0)
 
 
 class TestDiaryH5Api:
@@ -233,6 +260,7 @@ class TestDiaryH5Api:
         assert len(data["data"]["items"]) == 1
         assert data["data"]["items"][0]["content"] == "第一条日记"
         assert data["data"]["items"][0]["is_read"] is False
+        assert "covers_beijing_date" in data["data"]["items"][0]
 
         r2 = await client.post(
             f"/api/diary/{diary_id}/read",
@@ -288,6 +316,7 @@ class TestAdminDiaryHistoryApi:
         assert hit, "应至少有一条测试日记"
         assert hit[0].get("username") == "diaryuser01"
         assert hit[0].get("user_id") == uid
+        assert "covers_beijing_date" in hit[0]
 
     @pytest.mark.asyncio
     async def test_ops_admin_can_list(self, client: AsyncClient):

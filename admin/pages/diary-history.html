@@ -91,6 +91,7 @@
             '<th>正文</th>' +
             '<th style="width:88px">生成时等级</th>' +
             '<th style="width:72px">已读</th>' +
+            '<th style="width:112px">覆盖日(北京)</th>' +
             '<th style="width:160px">创建时间</th>' +
           '</tr></thead>' +
           '<tbody id="dhTbody"></tbody>' +
@@ -138,6 +139,9 @@
         var shortText = content.length > 120 ? content.slice(0, 120) + '…' : content;
         var tr = document.createElement('tr');
         var uname = row.username != null && row.username !== '' ? String(row.username) : '';
+        var cov = row.covers_beijing_date != null && row.covers_beijing_date !== ''
+          ? String(row.covers_beijing_date)
+          : '—';
         tr.innerHTML =
           '<td>' + escapeHtml(row.id) + '</td>' +
           '<td>' + escapeHtml(uname) + '</td>' +
@@ -145,6 +149,7 @@
           '<td class="dh-content-cell" title="' + escapeHtml(content) + '">' + escapeHtml(shortText) + '</td>' +
           '<td>' + escapeHtml(row.relationship_level_at_creation) + '</td>' +
           '<td>' + (row.is_read ? '是' : '否') + '</td>' +
+          '<td>' + escapeHtml(cov) + '</td>' +
           '<td>' + escapeHtml(formatDateTime(row.created_at)) + '</td>';
         tbody.appendChild(tr);
       }

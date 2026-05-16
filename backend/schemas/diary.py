@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # AI 日记模块的 Pydantic 请求/响应模型
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,8 @@ class DiaryItem(BaseModel):
     relationship_level_at_creation: int
     is_read: bool
     created_at: datetime
+    # 日记内容覆盖的北京日历日；旧数据可能为 null（不回填），H5 可回退用 created_at
+    covers_beijing_date: date | None = None
 
 
 class DiaryListResponse(BaseModel):

@@ -484,6 +484,7 @@
               <th>正文</th>
               <th style="width:110px">生成时等级</th>
               <th style="width:72px">已读</th>
+              <th style="width:112px">覆盖日(北京)</th>
               <th style="width:168px">创建时间</th>
             </tr>
           </thead>
@@ -1122,7 +1123,7 @@ async function loadDiariesPage(page, replace) {
   if (!res || res.code !== 0) {
     if (replace) {
       tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align:center;padding:24px">加载失败，请重试</td></tr>';
+        '<tr><td colspan="6" style="text-align:center;padding:24px">加载失败，请重试</td></tr>';
     } else {
       showToast((res && res.message) || '加载失败', 'error');
     }
@@ -1168,6 +1169,7 @@ async function loadDiariesPage(page, replace) {
       '</td>';
     html += '<td>' + esc(lvlText) + '</td>';
     html += '<td>' + (row.is_read ? '是' : '否') + '</td>';
+    html += '<td>' + (row.covers_beijing_date ? esc(String(row.covers_beijing_date)) : '—') + '</td>';
     html += '<td>' + formatDateTime(row.created_at) + '</td>';
     html += '</tr>';
   }
