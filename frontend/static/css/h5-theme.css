@@ -333,13 +333,19 @@ body.h5-skin .avatar-fallback {
   box-shadow: var(--h5-neo-shadow-lg) !important;
 }
 
-body.h5-skin .progress-bar {
-  border: 3px solid var(--h5-neo-border);
+/* 首页关系进度条：粗胶囊轨道 + 蓝粉渐变（仅 .h5-home-main 内） */
+body.h5-skin .h5-home-main .progress-bar {
+  height: 22px;
+  background: #fff;
+  border: 4px solid var(--h5-neo-border);
+  border-radius: 999px;
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
-body.h5-skin .progress-bar .progress-fill {
-  background: var(--h5-gradient-cta);
+body.h5-skin .h5-home-main .progress-bar .progress-fill {
+  background: linear-gradient(90deg, #3b82f6 0%, #ec4899 100%);
+  border-radius: 999px;
 }
 
 /* ========== 日记 / 记忆 列表卡片增强 ========== */
@@ -562,6 +568,11 @@ body.h5-skin .toast-item {
 
   body.h5-skin .page-body,
   body.h5-skin .h5-home-main {
+    animation: none !important;
+  }
+
+  /* 首页未读角标呼吸（类名在 index.html） */
+  body.h5-skin .unread-badge--active {
     animation: none !important;
   }
 }

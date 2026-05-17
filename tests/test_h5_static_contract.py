@@ -89,3 +89,21 @@ def test_h5_theme_css_exists():
     text = p.read_text(encoding="utf-8")
     assert "h5-neo-border" in text
     assert "prefers-reduced-motion" in text
+
+
+def test_index_html_home_surface_contract():
+    """首页：未读角标 DOM、气泡文案容器、主题进度条覆盖、未读呼吸类名（与 contract 摘要一致）。"""
+    html = _read("index.html")
+    theme = (REPO / "frontend" / "static" / "css" / "h5-theme.css").read_text(encoding="utf-8")
+    for fragment in (
+        'id="unread-badge"',
+        "unread-badge--active",
+        "home-chat-btn-wrap",
+        'id="status-text"',
+        "home-status-bubble",
+        "/api/agent/unread-count",
+        "classList.add('unread-badge--active')",
+    ):
+        assert fragment in html, fragment
+    assert "body.h5-skin .h5-home-main .progress-bar" in theme
+    assert "linear-gradient(90deg, #3b82f6 0%, #ec4899 100%)" in theme
