@@ -76,7 +76,7 @@ PYTHONPATH=. pytest tests/test_diary.py -v -k "DiaryRulesLoader"
 
 ## 6. 可选扩展（L3）
 
-- **Playwright**：打开 `/pages/diary.html`（需先注入登录态或走完整登录页），断言列表容器、触底加载、`no-more` 文案；后台 `diary-rules.html` 双文本域保存 Toast。
+- **Playwright**：打开 `/pages/diary.html`（需先注入登录态或走完整登录页），断言 **`#diary-list`**、**`.diary-hero`**、**`.diary-card`**、触底加载、`no-more` 文案、展开后 **「收起」**；后台 `diary-rules.html` 双文本域保存 Toast。
 - **生成链路**：`generate_diary_for_user` 依赖 LLM，不适合默认放进 CI；可在 **预发** 用运维文档 **`docs/ops-diary.md`** 中的手动批跑做验收。
 
 ---

@@ -110,7 +110,13 @@ def test_settings_change_password_ids():
 def test_core_pages_link_theme(fname: str):
     html = _read(fname)
     assert "h5-theme.css" in html
-    assert 'class="h5-skin"' in html or "class='h5-skin'" in html
+    # body 可能为 class="h5-skin" 或 class="h5-skin diary-page" 等多类名
+    assert (
+        'class="h5-skin"' in html
+        or "class='h5-skin'" in html
+        or 'class="h5-skin ' in html
+        or "class='h5-skin " in html
+    )
 
 
 def test_h5_theme_css_exists():

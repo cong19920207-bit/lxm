@@ -7,129 +7,322 @@
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
   <style>
-    .page-body {
-      padding: 56px 16px calc(16px + var(--safe-area-bottom));
+    /* 日记页独立视觉：淡紫底，不沿用全站 neo 卡片 */
+    html:has(> body.diary-page),
+    body.h5-skin.diary-page {
+      background: #f3f0ff;
+      background-attachment: scroll;
     }
 
-    /* 日记卡片 */
+    .diary-page-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f3f0ff;
+    }
+
+    /* Hero 头图 */
+    .diary-hero {
+      position: relative;
+      flex-shrink: 0;
+      height: 45vh;
+      min-height: 200px;
+      max-height: 420px;
+      background-color: #e9e4f8;
+      background-image: url('/static/images/diary/dary_ri.png');
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+    }
+
+    .diary-hero::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(243, 240, 255, 0) 0%, rgba(243, 240, 255, 0.88) 70%, #f3f0ff 100%);
+      pointer-events: none;
+    }
+
+    /* 返回钮：位置/尺寸对齐 chat-top-bar，视觉为淡薰衣草紫 */
+    .diary-hero-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      box-sizing: border-box;
+      padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .diary-hero-bar .back-btn {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      border: none;
+      border-radius: 18px;
+      background: rgba(184, 168, 240, 0.45);
+      color: rgba(255, 255, 255, 0.82);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+        0 0 8px rgba(184, 168, 240, 0.2);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+
+    .diary-hero-bar .back-btn svg {
+      display: block;
+      width: 18px;
+      height: 18px;
+    }
+
+    .diary-hero-bar .back-btn:active {
+      background: rgba(184, 168, 240, 0.58);
+      transform: scale(0.96);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+        0 0 10px rgba(184, 168, 240, 0.28);
+    }
+
+    /* 列表上提至头图红线位置，与渐变区叠压 */
+    .diary-main {
+      flex: 1;
+      margin-top: -17vh;
+      position: relative;
+      z-index: 3;
+      padding: 0 16px calc(16px + var(--safe-area-bottom));
+    }
+
+    @media (max-height: 640px) {
+      .diary-main {
+        margin-top: -100px;
+      }
+    }
+
+    #diary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
     .diary-card {
-      margin-bottom: 12px;
+      display: flex;
+      gap: 14px;
+      padding: 18px 16px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 24px rgba(148, 137, 179, 0.1);
       position: relative;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: box-shadow 0.25s ease, transform 0.2s ease;
+      border: 1px solid transparent;
     }
 
-    /* 未读标识 */
+    .diary-card:active {
+      transform: scale(0.995);
+    }
+
     .diary-card.unread {
-      border-left: 4px solid #FF8C00;
+      border-color: rgba(167, 139, 250, 0.45);
+      box-shadow: 0 4px 28px rgba(167, 139, 250, 0.16);
+      border-left: 2px solid #a78bfa;
     }
 
     .diary-card .unread-dot {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 14px;
+      right: 14px;
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #FF8C00;
+      background: #a78bfa;
       transition: opacity 0.3s;
     }
 
     .diary-card.read .unread-dot {
       opacity: 0;
+      pointer-events: none;
     }
 
-    .diary-card .diary-date {
-      font-size: 15px;
+    .diary-card-date {
+      flex: 0 0 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      color: #9489b3;
+    }
+
+    .diary-card-month {
+      font-size: 11px;
       font-weight: 600;
-      color: var(--color-text);
-      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+      line-height: 1.2;
+      margin-bottom: 4px;
     }
 
-    .diary-card .diary-content {
+    .diary-card-day {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .diary-card-weekday {
+      font-size: 12px;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .diary-card-icon {
+      width: 22px;
+      height: 22px;
+      color: #b8a9d4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diary-card-icon svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .diary-card-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diary-card-content {
       font-size: 14px;
-      line-height: 1.8;
-      color: #555;
+      line-height: 1.75;
+      color: #444;
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
-      transition: max-height 0.3s ease;
       word-break: break-word;
+      transition: -webkit-line-clamp 0.25s ease;
     }
 
-    .diary-card.expanded .diary-content {
+    .diary-card.expanded .diary-card-content {
       -webkit-line-clamp: unset;
       display: block;
     }
 
-    .diary-card .expand-btn {
-      display: inline-block;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--color-gray);
-      cursor: pointer;
+    .diary-card-more {
+      align-self: flex-end;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #9489b3;
+      letter-spacing: 0.02em;
     }
 
-    .diary-card .expand-btn:active {
-      opacity: 0.7;
+    /* 空态 / 底部分页提示换肤 */
+    body.diary-page .empty-state .empty-bubble {
+      background: rgba(167, 139, 250, 0.55);
+    }
+
+    body.diary-page .empty-state .empty-dot {
+      background: rgba(196, 181, 253, 0.9);
+    }
+
+    body.diary-page .empty-state .empty-dot:nth-child(4) {
+      background: rgba(167, 139, 250, 0.75);
+    }
+
+    body.diary-page .empty-state .empty-text {
+      color: #7c7394;
+    }
+
+    body.diary-page .btn-primary:not(.send-btn) {
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+      border: none;
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.28);
+      font-weight: 600;
+    }
+
+    body.diary-page .btn-primary:not(.send-btn):active {
+      transform: scale(0.98);
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.22);
+    }
+
+    body.diary-page .no-more-text {
+      color: #9489b3;
     }
   </style>
 </head>
-<body class="h5-skin">
-  <!-- 顶部栏 -->
-  <div class="top-bar">
-    <div class="bar-left">
-      <button class="back-btn" onclick="history.back()">←</button>
-    </div>
-    <div class="bar-center">林小梦的日记</div>
-    <div class="bar-right"></div>
-  </div>
-
-  <div class="page-body">
-    <div id="diary-list"></div>
-    <div class="load-more-sentinel" id="bottom-sentinel"></div>
-    <div class="no-more-text" id="no-more" style="display:none">没有更多日记了</div>
-
-    <!-- 空状态（等级≥1） -->
-    <div class="empty-state" id="empty-active" style="display:none">
-      <div class="empty-icon">
-        <div class="empty-bubble"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
+<body class="h5-skin diary-page">
+  <div class="diary-page-wrap">
+    <header class="diary-hero" role="banner">
+      <div class="diary-hero-bar">
+        <button type="button" class="back-btn" onclick="history.back()" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
-      <div class="empty-text">今天林小梦还没写新日记哦<br>多和我聊聊吧</div>
-      <button class="btn-primary" onclick="location.href='/pages/chat.html'">去聊天</button>
-    </div>
+    </header>
 
-    <!-- 空状态（等级=0） -->
-    <div class="empty-state" id="empty-new" style="display:none">
-      <div class="empty-icon">
-        <div class="empty-bubble"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
+    <main class="diary-main">
+      <div id="diary-list"></div>
+      <div class="load-more-sentinel" id="bottom-sentinel"></div>
+      <div class="no-more-text" id="no-more" style="display:none">没有更多日记了</div>
+
+      <div class="empty-state" id="empty-active" style="display:none">
+        <div class="empty-icon">
+          <div class="empty-bubble"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+        </div>
+        <div class="empty-text">今天林小梦还没写新日记哦<br>多和我聊聊吧</div>
+        <button class="btn-primary" type="button" onclick="location.href='/pages/chat.html'">去聊天</button>
       </div>
-      <div class="empty-text">和我多聊聊天<br>我会把我们的故事都记下来</div>
-    </div>
 
-    <!-- 列表加载失败（避免整页空白且无提示） -->
-    <div class="empty-state" id="empty-error" style="display:none">
-      <div class="empty-text" id="empty-error-text">日记加载失败，请检查网络后重试</div>
-      <button type="button" class="btn-primary" id="btn-retry-diary">重新加载</button>
-    </div>
+      <div class="empty-state" id="empty-new" style="display:none">
+        <div class="empty-icon">
+          <div class="empty-bubble"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+        </div>
+        <div class="empty-text">和我多聊聊天<br>我会把我们的故事都记下来</div>
+      </div>
+
+      <div class="empty-state" id="empty-error" style="display:none">
+        <div class="empty-text" id="empty-error-text">日记加载失败，请检查网络后重试</div>
+        <button type="button" class="btn-primary" id="btn-retry-diary">重新加载</button>
+      </div>
+    </main>
   </div>
 
   <script src="/static/js/api.js"></script>
   <script>
     checkLogin()
 
-    let currentPage = 1
-    let loading = false
-    let noMore = false
-    let totalLoaded = 0
-    let relationLevel = parseInt(localStorage.getItem('relationship_level') || '0', 10) || 0
+    var MONTH_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    var WEEKDAY_ZH = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+    var currentPage = 1
+    var loading = false
+    var noMore = false
+    var totalLoaded = 0
+    var relationLevel = parseInt(localStorage.getItem('relationship_level') || '0', 10) || 0
 
     function hideAllEmptyStates() {
       document.getElementById('empty-active').style.display = 'none'
@@ -137,24 +330,45 @@
       document.getElementById('empty-error').style.display = 'none'
     }
 
-    /* ====== 列表日期：优先北京覆盖日，旧数据无字段时回退 created_at ====== */
-    function formatDiaryListDate(diary) {
+    /* 列表日期：优先北京覆盖日，旧数据无字段时回退 created_at */
+    function parseDiaryDateParts(diary) {
+      var y, m, d
       if (diary.covers_beijing_date) {
         var p = String(diary.covers_beijing_date).split('-')
         if (p.length === 3) {
-          var m = parseInt(p[1], 10)
-          var d = parseInt(p[2], 10)
-          if (!isNaN(m) && !isNaN(d)) return m + '月' + d + '日'
+          y = parseInt(p[0], 10)
+          m = parseInt(p[1], 10)
+          d = parseInt(p[2], 10)
         }
       }
-      if (diary.created_at) {
-        const date = new Date(diary.created_at)
-        return (date.getMonth() + 1) + '月' + date.getDate() + '日'
+      if ((!y || isNaN(m) || isNaN(d)) && diary.created_at) {
+        var dt = new Date(diary.created_at)
+        y = dt.getFullYear()
+        m = dt.getMonth() + 1
+        d = dt.getDate()
       }
-      return ''
+      if (!y || isNaN(m) || isNaN(d)) {
+        return { monthEn: '', day: '—', weekdayZh: '', iconIndex: 0 }
+      }
+      var dateObj = new Date(y, m - 1, d)
+      return {
+        monthEn: MONTH_EN[m - 1] || '',
+        day: String(d),
+        weekdayZh: WEEKDAY_ZH[dateObj.getDay()],
+        iconIndex: dateObj.getDay() % 4
+      }
     }
 
-    /* ====== 加载日记 ====== */
+    function getDiaryDecorIcon(iconIndex) {
+      var icons = [
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 14.5A7.5 7.5 0 0 1 5 12.8 5.5 5.5 0 1 1 12.2 5 6.5 6.5 0 0 1 19 14.5Z" stroke="currentColor" stroke-width="1.6"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .2-8 5.5 5.5 0 0 0-10.6-1.2A4 4 0 0 0 7 18Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5l1.4 4.3h4.5l-3.6 2.6 1.4 4.3L12 12.1 8.3 14.7l1.4-4.3-3.6-2.6h4.5L12 3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+      ]
+      return icons[iconIndex % 4] || icons[0]
+    }
+
     async function loadDiaries(page) {
       if (loading || noMore) return
       loading = true
@@ -174,7 +388,6 @@
       }
 
       const data = res.data
-      // 兼容异常结构，避免误判为有数据
       const items = Array.isArray(data.items) ? data.items : []
       const pageSize = typeof data.page_size === 'number' && data.page_size > 0 ? data.page_size : 20
       const total = data.total
@@ -210,7 +423,7 @@
           }
         }
 
-        items.forEach(d => appendDiaryCard(d))
+        items.forEach(function (d) { appendDiaryCard(d) })
         totalLoaded += items.length
         currentPage = page
       }
@@ -230,17 +443,24 @@
     function appendDiaryCard(diary) {
       const list = document.getElementById('diary-list')
       const card = document.createElement('div')
-      card.className = 'card diary-card' + (diary.is_read ? '' : ' unread')
+      const parts = parseDiaryDateParts(diary)
+      card.className = 'diary-card' + (diary.is_read ? '' : ' unread')
       card.dataset.id = diary.id
 
-      card.innerHTML = `
-        ${diary.is_read ? '' : '<div class="unread-dot"></div>'}
-        <div class="diary-date">${formatDiaryListDate(diary)}</div>
-        <div class="diary-content">${escapeHtml(diary.content)}</div>
-        <span class="expand-btn">展开全文</span>
-      `
+      card.innerHTML =
+        (diary.is_read ? '' : '<div class="unread-dot" aria-hidden="true"></div>') +
+        '<div class="diary-card-date">' +
+          '<div class="diary-card-month">' + escapeHtml(parts.monthEn) + '</div>' +
+          '<div class="diary-card-day">' + escapeHtml(parts.day) + '</div>' +
+          '<div class="diary-card-weekday">' + escapeHtml(parts.weekdayZh) + '</div>' +
+          '<div class="diary-card-icon">' + getDiaryDecorIcon(parts.iconIndex) + '</div>' +
+        '</div>' +
+        '<div class="diary-card-body">' +
+          '<div class="diary-card-content">' + escapeHtml(diary.content) + '</div>' +
+          '<span class="diary-card-more">继续看 &gt;</span>' +
+        '</div>'
 
-      card.addEventListener('click', function (e) {
+      card.addEventListener('click', function () {
         toggleDiary(card, diary)
       })
 
@@ -249,22 +469,21 @@
 
     function escapeHtml(text) {
       const div = document.createElement('div')
-      div.textContent = text
+      div.textContent = text == null ? '' : String(text)
       return div.innerHTML
     }
 
-    /* ====== 展开/收起日记 ====== */
     async function toggleDiary(card, diary) {
       const isExpanded = card.classList.contains('expanded')
+      const moreEl = card.querySelector('.diary-card-more')
 
       if (isExpanded) {
         card.classList.remove('expanded')
-        card.querySelector('.expand-btn').textContent = '展开全文'
+        if (moreEl) moreEl.textContent = '继续看 >'
       } else {
         card.classList.add('expanded')
-        card.querySelector('.expand-btn').textContent = '收起'
+        if (moreEl) moreEl.textContent = '收起'
 
-        // 标记已读
         if (card.classList.contains('unread')) {
           card.classList.remove('unread')
           card.classList.add('read')
@@ -273,23 +492,19 @@
       }
     }
 
-    /* ====== 触底加载 ====== */
-    const observer = new IntersectionObserver(entries => {
+    const observer = new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting && !loading && !noMore) {
         loadDiaries(currentPage + 1)
       }
     })
     observer.observe(document.getElementById('bottom-sentinel'))
 
-    /* ====== 初始化 ====== */
     async function initDiary() {
-      // 先拉日记列表，避免被关系接口阻塞导致整页空白（关系接口慢/异常时不影响读日记）
       const diaryPromise = loadDiaries(1)
       request('GET', '/api/relationship/status').then(function (relRes) {
         if (relRes && relRes.code === 0 && relRes.data) {
           relationLevel = relRes.data.level || 0
           localStorage.setItem('relationship_level', String(relationLevel))
-          // 若已展示「无日记」空状态，按最新等级切换文案
           var list = document.getElementById('diary-list')
           if (list && list.children.length === 0) {
             var ea = document.getElementById('empty-active')
