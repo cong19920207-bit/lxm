@@ -92,7 +92,7 @@ def test_h5_theme_css_exists():
 
 
 def test_index_html_home_surface_contract():
-    """首页：未读角标 DOM、气泡文案容器、主题进度条覆盖、未读呼吸类名（与 contract 摘要一致）。"""
+    """首页：未读角标 DOM、气泡文案容器、Hero 背景、主题进度条覆盖、未读呼吸类名（与 contract 摘要一致）。"""
     html = _read("index.html")
     theme = (REPO / "frontend" / "static" / "css" / "h5-theme.css").read_text(encoding="utf-8")
     for fragment in (
@@ -103,7 +103,13 @@ def test_index_html_home_surface_contract():
         "home-status-bubble",
         "/api/agent/unread-count",
         "classList.add('unread-badge--active')",
+        "home-hero",
+        "/static/images/Index/index.png",
+        'id="linxiaomeng-avatar"',
+        "home-rel-card",
+        "home-feature-grid",
     ):
         assert fragment in html, fragment
-    assert "body.h5-skin .h5-home-main .progress-bar" in theme
+    assert "body.h5-skin .h5-home-main .home-rel-card .progress-bar" in theme
     assert "linear-gradient(90deg, #3b82f6 0%, #ec4899 100%)" in theme
+    assert "home-hero .h5-home-decor::before" in theme

@@ -253,37 +253,39 @@ body.h5-skin .toggle-pwd {
   flex-direction: column;
 }
 
-.h5-home-decor {
+/* 装饰球锚定在 .home-hero 内（index.html），坐标对齐参考图 */
+.home-hero .h5-home-decor {
   pointer-events: none;
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
 }
 
-.h5-home-decor::before {
+.home-hero .h5-home-decor::before {
   content: "";
   position: absolute;
-  top: 72px;
-  left: 16px;
+  top: 22%;
+  left: 8%;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #fcd34d, #fbbf24);
-  border: 3px solid var(--h5-neo-border);
-  box-shadow: var(--h5-neo-shadow-sm);
+  border: none;
+  box-shadow: 0 4px 14px rgba(251, 191, 36, 0.45);
   animation: h5-wiggle 2.5s ease-in-out infinite;
 }
 
-.h5-home-decor::after {
+.home-hero .h5-home-decor::after {
   content: "";
   position: absolute;
-  top: 100px;
-  right: 20px;
+  top: 36%;
+  right: 10%;
   width: 34px;
   height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, #fb7185, #f472b6);
-  border: 3px solid var(--h5-neo-border);
+  border: none;
+  box-shadow: 0 4px 14px rgba(244, 114, 182, 0.4);
   animation: h5-float-y 2.8s ease-in-out infinite;
   animation-delay: 0.4s;
 }
@@ -297,55 +299,62 @@ body.h5-skin .h5-home-main {
   animation: h5-page-fade 0.38s var(--h5-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
-body.h5-skin .page .top-bar {
+/* 首页顶栏在 index 内联为半透明圆钮；非首页顶栏仍用 neo */
+/* 首页 Hero 顶栏：覆盖全局 .top-bar 白底，仅保留左右圆钮 */
+body.h5-skin .h5-home-page .home-hero .home-top-bar {
+  position: absolute !important;
+  height: auto !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+body.h5-skin .page:not(.h5-home-page) .top-bar {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
 }
 
-body.h5-skin .user-avatar {
+body.h5-skin .page:not(.h5-home-page) .user-avatar {
   border: 3px solid var(--h5-neo-border);
   box-shadow: var(--h5-neo-shadow-sm);
   background: linear-gradient(135deg, #93c5fd, #c4b5fd) !important;
   color: #111 !important;
 }
 
-body.h5-skin .settings-btn {
+body.h5-skin .page:not(.h5-home-page) .settings-btn {
   border: 3px solid var(--h5-neo-border);
   border-radius: 50%;
   background: #e5e7eb;
   box-shadow: var(--h5-neo-shadow-sm);
 }
 
-body.h5-skin .avatar-section .name {
-  font-size: clamp(1.75rem, 7vw, 2.25rem);
-  font-weight: 900;
-  background: var(--h5-gradient-title);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--h5-neo-border);
-  paint-order: stroke fill;
-}
-
-body.h5-skin .avatar-wrapper img,
-body.h5-skin .avatar-fallback {
-  border: 5px solid var(--h5-neo-border) !important;
-  box-shadow: var(--h5-neo-shadow-lg) !important;
-}
-
-/* 首页关系进度条：粗胶囊轨道 + 蓝粉渐变（仅 .h5-home-main 内） */
-body.h5-skin .h5-home-main .progress-bar {
-  height: 22px;
-  background: #fff;
-  border: 4px solid var(--h5-neo-border);
+/* 首页关系进度条：轻轨道 + 蓝粉渐变填充（保留 width 过渡动效） */
+body.h5-skin .h5-home-main .home-rel-card .progress-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border: none;
   border-radius: 999px;
-  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: none;
   overflow: hidden;
 }
 
-body.h5-skin .h5-home-main .progress-bar .progress-fill {
+body.h5-skin .h5-home-main .home-rel-card .progress-bar .progress-fill {
   background: linear-gradient(90deg, #3b82f6 0%, #ec4899 100%);
   border-radius: 999px;
+}
+
+/* 首页主 CTA 仍用渐变胶囊；功能卡为轻阴影白卡（index 内联为主） */
+body.h5-skin .h5-home-page .home-feature-card {
+  background: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  font-weight: inherit;
+}
+
+body.h5-skin .h5-home-page .home-feature-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ========== 日记 / 记忆 列表卡片增强 ========== */
@@ -557,8 +566,8 @@ body.h5-skin .toast-item {
   .h5-auth-decor::before,
   .h5-auth-decor::after,
   .h5-auth-spark,
-  .h5-home-decor::before,
-  .h5-home-decor::after {
+  .home-hero .h5-home-decor::before,
+  .home-hero .h5-home-decor::after {
     animation: none !important;
   }
 

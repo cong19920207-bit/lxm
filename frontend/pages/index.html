@@ -7,128 +7,379 @@
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
   <style>
-    .page {
+    .page.h5-home-page {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: linear-gradient(180deg, #f8f4ff 0%, #f3f0ff 28%, #eef2ff 100%);
     }
 
-    /* 顶部栏 */
-    .top-bar .user-avatar {
-      width: 32px;
-      height: 32px;
+    /* Hero 顶图（对齐 iPhone 16 Pro 竖屏人物占比） */
+    .home-hero {
+      position: relative;
+      flex-shrink: 0;
+      min-height: 58vh;
+      background-image: url('/static/images/Index/index.png');
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+    }
+
+    .home-hero::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 42%;
+      background: linear-gradient(180deg, rgba(248, 244, 255, 0) 0%, rgba(243, 240, 255, 0.92) 72%, #f3f0ff 100%);
+      pointer-events: none;
+    }
+
+    .home-hero .h5-home-decor {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* 顶栏叠在 Hero 上：无整条白底横条 */
+    body.h5-skin .h5-home-page .home-hero .home-top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      height: auto;
+      min-height: 0;
+      background: transparent !important;
+      border-bottom: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0;
+    }
+
+    .home-top-bar .user-avatar {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: var(--color-primary);
+      background: rgba(167, 139, 250, 0.42);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--color-text);
+      font-size: 15px;
+      font-weight: 700;
+      color: #5b21b6;
+      border: none;
+      box-shadow: 0 2px 12px rgba(124, 58, 237, 0.18);
     }
 
-    .top-bar .settings-btn {
-      width: 44px;
-      height: 44px;
+    .home-top-bar .settings-btn {
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
       border-radius: 50%;
+      background: rgba(255, 255, 255, 0.52);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: none;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      color: #6b7280;
       transition: background 0.2s;
     }
 
-    .top-bar .settings-btn:active {
-      background: rgba(0, 0, 0, 0.05);
+    .home-top-bar .settings-btn:active {
+      background: rgba(255, 255, 255, 0.72);
     }
 
-    /* 核心内容区 */
-    .main-content {
+    /* 名字 + 状态气泡：落在 Hero 下缘（绿色区域） */
+    .home-hero-info {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: auto;
+      bottom: 20px;
+      z-index: 3;
+      padding: 0 20px 0;
+      transform: none;
+    }
+
+    .home-hero-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .home-hero-name {
+      margin: 0;
+      font-size: clamp(1.5rem, 6.5vw, 2rem);
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+      letter-spacing: 0.02em;
+    }
+
+    .home-hero-star {
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    .home-status-bubble {
+      display: inline-block;
+      max-width: min(100%, 300px);
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .home-status-bubble .status-text {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: #374151;
+    }
+
+    /* 隐藏旧居中头像 DOM（保留节点） */
+    .home-avatar-legacy,
+    .home-avatar-legacy .avatar-wrapper,
+    #linxiaomeng-avatar,
+    .skeleton-avatar {
+      display: none !important;
+    }
+
+    /* 主内容区 */
+    .h5-home-main {
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 80px 24px 24px;
+      padding: 0 16px 0;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    /* 头像区 */
-    .avatar-section {
+    .home-real-content {
+      flex-direction: column;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      display: none;
+    }
+
+    /* 占位：把关系卡+功能卡整体下压到页面中下（绿色区域） */
+    .home-layout-spacer {
+      flex: 1;
+      min-height: 48px;
+    }
+
+    .home-modules-panel {
+      flex-shrink: 0;
+      width: 100%;
+    }
+
+    .content-loaded .skeleton-wrap { display: none; }
+    .content-loaded .home-real-content { display: flex !important; }
+
+    .skeleton-wrap {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      padding-bottom: 16px;
+    }
+
+    .skeleton-wrap .home-layout-spacer {
+      flex: 1;
+      min-height: 48px;
+    }
+
+    .skeleton-modules-panel {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .skeleton-hero-text {
+      height: 18px;
+      width: 100px;
+      border-radius: 8px;
+    }
+
+    .skeleton-hero-bubble {
+      height: 40px;
+      width: 200px;
+      border-radius: 14px;
+    }
+
+    .skeleton-rel-card {
+      height: 56px;
+      width: 100%;
+      border-radius: 16px;
+    }
+
+    .skeleton-feature-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .skeleton-feature-card {
+      flex: 1;
+      height: 88px;
+      border-radius: 14px;
+    }
+
+    /* 关系进度卡 */
+    .home-rel-card {
+      display: flex;
       align-items: center;
-      margin-bottom: 24px;
-    }
-
-    .avatar-section .avatar-wrapper {
+      gap: 10px;
+      width: 100%;
+      padding: 14px 14px;
+      margin-top: 0;
       margin-bottom: 12px;
-    }
-
-    .avatar-section .name {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    /* 状态语文语气泡（漫画描边 + 下三角） */
-    .home-status-bubble {
-      position: relative;
-      max-width: 280px;
-      margin: 0 auto;
-      padding: 12px 16px 14px;
       background: #fff;
-      border: 4px solid #121212;
-      border-radius: 18px;
-      box-shadow: 5px 5px 0 rgba(18, 18, 18, 0.18);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      box-sizing: border-box;
     }
 
-    .home-status-bubble::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: -10px;
-      margin-left: -10px;
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-top: 10px solid #121212;
+    .home-rel-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #ede9fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .home-status-bubble::before {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: -5px;
-      margin-left: -7px;
-      width: 0;
-      height: 0;
-      border-left: 7px solid transparent;
-      border-right: 7px solid transparent;
-      border-top: 7px solid #fff;
-      z-index: 1;
+    .home-rel-body {
+      flex: 1;
+      min-width: 0;
     }
 
-    .avatar-section .status-text {
-      margin: 0;
+    .home-rel-card .level-name {
       font-size: 14px;
-      font-weight: 800;
-      line-height: 1.45;
-      color: #111;
-      text-align: center;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+      text-align: left;
     }
 
-    /* 进入聊天外包一层：未读角标锚点 */
+    .home-rel-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .home-rel-card .progress-bar {
+      flex: 1;
+      min-width: 0;
+      height: 8px;
+      margin: 0;
+    }
+
+    .home-rel-card .progress-info {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    /* 三功能入口卡片 */
+    .home-feature-grid {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .home-feature-card {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 10px 10px;
+      background: #fff;
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .home-feature-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .home-feature-card .home-btn-icon {
+      margin-bottom: 8px;
+    }
+
+    .home-feature-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .home-feature-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: #9ca3af;
+      line-height: 1.3;
+      padding-right: 12px;
+    }
+
+    .home-feature-chevron {
+      position: absolute;
+      right: 8px;
+      bottom: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #d1d5db;
+      line-height: 1;
+    }
+
+    /* 底部进入聊天 */
+    .action-section {
+      width: 100%;
+      flex-shrink: 0;
+      margin-top: 12px;
+      padding-bottom: calc(20px + var(--safe-area-bottom));
+    }
+
     .home-chat-btn-wrap {
       position: relative;
       width: 100%;
-      margin-bottom: 12px;
     }
 
     .home-chat-btn-wrap .chat-btn {
+      width: 100%;
+      height: 52px;
+      font-size: 17px;
+      border-radius: 999px;
       margin-bottom: 0;
+      gap: 10px;
     }
 
-    /* 首页未读：红底 + 黑细描边 + 压按钮角（覆盖 common 中头像角标定位）；呼吸仅在有未读时加类 .unread-badge--active */
     .home-chat-btn-wrap .unread-badge {
       top: -8px;
       right: -4px;
@@ -141,8 +392,9 @@
       border-radius: 999px;
       background: #ef4444;
       color: #fff;
-      border: 2px solid #121212;
+      border: 2px solid #fff;
       box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
       transform-origin: 50% 50%;
     }
 
@@ -164,144 +416,109 @@
     .chat-btn .home-btn-icon {
       flex-shrink: 0;
     }
-
-    /* 关系区域 */
-    .relationship-section {
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .relationship-section .level-name {
-      font-size: 15px;
-      font-weight: 500;
-      margin-bottom: 12px;
-      color: var(--color-text);
-    }
-
-    .relationship-section .progress-info {
-      font-size: 12px;
-      color: var(--color-gray);
-      margin-top: 8px;
-    }
-
-    /* 按钮区域 */
-    .action-section {
-      width: 100%;
-      max-width: 320px;
-      margin-top: auto;
-      padding-bottom: calc(24px + var(--safe-area-bottom));
-    }
-
-    .chat-btn {
-      width: 100%;
-      height: 52px;
-      font-size: 18px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      gap: 10px;
-    }
-
-    .sub-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .sub-actions .btn-secondary {
-      flex: 1;
-      flex-direction: row;
-      gap: 6px;
-      font-size: 12px;
-      padding: 8px 4px;
-      min-height: 48px;
-    }
-
-    .sub-actions .btn-secondary .home-btn-icon {
-      flex-shrink: 0;
-    }
-
-    /* 骨架屏 */
-    .skeleton-avatar {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-    }
-
-    .skeleton-text {
-      height: 16px;
-      width: 80px;
-      margin: 8px auto;
-    }
-
-    .skeleton-text-long {
-      height: 14px;
-      width: 140px;
-      margin: 6px auto;
-    }
-
-    .skeleton-progress {
-      height: 22px;
-      width: 100%;
-      margin: 16px auto 0;
-      border-radius: 999px;
-    }
-
-    .content-loaded .skeleton-wrap { display: none; }
-    .content-loaded .real-content { display: flex !important; }
-    .real-content { display: none !important; }
   </style>
 </head>
 <body class="h5-skin">
-  <div class="h5-home-decor" aria-hidden="true"></div>
-  <div class="page">
-    <!-- 顶部栏 -->
-    <div class="top-bar">
-      <div class="bar-left">
-        <div class="user-avatar" id="user-initial">-</div>
+  <div class="page h5-home-page">
+    <section class="home-hero" aria-label="林小梦">
+      <div class="h5-home-decor" aria-hidden="true"></div>
+
+      <div class="top-bar home-top-bar">
+        <div class="bar-left">
+          <div class="user-avatar" id="user-initial">-</div>
+        </div>
+        <div class="bar-center"></div>
+        <div class="bar-right">
+          <button type="button" class="settings-btn" onclick="location.href='/pages/settings.html'" aria-label="设置">⚙️</button>
+        </div>
       </div>
-      <div class="bar-center"></div>
-      <div class="bar-right">
-        <button class="settings-btn" onclick="location.href='/pages/settings.html'">⚙️</button>
+
+      <div class="home-hero-info">
+        <div class="home-hero-name-row">
+          <h1 class="home-hero-name">林小梦</h1>
+          <svg class="home-hero-star" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.5L12 15.8 6.4 19.3l2.1-6.5L3 8.8h6.8L12 2z" fill="#fff" stroke="#e9d5ff" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="home-status-bubble" aria-live="polite">
+          <p class="status-text" id="status-text">正在连接...</p>
+        </div>
       </div>
-    </div>
+
+      <!-- 旧头像节点保留，仅隐藏展示 -->
+      <div class="home-avatar-legacy avatar-section" aria-hidden="true">
+        <div class="avatar-wrapper" style="width:120px;height:120px">
+          <img id="linxiaomeng-avatar"
+               src="/static/images/avatar/default.png"
+               alt="林小梦"
+               style="width:120px;height:120px"
+               onerror="handleAvatarError(this)">
+        </div>
+      </div>
+    </section>
 
     <div class="main-content h5-home-main" id="main-content">
-      <!-- 骨架屏 -->
       <div class="skeleton-wrap">
-        <div class="avatar-section">
-          <div class="skeleton skeleton-avatar"></div>
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-text-long"></div>
-        </div>
-        <div class="relationship-section">
-          <div class="skeleton skeleton-text" style="width:120px"></div>
-          <div class="skeleton skeleton-progress"></div>
+        <div class="home-layout-spacer" aria-hidden="true"></div>
+        <div class="skeleton-modules-panel">
+          <div class="skeleton skeleton-rel-card"></div>
+          <div class="skeleton-feature-row">
+            <div class="skeleton skeleton-feature-card"></div>
+            <div class="skeleton skeleton-feature-card"></div>
+            <div class="skeleton skeleton-feature-card"></div>
+          </div>
         </div>
       </div>
 
-      <!-- 真实内容 -->
-      <div class="real-content" style="flex-direction:column;align-items:center;width:100%;flex:1">
-        <div class="avatar-section">
-          <div class="avatar-wrapper" style="width:120px;height:120px">
-            <img id="linxiaomeng-avatar"
-                 src="/static/images/avatar/default.png"
-                 alt="林小梦"
-                 style="width:120px;height:120px"
-                 onerror="handleAvatarError(this)">
+      <div class="home-real-content">
+        <div class="home-layout-spacer" aria-hidden="true"></div>
+        <div class="home-modules-panel">
+        <div class="home-rel-card relationship-section">
+          <div class="home-rel-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#9333ea" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <div class="name">林小梦</div>
-          <div class="home-status-bubble" aria-live="polite">
-            <p class="status-text" id="status-text">正在连接...</p>
+          <div class="home-rel-body">
+            <div class="level-name" id="level-name"></div>
+            <div class="home-rel-progress-row">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+              <div class="progress-info" id="progress-info"></div>
+            </div>
           </div>
         </div>
 
-        <div class="relationship-section">
-          <div class="level-name" id="level-name"></div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
-          </div>
-          <div class="progress-info" id="progress-info"></div>
+        <div class="home-feature-grid">
+          <button type="button" class="home-feature-card" onclick="location.href='/pages/memory.html'">
+            <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#ec4899" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span class="home-feature-title">我的记忆</span>
+            <span class="home-feature-sub">珍藏我们的点滴</span>
+            <span class="home-feature-chevron" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="home-feature-card" onclick="location.href='/pages/diary.html'">
+            <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="#9333ea" stroke-width="2"/>
+              <path d="M8 7h8M8 11h5" stroke="#9333ea" stroke-width="2" stroke-linecap="round"/>
+              <path d="M15.2 15.3c.2.8-.4 1.5-1.2 1.7-.8.2-1.5-.4-1.7-1.2-.1-.4-.5-.7-.9-.7h-.4" stroke="#db2777" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span class="home-feature-title">她的日记</span>
+            <span class="home-feature-sub">记录心情和想法</span>
+            <span class="home-feature-chevron" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="home-feature-card" onclick="goToRelationship()">
+            <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="5" width="16" height="15" rx="2" stroke="#3b82f6" stroke-width="2"/>
+              <path d="M4 9h16M8 5V3M16 5V3" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="home-feature-title">关系状态</span>
+            <span class="home-feature-sub">我们的专属空间</span>
+            <span class="home-feature-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
         </div>
 
         <div class="action-section">
@@ -313,29 +530,6 @@
               <span>进入聊天</span>
             </button>
             <span id="unread-badge" class="unread-badge" style="display:none" aria-label="未读主动消息">0</span>
-          </div>
-          <div class="sub-actions">
-            <button class="btn-secondary" type="button" onclick="location.href='/pages/memory.html'">
-              <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#ec4899" stroke-width="2" stroke-linejoin="round"/>
-              </svg>
-              <span>我的记忆</span>
-            </button>
-            <button class="btn-secondary" type="button" onclick="location.href='/pages/diary.html'">
-              <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="5" y="3" width="14" height="18" rx="2" stroke="#9333ea" stroke-width="2"/>
-                <path d="M8 7h8M8 11h5" stroke="#9333ea" stroke-width="2" stroke-linecap="round"/>
-                <path d="M15.2 15.3c.2.8-.4 1.5-1.2 1.7-.8.2-1.5-.4-1.7-1.2-.1-.4-.5-.7-.9-.7h-.4" stroke="#db2777" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-              <span>她的日记</span>
-            </button>
-            <button class="btn-secondary" type="button" onclick="goToRelationship()">
-              <svg class="home-btn-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="4" y="5" width="16" height="15" rx="2" stroke="#3b82f6" stroke-width="2"/>
-                <path d="M4 9h16M8 5V3M16 5V3" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span>关系状态</span>
-            </button>
           </div>
         </div>
       </div>
@@ -370,13 +564,11 @@
           request('GET', '/api/agent/unread-count')
         ])
 
-        // 用户名首字
         const username = localStorage.getItem('username') || ''
         if (username) {
           document.getElementById('user-initial').textContent = username.charAt(0).toUpperCase()
         }
 
-        // 关系状态
         if (relRes.code === 0 && relRes.data) {
           const d = relRes.data
           const level = d.level || 0
@@ -390,21 +582,13 @@
 
           document.getElementById('progress-info').textContent = currentGrowth + ' / ' + nextThreshold
 
-          // 缓存关系等级供其他页面使用
           localStorage.setItem('relationship_level', level)
 
-          // 延迟触发进度条动画
           setTimeout(() => {
             document.getElementById('progress-fill').style.width = percent + '%'
           }, 100)
-
-          // 头像情绪
-          if (d.ai_current_emotion) {
-            updateAvatarEmotion(d.ai_current_emotion)
-          }
         }
 
-        // 未读数（角标与呼吸动效仅在 count>0 时展示）
         if (unreadRes.code === 0) {
           const count = unreadRes.data?.count || 0
           const badge = document.getElementById('unread-badge')
@@ -418,7 +602,6 @@
           }
         }
 
-        // 切换到真实内容
         document.getElementById('main-content').classList.add('content-loaded')
 
       } catch (err) {
