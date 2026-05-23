@@ -33,6 +33,35 @@ def test_chat_html_send_contract():
     assert "h5-theme.css" in html
 
 
+def test_chat_html_immersive_surface_contract():
+    """聊天页：沉浸布局锚点（与 docs/contract.md 2026-05-23 聊天摘要一致）。"""
+    html = _read("chat.html")
+    theme = (REPO / "frontend" / "static" / "css" / "h5-theme.css").read_text(encoding="utf-8")
+    for fragment in (
+        "chat-immersive",
+        'id="chat-bg-image"',
+        'id="chat-header-avatar"',
+        "updateChatBackgroundEmotion",
+        'placeholder="想和我吐槽什么…"',
+        'class="more-btn"',
+        'aria-label="更多"',
+        "msg-content",
+        "msg-time-divider",
+        "chat-time.js",
+        "formatChatTime",
+        "shouldShowTimeStamp",
+        "data-created-at",
+        "input-area-inner",
+        "#D8D8DC",
+        "#8E8E93",
+        "#A6FF7B",
+    ):
+        assert fragment in html, fragment
+    assert "msg-bubble .msg-time" not in html
+    assert "body.h5-skin:not(.chat-immersive) .chat-top-bar" in theme
+    assert "updateAvatarEmotion" not in html
+
+
 def test_login_html_auth_ids():
     html = _read("login.html")
     for fragment in (

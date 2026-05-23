@@ -171,6 +171,14 @@ className="h-14 bg-gradient-to-r from-red-400 to-red-500
 - **关系区**：**`.home-rel-card`** 横卡（心形图标 + 等级文案 + 进度条 + 分数）；填充 **蓝→粉** 渐变，**`width` 0.8s 过渡**。
 - **功能入口**：**`.home-feature-grid`** 三卡（标题 + 副标题 + chevron），跳转记忆/日记/关系；底部 **渐变胶囊**「进入聊天」+ 聊天气泡 SVG。
 
+### H5 聊天页（`chat.html`，沉浸参考图）
+
+- **`body.h5-skin.chat-immersive`**：全站 neo 聊天样式由 **`h5-theme.css`** 的 **`:not(.chat-immersive)`** 豁免，样式以页内联为主。
+- **背景**：**`.chat-bg`** + **`#chat-bg-image`**（情绪图 **`AVATAR_MAP`** + 25% 黑遮罩，无背景模糊）；**`updateChatBackgroundEmotion`**，非顶栏换图。
+- **顶栏**：66px 毛玻璃（约为初版 88px 的 3/4）；**`#chat-header-avatar`** 固定默认图；**`.more-btn`** 仅展示。
+- **气泡**：毛玻璃白（AI）/ **`#DDF4C8` 85%**（用户）；**无气泡内时间**；分组时间见全宽居中 **`.msg-time-divider`**（**`chat-time.js`**：`formatChatTime` / `shouldShowTimeStamp`）。失败重发叹号 **`.msg-bang`** 在气泡左侧且与气泡垂直居中。
+- **底栏**：深色条 + 白 pill 输入；**`#send-btn`** 启用浅绿 **`#A6FF7B`**，禁用 **`#D8D8DC`/`#8E8E93`**。
+
 ---
 
 ## 📦 卡片组件

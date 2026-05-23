@@ -13,81 +13,154 @@
     }
 
     .chat-page {
+      position: relative;
       display: flex;
       flex-direction: column;
       height: 100%;
+      background: transparent;
     }
 
-    /* 顶部栏 */
+    /* 全屏背景：情绪图 + 模糊 + 遮罩 */
+    .chat-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .chat-bg__image {
+      position: absolute;
+      inset: 0;
+      background-image: url('/static/images/avatar/default.png');
+      background-size: cover;
+      background-position: center 72%;
+      background-repeat: no-repeat;
+    }
+
+    .chat-bg__mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    /* 顶部栏（66px ≈ 原 88px 的 3/4，含状态栏区域） */
     .chat-top-bar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 56px;
-      background: var(--color-white);
+      z-index: 100;
+      min-height: 66px;
+      box-sizing: border-box;
+      padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 10px;
       display: flex;
       align-items: center;
-      padding: 0 12px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      z-index: 100;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
     }
 
-    .chat-top-bar .back-btn {
+    .chat-top-bar .back-btn,
+    .chat-top-bar .more-btn {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .chat-top-bar .more-btn {
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .chat-top-bar .back-btn:active,
+    .chat-top-bar .more-btn:active {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .chat-top-bar .bar-center {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .chat-top-bar .bar-center .avatar-wrapper {
       width: 44px;
       height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .chat-top-bar .bar-center .avatar-wrapper img {
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #fff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
     }
 
-    .chat-top-bar .back-btn:active {
-      background: rgba(0, 0, 0, 0.05);
-    }
-
-    .chat-top-bar .bar-info {
-      flex: 1;
+    .chat-top-bar .bar-titles {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      min-width: 0;
     }
 
-    .chat-top-bar .bar-info .name {
-      font-size: 14px;
+    .chat-top-bar .bar-titles .name {
+      font-size: 15px;
       font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
     }
 
     .chat-top-bar .bar-status {
       display: flex;
       align-items: center;
       gap: 4px;
-      margin-right: 8px;
     }
 
-    .online-dot {
-      width: 8px;
-      height: 8px;
+    .chat-top-bar .online-dot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--color-success);
+      background: #A6FF7B;
+      flex-shrink: 0;
     }
 
-    .online-text {
+    .chat-top-bar .online-text {
       font-size: 12px;
-      color: var(--color-gray);
+      color: rgba(166, 255, 123, 0.8);
+      line-height: 1.2;
     }
 
-    /* 未读提示条 */
+    /* 未读提示条（沉浸风） */
     .agent-tip {
       position: fixed;
-      top: 56px;
-      left: 0;
-      right: 0;
+      top: 66px;
+      left: 12px;
+      right: 12px;
       z-index: 99;
-      background: #FFF0F0;
-      padding: 10px 16px;
+      background: rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -97,22 +170,23 @@
 
     .agent-tip.hidden {
       opacity: 0;
-      transform: translateY(-100%);
+      transform: translateY(-12px);
       pointer-events: none;
     }
 
     .agent-tip .tip-line {
-      width: 4px;
+      width: 3px;
       align-self: stretch;
-      background: #E8938A;
+      background: #A6FF7B;
       border-radius: 2px;
       flex-shrink: 0;
+      opacity: 0.85;
     }
 
     .agent-tip .tip-content {
       flex: 1;
       font-size: 13px;
-      color: var(--color-text);
+      color: rgba(255, 255, 255, 0.92);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -125,20 +199,22 @@
       align-items: center;
       justify-content: center;
       font-size: 16px;
-      color: var(--color-gray);
+      color: rgba(255, 255, 255, 0.65);
       flex-shrink: 0;
     }
 
-    /* 聊天记录区（底部留白由 JS 按输入栏高度同步，此处为初值防首帧遮挡） */
+    /* 聊天记录区 */
     .chat-messages {
+      position: relative;
+      z-index: 1;
       flex: 1;
       overflow-y: auto;
-      padding: 68px 16px 72px;
+      padding: 72px 16px 88px;
       -webkit-overflow-scrolling: touch;
     }
 
     .chat-messages.has-tip {
-      padding-top: 110px;
+      padding-top: 105px;
     }
 
     .msg-sentinel {
@@ -149,10 +225,10 @@
       text-align: center;
       padding: 12px;
       font-size: 12px;
-      color: var(--color-gray);
+      color: rgba(255, 255, 255, 0.65);
     }
 
-    /* 消息气泡 */
+    /* 消息行 */
     .msg-row {
       display: flex;
       margin-bottom: 16px;
@@ -169,27 +245,24 @@
       border-radius: 50%;
       margin-top: 2px;
       object-fit: cover;
-      background: var(--color-primary);
+      background: rgba(255, 255, 255, 0.2);
       flex-shrink: 0;
     }
 
     .msg-row.ai { gap: 8px; }
     .msg-row.user { gap: 8px; }
 
-    /* 与头像同列时占满剩余宽度，保证 max-width:70% 有稳定参照，避免气泡被压成极窄 */
     .msg-row .msg-body {
       flex: 1;
       min-width: 0;
     }
 
-    /* 用户消息：气泡与时间靠右，紧贴头像侧（避免 flex:1 拉满后仍从左排布） */
     .msg-row.user .msg-body {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
     }
 
-    /* AI 消息：与用户侧对称，气泡按内容宽度收缩（仍受 .msg-bubble max-width:70% 约束） */
     .msg-row.ai .msg-body {
       display: flex;
       flex-direction: column;
@@ -198,29 +271,30 @@
 
     .msg-bubble {
       max-width: 70%;
-      padding: 10px 14px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.6;
+      padding: 14px 16px;
+      border-radius: 28px;
+      font-size: 15px;
+      line-height: 1.5;
       overflow-wrap: break-word;
       word-break: normal;
       position: relative;
     }
 
     .msg-row.user .msg-bubble {
-      background: #DCF8C6;
-      border-top-right-radius: 4px;
+      background: rgba(221, 244, 200, 0.85);
+      color: #1A1A1A;
     }
 
     .msg-row.ai .msg-bubble {
-      background: var(--color-white);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      border-top-left-radius: 4px;
+      background: rgba(255, 255, 255, 0.72);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      color: #1A1A1A;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
 
-    /* 主动消息标识 */
     .msg-row.agent .msg-bubble {
-      border-left: 3px solid var(--color-primary);
+      border-left: 3px solid rgba(166, 255, 123, 0.85);
     }
 
     .msg-unread-tag {
@@ -228,53 +302,63 @@
       top: -6px;
       right: -6px;
       background: #FF8C00;
-      color: var(--color-white);
+      color: #fff;
       font-size: 10px;
       padding: 1px 6px;
       border-radius: 8px;
     }
 
-    .msg-time {
-      font-size: 11px;
-      color: var(--color-gray);
-      margin-top: 4px;
+    /* 居中分组时间戳（微信式） */
+    .msg-time-divider {
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.2;
+      color: rgba(255, 255, 255, 0.55);
+      margin: 12px 0;
+      user-select: none;
+      flex-shrink: 0;
     }
 
-    .msg-row.user .msg-meta {
-      text-align: right;
-    }
-
-    /* 底部输入区 */
+    /* 底部输入区：深色条 + 白 pill + 绿发送 */
     .input-area {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--color-white);
-      padding: 8px 12px calc(8px + var(--safe-area-bottom));
+      z-index: 100;
+      padding: 10px 12px calc(10px + var(--safe-area-bottom));
+      background: rgba(0, 0, 0, 0.42);
+      -webkit-backdrop-filter: blur(30px);
+      backdrop-filter: blur(30px);
+      border-radius: 32px 32px 0 0;
+      box-sizing: border-box;
+    }
+
+    .input-area-inner {
       display: flex;
       align-items: flex-end;
       gap: 8px;
-      box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
-      z-index: 100;
     }
 
     .input-area textarea {
       flex: 1;
-      min-height: 36px;
+      min-height: 40px;
       max-height: 33vh;
-      padding: 8px 12px;
-      background: #F5F2EE;
-      border-radius: 18px;
+      padding: 10px 16px;
+      background: #fff;
+      border: none;
+      border-radius: 22px;
       font-size: 14px;
       line-height: 1.5;
       resize: none;
-      color: var(--color-text);
+      color: #1A1A1A;
       overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .input-area textarea::placeholder {
-      color: #C0B8B0;
+      color: rgba(0, 0, 0, 0.35);
     }
 
     .send-btn {
@@ -282,8 +366,8 @@
       height: 44px;
       border: none;
       border-radius: 50%;
-      background: var(--color-primary);
-      color: #fff;
+      background: #A6FF7B;
+      color: #2D6A4B;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -291,9 +375,9 @@
       flex-shrink: 0;
       cursor: pointer;
       transition: background-color 0.2s, color 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
-    /* 空内容：与系统键盘「发送」禁用态一致的浅灰底 + 低对比符号 */
     .send-btn:disabled,
     .send-btn.disabled {
       background: #D8D8DC;
@@ -301,28 +385,28 @@
       cursor: not-allowed;
       pointer-events: none;
       opacity: 1;
+      box-shadow: none;
     }
 
-    /* AI思考动画 */
-    .thinking-bubble .loading-dots {
-      padding: 4px 0;
+    .thinking-bubble .msg-content .loading-dots {
+      padding: 2px 0;
     }
 
     .msg-error {
-      color: var(--color-danger);
-      font-size: 13px;
+      color: #ff6b6b;
+      font-size: 15px;
     }
 
-    /* 叹号重发（失败 user 行） */
     .msg-user-with-side {
       display: flex;
       flex-direction: row;
-      align-items: flex-start;
+      align-items: center;
       justify-content: flex-end;
       gap: 6px;
       flex: 1;
       min-width: 0;
     }
+
     .msg-bang {
       width: 22px;
       height: 22px;
@@ -337,16 +421,17 @@
       padding: 0;
       flex-shrink: 0;
       cursor: pointer;
-      margin-top: 4px;
+      align-self: center;
     }
+
     .msg-bang:active { opacity: 0.85; }
 
-    /* 升级提示条 */
     .levelup-tip {
       position: fixed;
       bottom: 70px;
       left: 16px;
       right: 16px;
+      z-index: 99;
       background: linear-gradient(135deg, #fff3e0, #fce4ec);
       border-radius: 12px;
       padding: 12px 16px;
@@ -354,15 +439,16 @@
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      z-index: 99;
       animation: toast-in 0.3s forwards;
       cursor: pointer;
     }
+
     .levelup-tip .lt-text {
       font-size: 14px;
       color: var(--color-text);
       font-weight: 500;
     }
+
     .levelup-tip .lt-btn {
       font-size: 13px;
       color: #fa8c16;
@@ -372,53 +458,74 @@
     }
   </style>
 </head>
-<body class="h5-skin">
+<body class="h5-skin chat-immersive">
   <div class="chat-page">
-    <!-- 顶部栏 -->
-    <div class="chat-top-bar">
-      <button class="back-btn" onclick="location.href='/pages/index.html'">←</button>
-      <div class="bar-info">
-        <div class="avatar-wrapper" style="width:32px;height:32px">
-          <img id="linxiaomeng-avatar"
-               src="/static/images/avatar/default.png"
-               alt="林小梦"
-               style="width:32px;height:32px"
-               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
-        </div>
-        <span class="name">林小梦</span>
-      </div>
-      <div class="bar-status">
-        <span class="online-dot"></span>
-        <span class="online-text">在线</span>
-      </div>
+    <div class="chat-bg" aria-hidden="true">
+      <div class="chat-bg__image" id="chat-bg-image"></div>
+      <div class="chat-bg__mask"></div>
     </div>
 
-    <!-- 未读提示条 -->
+    <div class="chat-top-bar">
+      <button type="button" class="back-btn" onclick="location.href='/pages/index.html'" aria-label="返回">←</button>
+      <div class="bar-center">
+        <div class="avatar-wrapper">
+          <img id="chat-header-avatar"
+               src="/static/images/avatar/default.png"
+               alt="林小梦"
+               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+        </div>
+        <div class="bar-titles">
+          <span class="name">林小梦</span>
+          <div class="bar-status">
+            <span class="online-dot"></span>
+            <span class="online-text">在线</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="more-btn" aria-label="更多">⋯</button>
+    </div>
+
     <div class="agent-tip hidden" id="agent-tip">
       <div class="tip-line"></div>
       <div class="tip-content" id="tip-content"></div>
       <div class="tip-close" id="tip-close">×</div>
     </div>
 
-    <!-- 聊天记录 -->
     <div class="chat-messages" id="chat-messages">
       <div class="msg-sentinel" id="top-sentinel"></div>
     </div>
 
-    <!-- 底部输入区 -->
     <div class="input-area">
-      <textarea id="msg-input" placeholder="想和我说什么..." rows="1" enterkeyhint="send"
-                oninput="autoResize(this); updateSendBtn(); saveDraft()"
-                oncompositionend="autoResize(this); updateSendBtn(); saveDraft()"
-                onkeyup="updateSendBtn()"
-                onkeydown="handleEnterKey(event)"></textarea>
-      <button type="button" class="send-btn disabled" id="send-btn" disabled onclick="handleSend()">➤</button>
+      <div class="input-area-inner">
+        <textarea id="msg-input" placeholder="想和我吐槽什么…" rows="1" enterkeyhint="send"
+                  oninput="autoResize(this); updateSendBtn(); saveDraft()"
+                  oncompositionend="autoResize(this); updateSendBtn(); saveDraft()"
+                  onkeyup="updateSendBtn()"
+                  onkeydown="handleEnterKey(event)"></textarea>
+        <button type="button" class="send-btn disabled" id="send-btn" disabled onclick="handleSend()">➤</button>
+      </div>
     </div>
   </div>
 
   <script src="/static/js/api.js"></script>
+  <script src="/static/js/chat-time.js"></script>
   <script>
     checkLogin()
+
+    /** 全屏背景随 AI 情绪切换（与 AVATAR_MAP 同源；顶栏头像固定 default） */
+    function updateChatBackgroundEmotion(emotionLabel) {
+      const layer = document.getElementById('chat-bg-image')
+      if (!layer) return
+      const src = AVATAR_MAP[emotionLabel] || AVATAR_MAP['default']
+      const preload = new Image()
+      preload.onload = function () {
+        layer.style.backgroundImage = 'url(' + src + ')'
+      }
+      preload.onerror = function () {
+        layer.style.backgroundImage = 'url(' + AVATAR_MAP['default'] + ')'
+      }
+      preload.src = src
+    }
 
     let timelineCursor = null
     let loadingTimeline = false
@@ -500,13 +607,90 @@
       sessionStorage.removeItem('chat_draft')
     }
 
+    /* ====== 居中时间戳 DOM 辅助 ====== */
+    function parseMessageTimestamp(isoOrMs) {
+      if (typeof isoOrMs === 'number' && Number.isFinite(isoOrMs)) return isoOrMs
+      if (!isoOrMs) return Date.now()
+      const d = new Date(isoOrMs)
+      const t = d.getTime()
+      return Number.isFinite(t) ? t : Date.now()
+    }
+
+    function getRowTimestamp(row) {
+      if (!row) return null
+      const v = row.getAttribute('data-created-at')
+      if (!v) return null
+      const n = Number(v)
+      return Number.isFinite(n) ? n : parseMessageTimestamp(v)
+    }
+
+    /** 从容器末尾向前找最近一条消息行（跳过 divider / sentinel） */
+    function getLastMessageRow(container) {
+      if (!container) return null
+      let node = container.lastElementChild
+      while (node) {
+        if (node.id === 'top-sentinel') return null
+        if (node.classList && node.classList.contains('msg-row')) return node
+        node = node.previousElementSibling
+      }
+      return null
+    }
+
+    function createTimeDivider(ts) {
+      const el = document.createElement('div')
+      el.className = 'msg-time-divider'
+      el.setAttribute('role', 'separator')
+      el.textContent = formatChatTime(ts)
+      return el
+    }
+
+    /** 按规则在 row 前插入居中戳，并追加 row */
+    function appendChatRow(container, row, ts) {
+      const prevRow = getLastMessageRow(container)
+      const prevTs = prevRow ? getRowTimestamp(prevRow) : null
+      if (shouldShowTimeStamp(ts, prevTs)) {
+        container.appendChild(createTimeDivider(ts))
+      }
+      container.appendChild(row)
+    }
+
+    /** 批量插入时间线（items 按时间升序）；prepend 时处理与已有首条边界 */
+    function insertTimelineBatch(container, items, insertBeforeNode) {
+      const nodes = []
+      let prevTs = null
+      items.forEach(function (item) {
+        const ts = parseMessageTimestamp(item.created_at)
+        const row = renderTimelineItem(item, ts)
+        if (shouldShowTimeStamp(ts, prevTs)) {
+          nodes.push(createTimeDivider(ts))
+        }
+        nodes.push(row)
+        prevTs = ts
+      })
+      if (!insertBeforeNode) {
+        nodes.forEach(function (n) { container.appendChild(n) })
+        return
+      }
+      const lastBatchTs = prevTs
+      const firstExistingTs = getRowTimestamp(insertBeforeNode)
+      if (firstExistingTs != null && lastBatchTs != null &&
+          shouldShowTimeStamp(firstExistingTs, lastBatchTs)) {
+        container.insertBefore(createTimeDivider(firstExistingTs), insertBeforeNode)
+      }
+      nodes.forEach(function (n) {
+        container.insertBefore(n, insertBeforeNode)
+      })
+    }
+
     /* ====== 消息渲染 ====== */
-    function appendUserBubble(content, time, deliveryStatus) {
+    function appendUserBubble(content, deliveryStatus) {
       const container = document.getElementById('chat-messages')
+      const ts = Date.now()
       const row = document.createElement('div')
       row.className = 'msg-row user'
       const ds = deliveryStatus || 'pending_llm'
       row.setAttribute('data-delivery', ds)
+      row.setAttribute('data-created-at', String(ts))
       const needBang = ds === 'failed_timeout' || ds === 'failed_error'
       const bangBtn = needBang
         ? `<button type="button" class="msg-bang" title="重试">!</button>`
@@ -518,11 +702,10 @@
           ${bangBtn}
           <div class="msg-body">
             <div class="msg-bubble">${escapeHtml(content)}</div>
-            <div class="msg-meta msg-time">${time ? formatTime(time) : '刚刚'}</div>
           </div>
         </div>
       `
-      container.appendChild(row)
+      appendChatRow(container, row, ts)
       return row
     }
 
@@ -552,10 +735,12 @@
       return 'failed_error'
     }
 
-    function appendAIBubble(content, time, isAgent, isUnread) {
+    function appendAIBubble(content, isAgent, isUnread) {
       const container = document.getElementById('chat-messages')
+      const ts = Date.now()
       const row = document.createElement('div')
       row.className = 'msg-row ai' + (isAgent ? ' agent' : '')
+      row.setAttribute('data-created-at', String(ts))
       row.innerHTML = `
         <img class="msg-avatar" src="/static/images/avatar/default.png"
              onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
@@ -564,10 +749,9 @@
             ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
             ${escapeHtml(content)}
           </div>
-          <div class="msg-meta msg-time">${time ? formatTime(time) : '刚刚'}</div>
         </div>
       `
-      container.appendChild(row)
+      appendChatRow(container, row, ts)
       return row
     }
 
@@ -589,16 +773,17 @@
              onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
         <div class="msg-body">
           <div class="msg-bubble thinking-bubble">
-            <div class="loading-dots"><span></span><span></span><span></span></div>
+            <div class="msg-content">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </div>
           </div>
-          <div class="msg-meta msg-time"></div>
         </div>
       `
       container.appendChild(thinkingRow)
 
       // 多气泡槽位管理
       let messageCount = 1
-      let bubbleSlots = []  // [{row, bubble, timeMeta}]
+      let bubbleSlots = []  // [{row, bubble, contentEl}]
       let thinkingRemoved = false
 
       function removeThinking() {
@@ -613,19 +798,22 @@
           const row = document.createElement('div')
           row.className = 'msg-row ai'
           row.setAttribute('data-ai-in-flight', '1')
+          const ts = Date.now()
+          row.setAttribute('data-created-at', String(ts))
           row.innerHTML = `
             <img class="msg-avatar" src="/static/images/avatar/default.png"
                  onerror="this.onerror=null;this.src='/static/images/avatar/default.png'" alt="">
             <div class="msg-body">
-              <div class="msg-bubble"></div>
-              <div class="msg-meta msg-time"></div>
+              <div class="msg-bubble">
+                <div class="msg-content"></div>
+              </div>
             </div>
           `
-          container.appendChild(row)
+          appendChatRow(container, row, ts)
           bubbleSlots.push({
             row,
             bubble: row.querySelector('.msg-bubble'),
-            timeMeta: row.querySelector('.msg-time'),
+            contentEl: row.querySelector('.msg-content'),
           })
         }
         return bubbleSlots[index]
@@ -644,7 +832,7 @@
         appendTextAt(index, text) {
           removeThinking()
           const slot = ensureSlot(index)
-          slot.bubble.innerHTML += escapeHtml(text)
+          slot.contentEl.innerHTML += escapeHtml(text)
         },
         /** done 到达：以 messages 数组为真相源，纠偏所有气泡内容 */
         finalize(messages, emotion) {
@@ -652,8 +840,7 @@
           // 按 done.messages 纠偏/定稿
           for (let i = 0; i < messages.length; i++) {
             const slot = ensureSlot(i)
-            slot.bubble.innerHTML = escapeHtml(messages[i].content || '')
-            slot.timeMeta.textContent = '刚刚'
+            slot.contentEl.innerHTML = escapeHtml(messages[i].content || '')
             slot.row.removeAttribute('data-ai-in-flight')
           }
           // 移除多余槽位（理论上不会出现，防御性处理）
@@ -665,17 +852,19 @@
         markComplete() {
           removeThinking()
           bubbleSlots.forEach(s => {
-            s.timeMeta.textContent = '刚刚'
             s.row.removeAttribute('data-ai-in-flight')
           })
         },
         showError(msg) {
           if (!thinkingRemoved) {
             const bubble = thinkingRow.querySelector('.msg-bubble')
+            const content = thinkingRow.querySelector('.msg-content')
             bubble.classList.remove('thinking-bubble')
-            bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+            if (content) {
+              content.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+            }
           } else if (bubbleSlots.length > 0) {
-            bubbleSlots[0].bubble.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
+            bubbleSlots[0].contentEl.innerHTML = '<span class="msg-error">' + escapeHtml(msg) + '</span>'
           }
         }
       }
@@ -783,7 +972,7 @@
               } else {
                 aiBubble.markComplete()
               }
-              if (data.emotion && data.emotion.label) updateAvatarEmotion(data.emotion.label)
+              if (data.emotion && data.emotion.label) updateChatBackgroundEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
               if (sessionAtStart === chatSendSession) {
                 if (clearAllFailedUserRowsOnDone) {
@@ -828,7 +1017,7 @@
       removeAiInFlightRows()
       chatSendAbort = new AbortController()
 
-      const userRow = appendUserBubble(content, null, 'pending_llm')
+      const userRow = appendUserBubble(content, 'pending_llm')
       input.value = ''
       input.style.height = 'auto'
       updateSendBtn()
@@ -986,22 +1175,15 @@
         const sentinel = document.getElementById('top-sentinel')
 
         if (isFirstPage) {
-          items.forEach(item => {
-            container.appendChild(renderTimelineItem(item))
-          })
+          insertTimelineBatch(container, items, null)
         } else {
           const oldScrollHeight = container.scrollHeight
-          const firstMsgNode = sentinel.nextElementSibling
-
-          items.forEach(item => {
-            const row = renderTimelineItem(item)
-            if (firstMsgNode) {
-              container.insertBefore(row, firstMsgNode)
-            } else {
-              container.appendChild(row)
-            }
-          })
-
+          let firstMsgNode = sentinel.nextElementSibling
+          while (firstMsgNode && firstMsgNode.classList &&
+                 firstMsgNode.classList.contains('msg-time-divider')) {
+            firstMsgNode = firstMsgNode.nextElementSibling
+          }
+          insertTimelineBatch(container, items, firstMsgNode || null)
           container.scrollTop = container.scrollHeight - oldScrollHeight
         }
       }
@@ -1009,8 +1191,10 @@
       loadingTimeline = false
     }
 
-    function renderTimelineItem(item) {
+    function renderTimelineItem(item, ts) {
+      const createdTs = ts != null ? ts : parseMessageTimestamp(item.created_at)
       const row = document.createElement('div')
+      row.setAttribute('data-created-at', String(createdTs))
       if (item.source === 'user') {
         row.className = 'msg-row user'
         const ds = item.delivery_status || ''
@@ -1026,7 +1210,6 @@
             ${bangBtn}
             <div class="msg-body">
               <div class="msg-bubble">${escapeHtml(item.content)}</div>
-              <div class="msg-meta msg-time">${formatTime(item.created_at)}</div>
             </div>
           </div>
         `
@@ -1042,7 +1225,6 @@
               ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
               ${escapeHtml(item.content)}
             </div>
-            <div class="msg-meta msg-time">${formatTime(item.created_at)}</div>
           </div>
         `
         if (item.emotion_label) {
@@ -1164,9 +1346,9 @@
       if (aiMessages.length > 0) {
         const lastAiRow = aiMessages[aiMessages.length - 1]
         const emotionAttr = lastAiRow.getAttribute('data-emotion')
-        updateAvatarEmotion(emotionAttr || '平静')
+        updateChatBackgroundEmotion(emotionAttr || '平静')
       } else {
-        updateAvatarEmotion('平静')
+        updateChatBackgroundEmotion('平静')
       }
 
       setupScrollObserver()
