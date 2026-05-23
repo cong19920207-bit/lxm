@@ -38,14 +38,14 @@ body.h5-skin {
 /* ========== 顶栏：粗线底 + 轻悬浮 ========== */
 
 body.h5-skin .top-bar,
-body.h5-skin .chat-top-bar {
+body.h5-skin:not(.chat-immersive) .chat-top-bar {
   background: #fff;
   border-bottom: 3px solid var(--h5-neo-border);
   box-shadow: 0 4px 0 rgba(18, 18, 18, 0.06);
 }
 
 body.h5-skin .top-bar .back-btn:active,
-body.h5-skin .chat-top-bar .back-btn:active,
+body.h5-skin:not(.chat-immersive) .chat-top-bar .back-btn:active,
 body.h5-skin .top-bar .settings-btn:active {
   background: rgba(99, 102, 241, 0.12);
 }
@@ -382,43 +382,43 @@ body.h5-skin .level-card {
   box-shadow: var(--h5-neo-shadow);
 }
 
-/* ========== 聊天页（保留 #send-btn 禁用色契约） ========== */
+/* ========== 聊天页 neo（沉浸聊天 chat-immersive 由 chat.html 内联接管） ========== */
 
-body.h5-skin .chat-page {
+body.h5-skin:not(.chat-immersive) .chat-page {
   background: var(--h5-gradient-page);
 }
 
-body.h5-skin .chat-messages {
+body.h5-skin:not(.chat-immersive) .chat-messages {
   background: transparent;
 }
 
-body.h5-skin .msg-row.ai .msg-bubble {
+body.h5-skin:not(.chat-immersive) .msg-row.ai .msg-bubble {
   background: #fff;
   border: 3px solid var(--h5-neo-border);
   box-shadow: var(--h5-neo-shadow-sm);
   animation: h5-bubble-in 0.35s ease both;
 }
 
-body.h5-skin .msg-row.user .msg-bubble {
+body.h5-skin:not(.chat-immersive) .msg-row.user .msg-bubble {
   border: 3px solid #15803d;
   box-shadow: var(--h5-neo-shadow-sm);
 }
 
-body.h5-skin .input-area {
+body.h5-skin:not(.chat-immersive) .input-area {
   background: rgba(255, 255, 255, 0.95);
   border-top: 3px solid var(--h5-neo-border);
   box-shadow: 0 -6px 0 rgba(18, 18, 18, 0.05);
   backdrop-filter: blur(10px);
 }
 
-body.h5-skin .input-area textarea {
+body.h5-skin:not(.chat-immersive) .input-area textarea {
   border: 3px solid var(--h5-neo-border);
   box-shadow: var(--h5-neo-shadow-sm);
   background: #fff;
 }
 
 /* 发送钮：启用态 neo；禁用态完全交给 chat.html 内联规则，此处不覆盖 disabled */
-body.h5-skin .send-btn:not(:disabled):not(.disabled) {
+body.h5-skin:not(.chat-immersive) .send-btn:not(:disabled):not(.disabled) {
   border: 3px solid var(--h5-neo-border);
   box-shadow: var(--h5-neo-shadow-sm);
   background: var(--h5-gradient-cta);
@@ -431,12 +431,12 @@ body.h5-skin .top-bar .add-btn {
   font-weight: 700;
 }
 
-body.h5-skin .agent-tip {
+body.h5-skin:not(.chat-immersive) .agent-tip {
   border-bottom: 2px solid var(--h5-neo-border);
 }
 
-/* 叹号重发按钮：与主题粗线一致 */
-body.h5-skin .msg-bang {
+/* 叹号重发按钮：与主题粗线一致（沉浸聊天页除外） */
+body.h5-skin:not(.chat-immersive) .msg-bang {
   border: 2px solid var(--h5-neo-border);
   box-shadow: var(--h5-neo-shadow-sm);
 }
@@ -448,7 +448,7 @@ body.h5-skin .levelup-tip {
 }
 
 /* 思考占位气泡 */
-body.h5-skin .thinking-bubble .msg-bubble {
+body.h5-skin:not(.chat-immersive) .thinking-bubble .msg-bubble {
   border: 3px dashed var(--h5-neo-border);
   background: rgba(255, 255, 255, 0.92);
 }
