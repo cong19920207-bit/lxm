@@ -83,6 +83,7 @@ python3 scripts/init_admin.py
 - 管理后台（经 nginx）：**[http://localhost/admin](http://localhost/admin)**
 - 管理后台（直连后端）：**[http://localhost:8000/admin](http://localhost:8000/admin)**
 - 默认超管（`scripts/init_admin.py`）：用户名 `superadmin`，密码 `Admin@123456`（登录后请修改密码）
+- **角色知识库（STEP-027）**：登录 `super_admin` 或 `ai_trainer` → 侧栏 **📚 角色知识库**，或 **[http://localhost/admin/pages/knowledge.html](http://localhost/admin/pages/knowledge.html)**。须已在 `.env` 配置 **`DASHVECTOR_API_KEY` / `DASHVECTOR_ENDPOINT` / `DASHVECTOR_COLLECTION_NAME`** 及 Embedding 相关变量，否则列表/写入会失败。
 
 用户端 H5：**[http://localhost/](http://localhost/)**（静态由 nginx 的 `./frontend` 挂载提供；若用户端在**另一容器**，只需把该容器内页面的 API 基地址指到能访问本机的 `http://<宿主机IP>/api` 即可。）
 
@@ -100,9 +101,11 @@ python3 scripts/init_admin.py
 
 | 改动范围 | 建议操作 |
 | -------- | -------- |
-| `backend/`、`admin/`、`requirements.txt`、`Dockerfile` | `docker compose build backend && docker compose up -d backend`；若含**库结构变更**，按「四、库结构迁移」执行 `alembic upgrade head` 后再或同时重建 backend（一般先迁移再发版更稳；新表可先迁移再起服务）。 |
+| `backend/`、`requirements.txt`、`Dockerfile` | `docker compose build backend && docker compose up -d backend`；若含**库结构变更**，按「四、库结构迁移」执行 `alembic upgrade head` 后再或同时重建 backend（一般先迁移再发版更稳；新表可先迁移再起服务）。 |
+| 仅 `admin/`（页面/菜单/静态，经 **/admin** 访问） | compose 已将 **`./admin` 挂载到 backend `/app/admin`**，保存后 **刷新浏览器** 即可；若未挂载或生产镜像无卷，则须 **build backend**。 |
 | 仅 `frontend/`（用户经 **http://localhost** 访问） | `./frontend` 为 **挂载**，保存文件后强刷浏览器即可，**不必**重建 backend。 |
-| 直连 **:8000** 且依赖镜像内静态 | 与改 `frontend/` 进镜像一致，需 **build backend**。 |
+| 直连 **:8000** 且依赖镜像内静态 | 改 `frontend/` 进镜像须 **build backend**；`admin/` 在本地 compose 下通常已挂载。 |
+| STEP-027 角色知识库等新 API | **无 Alembic**；确保 `.env` 中 DashVector/Embedding 已填，**build backend** 一次即可。 |
 | `nginx/nginx.conf` | `docker compose restart nginx`。 |
 | `.env` | `docker compose up -d backend`（必要时相关服务）使容器载入新环境变量。 |
 | MySQL / Redis | **不必**为常规业务发版重建；数据在命名卷中。仅调整 compose 中 MySQL 配置或换大版本时再处理，且须备份。 |

@@ -1,5 +1,7 @@
 # 本地开发：MySQL / Redis / Backend / Nginx。
-# backend 与 admin 代码在镜像内，改后需 build backend；经 80 的 H5 为 ./frontend 挂载，改文件即生效。
+# - H5（经 nginx:80）：./frontend 挂载，改文件强刷即生效。
+# - 管理后台（/admin 反代 backend）：./admin 挂载到 backend /app/admin，改 HTML/JS 后重启 backend 或 uvicorn 热重载即可；改 backend/ 或 requirements 须 build。
+# - 角色知识库（STEP-027）：依赖 .env 中 DASHVECTOR_* 与 Embedding；无库结构迁移，发版后 build backend 即可。
 # 库结构升级：先 alembic（见 docs/docker-admin-deploy.md），一般无需重建 mysql 容器或删数据卷。
 # 容器系统时区：与杭州一致（Asia/Shanghai）。APScheduler 日记/清零等 Cron 在代码中仍使用 UTC，不受此处影响。
 
@@ -50,6 +52,9 @@ services:
       PYTHONUNBUFFERED: "1"
       MYSQL_HOST: mysql
       REDIS_HOST: redis
+    volumes:
+      # 管理后台静态与页面：本地改 admin/ 无需每次 rebuild（API 仍在 backend/ 镜像内）
+      - ./admin:/app/admin:ro
     depends_on:
       mysql:
         condition: service_healthy

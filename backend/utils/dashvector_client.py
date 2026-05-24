@@ -141,7 +141,7 @@ class DashVectorClient:
         try:
             client = await self._get_client()
             response = await client.post(
-                f"{endpoint}/v1/collections/{collection}/docs",
+                f"{endpoint}/v1/collections/{collection}/docs/upsert",
                 headers=self._build_headers(),
                 json={
                     "docs": [{
@@ -153,6 +153,15 @@ class DashVectorClient:
                 timeout=DASHVECTOR_TIMEOUT,
             )
             response.raise_for_status()
+            data = response.json()
+            message = str(data.get("message", ""))
+            message_lower = message.lower()
+            if "failed operation" in message_lower or "is invalid" in message_lower:
+                logger.error(
+                    "DashVector upsert 业务失败: doc_id=%s, message=%s",
+                    doc_id, message[:300],
+                )
+                return False
             logger.info("DashVector upsert 成功: doc_id=%s, type=%s", doc_id, memory_type)
             return True
 
@@ -181,6 +190,90 @@ class DashVectorClient:
         except Exception as e:
             logger.error("DashVector 删除失败: ids=%s, error=%s", doc_ids, str(e))
             return False
+
+    async def list_by_filter(self, filter_str: str, top_k: int = 100) -> list[dict]:
+        """
+        按 filter 条件列出文档（不传 vector，仅条件过滤）。
+
+        Returns:
+            [{"id": str, "content": str, "fields": dict}, ...]
+        """
+        endpoint = get_dashvector_endpoint()
+        collection = get_dashvector_collection()
+
+        try:
+            client = await self._get_client()
+            response = await client.post(
+                f"{endpoint}/v1/collections/{collection}/query",
+                headers=self._build_headers(),
+                json={
+                    "filter": filter_str,
+                    "topk": top_k,
+                    "include_vector": False,
+                },
+                timeout=DASHVECTOR_TIMEOUT,
+            )
+            response.raise_for_status()
+            data = response.json()
+            results = []
+            for item in data.get("output", []):
+                fields = item.get("fields", {}) or {}
+                results.append({
+                    "id": item.get("id", ""),
+                    "content": fields.get("content", ""),
+                    "fields": fields,
+                })
+            logger.info(
+                "DashVector list_by_filter 完成: filter=%s, count=%d",
+                filter_str, len(results),
+            )
+            return results
+        except Exception as e:
+            logger.error("DashVector list_by_filter 失败: %s", str(e))
+            return []
+
+    async def fetch_by_ids(self, doc_ids: list[str]) -> dict[str, dict]:
+        """
+        按 ID 批量获取文档。
+
+        Returns:
+            {doc_id: {"id", "content", "fields"}}，不存在的 id 不包含在结果中
+        """
+        if not doc_ids:
+            return {}
+
+        endpoint = get_dashvector_endpoint()
+        collection = get_dashvector_collection()
+        ids_param = ",".join(doc_ids)
+
+        try:
+            client = await self._get_client()
+            response = await client.get(
+                f"{endpoint}/v1/collections/{collection}/docs",
+                headers=self._build_headers(),
+                params={"ids": ids_param},
+                timeout=DASHVECTOR_TIMEOUT,
+            )
+            response.raise_for_status()
+            data = response.json()
+            output = data.get("output", {}) or {}
+            found: dict[str, dict] = {}
+            for doc_id, item in output.items():
+                if not item or not isinstance(item, dict):
+                    continue
+                fields = item.get("fields", {}) or {}
+                content = fields.get("content", "")
+                if not content:
+                    continue
+                found[doc_id] = {
+                    "id": item.get("id", doc_id),
+                    "content": content,
+                    "fields": fields,
+                }
+            return found
+        except Exception as e:
+            logger.error("DashVector fetch_by_ids 失败: %s", str(e))
+            return {}
 
 
 # 全局单例

@@ -17,6 +17,11 @@ from backend.constants import (
 from backend.services.embedding_service import embedding_service
 from backend.services.llm_service import MessageItem
 from backend.services.prompt_builder import _generate_time_description
+from backend.utils.character_knowledge_validate import (
+    build_content,
+    build_doc_id,
+    validate_key,
+)
 from backend.utils.dashvector_client import dashvector_client
 
 logger = logging.getLogger(__name__)
@@ -132,10 +137,10 @@ def parse_step6_output(raw_json_str: str) -> Step6MemoryOutput:
 # §2.5 完整 few-shot 示例（确认记录 R-MEM-06 / R-MEM-07）
 _FEW_SHOT_EXAMPLE = """{
   "InnerMonologue": "他今天又突然问工作压力，其实是在试探我会不会心软妥协。我得先接住情绪，再问一句具体事，别把话题扯到说教上。",
-  "CharacterPublicSettings": "外貌-体态：说话时肩膀略绷紧，习惯性地把发丝别到耳后。\\n兴趣-偏好：最近在学手冲咖啡，但不会主动炫耀技艺。\\n价值观-待人：更愿意先听完再反驳，讨厌被催着表态。",
-  "CharacterPrivateSettings": "用户-信任试探：对方两次用加班当借口爽约，我对「按时出现」的信任在下降，但还不打算当面拆穿。\\n策略-回复：故意把回复放慢半拍，观察对方会不会补一句解释。",
-  "CharacterKnowledges": "咖啡-萃取：知道了闷蒸大约 30 秒能让浅烘豆酸味更柔和。\\n职场-边界：学到一句缓冲话术——「我先听完再帮你拆」。",
-  "UserSettings": "作息-惯性：经常熬夜到凌晨一两点还在回消息。\\n沟通-偏好：更喜欢被反问一句「你现在最需要什么」而不是直接建议。",
+  "CharacterPublicSettings": "外貌-体态-细节：说话时肩膀略绷紧，习惯性地把发丝别到耳后。\\n兴趣-偏好-饮品：最近在学手冲咖啡，但不会主动炫耀技艺。\\n价值观-待人-方式：更愿意先听完再反驳，讨厌被催着表态。",
+  "CharacterPrivateSettings": "用户-信任-试探：对方两次用加班当借口爽约，我对「按时出现」的信任在下降，但还不打算当面拆穿。\\n策略-回复-节奏：故意把回复放慢半拍，观察对方会不会补一句解释。",
+  "CharacterKnowledges": "咖啡-萃取-时长：知道了闷蒸大约 30 秒能让浅烘豆酸味更柔和。\\n职场-边界-话术：学到一句缓冲话术——「我先听完再帮你拆」。",
+  "UserSettings": "作息-惯性-熬夜：经常熬夜到凌晨一两点还在回消息。\\n沟通-偏好-方式：更喜欢被反问一句「你现在最需要什么」而不是直接建议。",
   "UserRealName": "无",
   "UserHobbyName": "阿远",
   "UserDescription": "嘴硬心软型，会用玩笑躲认真话题；对他越是追问越会往后缩，需要留台阶。",
@@ -204,6 +209,7 @@ def build_step6_prompt(
         "你是林小梦，请对本轮对话进行总结，提取有价值的记忆信息。\n"
         "输出格式要求：仅输出合法 JSON，不含任何前缀、后缀、markdown 标记或注释。\n"
         "所有文本类字段的内容格式为多行 \"key：value\"（中文全角冒号分隔），\n"
+        "其中 key 须为三层结构 XXX-XXX-XXX（两段半角连字符连接三段，如「外貌-体态-细节」），\n"
         "无内容时该字段输出字符串\"无\"。\n"
         "\n"
         "【当前时间】\n"
@@ -233,7 +239,7 @@ def build_step6_prompt(
         "\n"
         "1. InnerMonologue：你对本轮对话的内心元思考，不超过150字，不落库。\n"
         "2. CharacterPublicSettings：本次对话中新增或强化的角色公开背景信息。\n"
-        "   格式为多行\"key：value\"（全角冒号），每行一条，如\"外貌-体态：说话时肩膀略绷紧\"。\n"
+        "   格式为多行\"key：value\"（全角冒号），每行一条；key 须三层 XXX-XXX-XXX，如\"外貌-体态-细节：说话时肩膀略绷紧\"。\n"
         "   若无新增内容输出\"无\"。\n"
         "3. CharacterPrivateSettings：本次对话中新增的、仅对当前用户可见的角色私有信息。\n"
         "   格式同上。\n"
@@ -303,16 +309,6 @@ def parse_kv_lines(text: str) -> list[tuple[str, str]]:
     return results
 
 
-def _build_doc_id(memory_type: str, stable_key: str, user_id: int | None) -> str:
-    """
-    生成稳定的 DashVector 文档 ID。
-
-    格式：{memory_type}:{stable_key}:{user_id} 或 {memory_type}:{stable_key}:
-    """
-    uid_part = str(user_id) if user_id is not None else ""
-    return f"{memory_type}:{stable_key}:{uid_part}"
-
-
 async def upsert_step6_vectors(
     output: Step6MemoryOutput,
     user_id: int,
@@ -352,7 +348,15 @@ async def upsert_step6_vectors(
         effective_user_id = user_id if attach_user_id else None
 
         for key, value in kv_pairs:
-            doc_id = _build_doc_id(memory_type, key, effective_user_id)
+            key_err = validate_key(key)
+            if key_err:
+                logger.info(
+                    "Step6 向量写入跳过: field=%s, key=%s, reason=%s",
+                    field_name, key, key_err,
+                )
+                continue
+
+            doc_id = build_doc_id(memory_type, key, effective_user_id)
 
             try:
                 vector = await embedding_service.get_embedding(value)
@@ -369,7 +373,10 @@ async def upsert_step6_vectors(
                 )
                 continue
 
-            fields: dict = {"content": f"{key}：{value}"}
+            fields: dict = {
+                "content": build_content(key, value),
+                "stable_key": key,
+            }
             if attach_user_id:
                 fields["user_id"] = user_id
 

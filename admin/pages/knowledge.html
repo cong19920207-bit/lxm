@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>角色知识库 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .ck-demo-card {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #333;
+    }
+    .ck-demo-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #389e0d;
+    }
+    .ck-demo-card code {
+      background: #fff;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .ck-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .ck-toolbar .form-item {
+      margin-bottom: 0;
+      min-width: 140px;
+    }
+    .ck-toolbar .form-item label {
+      font-size: 13px;
+    }
+    .ck-value-cell {
+      max-width: 360px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ck-type-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #e6f7ff;
+      color: #096dd9;
+    }
+    .ck-type-tag.is-knowledge {
+      background: #f9f0ff;
+      color: #531dab;
+    }
+    .ck-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    #ck-modal-key[readonly] {
+      background: #f5f5f5;
+      color: #666;
+    }
+    .ck-cjk-hint {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="ck-demo-card" role="note">
+    <h3>📚 输入格式说明（与 Step6 记忆写入一致）</h3>
+    <p style="margin:0 0 6px"><strong>类型</strong>：<code>character_global</code> — 角色公开设定；<code>character_knowledge</code> — 角色知识技能</p>
+    <p style="margin:0 0 6px"><strong>key 示例</strong>：<code>外貌-体态-细节</code>、<code>兴趣-偏好-饮品</code>（须三层 <code>XXX-XXX-XXX</code>，≤20 个汉字）</p>
+    <p style="margin:0 0 6px"><strong>value 示例</strong>：一句描述，如「长发，说话温柔，喜欢浅色穿搭」（≤100 个汉字）</p>
+    <p style="margin:0"><strong>存储格式</strong>：<code>key：value</code>（全角冒号 <code>：</code>）。<code>character_private</code> 由对话自动写入，不在此页维护。</p>
+  </div>
+
+  <div class="page-card">
+    <div class="ck-toolbar">
+      <div class="form-item">
+        <label>类型</label>
+        <select id="ck-filter-type" class="form-control">
+          <option value="">全部</option>
+          <option value="character_global">character_global（公开设定）</option>
+          <option value="character_knowledge">character_knowledge（知识技能）</option>
+        </select>
+      </div>
+      <div class="form-item" style="min-width:200px;flex:1;max-width:280px">
+        <label>关键词</label>
+        <input type="text" id="ck-filter-keyword" class="form-control" placeholder="匹配 key 或 value" autocomplete="off">
+      </div>
+      <button type="button" class="btn btn-default" id="btn-ck-search">查询</button>
+      <button type="button" class="btn btn-primary" id="btn-ck-add">＋ 新增条目</button>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width:22%">类型</th>
+          <th style="width:18%">key</th>
+          <th>value</th>
+          <th style="width:120px">操作</th>
+        </tr>
+      </thead>
+      <tbody id="ck-table-body">
+        <tr><td colspan="4" class="text-secondary">加载中…</td></tr>
+      </tbody>
+    </table>
+
+    <div class="ck-pagination">
+      <span id="ck-page-info">共 0 条</span>
+      <button type="button" class="btn btn-default btn-sm" id="btn-ck-prev" disabled>上一页</button>
+      <button type="button" class="btn btn-default btn-sm" id="btn-ck-next" disabled>下一页</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div id="ck-modal-overlay" class="modal-overlay" style="display:none">
+  <div class="modal-content" style="min-width:420px;max-width:520px">
+    <div class="modal-header">
+      <h3 id="ck-modal-title">新增条目</h3>
+      <button type="button" class="btn btn-link" id="ck-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item" id="ck-field-type-wrap">
+        <label>类型 <span class="text-secondary">*</span></label>
+        <select id="ck-modal-type" class="form-control">
+          <option value="character_global">character_global（公开设定）</option>
+          <option value="character_knowledge">character_knowledge（知识技能）</option>
+        </select>
+      </div>
+      <div class="form-item mt-16">
+        <label>key <span class="text-secondary">*</span></label>
+        <input type="text" id="ck-modal-key" class="form-control" maxlength="64" placeholder="如 外貌-体态-细节" autocomplete="off">
+        <p class="ck-cjk-hint">须三层段式（两段 - 连接）；≤20 个汉字；允许字母、数字、-、_</p>
+      </div>
+      <div class="form-item mt-16">
+        <label>value <span class="text-secondary">*</span></label>
+        <textarea id="ck-modal-value" class="form-control" rows="4" placeholder="单条描述，≤100 个汉字"></textarea>
+        <p class="ck-cjk-hint">≤100 个汉字</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="ck-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="ck-modal-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var _ckPage = 1;
+  var _ckPageSize = 20;
+  var _ckTotal = 0;
+  var _ckEditDocId = null;
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function typeLabel(t) {
+    if (t === 'character_global') return '公开设定';
+    if (t === 'character_knowledge') return '知识技能';
+    return t || '';
+  }
+
+  function renderTypeTag(t) {
+    var cls = t === 'character_knowledge' ? 'ck-type-tag is-knowledge' : 'ck-type-tag';
+    return '<span class="' + cls + '">' + escapeHtml(t) + '</span><br><span class="text-secondary" style="font-size:12px">' + escapeHtml(typeLabel(t)) + '</span>';
+  }
+
+  async function loadKnowledgeList() {
+    var tbody = document.getElementById('ck-table-body');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">加载中…</td></tr>';
+
+    var q = '?page=' + _ckPage + '&page_size=' + _ckPageSize;
+    var ft = document.getElementById('ck-filter-type').value;
+    var kw = document.getElementById('ck-filter-keyword').value.trim();
+    if (ft) q += '&type=' + encodeURIComponent(ft);
+    if (kw) q += '&keyword=' + encodeURIComponent(kw);
+
+    var res = await adminRequest('GET', '/api/admin/character-knowledge' + q);
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">加载失败，请重试</td></tr>';
+      return;
+    }
+
+    var d = res.data || {};
+    _ckTotal = d.total || 0;
+    var list = d.list || [];
+    document.getElementById('ck-page-info').textContent =
+      '共 ' + _ckTotal + ' 条 · 第 ' + (d.page || _ckPage) + ' 页';
+
+    var totalPages = Math.max(1, Math.ceil(_ckTotal / _ckPageSize));
+    document.getElementById('btn-ck-prev').disabled = _ckPage <= 1;
+    document.getElementById('btn-ck-next').disabled = _ckPage >= totalPages;
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">暂无数据，可点击「新增条目」</td></tr>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      html += '<tr>' +
+        '<td>' + renderTypeTag(row.type) + '</td>' +
+        '<td>' + escapeHtml(row.key) + '</td>' +
+        '<td class="ck-value-cell" title="' + escapeHtml(row.value) + '">' + escapeHtml(row.value) + '</td>' +
+        '<td>' +
+          '<button type="button" class="btn btn-link btn-sm" data-action="edit" data-id="' + escapeHtml(row.doc_id) + '">编辑</button>' +
+          '<button type="button" class="btn btn-link btn-sm" style="color:#ff4d4f" data-action="del" data-id="' + escapeHtml(row.doc_id) + '">删除</button>' +
+        '</td></tr>';
+    }
+    tbody.innerHTML = html;
+  }
+
+  function openModal(mode, row) {
+    _ckEditDocId = null;
+    document.getElementById('ck-modal-title').textContent = mode === 'edit' ? '编辑条目' : '新增条目';
+    document.getElementById('ck-field-type-wrap').style.display = mode === 'edit' ? 'none' : 'block';
+    var keyEl = document.getElementById('ck-modal-key');
+    keyEl.readOnly = mode === 'edit';
+    if (mode === 'edit' && row) {
+      _ckEditDocId = row.doc_id;
+      document.getElementById('ck-modal-type').value = row.type;
+      keyEl.value = row.key || '';
+      document.getElementById('ck-modal-value').value = row.value || '';
+    } else {
+      document.getElementById('ck-modal-type').value = 'character_global';
+      keyEl.value = '';
+      document.getElementById('ck-modal-value').value = '';
+    }
+    document.getElementById('ck-modal-overlay').style.display = 'flex';
+    document.getElementById('ck-modal-overlay').classList.add('show');
+  }
+
+  function closeModal() {
+    var ov = document.getElementById('ck-modal-overlay');
+    ov.style.display = 'none';
+    ov.classList.remove('show');
+    _ckEditDocId = null;
+  }
+
+  function validateKeyFormat(key) {
+    if (!key) return '请填写 key';
+    if (key.indexOf('：') >= 0) return 'key 不能包含全角冒号';
+    var parts = key.split('-');
+    if (parts.length !== 3) return 'key 须为三层 XXX-XXX-XXX（两段半角 -）';
+    for (var i = 0; i < parts.length; i++) {
+      if (!parts[i] || !parts[i].trim()) return 'key 每一段不能为空';
+    }
+    return null;
+  }
+
+  async function saveModal() {
+    var value = document.getElementById('ck-modal-value').value.trim();
+    if (!value) {
+      showToast('请填写 value', 'warning');
+      return;
+    }
+    if (_ckEditDocId) {
+      var putRes = await adminRequest(
+        'PUT',
+        '/api/admin/character-knowledge/' + encodeURIComponent(_ckEditDocId),
+        { value: value }
+      );
+      if (putRes && putRes.code === 0) {
+        showToast('已更新', 'success');
+        closeModal();
+        loadKnowledgeList();
+      }
+      return;
+    }
+    var key = document.getElementById('ck-modal-key').value.trim();
+    if (!key) {
+      showToast('请填写 key', 'warning');
+      return;
+    }
+    var keyErr = validateKeyFormat(key);
+    if (keyErr) {
+      showToast(keyErr, 'warning');
+      return;
+    }
+    var postRes = await adminRequest('POST', '/api/admin/character-knowledge', {
+      type: document.getElementById('ck-modal-type').value,
+      key: key,
+      value: value
+    });
+    if (postRes && postRes.code === 0) {
+      showToast('已新增', 'success');
+      closeModal();
+      _ckPage = 1;
+      loadKnowledgeList();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('knowledge');
+    document.getElementById('header-mount').innerHTML = renderHeader('角色知识库');
+
+    document.getElementById('btn-ck-search').onclick = function () {
+      _ckPage = 1;
+      loadKnowledgeList();
+    };
+    document.getElementById('btn-ck-add').onclick = function () { openModal('create'); };
+    document.getElementById('btn-ck-prev').onclick = function () {
+      if (_ckPage > 1) { _ckPage--; loadKnowledgeList(); }
+    };
+    document.getElementById('btn-ck-next').onclick = function () {
+      _ckPage++;
+      loadKnowledgeList();
+    };
+
+    document.getElementById('ck-modal-close').onclick = closeModal;
+    document.getElementById('ck-modal-cancel').onclick = closeModal;
+    document.getElementById('ck-modal-save').onclick = saveModal;
+    document.getElementById('ck-modal-overlay').addEventListener('click', function (e) {
+      if (e.target.id === 'ck-modal-overlay') closeModal();
+    });
+
+    document.getElementById('ck-table-body').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var docId = btn.getAttribute('data-id');
+      if (btn.getAttribute('data-action') === 'edit') {
+        var tr = btn.closest('tr');
+        var cells = tr ? tr.querySelectorAll('td') : [];
+        var typeText = '';
+        var sel = document.getElementById('ck-filter-type');
+        if (cells.length) {
+          var tag = cells[0].querySelector('.ck-type-tag');
+          typeText = tag ? tag.textContent.trim() : '';
+        }
+        openModal('edit', {
+          doc_id: docId,
+          type: typeText,
+          key: cells[1] ? cells[1].textContent.trim() : '',
+          value: cells[2] ? (cells[2].getAttribute('title') || cells[2].textContent) : ''
+        });
+      } else if (btn.getAttribute('data-action') === 'del') {
+        showConfirm('确认删除该条目？删除后 Step2 检索将不再命中。', function () {
+          adminRequest('DELETE', '/api/admin/character-knowledge/' + encodeURIComponent(docId))
+            .then(function (res) {
+              if (res && res.code === 0) {
+                showToast('已删除', 'success');
+                loadKnowledgeList();
+              }
+            });
+        }, null, { danger: true });
+      }
+    });
+
+    document.getElementById('ck-filter-keyword').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        _ckPage = 1;
+        loadKnowledgeList();
+      }
+    });
+
+    loadKnowledgeList();
+  });
+</script>
+</body>
+</html>

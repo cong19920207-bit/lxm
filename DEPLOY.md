@@ -18,7 +18,17 @@ docker-compose up -d --build
 ### 3. 访问
 
 - 前端：[http://localhost](http://localhost)
+- 管理后台：[http://localhost/admin](http://localhost/admin)（或 [http://localhost:8000/admin](http://localhost:8000/admin)）
+- 角色知识库（需 `super_admin` / `ai_trainer`）：[http://localhost/admin/pages/knowledge.html](http://localhost/admin/pages/knowledge.html)
 - 首次启动时，Backend 会自动执行 `create_all_tables` 建表
+
+### 4. 发版后重建（含 STEP-027 等新后台能力）
+
+```bash
+docker compose build backend && docker compose up -d backend
+```
+
+角色知识库读写 DashVector，请在 `.env` 中配置 `DASHVECTOR_*` 与 Embedding；详见 [docs/docker-admin-deploy.md](docs/docker-admin-deploy.md)。
 
 ---
 
