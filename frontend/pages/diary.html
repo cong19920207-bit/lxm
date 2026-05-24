@@ -94,10 +94,10 @@
         0 0 10px rgba(184, 168, 240, 0.28);
     }
 
-    /* 列表上提至头图红线位置，与渐变区叠压 */
+    /* 列表与头图渐变叠压（相对原上提位置下移 60px） */
     .diary-main {
       flex: 1;
-      margin-top: -17vh;
+      margin-top: calc(-17vh + 60px);
       position: relative;
       z-index: 3;
       padding: 0 16px calc(16px + var(--safe-area-bottom));
@@ -105,7 +105,7 @@
 
     @media (max-height: 640px) {
       .diary-main {
-        margin-top: -100px;
+        margin-top: -40px;
       }
     }
 
