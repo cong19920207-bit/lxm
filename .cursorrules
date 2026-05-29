@@ -35,7 +35,7 @@
 → 主LLM单次调用（JSON结构化输出同时返回emotion+reply）
 → 内容安全检查
 → SSE流式返回前端
-→ 【asyncio.create_task异步，不阻塞】写emotion_log + 写conversation_log + 触发记忆提取 + 更新成长值
+→ 【asyncio.create_task异步，不阻塞】写emotion_log + 写conversation_log + 触发记忆提取 + 更新亲密值（库字段 growth_value）
 
 ### Prompt 7模块结构
 1. System Prompt（≤400 Token）：人格禁区 + 结构化JSON输出指令
@@ -60,15 +60,15 @@
 
 ### 关系等级体系
 0级陌生（0分）→ 1级朋友（200分）→ 2级亲密（800分）→ 3级知己（2000分）
-成长值只增不减，等级不降
+亲密值（产品口径；库字段 growth_value）只增不减，等级不降
 
-成长值规则：
+亲密值规则：
 - 完成有效对话：+2分/轮，每日上限50分
 - 单日对话≥10分钟：+20分，每日上限20分
 - 每日登录：+5分（连续7天以上+10分），每日上限10分
 - 回复主动消息：+10分，每日上限20分
 
-用Redis记录每日成长值（key=growth:{user_id}:{date}，TTL到今日结束）
+用Redis记录每日亲密值累计（技术 key 仍为 growth:{user_id}:{date} 及 growth_dialog 等前缀，TTL到今日结束）
 
 ### AI日记生成规则（两条独立规则）
 1级+当日有互动 → 生成日记（内容围绕互动）
