@@ -94,6 +94,19 @@ def test_settings_change_password_ids():
         'id="confirm-password"',
         "/api/auth/reset-password",
         "h5-theme.css",
+        "settings-soft-page",
+        'id="profile-status"',
+        "profile-status-text",
+        "profile-online",
+        "profile-wave",
+        'id="linxiaomeng-avatar"',
+        "/api/app/persona-background",
+        "/api/relationship/status",
+        "EMOTION_STATUS_MAP",
+        "toggleAbout",
+        "handleChangePassword",
+        "toggleSetting",
+        "handleLogout",
     ):
         assert fragment in html, fragment
 

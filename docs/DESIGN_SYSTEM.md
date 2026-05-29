@@ -496,7 +496,7 @@ className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purpl
 6. ✅ 日记页面 (`/diary`)
 7. ✅ 我们的关系 (`/relationship`)
 8. ✅ 我的记忆 (`/memory`)
-9. ✅ 设置页面 (`/settings`)
+9. ✅ 设置页面 (`/pages/settings.html`) — **`body.settings-soft-page`** 局部软 UI；Profile 卡渐变一体（**`.profile-status-text`** 纯文字状态语 + **`.profile-online`** 浅底 pill + **`.profile-wave`**）
 
 ### 核心功能
 - ✅ 未读消息徽章
@@ -511,12 +511,13 @@ className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purpl
 
 ## 🎨 设计原则
 
-1. **一致性**：所有元素使用统一的粗黑边框和扁平阴影
-2. **可预测性**：相似的交互使用相似的动画效果
-3. **视觉层次**：通过边框粗细、阴影大小区分重要性
-4. **动态感**：适度的动画让界面生动但不过度
-5. **易读性**：使用足够的字重和对比度
-6. **趣味性**：漫画风格带来愉悦的用户体验
+1. **一致性**：全站 H5 默认使用统一的粗黑边框和扁平阴影（**`body.h5-skin`** + **`h5-theme.css`**）
+2. **页面例外**：**`settings-soft-page`** 设置页采用轻阴影软 UI，不修改全局主题文件
+3. **可预测性**：相似的交互使用相似的动画效果
+4. **视觉层次**：通过边框粗细、阴影大小区分重要性
+5. **动态感**：适度的动画让界面生动但不过度
+6. **易读性**：使用足够的字重和对比度
+7. **趣味性**：漫画风格带来愉悦的用户体验
 
 ---
 

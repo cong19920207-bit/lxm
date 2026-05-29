@@ -85,6 +85,7 @@ from backend.routers.diary import router as diary_router  # noqa: E402
 from backend.routers.memory import router as memory_router  # noqa: E402
 from backend.routers.agent import router as agent_router  # noqa: E402
 from backend.routers.relationship import router as relationship_router  # noqa: E402
+from backend.routers.app import router as app_router  # noqa: E402
 
 app.include_router(auth_router)
 app.include_router(chat_router)
@@ -92,6 +93,7 @@ app.include_router(diary_router)
 app.include_router(memory_router)
 app.include_router(relationship_router)
 app.include_router(agent_router)
+app.include_router(app_router)
 
 # 管理后台路由
 from backend.routers.admin import auth as admin_auth  # noqa: E402

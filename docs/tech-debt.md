@@ -396,6 +396,29 @@
 - **风险等级**：**中**（数据一致性与检索可解释性；误操作可影响多用户向量集合）
 - **关联**：**TD-022**；`backend/services/memory_service.py`（合并阈值与 `mem_*`）、`backend/services/memory_llm_service.py`（`parse_kv_lines` / `upsert_step6_vectors`）、`backend/routers/admin/memory_mgmt.py`。
 
+### [TD-024] H5 设置页用户偏好开关后端未实现（**待清偿**）
+
+- **位置**：`frontend/pages/settings.html` → `GET/PUT /api/user/settings`（`memory_auto_extract`、`agent_message_enabled`）
+- **问题**：前端 Toggle 已接线并默认 `active`；后端 **`routers/user.py` 未挂载**、无持久化字段；保存时接口不存在或失败 Toast；即使补接口，记忆提取链路与 Agent 扫描**当前也未读取**这两项开关。
+- **待处理**：
+  1. 在 `users` 表或独立用户设置表增加字段并迁移；
+  2. 实现 `GET/PUT /api/user/settings` 并在 `main.py` 挂载 `user` 路由；
+  3. 记忆提取（Step6 / 后置任务）与 Agent 触发链路读取开关并写契约。
+- **触发时机**：产品要求设置页「记忆自动提取」「主动消息推送」真实生效时排期。
+- **风险等级**：**中**（UI 可交互但偏好不持久、不生效，易误导用户）
+- **关联**：`docs/contract.md`「H5 用户（占位）」；`frontend/pages/settings.html`。
+
+### [TD-025] H5 改密码前后端契约不一致（**待清偿**）
+
+- **位置**：`frontend/pages/settings.html` → `POST /api/auth/reset-password`；`backend/routers/auth.py`、`backend/schemas/auth.py`
+- **问题**：前端传 `old_password` 且不传 `confirm_password`；后端 **`ResetPasswordRequest` 要求 `confirm_password`**、**不校验原密码**（按用户名存在即可重置），存在安全缺口与字段不匹配；422 或静默忽略原密码校验。
+- **待处理**：
+  1. 新增需登录的 `POST /api/auth/change-password`（校验旧密码 + 新密码确认），或；
+  2. 对齐 `reset-password` 的 Body 与校验逻辑（含原密码验证），并更新 H5 请求体。
+- **触发时机**：安全审查或改密码功能正式验收时。
+- **风险等级**：**中**（已知安全与契约偏差）
+- **关联**：`backend/schemas/auth.py` `ResetPasswordRequest`；管理端改密见 `POST /api/admin/auth/change-password`（已实现完整校验，可作参考）。
+
 ---
 
 ### 已处理（库结构 / 运维）
