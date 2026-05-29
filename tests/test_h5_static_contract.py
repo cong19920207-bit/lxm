@@ -126,6 +126,37 @@ def test_h5_theme_css_exists():
     assert "prefers-reduced-motion" in text
 
 
+def test_relationship_html_surface_contract():
+    """关系页：暗黑皮、Hero 主图、拍立得情绪头像、亲密值文案、接口路径（与 contract 摘要一致）。"""
+    html = _read("relationship.html")
+    for fragment in (
+        "relationship-page",
+        "/static/images/relationship/Relationship_Lxm.png",
+        'id="linxiaomeng-avatar"',
+        "updateAvatarEmotion",
+        "/api/relationship/detail",
+        "/api/relationship/growth-log",
+        "亲密值",
+        "rel-hero-bar",
+        "bottom: 50px",
+        "margin-top: -50px",
+        "translateX(-50px)",
+        "想和你去看海。",
+        "rotate(-8deg)",
+        "translateY(-8px)",
+        "padding: 4px 4px 5px",
+        "rel-today-grid",
+        "flex-direction: row",
+        "tc-done",
+        "回复消息",
+        "还差获得 ",
+        "rel-progress-wrap",
+    ):
+        assert fragment in html, fragment
+    assert "grid-template-columns: 1fr 1fr" not in html
+    assert "回复林小梦的消息" not in html
+
+
 def test_index_html_home_surface_contract():
     """首页：未读角标 DOM、气泡文案容器、Hero 背景、主题进度条覆盖、未读呼吸类名（与 contract 摘要一致）。"""
     html = _read("index.html")

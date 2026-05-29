@@ -6,295 +6,551 @@
   <title>林小梦 - 我们的关系</title>
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
   <style>
-    .page-body {
-      padding: 56px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    /* ========== 关系页独立暗黑主题（scoped，不影响其他 H5 页） ========== */
+    html:has(> body.relationship-page),
+    body.h5-skin.relationship-page {
+      background: #050508;
+      color: #f3f4f6;
     }
 
-    /* 区块一：关系等级卡片 */
-    .level-card {
-      border-radius: 20px;
-      padding: 28px 20px 24px;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      transition: background 0.3s;
+    body.relationship-page .top-bar {
+      display: none;
     }
-    .level-card.level-0 { background: linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%); }
-    .level-card.level-1 { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); }
-    .level-card.level-2 { background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%); }
-    .level-card.level-3 { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); }
 
-    .level-card .avatar-wrapper {
-      margin: 0 auto 16px;
+    body.relationship-page .page-body {
+      padding: 0 0 calc(24px + env(safe-area-inset-bottom, 0px));
+      animation: none;
     }
-    .level-card .level-name {
-      font-size: 24px;
+
+    .rel-page {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #050508 0%, #0c0a12 40%, #050508 100%);
+    }
+
+    /* Hero */
+    .rel-hero {
+      position: relative;
+      min-height: 52vh;
+      max-height: 480px;
+      background: #0a0810 url('/static/images/relationship/Relationship_Lxm.png') center top / cover no-repeat;
+    }
+
+    .rel-hero::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 55%;
+      background: linear-gradient(180deg, rgba(5, 5, 8, 0) 0%, rgba(5, 5, 8, 0.75) 55%, #050508 100%);
+      pointer-events: none;
+    }
+
+    .rel-hero-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 12px;
+    }
+
+    .rel-hero-bar .back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .rel-hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(88, 28, 135, 0.55);
+      border: 1px solid rgba(192, 132, 252, 0.45);
+      color: #f5f3ff;
+      font-size: 13px;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .rel-hero-pill svg {
+      flex-shrink: 0;
+    }
+
+    .rel-hero-profile {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 50px;
+      z-index: 3;
+      padding: 0 20px 16px;
+    }
+
+    .rel-name-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .rel-name {
+      font-size: 28px;
       font-weight: 700;
-      margin-bottom: 8px;
-      color: var(--color-text);
+      color: #fff;
+      letter-spacing: 0.02em;
     }
-    .level-card .level-desc {
+
+    .rel-level-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e9d5ff;
+      background: rgba(126, 34, 206, 0.55);
+      border: 1px solid rgba(192, 132, 252, 0.65);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+    }
+
+    .rel-desc {
       font-size: 14px;
-      color: #666;
-      margin-bottom: 16px;
-      line-height: 1.6;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.88);
+      margin-bottom: 14px;
     }
-    .level-card .perks-list {
+
+    .rel-perks {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
       gap: 8px;
       margin-bottom: 12px;
     }
-    .level-card .perk-tag {
-      display: inline-block;
-      padding: 4px 12px;
-      background: rgba(82, 196, 26, 0.15);
-      color: #389e0d;
+
+    .rel-perk-tag {
+      padding: 5px 12px;
+      border-radius: 999px;
       font-size: 12px;
-      border-radius: 20px;
-      font-weight: 500;
-    }
-    .level-card .next-hint {
-      font-size: 14px;
-      color: #999;
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.55);
+      background: rgba(88, 28, 135, 0.25);
     }
 
-    /* 区块二：互动里程碑 */
-    .section-title {
+    .rel-hero-foot {
+      min-height: 22px;
+    }
+
+    /* 主内容区（统计 + 各卡片整体上移，Hero 林小梦区不动） */
+    .rel-main {
+      position: relative;
+      z-index: 4;
+      margin-top: -50px;
+      padding: 8px 16px 0;
+    }
+
+    .rel-section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 16px;
       font-weight: 600;
+      color: #fff;
       margin-bottom: 14px;
-      color: var(--color-text);
-    }
-    .milestone-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .milestone-item {
-      background: var(--color-white);
-      border-radius: 14px;
-      padding: 14px 6px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }
-    .milestone-item .m-value {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--color-text);
-      line-height: 1.2;
-    }
-    .milestone-item .m-value.warn {
-      color: #fa8c16;
-    }
-    .milestone-item .m-label {
-      font-size: 12px;
-      color: var(--color-gray);
-      margin-top: 4px;
-    }
-    .milestone-item .m-sub {
-      font-size: 11px;
-      color: #bbb;
-      margin-top: 2px;
     }
 
-    /* 区块三：成长进度 */
-    .progress-section {
-      background: var(--color-white);
-      border-radius: 16px;
-      padding: 18px 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    .rel-section-title .spark {
+      color: #c084fc;
+      font-size: 14px;
     }
-    .progress-header {
+
+    /* 统计四列 */
+    .rel-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 20px;
+      padding: 16px 8px;
+      border-radius: 16px;
+      background: rgba(26, 26, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .rel-stat-item {
+      text-align: center;
+      padding: 4px 2px;
+    }
+
+    .rel-stat-item .m-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #c084fc;
+      line-height: 1.2;
+      text-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+    }
+
+    .rel-stat-item .m-value.warn {
+      color: #fb923c;
+      text-shadow: 0 0 16px rgba(251, 146, 60, 0.4);
+    }
+
+    .rel-stat-item .m-label {
+      font-size: 11px;
+      color: #fff;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    .rel-stat-item .m-sub {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* 卡片通用 */
+    .rel-card {
+      position: relative;
+      background: rgba(22, 22, 30, 0.95);
+      border-radius: 18px;
+      padding: 18px 16px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .rel-card-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
-      font-size: 14px;
-      color: var(--color-text);
-      font-weight: 500;
+      margin-bottom: 14px;
     }
-    .detail-progress-bar {
+
+    .rel-card-head .rel-section-title {
+      margin-bottom: 0;
+    }
+
+    .rel-handwrite {
+      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
+      color: #e879f9;
+      font-size: 17px;
+      line-height: 1.25;
+      opacity: 0.95;
+      text-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+      flex-shrink: 0;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    #progress-section .rel-handwrite {
+      transform: translateX(-50px);
+    }
+
+    @media (max-width: 360px) {
+      #progress-section .rel-handwrite {
+        transform: translateX(-28px);
+      }
+    }
+
+    /* 亲密进度 */
+    .rel-progress-wrap {
+      padding-right: 104px;
+    }
+
+    .rel-progress-bar {
       width: 100%;
-      height: 12px;
-      background: #f0f0f0;
-      border-radius: 6px;
+      height: 13px;
+      background: #2a2a34;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
       overflow: hidden;
       cursor: pointer;
-      position: relative;
     }
-    .detail-progress-fill {
-      height: 100%;
-      border-radius: 6px;
-      transition: width 0.6s ease-out;
-      width: 0;
-    }
-    .detail-progress-fill.level-0 { background: linear-gradient(90deg, #b0bec5, #90a4ae); }
-    .detail-progress-fill.level-1 { background: linear-gradient(90deg, #ffcc80, #ffb74d); }
-    .detail-progress-fill.level-2 { background: linear-gradient(90deg, #f48fb1, #ec407a); }
-    .detail-progress-fill.level-3 { background: linear-gradient(90deg, #ce93d8, #ab47bc); }
 
-    .progress-stats {
+    .rel-progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.45);
+      transition: width 0.6s ease-out;
+    }
+
+    .rel-progress-stats {
       display: flex;
       justify-content: space-between;
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--color-gray);
+      gap: 8px;
+      margin-top: 9px;
+      font-size: 12px;
+      color: #9ca3af;
     }
-    .progress-tip {
+
+    .rel-progress-stats .rel-stat-num {
+      font-style: normal;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .rel-progress-stats .rel-stat-muted {
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    .rel-progress-stats .rel-stat-upgrade {
+      font-weight: 600;
+    }
+
+    .rel-progress-tip {
       text-align: center;
       font-size: 13px;
-      color: #fa8c16;
+      color: #e879f9;
       margin-top: 8px;
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .progress-tip.visible {
+
+    .rel-progress-tip.visible {
       opacity: 1;
     }
-    .next-perks-toggle {
+
+    .rel-next-toggle {
       display: flex;
       align-items: center;
-      gap: 4px;
-      margin-top: 14px;
-      font-size: 14px;
-      color: var(--color-gray);
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
       cursor: pointer;
       user-select: none;
+      line-height: 1.45;
     }
-    .next-perks-toggle .arrow {
-      transition: transform 0.2s;
-      font-size: 12px;
+
+    .rel-next-toggle .arrow {
+      display: none;
     }
-    .next-perks-toggle.open .arrow {
-      transform: rotate(180deg);
-    }
-    .next-perks-list {
+
+    .rel-next-list {
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.3s ease;
     }
-    .next-perks-list.open {
+
+    .rel-next-list.open {
       max-height: 200px;
     }
-    .next-perks-list .perk-item {
+
+    .rel-next-list .perk-item {
       padding: 6px 0;
-      font-size: 14px;
-      color: var(--color-text);
+      font-size: 13px;
+      color: #d1d5db;
     }
-    .max-level-badge {
+
+    .rel-max-badge {
       text-align: center;
-      padding: 16px 0;
+      padding: 12px 0;
     }
-    .max-level-badge .big {
+
+    .rel-max-badge .big {
       font-size: 16px;
       font-weight: 600;
-      color: var(--color-text);
+      color: #fff;
       margin-bottom: 6px;
     }
-    .max-level-badge .sub {
+
+    .rel-max-badge .sub {
       font-size: 14px;
-      color: var(--color-gray);
+      color: #9ca3af;
     }
 
-    /* 区块四：今日成长 */
-    .today-section {
-      background: var(--color-white);
-      border-radius: 16px;
-      padding: 18px 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    /* 拍立得（-8deg + 极窄底边留白，多露照片） */
+    .rel-polaroid {
+      position: absolute;
+      right: 6px;
+      top: 44%;
+      transform: translateY(-50%) rotate(-8deg);
+      width: 92px;
+      z-index: 2;
+      pointer-events: none;
     }
-    .today-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
+
+    .rel-polaroid-frame {
+      background: #fff;
+      padding: 4px 4px 5px;
+      border-radius: 2px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5),
+                  0 12px 32px rgba(88, 28, 135, 0.32);
     }
-    .today-header .today-total {
+
+    .rel-polaroid-frame img {
+      width: 84px;
+      height: 108px;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+      background: #1f1f28;
+      transform: translateY(-8px);
+    }
+
+    .rel-polaroid-caption {
+      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
+      font-size: 11px;
+      color: #d8b4fe;
+      text-align: center;
+      margin-top: 2px;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .rel-polaroid-heart {
+      position: absolute;
+      right: 2px;
+      bottom: 16px;
+      font-size: 15px;
+      color: #c084fc;
+      filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.55));
+    }
+
+    /* 今日成长横排四列 */
+    .rel-today-total {
       font-size: 14px;
-      color: #389e0d;
+      color: #c084fc;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .rel-today-total.empty {
+      color: #6b7280;
       font-weight: 500;
     }
-    .today-header .today-total.empty {
-      color: var(--color-gray);
-    }
-    .growth-item {
+
+    .rel-today-grid {
       display: flex;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f5f5f5;
+      flex-direction: row;
+      gap: 8px;
+      align-items: stretch;
     }
-    .growth-item:last-child {
-      border-bottom: none;
-    }
-    .growth-item .gi-icon {
-      width: 32px;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-    .growth-item .gi-body {
+
+    .rel-task-card {
+      position: relative;
       flex: 1;
       min-width: 0;
-    }
-    .growth-item .gi-title {
-      font-size: 14px;
-      color: var(--color-text);
-      font-weight: 500;
-    }
-    .growth-item .gi-sub {
-      font-size: 12px;
-      color: var(--color-gray);
-      margin-top: 2px;
-    }
-    .growth-item .gi-right {
-      text-align: right;
-      flex-shrink: 0;
-      margin-left: 8px;
-    }
-    .growth-item .gi-points {
-      font-size: 14px;
-      color: var(--color-text);
-      font-weight: 500;
-    }
-    .done-tag {
-      display: inline-block;
-      padding: 2px 8px;
-      background: rgba(82, 196, 26, 0.12);
-      color: #389e0d;
-      font-size: 11px;
-      border-radius: 10px;
-      margin-top: 2px;
-    }
-    .streak-tag {
-      font-size: 12px;
-      color: #fa8c16;
+      background: #1e1e28;
+      border-radius: 12px;
+      padding: 10px 6px 26px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* 区块五：成长历程时间线 */
-    .timeline-section {
-      background: var(--color-white);
-      border-radius: 16px;
-      padding: 18px 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    .rel-task-card .tc-icon {
+      font-size: 18px;
+      margin-bottom: 6px;
+      filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.35));
     }
+
+    .rel-task-card .tc-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      padding-right: 2px;
+    }
+
+    .rel-task-card .tc-sub {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 3px;
+      line-height: 1.3;
+      padding-right: 2px;
+    }
+
+    .rel-task-card .tc-status {
+      position: absolute;
+      right: 6px;
+      bottom: 8px;
+      text-align: right;
+    }
+
+    .rel-task-card .tc-foot {
+      font-size: 13px;
+      font-weight: 600;
+      color: #c084fc;
+      line-height: 1;
+    }
+
+    .rel-task-card .tc-done {
+      font-size: 12px;
+      color: #4ade80;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .rel-task-card .streak-tag {
+      font-size: 9px;
+      color: #fb923c;
+      margin-top: 3px;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 360px) {
+      .rel-task-card .tc-title {
+        font-size: 11px;
+      }
+
+      .rel-task-card .tc-sub {
+        font-size: 9px;
+      }
+    }
+
+    /* 时间轴 */
+    .rel-timeline-wrap {
+      position: relative;
+    }
+
+    .rel-timeline-deco {
+      position: absolute;
+      right: 0;
+      top: 0;
+      max-width: 38%;
+      text-align: right;
+      pointer-events: none;
+    }
+
     .timeline-empty {
       text-align: center;
       font-style: italic;
-      color: var(--color-gray);
+      color: #9ca3af;
       font-size: 14px;
       line-height: 1.8;
       padding: 12px 0;
+      white-space: pre-line;
     }
+
     .timeline-list {
       position: relative;
       padding-left: 24px;
+      padding-right: 0;
     }
+
     .timeline-list::before {
       content: '';
       position: absolute;
@@ -302,300 +558,364 @@
       top: 8px;
       bottom: 8px;
       width: 2px;
-      background: #f0e8e0;
+      background: rgba(168, 85, 247, 0.35);
     }
+
     .timeline-node {
       position: relative;
-      padding: 8px 0;
+      padding: 10px 0;
     }
+
     .timeline-node::before {
       content: '';
       position: absolute;
       left: -20px;
-      top: 14px;
+      top: 16px;
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: var(--color-primary);
-      border: 2px solid var(--color-white);
-      box-shadow: 0 0 0 2px var(--color-primary);
+      background: #7c3aed;
+      border: 2px solid #16161e;
+      box-shadow: 0 0 0 2px #a855f7;
     }
+
     .timeline-node.current::before {
-      background: #fa8c16;
-      box-shadow: 0 0 0 2px #fa8c16;
+      background: #fb923c;
+      box-shadow: 0 0 0 2px #fb923c, 0 0 10px rgba(251, 146, 60, 0.5);
     }
+
     .timeline-node .tn-title {
       font-size: 14px;
       font-weight: 500;
-      color: var(--color-text);
-    }
-    .timeline-node .tn-time {
-      font-size: 12px;
-      color: var(--color-gray);
-      margin-top: 2px;
+      color: #f3f4f6;
     }
 
-    /* 区块六：成长记录 */
-    .log-section {
-      background: var(--color-white);
-      border-radius: 16px;
-      padding: 18px 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    .timeline-node.current .tn-title {
+      font-weight: 600;
+      color: #fff;
     }
-    .log-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-    .log-header .log-total {
+
+    .timeline-node .tn-time {
       font-size: 12px;
-      color: var(--color-gray);
+      color: #9ca3af;
+      margin-top: 4px;
     }
+
+    /* 成长记录 */
+    .rel-log-total {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
     .log-date-sep {
       text-align: center;
       font-size: 12px;
-      color: #bbb;
-      padding: 8px 0;
+      color: #6b7280;
+      padding: 10px 0 6px;
     }
+
     .log-item {
       display: flex;
       align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f9f5f0;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
+
     .log-item:last-child {
       border-bottom: none;
     }
-    .log-item .li-icon {
-      width: 28px;
-      font-size: 16px;
+
+    .log-item .li-icon-slot {
+      width: 36px;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
     }
+
     .log-item .li-body {
       flex: 1;
       min-width: 0;
+      padding-left: 4px;
     }
+
     .log-item .li-label {
       font-size: 14px;
-      color: var(--color-text);
+      color: #f3f4f6;
     }
+
     .log-item .li-time {
       font-size: 12px;
-      color: var(--color-gray);
+      color: #9ca3af;
       margin-top: 2px;
     }
+
     .log-item .li-points {
       font-size: 14px;
       font-weight: 600;
-      color: #389e0d;
+      color: #c084fc;
       flex-shrink: 0;
       margin-left: 8px;
     }
 
-    /* 骨架屏 */
-    .skeleton-card {
-      height: 260px;
-      border-radius: 20px;
-      margin-bottom: 20px;
+    .no-more-text {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      padding: 16px 0 8px;
     }
-    .skeleton-grid {
+
+    /* 骨架屏 */
+    .skeleton-wrap {
+      padding: 16px;
+    }
+
+    .skeleton-hero {
+      height: 280px;
+      border-radius: 0;
+      margin: 0 -16px 16px;
+    }
+
+    .skeleton-stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
-    .skeleton-grid-item {
-      height: 80px;
-      border-radius: 14px;
+
+    .skeleton-stats .skeleton {
+      height: 72px;
+      border-radius: 12px;
     }
+
     .skeleton-block {
       height: 140px;
       border-radius: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
+
+    body.relationship-page .skeleton {
+      background: linear-gradient(90deg, #1a1a22 25%, #252530 50%, #1a1a22 75%);
+      background-size: 200% 100%;
+    }
+
     .content-loaded .skeleton-wrap { display: none; }
     .content-loaded .real-content { display: block !important; }
     .real-content { display: none !important; }
 
-    /* 升级庆祝弹窗 */
+    /* 升级弹窗（暗黑） */
     .levelup-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.72);
       z-index: 600;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      animation: fade-in 0.3s forwards;
+      animation: rel-fade-in 0.3s forwards;
     }
+
     .levelup-overlay.closing {
-      animation: fade-out 0.3s forwards;
+      animation: rel-fade-out 0.3s forwards;
     }
+
     .levelup-box {
       width: 300px;
-      background: var(--color-white);
+      background: linear-gradient(165deg, #1e1e28 0%, #121218 100%);
       border-radius: 24px;
       padding: 32px 24px 24px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
     }
+
     .levelup-box .lu-title {
       font-size: 28px;
       margin-bottom: 8px;
     }
+
     .levelup-box .lu-subtitle {
       font-size: 18px;
       font-weight: 600;
-      color: var(--color-text);
+      color: #fff;
       margin-bottom: 16px;
     }
+
     .levelup-box .lu-perks {
       text-align: left;
       margin-bottom: 20px;
     }
+
     .levelup-box .lu-perks .lu-perk {
       padding: 6px 0;
       font-size: 14px;
-      color: var(--color-text);
+      color: #d1d5db;
     }
+
     .levelup-box .lu-btn {
       width: 100%;
       padding: 12px;
-      background: var(--color-primary);
+      background: linear-gradient(90deg, #7c3aed, #c084fc);
       border-radius: 12px;
       font-size: 16px;
-      font-weight: 500;
-      color: var(--color-text);
+      font-weight: 600;
+      color: #fff;
       cursor: pointer;
+      border: none;
     }
+
     .levelup-box .lu-btn:active {
       transform: scale(0.97);
     }
 
-    /* 粒子动画 */
     .particles {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       overflow: hidden;
     }
+
     .particle {
       position: absolute;
       border-radius: 50%;
       animation: particle-float 2s ease-out forwards;
     }
+
     @keyframes particle-float {
       0% { transform: translateY(0) scale(1); opacity: 1; }
       100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
     }
 
-    @keyframes fade-in {
+    @keyframes rel-fade-in {
       to { opacity: 1; }
     }
-    @keyframes fade-out {
+
+    @keyframes rel-fade-out {
       to { opacity: 0; }
+    }
+
+    /* 覆盖 h5-theme 对本页旧 class 的全局 neo 样式 */
+    body.relationship-page .milestone-item,
+    body.relationship-page .level-card,
+    body.relationship-page .progress-section,
+    body.relationship-page .today-section,
+    body.relationship-page .timeline-section,
+    body.relationship-page .log-section {
+      border: none;
+      box-shadow: none;
+      background: transparent;
     }
   </style>
 </head>
-<body class="h5-skin">
-  <div class="top-bar">
-    <div class="bar-left">
-      <button class="back-btn" onclick="history.back()">←</button>
-    </div>
-    <div class="bar-center">我们的关系</div>
-    <div class="bar-right"></div>
-  </div>
-
-  <div class="page-body" id="page-body">
-    <!-- 骨架屏 -->
+<body class="h5-skin relationship-page">
+  <div class="rel-page" id="page-body">
     <div class="skeleton-wrap">
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton-grid">
-        <div class="skeleton skeleton-grid-item"></div>
-        <div class="skeleton skeleton-grid-item"></div>
-        <div class="skeleton skeleton-grid-item"></div>
-        <div class="skeleton skeleton-grid-item"></div>
+      <div class="skeleton skeleton-hero"></div>
+      <div class="skeleton-stats">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
       </div>
       <div class="skeleton skeleton-block"></div>
       <div class="skeleton skeleton-block"></div>
     </div>
 
-    <!-- 真实内容 -->
     <div class="real-content">
-      <!-- 区块一：关系等级卡片 -->
-      <div class="level-card" id="level-card">
-        <div class="avatar-wrapper" style="width:80px;height:80px">
-          <img id="linxiaomeng-avatar"
-               src="/static/images/avatar/default.png"
-               alt="林小梦"
-               style="width:80px;height:80px"
-               onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+      <section class="rel-hero" aria-label="林小梦">
+        <div class="rel-hero-bar">
+          <button type="button" class="back-btn" onclick="history.back()" aria-label="返回">←</button>
+          <div class="rel-hero-pill" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#e9d5ff" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span>我们的关系</span>
+          </div>
         </div>
-        <div class="level-name" id="card-level-name"></div>
-        <div class="level-desc" id="card-level-desc"></div>
-        <div class="perks-list" id="card-perks"></div>
-        <div class="next-hint" id="card-next-hint"></div>
-      </div>
+        <div class="rel-hero-profile">
+          <div class="rel-name-row">
+            <h1 class="rel-name">林小梦</h1>
+            <span class="rel-level-badge" id="rel-level-badge"></span>
+          </div>
+          <p class="rel-desc" id="rel-desc"></p>
+          <div class="rel-perks" id="rel-perks"></div>
+          <div class="rel-hero-foot" aria-hidden="true"></div>
+        </div>
+      </section>
 
-      <!-- 区块二：互动里程碑 -->
-      <div class="section-title">我们的故事</div>
-      <div class="milestone-grid" id="milestone-grid">
-        <div class="milestone-item">
-          <div class="m-value" id="m-known-days">0</div>
-          <div class="m-label">相识时间</div>
-          <div class="m-sub" id="m-first-conv"></div>
+      <div class="rel-main">
+        <div class="rel-stats" id="milestone-grid">
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-known-days">0</div>
+            <div class="m-label">相识时间</div>
+            <div class="m-sub" id="m-known-sub"></div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-conv-rounds">0</div>
+            <div class="m-label">聊天记录</div>
+            <div class="m-sub">我们聊过的点滴</div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-login-days">0</div>
+            <div class="m-label">连续登录</div>
+            <div class="m-sub">连续陪伴你</div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-silence-days">0</div>
+            <div class="m-label">距上次</div>
+            <div class="m-sub" id="m-silence-sub"></div>
+          </div>
         </div>
-        <div class="milestone-item">
-          <div class="m-value" id="m-conv-rounds">0</div>
-          <div class="m-label">聊天记录</div>
-          <div class="m-sub">轮</div>
-        </div>
-        <div class="milestone-item">
-          <div class="m-value" id="m-login-days">0</div>
-          <div class="m-label">连续登录</div>
-          <div class="m-sub">天</div>
-        </div>
-        <div class="milestone-item">
-          <div class="m-value" id="m-silence-days">0</div>
-          <div class="m-label">距上次</div>
-          <div class="m-sub">天</div>
-        </div>
-      </div>
 
-      <!-- 区块三：成长进度 -->
-      <div class="progress-section" id="progress-section">
-        <div class="section-title" style="margin-bottom:14px">亲密进度</div>
-        <div id="progress-content"></div>
-      </div>
-
-      <!-- 区块四：今日成长 -->
-      <div class="today-section">
-        <div class="today-header">
-          <div class="section-title" style="margin-bottom:0">今日成长</div>
-          <div class="today-total" id="today-total"></div>
+        <div class="rel-card" id="progress-section">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 亲密进度</div>
+            <span class="rel-handwrite" aria-hidden="true">继续加油哦~ ♡</span>
+          </div>
+          <div id="progress-content" class="rel-progress-wrap"></div>
+          <div class="rel-polaroid" aria-hidden="true">
+            <div class="rel-polaroid-frame">
+              <img id="linxiaomeng-avatar"
+                   src="/static/images/avatar/default.png"
+                   alt=""
+                   onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+              <div class="rel-polaroid-caption">想和你去看海。</div>
+            </div>
+            <span class="rel-polaroid-heart">♥</span>
+          </div>
         </div>
-        <div id="today-list"></div>
-      </div>
 
-      <!-- 区块五：成长历程 -->
-      <div class="timeline-section">
-        <div class="section-title">成长历程</div>
-        <div id="timeline-content"></div>
-      </div>
-
-      <!-- 区块六：成长记录 -->
-      <div class="log-section">
-        <div class="log-header">
-          <div class="section-title" style="margin-bottom:0">成长记录</div>
-          <div class="log-total" id="log-total"></div>
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 今日成长</div>
+            <div class="rel-today-total" id="today-total"></div>
+          </div>
+          <div class="rel-today-grid" id="today-list"></div>
         </div>
-        <div id="log-list"></div>
-        <div class="load-more-sentinel" id="log-sentinel"></div>
-        <div class="no-more-text" id="log-no-more" style="display:none">已经到底啦 ✨</div>
+
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 成长历程</div>
+          </div>
+          <div class="rel-timeline-wrap">
+            <p class="rel-timeline-deco rel-handwrite" aria-hidden="true">未来有很多故事<br>我们一起写下去吧 ♡</p>
+            <div id="timeline-content"></div>
+          </div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 成长记录</div>
+            <span class="rel-log-total" id="log-total"></span>
+          </div>
+          <div id="log-list"></div>
+          <div class="load-more-sentinel" id="log-sentinel"></div>
+          <div class="no-more-text" id="log-no-more" style="display:none">已经到底啦 ✨</div>
+        </div>
       </div>
     </div>
   </div>
@@ -626,7 +946,7 @@
         }
 
         pageData = res.data
-        renderLevelCard(pageData.level_info, pageData.ai_current_emotion)
+        renderHeroProfile(pageData.level_info, pageData.ai_current_emotion)
         renderMilestones(pageData.milestones)
         renderProgress(pageData.level_info, pageData.growth_info)
         renderTodayGrowth(pageData.today_growth, pageData.milestones.consecutive_login_days)
@@ -646,39 +966,29 @@
       }
     }
 
-    /* ====== 区块一：关系等级卡片 ====== */
-    function renderLevelCard(info, emotion) {
-      const card = document.getElementById('level-card')
-      card.className = 'level-card level-' + info.level
+    function renderHeroProfile(info, emotion) {
+      document.getElementById('rel-level-badge').textContent = info.name || '陌生'
+      document.getElementById('rel-desc').textContent = info.description || ''
 
-      document.getElementById('card-level-name').textContent = info.name
-      document.getElementById('card-level-desc').textContent = info.description
-
-      const perksEl = document.getElementById('card-perks')
+      const perksEl = document.getElementById('rel-perks')
       perksEl.innerHTML = ''
-      info.perks.forEach(p => {
+      ;(info.perks || []).forEach(function (p) {
         const tag = document.createElement('span')
-        tag.className = 'perk-tag'
+        tag.className = 'rel-perk-tag'
         tag.textContent = p
         perksEl.appendChild(tag)
       })
-
-      const hintEl = document.getElementById('card-next-hint')
-      if (info.level < 3 && info.next_perks && info.next_perks.length > 0) {
-        hintEl.textContent = '解锁「' + info.next_level_name + '」后，' + info.next_perks[0]
-      } else {
-        hintEl.style.display = 'none'
-      }
 
       if (emotion) {
         updateAvatarEmotion(emotion)
       }
     }
 
-    /* ====== 区块二：互动里程碑 ====== */
     function renderMilestones(ms) {
       document.getElementById('m-known-days').setAttribute('data-target', ms.known_days)
       document.getElementById('m-known-days').textContent = '0'
+      document.getElementById('m-known-sub').textContent =
+        '和你相遇的第 ' + (ms.known_days || 0) + ' 天'
 
       document.getElementById('m-conv-rounds').setAttribute('data-target', ms.total_conversation_rounds)
       document.getElementById('m-conv-rounds').textContent = '0'
@@ -689,25 +999,29 @@
       document.getElementById('m-silence-days').setAttribute('data-target', ms.silence_days)
       document.getElementById('m-silence-days').textContent = '0'
 
+      const silenceEl = document.getElementById('m-silence-days')
       if (ms.silence_days > 7) {
-        document.getElementById('m-silence-days').classList.add('warn')
+        silenceEl.classList.add('warn')
+      } else {
+        silenceEl.classList.remove('warn')
       }
 
-      const firstConvEl = document.getElementById('m-first-conv')
-      if (ms.first_conversation_at) {
-        const d = new Date(ms.first_conversation_at)
-        firstConvEl.textContent = '初次对话于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+      const silenceSub = document.getElementById('m-silence-sub')
+      if (!ms.silence_days) {
+        silenceSub.textContent = '从不远离你'
       } else {
-        firstConvEl.textContent = '天'
+        silenceSub.textContent = '已经 ' + ms.silence_days + ' 天没见了'
       }
     }
 
-    /* ====== 数字增长动画 ====== */
     function animateNumbers() {
       const els = document.querySelectorAll('[data-target]')
-      els.forEach(el => {
-        const target = parseInt(el.getAttribute('data-target')) || 0
-        if (target === 0) { el.textContent = '0'; return }
+      els.forEach(function (el) {
+        const target = parseInt(el.getAttribute('data-target'), 10) || 0
+        if (target === 0) {
+          el.textContent = '0'
+          return
+        }
         const start = performance.now()
         const duration = 300
         function tick(now) {
@@ -720,44 +1034,49 @@
       })
     }
 
-    /* ====== 区块三：成长进度 ====== */
     function renderProgress(levelInfo, growthInfo) {
       const container = document.getElementById('progress-content')
+      const polaroid = document.querySelector('.rel-polaroid')
 
       if (growthInfo.is_max_level) {
+        if (polaroid) polaroid.style.display = 'none'
+        container.className = ''
         container.innerHTML =
-          '<div class="max-level-badge">' +
+          '<div class="rel-max-badge">' +
             '<div class="big">已达到最高等级「知己」✨</div>' +
             '<div class="sub">林小梦与你之间，已建立最深的情感连接</div>' +
           '</div>'
         return
       }
 
+      if (polaroid) polaroid.style.display = ''
+      container.className = 'rel-progress-wrap'
+
       const nextLevelName = levelInfo.next_level_name || '下一级'
+      const firstPerk = (levelInfo.next_perks && levelInfo.next_perks[0]) || '更多互动'
+      const unlockLine = '解锁「' + nextLevelName + '」后，可获得' + firstPerk + ' >'
+
       container.innerHTML =
-        '<div class="progress-header">' +
-          '<span>' + levelInfo.name + '</span>' +
-          '<span>' + nextLevelName + '</span>' +
+        '<div class="rel-progress-bar" id="detail-bar" onclick="showProgressTip()" role="button" tabindex="0">' +
+          '<div class="rel-progress-fill" id="detail-fill"></div>' +
         '</div>' +
-        '<div class="detail-progress-bar" id="detail-bar" onclick="showProgressTip()">' +
-          '<div class="detail-progress-fill level-' + levelInfo.level + '" id="detail-fill"></div>' +
+        '<div class="rel-progress-stats">' +
+          '<span>已积累 <em class="rel-stat-num">' + growthInfo.points_in_level + '</em> / <em class="rel-stat-num">' +
+            growthInfo.points_needed + '</em> <span class="rel-stat-muted">亲密值</span></span>' +
+          '<span>还差 <em class="rel-stat-num">' + growthInfo.points_to_next + '</em> <span class="rel-stat-upgrade">升级</span></span>' +
         '</div>' +
-        '<div class="progress-stats">' +
-          '<span>已积累 ' + growthInfo.points_in_level + ' / ' + growthInfo.points_needed + ' 成长值</span>' +
-          '<span>还差 ' + growthInfo.points_to_next + ' 升级</span>' +
+        '<div class="rel-progress-tip" id="progress-tip"></div>' +
+        '<div class="rel-next-toggle" onclick="toggleNextPerks()">' +
+          '<span>' + unlockLine + '</span>' +
+          '<span class="arrow" aria-hidden="true">▼</span>' +
         '</div>' +
-        '<div class="progress-tip" id="progress-tip"></div>' +
-        '<div class="next-perks-toggle" onclick="toggleNextPerks()">' +
-          '<span>解锁「' + nextLevelName + '」后可获得</span>' +
-          '<span class="arrow">▼</span>' +
-        '</div>' +
-        '<div class="next-perks-list" id="next-perks-list">' +
-          levelInfo.next_perks.map(function(p) {
+        '<div class="rel-next-list" id="next-perks-list">' +
+          (levelInfo.next_perks || []).map(function (p) {
             return '<div class="perk-item">✨ ' + p + '</div>'
           }).join('') +
         '</div>'
 
-      setTimeout(function() {
+      setTimeout(function () {
         const fill = document.getElementById('detail-fill')
         if (fill) fill.style.width = growthInfo.progress_percent + '%'
       }, 100)
@@ -769,42 +1088,42 @@
       const rounds = Math.ceil(pageData.growth_info.points_to_next / 2)
       tip.textContent = '再聊 ' + rounds + ' 轮就能升级啦～'
       tip.classList.add('visible')
-      setTimeout(function() { tip.classList.remove('visible') }, 2000)
+      setTimeout(function () { tip.classList.remove('visible') }, 2000)
     }
 
     function toggleNextPerks() {
-      const toggle = document.querySelector('.next-perks-toggle')
+      const toggle = document.querySelector('.rel-next-toggle')
       const list = document.getElementById('next-perks-list')
+      if (!toggle || !list) return
       toggle.classList.toggle('open')
       list.classList.toggle('open')
     }
 
-    /* ====== 区块四：今日成长 ====== */
     function renderTodayGrowth(tg, consecutiveDays) {
       const totalEl = document.getElementById('today-total')
       if (tg.today_total_points > 0) {
-        totalEl.textContent = '今日总计 +' + tg.today_total_points + ' 成长值'
-        totalEl.className = 'today-total'
+        totalEl.textContent = '今日总计 +' + tg.today_total_points + ' 亲密值'
+        totalEl.className = 'rel-today-total'
       } else {
         totalEl.textContent = '今天还没有互动哦'
-        totalEl.className = 'today-total empty'
+        totalEl.className = 'rel-today-total empty'
       }
 
       const list = document.getElementById('today-list')
       const items = [
         {
-          icon: '📝',
+          icon: '💬',
           title: '完成对话',
           points: tg.today_dialog_points,
           sub: tg.today_dialog_limit_reached
             ? null
-            : '还能获得 ' + tg.today_remaining_dialog + ' 分',
+            : '还差获得 ' + tg.today_remaining_dialog + ' 分',
           done: tg.today_dialog_limit_reached,
           doneText: '今日已满'
         },
         {
-          icon: '🕐',
-          title: '深度聊天（单日对话≥10分钟）',
+          icon: '🎙',
+          title: '深度聊天',
           points: tg.today_session_points,
           sub: tg.today_session_points === 0 ? '聊够10分钟可获得+20分' : null,
           done: tg.today_session_points >= 20,
@@ -814,47 +1133,46 @@
           icon: '📅',
           title: '每日登录',
           points: tg.today_login_points,
-          sub: tg.today_login_points === 0 ? '今日登录可获得+5分' : null,
+          sub: tg.today_login_points === 0 ? '今日登录 +5' : null,
           done: tg.today_login_points > 0,
           doneText: '已完成',
-          streak: consecutiveDays >= 7 ? '连续' + consecutiveDays + '天登录奖励中🔥' : null
+          streak: consecutiveDays >= 7 ? '连续' + consecutiveDays + '天奖励中🔥' : null
         },
         {
-          icon: '💬',
-          title: '回复林小梦的消息',
+          icon: '💌',
+          title: '回复消息',
           points: tg.today_reply_points,
-          sub: tg.today_reply_points === 0 ? '回复林小梦主动消息可获得+10分' : null,
+          sub: tg.today_reply_points === 0 ? '回复可获得+10分' : null,
           done: tg.today_reply_points > 0,
           doneText: '已完成'
         }
       ]
 
-      list.innerHTML = items.map(function(item) {
-        let rightHtml = '<div class="gi-points">' + item.points + '分</div>'
+      list.innerHTML = items.map(function (item) {
+        let footHtml
         if (item.done) {
-          rightHtml += '<div class="done-tag">' + item.doneText + '</div>'
+          footHtml = '<span class="tc-done">' + item.doneText + '</span>'
+        } else {
+          footHtml = '<span class="tc-foot">' + item.points + '分</span>'
         }
 
         let subHtml = ''
         if (item.sub) {
-          subHtml = '<div class="gi-sub">' + item.sub + '</div>'
+          subHtml = '<div class="tc-sub">' + item.sub + '</div>'
         }
         if (item.streak) {
           subHtml += '<div class="streak-tag">' + item.streak + '</div>'
         }
 
-        return '<div class="growth-item">' +
-          '<div class="gi-icon">' + item.icon + '</div>' +
-          '<div class="gi-body">' +
-            '<div class="gi-title">' + item.title + '</div>' +
-            subHtml +
-          '</div>' +
-          '<div class="gi-right">' + rightHtml + '</div>' +
+        return '<div class="rel-task-card">' +
+          '<div class="tc-icon">' + item.icon + '</div>' +
+          '<div class="tc-title">' + item.title + '</div>' +
+          subHtml +
+          '<div class="tc-status">' + footHtml + '</div>' +
         '</div>'
       }).join('')
     }
 
-    /* ====== 区块五：成长历程时间线 ====== */
     function renderTimeline(history, levelInfo, milestones) {
       const container = document.getElementById('timeline-content')
 
@@ -874,10 +1192,11 @@
         '<div class="tn-time">一直在这里陪着你</div>' +
       '</div>'
 
-      history.forEach(function(h) {
+      history.forEach(function (h) {
         const d = new Date(h.achieved_at)
         const timeStr = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' +
-          String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+          String(d.getHours()).padStart(2, '0') + ':' +
+          String(d.getMinutes()).padStart(2, '0')
         html += '<div class="timeline-node">' +
           '<div class="tn-title">● 升级为「' + h.level_name + '」</div>' +
           '<div class="tn-time">' + timeStr + '</div>' +
@@ -888,7 +1207,6 @@
       container.innerHTML = html
     }
 
-    /* ====== 区块六：成长记录 ====== */
     async function loadGrowthLog() {
       if (logLoading || logNoMore) return
       logLoading = true
@@ -912,12 +1230,12 @@
 
       const listEl = document.getElementById('log-list')
       let lastDateStr = ''
-      if (listEl.children.length > 0) {
-        const lastChild = listEl.lastElementChild
-        if (lastChild) lastDateStr = lastChild.getAttribute('data-date') || ''
+      const prevItems = listEl.querySelectorAll('.log-item')
+      if (prevItems.length > 0) {
+        lastDateStr = prevItems[prevItems.length - 1].getAttribute('data-date') || ''
       }
 
-      data.list.forEach(function(item) {
+      data.list.forEach(function (item) {
         const d = new Date(item.created_at)
         const dateStr = (d.getMonth() + 1) + '月' + d.getDate() + '日'
 
@@ -938,7 +1256,7 @@
                         String(d.getMinutes()).padStart(2, '0')
 
         row.innerHTML =
-          '<div class="li-icon">' + icon + '</div>' +
+          '<div class="li-icon-slot" aria-hidden="true">' + icon + '</div>' +
           '<div class="li-body">' +
             '<div class="li-label">' + item.action_label + '</div>' +
             '<div class="li-time">' + timeStr + '</div>' +
@@ -957,8 +1275,7 @@
       logLoading = false
     }
 
-    /* ====== 上拉加载更多 ====== */
-    const logObserver = new IntersectionObserver(function(entries) {
+    const logObserver = new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting && !logLoading && !logNoMore) {
         loadGrowthLog()
       }
@@ -967,12 +1284,11 @@
     const sentinel = document.getElementById('log-sentinel')
     if (sentinel) logObserver.observe(sentinel)
 
-    /* ====== 升级庆祝弹窗 ====== */
     function checkLevelUpParam(levelInfo) {
       const params = new URLSearchParams(window.location.search)
       if (params.get('just_leveled_up') !== 'true') return
 
-      setTimeout(function() {
+      setTimeout(function () {
         showLevelUpModal(levelInfo)
       }, 500)
 
@@ -984,7 +1300,7 @@
       overlay.className = 'levelup-overlay'
 
       let perksHtml = ''
-      info.perks.forEach(function(p) {
+      ;(info.perks || []).forEach(function (p) {
         perksHtml += '<div class="lu-perk">✨ ' + p + '</div>'
       })
 
@@ -994,33 +1310,32 @@
           '<div class="lu-title">🎉 恭喜升级！</div>' +
           '<div class="lu-subtitle">我们现在是「' + info.name + '」了</div>' +
           '<div class="lu-perks">' + perksHtml + '</div>' +
-          '<button class="lu-btn" id="lu-close-btn">继续聊天</button>' +
+          '<button type="button" class="lu-btn" id="lu-close-btn">继续聊天</button>' +
         '</div>'
 
       document.body.appendChild(overlay)
 
       createParticles(document.getElementById('lu-particles'))
 
-      document.getElementById('lu-close-btn').onclick = function() {
-        overlay.classList.add('closing')
-        overlay.addEventListener('animationend', function() {
-          overlay.remove()
-        })
+      document.getElementById('lu-close-btn').onclick = function () {
+        closeLevelUp(overlay)
       }
 
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-          overlay.classList.add('closing')
-          overlay.addEventListener('animationend', function() {
-            overlay.remove()
-          })
-        }
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeLevelUp(overlay)
+      })
+    }
+
+    function closeLevelUp(overlay) {
+      overlay.classList.add('closing')
+      overlay.addEventListener('animationend', function () {
+        overlay.remove()
       })
     }
 
     function createParticles(container) {
       if (!container) return
-      const colors = ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98', '#DDA0DD', '#FFA07A']
+      const colors = ['#c084fc', '#e879f9', '#a855f7', '#f0abfc', '#ddd6fe', '#f9a8d4']
       for (let i = 0; i < 20; i++) {
         const p = document.createElement('div')
         p.className = 'particle'
@@ -1031,7 +1346,7 @@
         p.style.left = Math.random() * 100 + '%'
         p.style.top = 60 + Math.random() * 40 + '%'
         p.style.animationDelay = Math.random() * 1 + 's'
-        p.style.animationDuration = 1.5 + Math.random() * 1 + 's'
+        p.style.animationDuration = (1.5 + Math.random() * 1) + 's'
         container.appendChild(p)
       }
     }
