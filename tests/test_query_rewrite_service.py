@@ -54,7 +54,7 @@ def _base_round_context() -> dict:
 def _base_execute_kwargs() -> dict:
     return {
         "user_id": 10001,
-        "last_user_text": "今天又熬夜了哈哈",
+        "rewrite_input": "今天又熬夜了哈哈",
         "persona_text": "温柔细腻的林小梦",
         "round_context": _base_round_context(),
         "recent_conversations": [
@@ -179,18 +179,22 @@ class TestParseQueryRewriteOutput:
         out = _parse_query_rewrite_output(raw)
         assert isinstance(out, QueryRewriteOutput)
 
-    def test_all_three_questions_empty_raises(self):
+    def test_all_four_questions_empty_success(self):
+        """C1：四路 QueryQuestion 全空/「无」是合法成功态，不再抛错。"""
         raw = json.dumps(
             {
                 "InnerMonologue": "x",
-                "CharacterGlobalQueryQuestion": "",
+                "CharacterGlobalQueryQuestion": "无",
+                "CharacterPrivateQueryQuestion": "无",
                 "CharacterKnowledgeQueryQuestion": "",
                 "UserProfileQueryQuestion": "",
             },
             ensure_ascii=False,
         )
-        with pytest.raises(ValueError, match="三组 QueryQuestion 全部为空"):
-            _parse_query_rewrite_output(raw)
+        out = _parse_query_rewrite_output(raw)
+        assert isinstance(out, QueryRewriteOutput)
+        assert out.CharacterGlobalQueryQuestion == "无"
+        assert out.UserProfileQueryQuestion == ""
 
 
 class TestBuildStep15Prompt:
@@ -199,7 +203,8 @@ class TestBuildStep15Prompt:
             persona_text="人格",
             round_context=_base_round_context(),
             recent_conversations=[{"role": "user", "content": "你好"}],
-            user_input="测试消息",
+            rewrite_input="测试消息",
+            source="main",
         )
         assert "【系统指令】" in text
         assert "【人格设定】" in text
@@ -207,3 +212,65 @@ class TestBuildStep15Prompt:
         assert "【近期对话】" in text
         assert "测试消息" in text
         assert "CharacterGlobalQueryQuestion" in text
+        # 主链标签与新增 CandidateKeys 规则（C20）
+        assert "用户本轮消息" in text
+        assert "CharacterPrivateCandidateKeys" in text
+
+    def test_step8_keeps_original_label(self):
+        """C17/C20：Step8 保持原【用户当前消息】标签。"""
+        text = _build_step1_5_prompt(
+            persona_text="人格",
+            round_context=_base_round_context(),
+            recent_conversations=[],
+            rewrite_input="想念用户",
+            source="step8",
+        )
+        assert "【用户当前消息】" in text
+        # 主链专属标题不应出现在 Step8（Few-shot 中的「用户本轮消息」文案不算）
+        assert "【用户本轮消息（可能多段，换行分隔）】" not in text
+
+
+# ============ 冒烟用例（C23 Step1.5 层）============
+
+
+class TestSmokeStep15:
+    @pytest.mark.asyncio
+    async def test_all_routes_none_success_no_fallback(self):
+        """用例1：四路全「无」→ success=True，fallback_embedding 为空。"""
+        raw = _valid_step1_5_json(
+            CharacterGlobalQueryQuestion="无",
+            CharacterKnowledgeQueryQuestion="无",
+            UserProfileQueryQuestion="无",
+            CharacterPrivateQueryQuestion="无",
+        )
+        with patch(
+            "backend.services.query_rewrite_service.llm_client.chat_sync",
+            new_callable=AsyncMock,
+            return_value=raw,
+        ):
+            result = await execute_query_rewrite(**_base_execute_kwargs())
+
+        assert result.success is True
+        assert result.output.CharacterGlobalQueryQuestion == "无"
+        assert result.fallback_embedding == []
+
+    @pytest.mark.asyncio
+    async def test_private_candidate_keys_parsed(self):
+        """用例2：含 CharacterPrivateCandidateKeys → 解析成功为 list[str]。"""
+        raw = _valid_step1_5_json(
+            CharacterPrivateQueryQuestion="林小梦对当前用户的印象和态度",
+            CharacterPrivateCandidateKeys=["用户-信任", "关系-态度"],
+        )
+        with patch(
+            "backend.services.query_rewrite_service.llm_client.chat_sync",
+            new_callable=AsyncMock,
+            return_value=raw,
+        ):
+            result = await execute_query_rewrite(**_base_execute_kwargs())
+
+        assert result.success is True
+        assert result.output.CharacterPrivateCandidateKeys == ["用户-信任", "关系-态度"]
+        assert all(
+            isinstance(k, str)
+            for k in result.output.CharacterPrivateCandidateKeys
+        )

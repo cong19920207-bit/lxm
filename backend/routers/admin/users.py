@@ -5,9 +5,11 @@ import logging
 import random
 import string
 from datetime import datetime, timedelta, timezone
+from urllib.parse import unquote
 
 import bcrypt
 from fastapi import APIRouter, Depends, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import case, func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,24 +18,21 @@ from backend.models.admin_user import AdminUser
 from backend.models.agent_message import AgentMessage
 from backend.models.conversation_log import ConversationLog
 from backend.models.emotion_log import EmotionLog
-from backend.models.memory import Memory
 from backend.models.relationship import Relationship
 from backend.models.user import User
 from backend.constants import (
     ADMIN_ERR_USER_ALREADY_BANNED,
-    ADMIN_ERR_USER_MEMORY_CONTENT_EMPTY,
-    ADMIN_ERR_USER_MEMORY_NOT_FOUND,
     ADMIN_ERR_USER_NOT_BANNED,
     ADMIN_ERR_USER_NOT_FOUND,
     ADMIN_ERR_USER_STATUS_ACTION_INVALID,
+    ADMIN_ERROR_MESSAGES,
+    MEMORY_TYPE_CHARACTER_PRIVATE,
     MEMORY_TYPE_USER,
 )
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
-from backend.schemas.memory import AdminMemoryUpdateRequest
 from backend.services.admin_diary_query import fetch_admin_diary_list_page
-from backend.services.embedding_service import embedding_service
-from backend.services.vector_service import vector_service
+from backend.services.user_vector_memory_service import user_vector_memory_service
 from backend.utils.admin_auth import get_current_admin, log_operation, require_role
 
 logger = logging.getLogger(__name__)
@@ -489,11 +488,151 @@ async def get_user_emotion_rounds(
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 接口四：GET /users/{user_id}/memories 用户记忆列表
+# 接口四：用户记忆（user）/ 私有状态（character_private）DashVector CRUD（C-01/C-09）
+# 旧 MySQL `/users/{id}/memories*`（接口四/五/六）已删除，统一改为 Step6 向量读写。
+# 权限：super_admin + ops_admin + ai_trainer（P5）
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_USER_MEMORY_ROLES = ("super_admin", "ops_admin", "ai_trainer")
+
+
+class UserMemoryCreateRequest(BaseModel):
+    """新增用户记忆 / 私有状态条目（三层 key + value）。"""
+    key: str = Field(..., min_length=1)
+    value: str = Field(..., min_length=1)
+
+
+class UserMemoryUpdateRequest(BaseModel):
+    """仅改 value（C-03，改 key 走 DELETE + POST）。"""
+    value: str = Field(..., min_length=1)
+
+
+def _fail_from_user_memory_service(result: dict):
+    code = result.get("error_code")
+    message = result.get("message") or ADMIN_ERROR_MESSAGES.get(code, "操作失败")
+    return ApiResponse.fail(code, message=message)
+
+
+async def _ensure_user_exists(db: AsyncSession, user_id: int) -> bool:
+    user_result = await db.execute(select(User.id).where(User.id == user_id))
+    return user_result.scalar() is not None
+
+
+async def _list_user_vectors(
+    user_id: int,
+    memory_type: str,
+    keyword: str | None,
+    page: int,
+    page_size: int,
+    db: AsyncSession,
+):
+    if not await _ensure_user_exists(db, user_id):
+        return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
+    result = await user_vector_memory_service.list_entries(
+        memory_type=memory_type,
+        user_id=user_id,
+        keyword=keyword,
+        page=page,
+        page_size=page_size,
+    )
+    if "error_code" in result:
+        return _fail_from_user_memory_service(result)
+    return ApiResponse.ok(data=result)
+
+
+async def _create_user_vector(
+    user_id: int,
+    memory_type: str,
+    module: str,
+    body: UserMemoryCreateRequest,
+    request: Request,
+    db: AsyncSession,
+    admin_user: AdminUser,
+):
+    result = await user_vector_memory_service.create_entry(
+        memory_type=memory_type,
+        user_id=user_id,
+        key=body.key.strip(),
+        value=body.value.strip(),
+    )
+    if "error_code" in result:
+        return _fail_from_user_memory_service(result)
+    entry = result["data"]
+    await log_operation(
+        db=db,
+        admin_user=admin_user,
+        module=module,
+        action="create",
+        target_description=f"新增用户{user_id}的{module} key={entry['key']}",
+        after_value=entry.get("content"),
+        request=request,
+    )
+    return ApiResponse.ok(data=entry)
+
+
+async def _update_user_vector(
+    user_id: int,
+    memory_type: str,
+    module: str,
+    doc_id: str,
+    body: UserMemoryUpdateRequest,
+    request: Request,
+    db: AsyncSession,
+    admin_user: AdminUser,
+):
+    doc_id = unquote(doc_id)
+    result = await user_vector_memory_service.update_entry(
+        memory_type=memory_type,
+        user_id=user_id,
+        doc_id=doc_id,
+        value=body.value.strip(),
+    )
+    if "error_code" in result:
+        return _fail_from_user_memory_service(result)
+    entry = result["data"]
+    await log_operation(
+        db=db,
+        admin_user=admin_user,
+        module=module,
+        action="update",
+        target_description=f"更新用户{user_id}的{module} key={entry['key']}",
+        after_value=entry.get("content"),
+        request=request,
+    )
+    return ApiResponse.ok(data=entry)
+
+
+async def _delete_user_vector(
+    user_id: int,
+    memory_type: str,
+    module: str,
+    doc_id: str,
+    request: Request,
+    db: AsyncSession,
+    admin_user: AdminUser,
+):
+    doc_id = unquote(doc_id)
+    result = await user_vector_memory_service.delete_entry(
+        memory_type=memory_type,
+        user_id=user_id,
+        doc_id=doc_id,
+    )
+    if "error_code" in result:
+        return _fail_from_user_memory_service(result)
+    await log_operation(
+        db=db,
+        admin_user=admin_user,
+        module=module,
+        action="delete",
+        target_description=f"删除用户{user_id}的{module} doc_id={doc_id}",
+        request=request,
+    )
+    return ApiResponse.ok(data=result["data"])
+
+
+# ---------- user-memories（type=user）----------
 @router.get(
-    "/users/{user_id}/memories",
-    dependencies=[require_role("super_admin", "ops_admin", "ai_trainer")],
+    "/users/{user_id}/user-memories",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
 )
 async def list_user_memories(
     user_id: int,
@@ -502,48 +641,131 @@ async def list_user_memories(
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """用户记忆列表"""
-    # 检查用户是否存在
-    user_stmt = select(User.id).where(User.id == user_id)
-    user_result = await db.execute(user_stmt)
-    if not user_result.scalar():
-        return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
-
-    stmt = select(Memory).where(
-        Memory.user_id == user_id,
-        Memory.is_deleted.is_(False),
+    """用户记忆列表（Step6 user 向量，cap=500）。"""
+    return await _list_user_vectors(
+        user_id, MEMORY_TYPE_USER, keyword, page, page_size, db,
     )
 
-    if keyword:
-        stmt = stmt.where(Memory.content.like(f"%{keyword}%"))
 
-    stmt = stmt.order_by(Memory.created_at.desc())
+@router.post(
+    "/users/{user_id}/user-memories",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def create_user_memory(
+    user_id: int,
+    body: UserMemoryCreateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """新增用户记忆条目（三层 key + value）。"""
+    return await _create_user_vector(
+        user_id, MEMORY_TYPE_USER, "user_memory", body, request, db, admin_user,
+    )
 
-    # 总数
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_result = await db.execute(count_stmt)
-    total = total_result.scalar() or 0
 
-    # 分页
-    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
-    result = await db.execute(stmt)
-    rows = result.scalars().all()
+@router.put(
+    "/users/{user_id}/user-memories/{doc_id:path}",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def update_user_memory(
+    user_id: int,
+    doc_id: str,
+    body: UserMemoryUpdateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """编辑用户记忆 value（key 不可改）。"""
+    return await _update_user_vector(
+        user_id, MEMORY_TYPE_USER, "user_memory", doc_id, body, request, db, admin_user,
+    )
 
-    row_list = []
-    for row in rows:
-        row_list.append(
-            {
-                "id": row.id,
-                "content": row.content,
-                "importance_score": row.importance_score,
-                "source": row.source,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "updated_at": row.updated_at.isoformat() if row.updated_at else None,
-            }
-        )
 
-    return ApiResponse.ok(
-        data={"total": total, "page": page, "page_size": page_size, "list": row_list},
+@router.delete(
+    "/users/{user_id}/user-memories/{doc_id:path}",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def delete_user_memory(
+    user_id: int,
+    doc_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """删除用户记忆条目。"""
+    return await _delete_user_vector(
+        user_id, MEMORY_TYPE_USER, "user_memory", doc_id, request, db, admin_user,
+    )
+
+
+# ---------- private-settings（type=character_private）----------
+@router.get(
+    "/users/{user_id}/private-settings",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def list_private_settings(
+    user_id: int,
+    keyword: str | None = Query(None, max_length=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """私有状态列表（角色对该用户的私有设定，cap=500）。"""
+    return await _list_user_vectors(
+        user_id, MEMORY_TYPE_CHARACTER_PRIVATE, keyword, page, page_size, db,
+    )
+
+
+@router.post(
+    "/users/{user_id}/private-settings",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def create_private_setting(
+    user_id: int,
+    body: UserMemoryCreateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """新增私有状态条目（三层 key + value）。"""
+    return await _create_user_vector(
+        user_id, MEMORY_TYPE_CHARACTER_PRIVATE, "private_setting", body, request, db, admin_user,
+    )
+
+
+@router.put(
+    "/users/{user_id}/private-settings/{doc_id:path}",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def update_private_setting(
+    user_id: int,
+    doc_id: str,
+    body: UserMemoryUpdateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """编辑私有状态 value（key 不可改）。"""
+    return await _update_user_vector(
+        user_id, MEMORY_TYPE_CHARACTER_PRIVATE, "private_setting", doc_id, body, request, db, admin_user,
+    )
+
+
+@router.delete(
+    "/users/{user_id}/private-settings/{doc_id:path}",
+    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+)
+async def delete_private_setting(
+    user_id: int,
+    doc_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """删除私有状态条目。"""
+    return await _delete_user_vector(
+        user_id, MEMORY_TYPE_CHARACTER_PRIVATE, "private_setting", doc_id, request, db, admin_user,
     )
 
 
@@ -579,131 +801,6 @@ async def list_user_diaries(
     if err:
         return err
     return ApiResponse.ok(data=data)
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 接口五：PUT /users/{user_id}/memories/{memory_id} 编辑记忆
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@router.put(
-    "/users/{user_id}/memories/{memory_id}",
-    dependencies=[require_role("super_admin", "ops_admin", "ai_trainer")],
-)
-async def update_memory(
-    user_id: int,
-    memory_id: int,
-    req: AdminMemoryUpdateRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    admin_user: AdminUser = Depends(get_current_admin),
-):
-    """编辑用户记忆内容"""
-    new_content = req.content.strip()
-    if not new_content:
-        return ApiResponse.fail(ADMIN_ERR_USER_MEMORY_CONTENT_EMPTY)
-
-    # 校验memory_id属于该user_id
-    stmt = select(Memory).where(
-        Memory.id == memory_id,
-        Memory.user_id == user_id,
-        Memory.is_deleted.is_(False),
-    )
-    result = await db.execute(stmt)
-    memory = result.scalars().first()
-    if not memory:
-        return ApiResponse.fail(ADMIN_ERR_USER_MEMORY_NOT_FOUND)
-
-    old_content = memory.content
-
-    # 更新MySQL
-    memory.content = new_content
-    memory.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
-    memory.source = "admin"
-    await db.flush()
-
-    # 生成新向量并更新DashVector
-    try:
-        new_embedding = await embedding_service.get_embedding(new_content)
-        if new_embedding:
-            await vector_service.upsert(
-                memory_id=memory.id,
-                embedding=new_embedding,
-                metadata={
-                    "user_id": user_id,
-                    "content": new_content,
-                    "importance_score": memory.importance_score,
-                    "created_at": memory.created_at.isoformat() if memory.created_at else "",
-                },
-                memory_type=MEMORY_TYPE_USER,
-            )
-    except Exception as e:
-        logger.error("更新记忆向量失败: memory_id=%d, error=%s", memory_id, str(e))
-
-    # 写入操作日志
-    await log_operation(
-        db=db,
-        admin_user=admin_user,
-        module="用户管理",
-        action="edit",
-        target_description=f"编辑用户{user_id}的记忆(ID:{memory_id})",
-        before_value=old_content,
-        after_value=new_content,
-        request=request,
-    )
-
-    return ApiResponse.ok(message="记忆更新成功")
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 接口六：DELETE /users/{user_id}/memories/{memory_id} 删除记忆
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@router.delete(
-    "/users/{user_id}/memories/{memory_id}",
-    dependencies=[require_role("super_admin", "ops_admin", "ai_trainer")],
-)
-async def delete_memory(
-    user_id: int,
-    memory_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    admin_user: AdminUser = Depends(get_current_admin),
-):
-    """删除用户记忆（软删除）"""
-    # 校验memory_id属于该user_id
-    stmt = select(Memory).where(
-        Memory.id == memory_id,
-        Memory.user_id == user_id,
-        Memory.is_deleted.is_(False),
-    )
-    result = await db.execute(stmt)
-    memory = result.scalars().first()
-    if not memory:
-        return ApiResponse.fail(ADMIN_ERR_USER_MEMORY_NOT_FOUND)
-
-    old_content = memory.content
-
-    # MySQL软删除
-    memory.is_deleted = True
-    await db.flush()
-
-    # 删除DashVector中的向量
-    if memory.dashvector_id:
-        try:
-            await vector_service.delete(memory.dashvector_id)
-        except Exception as e:
-            logger.error("删除记忆向量失败: dashvector_id=%s, error=%s", memory.dashvector_id, str(e))
-
-    # 写入操作日志
-    await log_operation(
-        db=db,
-        admin_user=admin_user,
-        module="用户管理",
-        action="delete",
-        target_description=f"删除用户{user_id}的记忆(ID:{memory_id})",
-        before_value=old_content,
-        request=request,
-    )
-
-    return ApiResponse.ok(message="记忆已删除")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

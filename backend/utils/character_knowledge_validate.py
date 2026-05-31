@@ -8,6 +8,8 @@ from typing import Optional
 from backend.constants import (
     MEMORY_TYPE_CHARACTER_GLOBAL,
     MEMORY_TYPE_CHARACTER_KNOWLEDGE,
+    MEMORY_TYPE_CHARACTER_PRIVATE,
+    MEMORY_TYPE_USER,
     VALID_MEMORY_TYPES,
 )
 
@@ -25,6 +27,12 @@ _KEY_SEGMENT_PATTERN = re.compile(
 ADMIN_CHARACTER_KNOWLEDGE_TYPES = frozenset({
     MEMORY_TYPE_CHARACTER_GLOBAL,
     MEMORY_TYPE_CHARACTER_KNOWLEDGE,
+})
+
+# 用户级可管理类型（P3）：user（用户画像）/ character_private（角色对该用户的私有设定）
+USER_MANAGEABLE_TYPES = frozenset({
+    MEMORY_TYPE_USER,
+    MEMORY_TYPE_CHARACTER_PRIVATE,
 })
 
 MAX_KEY_CJK = 20
@@ -86,6 +94,27 @@ def is_admin_manageable_doc_id(doc_id: str) -> bool:
         return False
     memory_type, user_suffix = parsed
     return memory_type in ADMIN_CHARACTER_KNOWLEDGE_TYPES and user_suffix == "0"
+
+
+def is_user_manageable_doc_id(doc_id: str, *, user_id: int, expected_type: str) -> bool:
+    """
+    判定 doc_id 是否为「指定用户、指定类型」可管理的用户级条目（P3 双匹配）。
+
+    用于用户记忆（user）与私有状态（character_private）两个 Tab，校验
+    type 与 user_suffix 双匹配，使两个 Tab 互不互通：
+    - expected_type 必须在 USER_MANAGEABLE_TYPES 内（防御，非法类型直接 False）
+    - 解析出的 memory_type 必须等于 expected_type
+    - 解析出的 user_suffix 必须等于 str(user_id)
+
+    三者同时满足才返回 True；doc_id 非法或任一不匹配均返回 False。
+    """
+    if expected_type not in USER_MANAGEABLE_TYPES:
+        return False
+    parsed = parse_doc_id(doc_id)
+    if not parsed:
+        return False
+    memory_type, user_suffix = parsed
+    return memory_type == expected_type and user_suffix == str(user_id)
 
 
 def build_content(key: str, value: str) -> str:

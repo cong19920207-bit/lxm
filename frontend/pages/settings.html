@@ -574,11 +574,8 @@
           </svg>
         </div>
         <div class="settings-item-body">
-          <div class="settings-item-title">记忆自动提取</div>
-          <div class="settings-item-desc">她会记住你提到的小事和偏好</div>
-        </div>
-        <div class="settings-item-action">
-          <div class="toggle-switch active" id="toggle-memory" onclick="toggleSetting('memory_auto_extract', this)"></div>
+          <div class="settings-item-title">记忆整理</div>
+          <div class="settings-item-desc">对话结束后会自动整理成记忆，无需手动设置</div>
         </div>
       </div>
       <div class="settings-item">
@@ -795,12 +792,9 @@
     async function loadSettings() {
       const res = await request('GET', '/api/user/settings')
       if (res.code === 0 && res.data) {
-        const memoryToggle = document.getElementById('toggle-memory')
+        // 记忆整理改为只读说明（C-07），不再读取/回显 memory_auto_extract
         const agentToggle = document.getElementById('toggle-agent')
 
-        if (res.data.memory_auto_extract === false) {
-          memoryToggle.classList.remove('active')
-        }
         if (res.data.agent_message_enabled === false) {
           agentToggle.classList.remove('active')
         }

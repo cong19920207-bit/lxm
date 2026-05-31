@@ -115,7 +115,7 @@ async def test_full_prompt_contains_new_schema():
 
 @pytest.mark.asyncio
 async def test_null_relationship_fields_show_default():
-    """relationship 扩展字段全为 NULL → 关系描述为「暂无，初次互动」，称呼和真名为「无」"""
+    """relationship 扩展字段全为 NULL → 关系描述为「暂无，初次互动」；称呼行已移除（C3）"""
     builder = _make_builder()
     rel = _make_relationship(
         relation_description=None,
@@ -126,8 +126,10 @@ async def test_null_relationship_fields_show_default():
     prompt = await _build_prompt(builder, relationship_info=rel)
 
     assert "关系描述：暂无，初次互动" in prompt
-    assert "亲密称呼：无" in prompt
-    assert "用户真名：无" in prompt
+    # C3：称呼行从 relationship 移除；称呼全空时 user_nickname 模块也不输出
+    assert "亲密称呼" not in prompt
+    assert "用户真名" not in prompt
+    assert "【用户称呼】" not in prompt
 
 
 # ============ 测试场景3：扩展字段有值 → 正确注入 ============
@@ -147,8 +149,11 @@ async def test_relationship_fields_injected():
 
     assert "关系描述：我们已经是很好的朋友了" in prompt
     assert "对TA的印象：温柔善良，喜欢看电影" in prompt
-    assert "亲密称呼：小明" in prompt
-    assert "用户真名：张明" in prompt
+    # C3/C8：称呼移至独立 user_nickname 模块，relationship 不再含称呼行
+    assert "亲密称呼" not in prompt
+    assert "【用户称呼】" in prompt
+    assert "小明" in prompt
+    assert "张明" in prompt
 
 
 # ============ 边界测试：user_description 为 NULL 时整行不输出 ============
@@ -167,8 +172,10 @@ async def test_null_user_description_line_omitted():
     prompt = await _build_prompt(builder, relationship_info=rel)
 
     assert "对TA的印象" not in prompt
-    assert "亲密称呼：小花" in prompt
-    assert "用户真名：李华" in prompt
+    # 称呼在 user_nickname 模块，不在 relationship（C3/C8）
+    assert "【用户称呼】" in prompt
+    assert "小花" in prompt
+    assert "李华" in prompt
 
 
 # ============ 测试：relationship_info 为 None → 也有默认值 ============
@@ -181,17 +188,19 @@ async def test_no_relationship_info_defaults():
     prompt = await _build_prompt(builder, relationship_info=None)
 
     assert "关系描述：暂无，初次互动" in prompt
-    assert "亲密称呼：无" in prompt
-    assert "用户真名：无" in prompt
+    # C3：称呼行已移除；relationship_info 为 None 时 user_nickname 也不输出
+    assert "亲密称呼" not in prompt
+    assert "用户真名" not in prompt
+    assert "【用户称呼】" not in prompt
     assert "对TA的印象" not in prompt
 
 
-# ============ STEP-021：模块顺序正确（9 模块） ============
+# ============ STEP-021：模块顺序（含可选 user_nickname） ============
 
 
 @pytest.mark.asyncio
 async def test_module_order_with_module_a_and_b():
-    """验证含模块 A/B 时的 9 模块顺序"""
+    """验证含模块 A/B、无称呼时的 9 模块顺序（user_nickname 全空则跳过）"""
     builder = _make_builder()
     rel = _make_relationship()
     retrieval = _make_retrieval_results(
@@ -215,7 +224,32 @@ async def test_module_order_with_module_a_and_b():
     assert "【情绪状态】" in modules[5]                 # emotion
     assert "【当前时间】" in modules[6]                 # 模块 B
     assert "【最近对话】" in modules[7]                 # recent_chat
-    assert "【用户消息】" in modules[8]                 # user_input
+    assert modules[8].startswith("【用户消息】")       # user_input
+
+
+@pytest.mark.asyncio
+async def test_module_order_with_user_nickname():
+    """有称呼时 user_nickname 插在 recent_chat 与 user_input 之间（含模块 A 共 10 段）"""
+    builder = _make_builder()
+    rel = _make_relationship(user_hobby_name="小梦")
+    retrieval = _make_retrieval_results(
+        cg=[_make_ck_item("外貌-体态：身高165")],
+    )
+    prompt = await _build_prompt(
+        builder,
+        relationship_info=rel,
+        retrieval_results=retrieval,
+    )
+
+    modules = prompt.split(MODULE_SEPARATOR)
+    assert len(modules) == 10
+
+    assert modules[0].startswith("你是林小梦")
+    assert "【角色设定与知识】" in modules[2]
+    assert "【最近对话】" in modules[7]
+    assert modules[8].startswith("【用户称呼】")
+    assert "小梦" in modules[8]
+    assert modules[9].startswith("【用户消息】")
 
 
 @pytest.mark.asyncio

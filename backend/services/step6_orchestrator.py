@@ -98,8 +98,8 @@ async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
     # 1. 构建代理对象给 build_step6_prompt
     conv_proxies = [_ConvProxy(role=c["role"], content=c["content"]) for c in snapshot.recent_conversations]
 
-    # 2. 拼装 Step6 Prompt
-    prompt = build_step6_prompt(
+    # 2. 拼装 Step6 Prompt（异步：内部读取 step6_memory_prompt 热配置）
+    prompt = await build_step6_prompt(
         persona_text=snapshot.persona_text,
         level_name=snapshot.level_name,
         relation_description=snapshot.relation_description,

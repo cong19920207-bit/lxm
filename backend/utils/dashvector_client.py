@@ -16,6 +16,43 @@ DEFAULT_TOP_K = 5
 SIMILARITY_THRESHOLD = 0.7  # 相似度阈值
 
 
+def build_filter(
+    memory_type: str,
+    user_id: int | None,
+    candidate_keys: list[str],
+) -> str:
+    """
+    统一构造 DashVector filter 字符串（C9/C27）。
+
+    - type 与 key_l2 一律使用双引号（C9 已验证 DashVector 合法 C32）
+    - 有 user_id 时追加 user_id 数值过滤
+    - candidate_keys 每项按 "-" 拆分，长度 ≥2 时取前两段拼成二级 Key
+      （如 "经历-出行-自驾" → "经历-出行"）入 key_l2 IN 集合；
+      长度 <2 的非法项（如单层 "偏好"）直接丢弃，不报错
+    - key_l2 值内的双引号转义为 \"
+    - 去重保序：输出顺序与 candidate_keys 出现顺序一致，便于稳定测试
+
+    Returns:
+        如 'type = "user" AND user_id = 1 AND key_l2 IN ("经历-出行", "偏好-饮食")'
+    """
+    base = f'type = "{memory_type}"'
+    if user_id is not None:
+        base += f" AND user_id = {user_id}"
+    if candidate_keys:
+        l2_keys: list[str] = []
+        for k in candidate_keys:
+            parts = k.split("-")
+            if len(parts) >= 2:
+                # 取前两段拼成二级 Key，并转义值中的双引号（C9）
+                l2 = (parts[0] + "-" + parts[1]).replace('"', '\\"')
+                if l2 not in l2_keys:
+                    l2_keys.append(l2)
+        if l2_keys:
+            quoted = ", ".join(f'"{v}"' for v in l2_keys)
+            base += f" AND key_l2 IN ({quoted})"
+    return base
+
+
 class DashVectorClient:
     """阿里云 DashVector 异步客户端"""
 
@@ -45,6 +82,7 @@ class DashVectorClient:
         user_id: int | None = None,
         top_k: int = DEFAULT_TOP_K,
         threshold: float = SIMILARITY_THRESHOLD,
+        candidate_keys: list[str] = [],
     ) -> list[dict]:
         """
         向量检索：查找与输入向量最相似的记忆。
@@ -55,6 +93,8 @@ class DashVectorClient:
             user_id: 用户 ID（可选，有值时追加 user_id 过滤）
             top_k: 返回 Top K 条结果
             threshold: 相似度阈值，低于此值的结果被过滤
+            candidate_keys: 二级/三级 Key 前缀，用于推导 key_l2 IN（C33/C34）；
+                默认 [] → 老调用方零改动，filter 仅含 type(+user_id)
 
         Returns:
             [{"id": str, "score": float, "content": str, "fields": dict}, ...]
@@ -62,10 +102,8 @@ class DashVectorClient:
         if memory_type not in VALID_MEMORY_TYPES:
             raise ValueError(f"非法的 memory_type: {memory_type}，合法值: {VALID_MEMORY_TYPES}")
 
-        if user_id is not None:
-            filter_str = f"type = '{memory_type}' AND user_id = {user_id}"
-        else:
-            filter_str = f"type = '{memory_type}'"
+        # 统一走 build_filter（双引号，C9/C27）
+        filter_str = build_filter(memory_type, user_id, candidate_keys)
 
         start_time = time.monotonic()
         endpoint = get_dashvector_endpoint()

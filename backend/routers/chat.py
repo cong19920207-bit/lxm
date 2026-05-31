@@ -26,7 +26,6 @@ from backend.constants import (
     ERR_CONTENT_EMPTY,
     ERR_CONTENT_UNSAFE,
     ERR_LLM_FAILED,
-    MEMORY_TYPE_USER,
     PERSONA_RISK_KEYWORDS,
 )
 from backend.database import async_session_maker, get_db
@@ -45,9 +44,7 @@ from backend.services.chat_queue_service import (
     try_consume_resend_quota,
 )
 from backend.services.content_safety_service import check_content
-from backend.services.embedding_service import embedding_service
 from backend.services.llm_service import Step5ParseError, llm_service, merge_messages_if_exceed
-from backend.services.memory_service import memory_service
 from backend.services.multi_vector_retrieval_service import execute_multi_vector_retrieval
 from backend.services.prompt_builder import (
     DEFAULT_PERSONA,
@@ -64,7 +61,6 @@ from backend.services.relationship_service import RelationshipService
 from backend.services import user_short_term_emotion_service
 from backend.services.timeline_seq_service import allocate_sort_seq
 from backend.utils.auth_middleware import get_current_user
-from backend.utils.dashvector_client import dashvector_client
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +71,15 @@ _SSE_CHUNK_DELAY = 0.03
 
 # 每代 SSE 等待 LLM 闭环结果；§2.11.2 调至 120s，Nginx proxy_read_timeout 须 ≥ 130s
 _BUNDLE_WAIT_TIMEOUT_SEC = 120.0
+
+# bundled 截断上限（C28/C29）：取尾部 4000 字符（约 1500~2000 Token，
+# 在阿里云 text-embedding-v3 安全范围内）。Step1.5 输入与降级 fallback_embedding 共用。
+BUNDLED_MAX_CHARS = 4000
+
+
+def _truncate_bundled(text: str) -> str:
+    """取尾部 BUNDLED_MAX_CHARS 字符；尾部语义更重要（最后几条消息，C29）。"""
+    return text[-BUNDLED_MAX_CHARS:] if len(text) > BUNDLED_MAX_CHARS else text
 
 # generation_id -> Future，供 SSE 与打包任务对接
 _generation_futures: dict[str, asyncio.Future] = {}
@@ -137,20 +142,6 @@ async def _get_latest_emotion(user_id: int, db: AsyncSession | None = None) -> d
         return await _fetch(db)
     async with async_session_maker() as session:
         return await _fetch(session)
-
-
-async def _get_embedding(text: str) -> list[float]:
-    return await embedding_service.get_embedding(text)
-
-
-async def _search_memories(vector: list[float], user_id: int) -> list[dict]:
-    return await dashvector_client.search(
-        vector=vector,
-        memory_type=MEMORY_TYPE_USER,
-        user_id=user_id,
-        top_k=5,
-        threshold=0.7,
-    )
 
 
 def _detect_persona_risk(text: str) -> tuple[bool, str | None]:
@@ -304,24 +295,17 @@ async def _resolve_generation_future(gen: str, payload: dict[str, Any]) -> None:
 
 async def _post_bundle_success_tasks(
     user_id: int,
-    bundled_user_text: str,
     ai_reply: str,
     emotion_data: dict,
     persona_risk_flag: bool,
     persona_risk_type: str | None,
-    memory_injected: list | None,
 ) -> None:
-    """成长、记忆提取、Redis ai_emotion（与旧 _post_chat_tasks 后置部分一致）。"""
-    try:
-        try:
-            conversation_content = "\n".join(
-                [f"用户：{ln}" for ln in bundled_user_text.split("\n") if ln.strip()]
-            )
-            conversation_content = f"{conversation_content}\n林小梦：{ai_reply}"
-            await memory_service.extract_and_save(user_id, conversation_content)
-        except Exception:
-            logger.exception("记忆提取失败: user_id=%d", user_id)
+    """成长、Redis ai_emotion（与旧 _post_chat_tasks 后置部分一致）。
 
+    M1/§6.1.1：第一套记忆提取（extract_and_save）已下线，本后置任务不再触发记忆提取；
+    记忆统一由 Step6 异步管线写入。bundled_user_text / memory_injected 死参数同步移除。
+    """
+    try:
         try:
             async with async_session_maker() as db:
                 svc = RelationshipService(db)
@@ -532,7 +516,11 @@ async def _execute_llm_bundle(user_id: int) -> None:
             if not pack_rows:
                 return
 
-            last_user_text = pack_rows[-1].content
+            # 整包拼接 + 截断（C24/C28/C29）：bundled 供 Step5（build_chat_prompt 的
+            # user_input）使用整包；bundled_truncated 供 Step1.5（rewrite_input）与
+            # 降级 fallback_embedding 共用同一截断结果。C39：删除原 last_user_text 死变量。
+            bundled = "\n".join(r.content for r in pack_rows)
+            bundled_truncated = _truncate_bundled(bundled)
 
             recent_conversations = await _get_recent_conversations(user_id, db=db, limit=20)
             recent_10 = recent_conversations[-10:] if len(recent_conversations) > 10 else recent_conversations
@@ -560,7 +548,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
 
             query_rewrite_result = await execute_query_rewrite(
                 user_id=user_id,
-                last_user_text=last_user_text,
+                rewrite_input=bundled_truncated,
                 persona_text=_persona_text,
                 round_context=round_context,
                 recent_conversations=recent_10,
@@ -576,7 +564,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
             memories_raw = retrieval_result.user_memory_results
             retrieval_for_prompt = retrieval_result.format_for_prompt()
 
-            bundled = "\n".join(r.content for r in pack_rows)
+            # bundled 已在上方（Step1.5 调用前）定义并复用，Step5 user_input 仍传整包（C39）
             builder = PromptBuilder(db)
             prompt = await builder.build_chat_prompt(
                 user_id=user_id,
@@ -702,12 +690,10 @@ async def _execute_llm_bundle(user_id: int) -> None:
             asyncio.create_task(
                 _post_bundle_success_tasks(
                     user_id=user_id,
-                    bundled_user_text=bundled,
                     ai_reply=ai_reply,
                     emotion_data=emotion_data,
                     persona_risk_flag=first.persona_risk_flag,
                     persona_risk_type=first.persona_risk_type,
-                    memory_injected=memory_injected,
                 )
             )
 
@@ -868,35 +854,15 @@ async def chat_send(
     if not user_content:
         return ApiResponse.fail(ERR_CONTENT_EMPTY)
 
-    # R-L1L3-01：relationship 不在此处读取，统一在 _execute_llm_bundle 路径读取
-    try:
-        recent_conversations, emotion_context, user_embedding = await asyncio.gather(
-            _get_recent_conversations(user_id, limit=20),
-            _get_latest_emotion(user_id),
-            _get_embedding(user_content),
-        )
-    except Exception as e:
-        logger.error("步骤1并行任务失败: user_id=%d, error=%s", user_id, str(e))
-        return ApiResponse.fail(ERR_LLM_FAILED)
-
-    memories_raw: list[dict] = []
-    if user_embedding:
-        try:
-            memories_raw = await _search_memories(user_embedding, user_id)
-        except Exception as e:
-            logger.error("向量检索失败: user_id=%d, error=%s", user_id, str(e))
-
+    # M11/P7：send 阶段不再做向量检索/记忆注入计算（无下游消费者，已删 gather 三件套
+    # + _search_memories + memory_injected 计算）；记忆召回统一在 _execute_llm_bundle 内
+    # Step1.5→Step2 路径完成。conversation_log.memory_injected 列保留，新 user 行恒 null。
     safety_result = await check_content(user_content)
     if not safety_result["is_safe"]:
         logger.warning("用户输入未通过安全检查: user_id=%d", user_id)
         return ApiResponse.fail(ERR_CONTENT_UNSAFE)
 
     persona_risk_flag, persona_risk_type = _detect_persona_risk(user_content)
-    memory_injected = [
-        {"content": m["content"], "score": m["score"]}
-        for m in memories_raw
-        if m.get("content")
-    ] or None
 
     open_rows = await _fetch_open_window_user_rows(db, user_id)
     if _should_block_new_send(open_rows):
@@ -910,7 +876,7 @@ async def chat_send(
         user_id=user_id,
         role="user",
         content=user_content,
-        memory_injected=memory_injected,
+        memory_injected=None,  # M11：新 user 行恒 null
         persona_risk_flag=persona_risk_flag,
         persona_risk_type=persona_risk_type,
         sort_seq=seqs[0],

@@ -14,6 +14,7 @@ from backend.constants import (
     MEMORY_TYPE_CHARACTER_PRIVATE,
     MEMORY_TYPE_USER,
 )
+from backend.services.admin_config_service import admin_config_service
 from backend.services.embedding_service import embedding_service
 from backend.services.llm_service import MessageItem
 from backend.services.prompt_builder import _generate_time_description
@@ -150,67 +151,131 @@ _FEW_SHOT_EXAMPLE = """{
 }"""
 
 
-def build_step6_prompt(
-    *,
-    persona_text: str,
-    level_name: str,
-    relation_description: str | None,
-    user_real_name: str | None,
-    user_hobby_name: str | None,
-    user_description: str | None,
-    character_purpose: str | None,
-    character_attitude: str | None,
-    recent_conversations: list,
-    step5_messages: list[MessageItem],
-    user_input: str,
-) -> str:
-    """
-    拼装 Step6 记忆总结 LLM Prompt。
+# admin_config 键：Step6 记忆 Prompt 可配置区块（C-02）
+STEP6_PROMPT_CONFIG_KEY = "step6_memory_prompt"
 
-    模块顺序：系统指令 → 时间 → 人格 → 关系状态 → 近期历史 → 本轮对话 → 任务 → few-shot
-
-    Args:
-        persona_text: 人格设定全文（来自 admin_config 或默认）
-        level_name: 关系等级名称（如"朋友"）
-        relation_description: 关系描述（relationship 表）
-        user_real_name: 用户真实称呼
-        user_hobby_name: 用户昵称/绰号
-        user_description: 用户印象描述
-        character_purpose: 角色当前回应策略
-        character_attitude: 角色当前态度
-        recent_conversations: 最近 N 轮对话（不含本轮，ConversationLog 实例列表）
-        step5_messages: 仅 Step5 解析产出的 messages（非 Step5.5 润色后；§2.9.3）
-        user_input: 本轮用户输入原文
-    """
-    # 时间描述
-    time_desc = _generate_time_description()
-
-    # 近期历史格式化
-    history_lines = []
-    for conv in recent_conversations:
-        role_label = "用户" if conv.role == "user" else "林小梦"
-        history_lines.append(f"{role_label}：{conv.content}")
-    history_text = "\n".join(history_lines) if history_lines else "暂无历史对话"
-
-    # 本轮 AI 回复合并（Step5 messages 的 content 拼接）
-    ai_reply_parts = [m.content for m in step5_messages if m.content]
-    ai_reply_text = "\n".join(ai_reply_parts) if ai_reply_parts else ""
-
-    # 关系状态各字段，None → "无"
-    rd = relation_description if relation_description else "暂无"
-    urn = user_real_name if user_real_name else "无"
-    uhn = user_hobby_name if user_hobby_name else "无"
-    ud = user_description if user_description else "无"
-    cp = character_purpose if character_purpose else "无"
-    ca = character_attitude if character_attitude else "无"
-
-    prompt = (
-        "【系统指令】\n"
-        "你是林小梦，请对本轮对话进行总结，提取有价值的记忆信息。\n"
+# DEFAULT 逐字复刻现硬编码 build_step6_prompt 全文切块（P6 验收硬基线）。
+# 6 个可配置区块：system_instruction / output_format_rules / kv_field_rules /
+# task_fields(11 项，key/顺序与 _ALL_FIELD_NAMES 一致) / merge_rules / few_shot_example。
+# 动态注入区块（时间/人格/关系/历史/本轮对话）不在此处，不可被配置覆盖。
+STEP6_PROMPT_DEFAULT: dict = {
+    "system_instruction": "你是林小梦，请对本轮对话进行总结，提取有价值的记忆信息。",
+    "output_format_rules": (
         "输出格式要求：仅输出合法 JSON，不含任何前缀、后缀、markdown 标记或注释。\n"
         "所有文本类字段的内容格式为多行 \"key：value\"（中文全角冒号分隔），\n"
         "其中 key 须为三层结构 XXX-XXX-XXX（两段半角连字符连接三段，如「外貌-体态-细节」），\n"
-        "无内容时该字段输出字符串\"无\"。\n"
+        "你应该只总结本轮完整对话的聊天消息，不需要总结近期历史摘要里面的信息。\n"
+        "无内容时该字段输出字符串\"无\"。"
+    ),
+    "kv_field_rules": (
+        "多条信息分行规则（适用于 CharacterPublicSettings、CharacterPrivateSettings、"
+        "CharacterKnowledges、UserSettings 四个字段）：\n"
+        "- 若本轮总结出 2 条及以上彼此独立的信息，必须在 JSON 字符串内用换行符 \\n 分隔，"
+        "每条独占一行，格式为「三层key：value」。\n"
+        "- 一行只对应一条信息：禁止在同一行内用分号、逗号或顿号串联多条「key：value」。\n"
+        "- 不同 key 必须分多行输出；仅当同一 key 需要合并新旧内容时，"
+        "才将该 key 的全部内容写在同一行的 value 中。\n"
+        "- JSON 中请使用真实换行（\\n），不要用「；key：」在同一段 value 里夹带下一条。"
+    ),
+    "task_fields": {
+        "InnerMonologue": "InnerMonologue：你对本轮对话的内心元思考，不超过150字，不落库。",
+        "CharacterPublicSettings": (
+            "CharacterPublicSettings：本次对话中新增或强化的角色公开背景信息。\n"
+            "   格式为多行\"key：value\"（全角冒号），每行一条；key 须三层 XXX-XXX-XXX，如\"外貌-体态-细节：说话时肩膀略绷紧\"。\n"
+            "   若无新增内容输出\"无\"。"
+        ),
+        "CharacterPrivateSettings": (
+            "CharacterPrivateSettings：本次对话中新增的、仅对当前用户可见的角色私有信息。\n"
+            "   格式同上。"
+        ),
+        "CharacterKnowledges": "CharacterKnowledges：本次对话中体现的角色知识或技能。格式同上。",
+        "UserSettings": (
+            "UserSettings：本次对话中获取的用户相关信息。格式同上。\n"
+            "   （四类 KV 字段共同要求）本轮若提取到多条独立事实，每条各写一行；"
+            "禁止把多条 key：value 写在同一行。"
+        ),
+        "UserRealName": (
+            "UserRealName：用户的真实姓名或正式称谓。满足任一即提取："
+            "用户主动告知真名、或在自我介绍中出现名字；未出现以上情况输出\"无\"。"
+        ),
+        "UserHobbyName": (
+            "UserHobbyName：用户希望被称呼的方式（昵称/绰号）。满足任一即提取："
+            "用户明确说\"叫我XXX\"/\"你可以叫我XXX\"、用某名字或代号自称、"
+            "纠正了虚拟人的称呼方式、或在轻松语境中透露昵称；未出现以上情况输出\"无\"。"
+        ),
+        "UserDescription": "UserDescription：对用户的综合印象描述。若无变化输出\"无\"。",
+        "CharacterPurpose": "CharacterPurpose：接下来两轮的回应策略规划。",
+        "CharacterAttitude": "CharacterAttitude：角色当前对用户的态度倾向。",
+        "RelationDescription": "RelationDescription：对两人关系的文字描述。若无变化输出\"无\"。",
+    },
+    "merge_rules": (
+        "合并规则：若某个 key 与上文关系状态中已存在的信息相同 key，\n"
+        "请合并新旧 value 后输出一行，不要重复出现相同 key。\n"
+        "错误示例（禁止）：\"体育-球类-篮球：知晓三分球；体育-球类-乒乓球：了解马龙\"\n"
+        "正确示例：\"体育-球类-篮球：知晓三分球精准\\n体育-球类-乒乓球：了解马龙「六边形战士」称号\""
+    ),
+    "few_shot_example": _FEW_SHOT_EXAMPLE,
+}
+
+
+def _is_valid_step6_config(config) -> bool:
+    """校验热配置结构完整：6 块齐全且 task_fields 含全部 11 个字段（防御运行时脏配置）。"""
+    if not isinstance(config, dict):
+        return False
+    required_blocks = (
+        "system_instruction",
+        "output_format_rules",
+        "kv_field_rules",
+        "task_fields",
+        "merge_rules",
+        "few_shot_example",
+    )
+    for block in required_blocks:
+        if block not in config:
+            return False
+    task_fields = config.get("task_fields")
+    if not isinstance(task_fields, dict):
+        return False
+    for name in _ALL_FIELD_NAMES:
+        if name not in task_fields:
+            return False
+    return True
+
+
+def _assemble_step6_prompt(
+    config: dict,
+    *,
+    time_desc: str,
+    persona_text: str,
+    level_name: str,
+    rd: str,
+    urn: str,
+    uhn: str,
+    ud: str,
+    cp: str,
+    ca: str,
+    history_text: str,
+    user_input: str,
+    ai_reply_text: str,
+) -> str:
+    """
+    按固定顺序拼装 Step6 Prompt：
+    system_instruction → output_format_rules + kv_field_rules → 动态块（时间/人格/关系/历史/本轮）
+    → 【任务】 + task_fields 1~11 → merge_rules → few_shot_example。
+
+    拼装顺序与现硬编码完全一致；DEFAULT 配置下输出与旧硬编码逐字相等（P6）。
+    """
+    task_fields = config["task_fields"]
+    task_lines = "".join(
+        f"{idx}. {task_fields[name]}\n"
+        for idx, name in enumerate(_ALL_FIELD_NAMES, 1)
+    )
+
+    prompt = (
+        "【系统指令】\n"
+        f"{config['system_instruction']}\n"
+        f"{config['output_format_rules']}\n"
+        f"{config['kv_field_rules']}\n"
         "\n"
         "【当前时间】\n"
         f"{time_desc}\n"
@@ -237,29 +302,97 @@ def build_step6_prompt(
         "【任务】\n"
         "基于以上内容，提取并输出以下 11 个字段的 JSON：\n"
         "\n"
-        "1. InnerMonologue：你对本轮对话的内心元思考，不超过150字，不落库。\n"
-        "2. CharacterPublicSettings：本次对话中新增或强化的角色公开背景信息。\n"
-        "   格式为多行\"key：value\"（全角冒号），每行一条；key 须三层 XXX-XXX-XXX，如\"外貌-体态-细节：说话时肩膀略绷紧\"。\n"
-        "   若无新增内容输出\"无\"。\n"
-        "3. CharacterPrivateSettings：本次对话中新增的、仅对当前用户可见的角色私有信息。\n"
-        "   格式同上。\n"
-        "4. CharacterKnowledges：本次对话中体现的角色知识或技能。格式同上。\n"
-        "5. UserSettings：本次对话中获取的用户相关信息。格式同上。\n"
-        "6. UserRealName：用户的真实称呼。若本轮无法判断或无变化，输出\"无\"。\n"
-        "7. UserHobbyName：用户的昵称/绰号。若无变化输出\"无\"。\n"
-        "8. UserDescription：对用户的综合印象描述。若无变化输出\"无\"。\n"
-        "9. CharacterPurpose：接下来两轮的回应策略规划。\n"
-        "10. CharacterAttitude：角色当前对用户的态度倾向。\n"
-        "11. RelationDescription：对两人关系的文字描述。若无变化输出\"无\"。\n"
+        f"{task_lines}"
         "\n"
-        "合并规则：若某个 key 与上文关系状态中已存在的信息相同 key，\n"
-        "请合并新旧 value 后输出一行，不要重复出现相同 key。\n"
+        f"{config['merge_rules']}\n"
         "\n"
         "【输出示例】\n"
-        f"{_FEW_SHOT_EXAMPLE}\n"
+        f"{config['few_shot_example']}\n"
     )
-
     return prompt
+
+
+async def build_step6_prompt(
+    *,
+    persona_text: str,
+    level_name: str,
+    relation_description: str | None,
+    user_real_name: str | None,
+    user_hobby_name: str | None,
+    user_description: str | None,
+    character_purpose: str | None,
+    character_attitude: str | None,
+    recent_conversations: list,
+    step5_messages: list[MessageItem],
+    user_input: str,
+) -> str:
+    """
+    拼装 Step6 记忆总结 LLM Prompt（异步，热配置）。
+
+    可配置区块从 admin_config.step6_memory_prompt 读取（Redis→DB→DEFAULT 三级回退）；
+    读取失败或配置结构不完整 → 回退 DEFAULT 并 logger.error（§6.6.4）。
+    模块顺序：系统指令 → 时间 → 人格 → 关系状态 → 近期历史 → 本轮对话 → 任务 → few-shot
+
+    Args:
+        persona_text: 人格设定全文（来自 admin_config 或默认）
+        level_name: 关系等级名称（如"朋友"）
+        relation_description: 关系描述（relationship 表）
+        user_real_name: 用户真实称呼
+        user_hobby_name: 用户昵称/绰号
+        user_description: 用户印象描述
+        character_purpose: 角色当前回应策略
+        character_attitude: 角色当前态度
+        recent_conversations: 最近 N 轮对话（不含本轮，ConversationLog 实例列表）
+        step5_messages: 仅 Step5 解析产出的 messages（非 Step5.5 润色后；§2.9.3）
+        user_input: 本轮用户输入原文
+    """
+    # 读取热配置 + 三级回退（Redis→DB 由 get_active_config 完成，DEFAULT 本函数兜底）
+    try:
+        config = await admin_config_service.get_active_config(STEP6_PROMPT_CONFIG_KEY)
+    except Exception as e:
+        logger.error("Step6 Prompt 读取热配置失败，回退 DEFAULT: %s", str(e))
+        config = None
+
+    if not _is_valid_step6_config(config):
+        config = STEP6_PROMPT_DEFAULT
+
+    # 时间描述
+    time_desc = _generate_time_description()
+
+    # 近期历史格式化
+    history_lines = []
+    for conv in recent_conversations:
+        role_label = "用户" if conv.role == "user" else "林小梦"
+        history_lines.append(f"{role_label}：{conv.content}")
+    history_text = "\n".join(history_lines) if history_lines else "暂无历史对话"
+
+    # 本轮 AI 回复合并（Step5 messages 的 content 拼接）
+    ai_reply_parts = [m.content for m in step5_messages if m.content]
+    ai_reply_text = "\n".join(ai_reply_parts) if ai_reply_parts else ""
+
+    # 关系状态各字段，None → "无"
+    rd = relation_description if relation_description else "暂无"
+    urn = user_real_name if user_real_name else "无"
+    uhn = user_hobby_name if user_hobby_name else "无"
+    ud = user_description if user_description else "无"
+    cp = character_purpose if character_purpose else "无"
+    ca = character_attitude if character_attitude else "无"
+
+    return _assemble_step6_prompt(
+        config,
+        time_desc=time_desc,
+        persona_text=persona_text,
+        level_name=level_name,
+        rd=rd,
+        urn=urn,
+        uhn=uhn,
+        ud=ud,
+        cp=cp,
+        ca=ca,
+        history_text=history_text,
+        user_input=user_input,
+        ai_reply_text=ai_reply_text,
+    )
 
 
 # ============ STEP-014: key：value 行解析 + 四路向量写入 ============
@@ -373,9 +506,15 @@ async def upsert_step6_vectors(
                 )
                 continue
 
+            # validate_key 通过 → key 必然是三层 XXX-XXX-XXX，segments 必有 ≥3 段
+            segments = key.split("-")
+
             fields: dict = {
                 "content": build_content(key, value),
                 "stable_key": key,
+                # 新增前缀字段，供 Step2 主路 key_l2 IN 过滤（C9）；中文字符串直接存
+                "key_l1": segments[0],
+                "key_l2": segments[0] + "-" + segments[1],
             }
             if attach_user_id:
                 fields["user_id"] = user_id

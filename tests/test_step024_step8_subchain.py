@@ -255,9 +255,9 @@ class TestStep8Step15Fallback:
 
         assert result is True
 
-        # 验证 execute_query_rewrite 使用 future_action 作为 last_user_text
+        # 验证 execute_query_rewrite 使用 future_action 作为 rewrite_input（C31）
         call_kwargs = mock_qr.call_args
-        assert call_kwargs.kwargs["last_user_text"] == "约好一起听歌"
+        assert call_kwargs.kwargs["rewrite_input"] == "约好一起听歌"
         assert call_kwargs.kwargs["source"] == "step8"
 
 

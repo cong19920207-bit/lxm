@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # Step6 记忆总结 LLM 单元测试：Pydantic 模型、JSON 解析、Prompt 拼装
 
+import asyncio
 import json
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -231,7 +233,13 @@ class TestBuildStep6Prompt:
             user_input="今天加班好累",
         )
         defaults.update(overrides)
-        return build_step6_prompt(**defaults)
+        # build_step6_prompt 已异步化（STEP-006）：隔离热配置读取（patch 为 None → 走 DEFAULT），
+        # 同步运行协程，保持各测试断言不变，验证 DEFAULT 拼装结果。
+        with patch(
+            "backend.services.memory_llm_service.admin_config_service.get_active_config",
+            new=AsyncMock(return_value=None),
+        ):
+            return asyncio.run(build_step6_prompt(**defaults))
 
     def test_prompt_contains_system_instruction(self):
         prompt = self._build_default_prompt()

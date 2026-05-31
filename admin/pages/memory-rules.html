@@ -6,17 +6,6 @@
   <title>记忆规则配置 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css">
   <style>
-    .memory-range-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .memory-range-row input[type="range"] {
-      flex: 1;
-      min-width: 160px;
-      max-width: 360px;
-    }
     .memory-api-key-row {
       display: flex;
       align-items: center;
@@ -56,20 +45,69 @@
       min-width: 140px;
       justify-content: center;
     }
-    #threshold-merge-conflict {
-      display: none;
-      margin-top: 8px;
-    }
-    #threshold-merge-conflict.show {
-      display: block;
-    }
-    .memory-score-input {
-      width: 72px;
-      box-sizing: border-box;
-    }
     .memory-input-w100 {
       width: 100px;
       box-sizing: border-box;
+    }
+    /* ─── Step6 Prompt 分区 ─── */
+    .step6-block-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .step6-prompt-textarea {
+      font-family: monospace, Consolas, Menlo, monospace;
+      font-size: 13px;
+    }
+    .step6-task-field {
+      margin-bottom: 12px;
+    }
+    .step6-task-field label {
+      font-family: monospace, Consolas, Menlo, monospace;
+      font-size: 12px;
+      color: #1890ff;
+    }
+    /* ─── 全局用户记忆 ─── */
+    .global-filter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .global-filter input[type="text"],
+    .global-filter input[type="number"] {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .global-filter input[type="number"] { width: 140px; }
+    .global-filter input[type="text"] { width: 240px; }
+    .global-tip {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #876800;
+      background: rgba(250, 173, 20, 0.1);
+      border: 1px solid rgba(250, 173, 20, 0.3);
+      border-radius: 4px;
+    }
+    .global-pager {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .global-empty {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text-disabled);
+      font-size: 14px;
     }
   </style>
 </head>
@@ -82,61 +120,46 @@
   <div id="memory-page-wrap" class="is-loading">
     <div class="page-card memory-tab-header-card">
       <div class="tabs" id="memory-tabs">
-        <div class="tab-item active" data-target="pane-memory-rules">记忆规则</div>
+        <div class="tab-item active" data-target="pane-step6-prompt">Step6 记忆 Prompt（默认）</div>
         <div class="tab-item" data-target="pane-vector-db">向量数据库配置</div>
+        <div class="tab-item" data-target="pane-global-memory">全局用户记忆</div>
       </div>
     </div>
 
-    <!-- Tab 1：记忆规则 -->
-    <div id="pane-memory-rules" class="tab-pane active">
+    <!-- Tab 1：Step6 记忆 Prompt（保存即发布） -->
+    <div id="pane-step6-prompt" class="tab-pane active">
       <div class="page-card memory-disable-while-load">
         <div class="form-item">
-          <label>记忆提取 Prompt</label>
-          <textarea id="extract-prompt" class="form-control" rows="6" placeholder="请输入记忆提取 Prompt" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+          <div class="step6-block-title">系统指令 system_instruction</div>
+          <textarea id="s6-system_instruction" class="form-control step6-prompt-textarea" rows="3"></textarea>
         </div>
-
         <div class="form-item mt-16">
-          <label>重要性评分规则</label>
-          <table class="admin-table" style="margin-top:8px">
-            <thead>
-              <tr>
-                <th style="width:55%">类型</th>
-                <th>分值（1–4）</th>
-              </tr>
-            </thead>
-            <tbody id="importance-rules-tbody"></tbody>
-          </table>
+          <div class="step6-block-title">输出格式要求 output_format_rules</div>
+          <textarea id="s6-output_format_rules" class="form-control step6-prompt-textarea" rows="5"></textarea>
         </div>
-
         <div class="form-item mt-16">
-          <label>存储阈值</label>
-          <input type="number" id="store-threshold" class="form-control memory-input-w100" min="1" max="4" step="1">
-          <p class="text-secondary mt-8" style="font-size:13px;margin-bottom:0">重要性评分≥此值的记忆才存入长期记忆库</p>
+          <div class="step6-block-title">KV 字段规则 kv_field_rules</div>
+          <textarea id="s6-kv_field_rules" class="form-control step6-prompt-textarea" rows="6"></textarea>
         </div>
-
         <div class="form-item mt-16">
-          <label>检索相似度阈值 <span class="text-secondary">当前 <span id="search-threshold-val">0.70</span></span></label>
-          <div class="memory-range-row">
-            <input type="range" id="search-threshold" min="0.5" max="0.85" step="0.01" value="0.7">
-          </div>
-          <p class="text-secondary mt-8" style="font-size:12px;margin-bottom:0">值越高越精准，越低召回越多</p>
+          <div class="step6-block-title">任务字段 task_fields（11 项，顺序固定）</div>
+          <div id="s6-task-fields"></div>
         </div>
-
         <div class="form-item mt-16">
-          <label>合并相似度阈值 <span class="text-secondary">当前 <span id="merge-threshold-val">0.92</span></span></label>
-          <div class="memory-range-row">
-            <input type="range" id="merge-threshold" min="0.85" max="0.98" step="0.01" value="0.92">
-          </div>
-          <div id="threshold-merge-conflict" class="alert alert-error">⚠️ 合并阈值必须大于检索阈值，否则会出现逻辑冲突</div>
+          <div class="step6-block-title">合并规则 merge_rules</div>
+          <textarea id="s6-merge_rules" class="form-control step6-prompt-textarea" rows="4"></textarea>
         </div>
-
+        <div class="form-item mt-16">
+          <div class="step6-block-title">少样本示例 few_shot_example</div>
+          <textarea id="s6-few_shot_example" class="form-control step6-prompt-textarea" rows="6"></textarea>
+        </div>
         <div class="mt-24">
-          <button type="button" class="btn btn-primary btn-block" id="btn-save-memory-rules">保存配置</button>
+          <button type="button" class="btn btn-primary btn-block" id="btn-save-step6-prompt">保存并发布</button>
         </div>
       </div>
     </div>
 
-    <!-- Tab 2：向量数据库 -->
+    <!-- Tab 2：向量数据库（保留） -->
     <div id="pane-vector-db" class="tab-pane">
       <div class="page-card memory-disable-while-load">
         <div class="form-item">
@@ -171,6 +194,40 @@
         </div>
       </div>
     </div>
+
+    <!-- Tab 3：全局用户记忆 -->
+    <div id="pane-global-memory" class="tab-pane">
+      <div class="page-card">
+        <div class="global-filter">
+          <input type="number" id="global-user-id" min="1" step="1" placeholder="用户 ID（选填）">
+          <input type="text" id="global-keyword" placeholder="关键词（选填）">
+          <button type="button" class="btn btn-primary" id="btn-global-search">搜索</button>
+          <button type="button" class="btn btn-danger" id="btn-global-batch-delete">批量删除选中</button>
+        </div>
+        <div class="global-tip">未指定用户时仅在最多 300 条用户记忆中检索，结果可能不完整，建议填写用户 ID</div>
+        <div id="global-truncated" class="alert alert-warning" style="display:none;margin-bottom:12px"></div>
+        <div style="overflow-x:auto">
+          <table class="admin-table" id="global-table" style="display:none">
+            <thead>
+              <tr>
+                <th style="width:44px"><input type="checkbox" id="global-check-all"></th>
+                <th style="width:90px">用户ID</th>
+                <th style="min-width:160px">Key</th>
+                <th style="min-width:200px">Value</th>
+                <th style="width:90px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="global-tbody"></tbody>
+          </table>
+        </div>
+        <div class="global-empty" id="global-empty" style="display:none">暂无数据，请输入条件后搜索</div>
+        <div class="global-pager" id="global-pager" style="display:none">
+          <button type="button" class="btn btn-default" id="btn-global-prev">上一页</button>
+          <span id="global-page-info" style="font-size:13px;color:var(--text-secondary)"></span>
+          <button type="button" class="btn btn-default" id="btn-global-next">下一页</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -179,59 +236,104 @@
 (function () {
   var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
 
-  var IMP_ROWS = [
-    { type: 'core_life_event', label: '核心人生事件', defaultScore: 4 },
-    { type: 'fixed_preference', label: '固定喜好厌恶', defaultScore: 3 },
-    { type: 'short_emotion', label: '短期情绪', defaultScore: 2 },
-    { type: 'normal_content', label: '普通内容', defaultScore: 1 }
-  ];
+  /* HTML 转义（防止 key/value 中的特殊字符破坏结构） */
+  function esc(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
 
-  var DEFAULT_MEMORY = {
-    extract_prompt: '',
-    store_threshold: 3,
-    search_threshold: 0.7,
-    merge_threshold: 0.92
-  };
+  /* task_fields 11 项，顺序与后端 _ALL_FIELD_NAMES 一致（P6） */
+  var TASK_FIELD_NAMES = [
+    'InnerMonologue',
+    'CharacterPublicSettings',
+    'CharacterPrivateSettings',
+    'CharacterKnowledges',
+    'UserSettings',
+    'UserRealName',
+    'UserHobbyName',
+    'UserDescription',
+    'CharacterPurpose',
+    'CharacterAttitude',
+    'RelationDescription'
+  ];
+  var STEP6_TEXT_BLOCKS = [
+    'system_instruction',
+    'output_format_rules',
+    'kv_field_rules',
+    'merge_rules',
+    'few_shot_example'
+  ];
 
   var vectorTestPassed = false;
   var vectorKeyPlainVisible = false;
 
-  function fmtThreshold(v) {
-    var n = Number(v);
-    if (isNaN(n)) return '0.00';
-    return n.toFixed(2);
+  /* 全局用户记忆分页状态 */
+  var globalPage = 1;
+  var globalPageSize = 20;
+  var globalTotal = 0;
+  var globalLastQuery = null;
+
+  /* ─────────── Step6 记忆 Prompt ─────────── */
+  function renderTaskFieldInputs() {
+    var box = document.getElementById('s6-task-fields');
+    box.innerHTML = '';
+    TASK_FIELD_NAMES.forEach(function (name) {
+      var wrap = document.createElement('div');
+      wrap.className = 'step6-task-field';
+      wrap.innerHTML =
+        '<label>' + name + '</label>' +
+        '<textarea id="tf-' + name + '" class="form-control step6-prompt-textarea" rows="2"></textarea>';
+      box.appendChild(wrap);
+    });
   }
 
-  function parseScoreInput(el) {
-    var v = parseInt(el.value, 10);
-    if (isNaN(v)) return null;
-    return v;
+  function fillStep6Form(cfg) {
+    cfg = cfg || {};
+    STEP6_TEXT_BLOCKS.forEach(function (key) {
+      var el = document.getElementById('s6-' + key);
+      if (el) el.value = cfg[key] != null ? String(cfg[key]) : '';
+    });
+    var tf = cfg.task_fields || {};
+    TASK_FIELD_NAMES.forEach(function (name) {
+      var el = document.getElementById('tf-' + name);
+      if (el) el.value = tf[name] != null ? String(tf[name]) : '';
+    });
   }
 
-  function clampScore(v) {
-    if (v == null) return null;
-    if (v < 1) return 1;
-    if (v > 4) return 4;
-    return v;
-  }
-
-  /** 将 v 限制在 [lo, hi]；返回 { value, adjusted }，NaN 时 value 为 null */
-  function clampThresholdToRange(v, lo, hi) {
-    var n = Number(v);
-    if (isNaN(n)) return { value: null, adjusted: false };
-    var x = n;
-    var adjusted = false;
-    if (x < lo) {
-      x = lo;
-      adjusted = true;
-    } else if (x > hi) {
-      x = hi;
-      adjusted = true;
+  function collectStep6Form() {
+    var body = {};
+    var i;
+    for (i = 0; i < STEP6_TEXT_BLOCKS.length; i++) {
+      var key = STEP6_TEXT_BLOCKS[i];
+      var v = (document.getElementById('s6-' + key).value || '').trim();
+      if (!v) {
+        showToast('「' + key + '」不能为空', 'warning');
+        return null;
+      }
+      body[key] = document.getElementById('s6-' + key).value;
     }
-    return { value: x, adjusted: adjusted };
+    var taskFields = {};
+    for (i = 0; i < TASK_FIELD_NAMES.length; i++) {
+      var name = TASK_FIELD_NAMES[i];
+      var tv = (document.getElementById('tf-' + name).value || '').trim();
+      if (!tv) {
+        showToast('任务字段「' + name + '」不能为空', 'warning');
+        return null;
+      }
+      taskFields[name] = document.getElementById('tf-' + name).value;
+    }
+    body.task_fields = taskFields;
+    return body;
   }
 
-  /** 解析向量 TopK：仅当整数且 ≥1 时返回数值，否则 null（缺省不用此值） */
+  async function loadStep6Prompt() {
+    var res = await adminRequest('GET', '/api/admin/step6-memory-prompt');
+    var cfg = (res && res.code === 0) ? res.data : null;
+    fillStep6Form(cfg);
+  }
+
+  /* ─────────── 向量数据库（保留） ─────────── */
   function parseVectorTopKInput() {
     var tk = parseInt(document.getElementById('vector-top-k').value, 10);
     if (isNaN(tk) || tk < 1) return null;
@@ -240,99 +342,6 @@
 
   function isVectorTopKInProductRange(tk) {
     return tk != null && tk >= 1 && tk <= 20;
-  }
-
-  function buildImportanceRulesBody() {
-    var out = [];
-    for (var i = 0; i < IMP_ROWS.length; i++) {
-      var row = IMP_ROWS[i];
-      var inp = document.getElementById('imp-score-' + row.type);
-      var s = clampScore(parseScoreInput(inp));
-      if (s === null) {
-        showToast('重要性分值须为 1–4 的整数', 'error');
-        return null;
-      }
-      out.push({ type: row.type, score: s });
-    }
-    return out;
-  }
-
-  function updateThresholdConflictUI() {
-    var searchEl = document.getElementById('search-threshold');
-    var mergeEl = document.getElementById('merge-threshold');
-    var box = document.getElementById('threshold-merge-conflict');
-    if (!searchEl || !mergeEl || !box) return;
-    var s = Number(searchEl.value);
-    var m = Number(mergeEl.value);
-    if (m <= s) {
-      box.classList.add('show');
-    } else {
-      box.classList.remove('show');
-    }
-  }
-
-  /** 同步阈值冲突 UI，并返回是否满足 merge > search（与 Step 11a validateThresholds 语义一致） */
-  function validateThresholds() {
-    updateThresholdConflictUI();
-    var s = Number(document.getElementById('search-threshold').value);
-    var m = Number(document.getElementById('merge-threshold').value);
-    if (isNaN(s) || isNaN(m)) return false;
-    return m > s;
-  }
-
-  function bindRangeDisplay(rangeId, spanId) {
-    var r = document.getElementById(rangeId);
-    var s = document.getElementById(spanId);
-    if (!r || !s) return;
-    function sync() {
-      s.textContent = fmtThreshold(r.value);
-      if (rangeId === 'search-threshold' || rangeId === 'merge-threshold') {
-        validateThresholds();
-      }
-    }
-    r.addEventListener('input', sync);
-    sync();
-  }
-
-  function renderImportanceRows(scoresByType) {
-    var tb = document.getElementById('importance-rules-tbody');
-    if (!tb) return;
-    tb.innerHTML = '';
-    IMP_ROWS.forEach(function (def) {
-      var score = scoresByType[def.type];
-      if (score == null || isNaN(Number(score))) score = def.defaultScore;
-      score = clampScore(parseInt(score, 10)) || def.defaultScore;
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td>' + def.label + '</td>' +
-        '<td><input type="number" class="form-control memory-score-input" id="imp-score-' + def.type + '" ' +
-        'min="1" max="4" step="1" value="' + score + '"></td>';
-      tb.appendChild(tr);
-    });
-  }
-
-  function scoresMapFromApi(rules) {
-    var map = {};
-    if (Array.isArray(rules)) {
-      rules.forEach(function (r) {
-        if (r && r.type != null) map[r.type] = r.score;
-      });
-    }
-    return map;
-  }
-
-  function validateMemoryRulesBeforeSave() {
-    if (!validateThresholds()) {
-      showToast('合并阈值必须大于检索阈值，否则会出现逻辑冲突', 'error');
-      return false;
-    }
-    var st = parseInt(document.getElementById('store-threshold').value, 10);
-    if (isNaN(st) || st < 1 || st > 4) {
-      showToast('存储阈值须为 1–4 的整数', 'error');
-      return false;
-    }
-    if (buildImportanceRulesBody() === null) return false;
-    return true;
   }
 
   function setVectorSaveEnabled(on) {
@@ -371,7 +380,6 @@
     el.appendChild(div);
   }
 
-  // 展开明文：按需求在「修改 API Key」时重置测试通过与结果区；取消仅收起并清空，不重复改 testPassed
   function openApiKeyPlainEditor() {
     vectorKeyPlainVisible = true;
     var wrap = document.getElementById('vector-api-key-plain-wrap');
@@ -396,66 +404,125 @@
     if (btn) btn.textContent = '修改';
   }
 
-  async function loadMemoryRules() {
-    var res = await adminRequest('GET', '/api/admin/memory-rules');
-    var d = (res && res.code === 0) ? res.data : null;
-    var scoresByType = {};
-    var memoryThresholdClamped = false;
-    if (d && typeof d === 'object') {
-      document.getElementById('extract-prompt').value = d.extract_prompt != null ? String(d.extract_prompt) : '';
-      var st = parseInt(d.store_threshold, 10);
-      document.getElementById('store-threshold').value = (!isNaN(st) && st >= 1 && st <= 4) ? st : DEFAULT_MEMORY.store_threshold;
-      var searchRaw = Number(d.search_threshold);
-      var mergeRaw = Number(d.merge_threshold);
-      if (!isNaN(searchRaw)) {
-        var cs = clampThresholdToRange(searchRaw, 0.5, 0.85);
-        document.getElementById('search-threshold').value = String(cs.value);
-        if (cs.adjusted) memoryThresholdClamped = true;
-      } else {
-        document.getElementById('search-threshold').value = String(DEFAULT_MEMORY.search_threshold);
-      }
-      if (!isNaN(mergeRaw)) {
-        var cm = clampThresholdToRange(mergeRaw, 0.85, 0.98);
-        document.getElementById('merge-threshold').value = String(cm.value);
-        if (cm.adjusted) memoryThresholdClamped = true;
-      } else {
-        document.getElementById('merge-threshold').value = String(DEFAULT_MEMORY.merge_threshold);
-      }
-      scoresByType = scoresMapFromApi(d.importance_rules);
-    } else {
-      document.getElementById('extract-prompt').value = DEFAULT_MEMORY.extract_prompt;
-      document.getElementById('store-threshold').value = DEFAULT_MEMORY.store_threshold;
-      document.getElementById('search-threshold').value = String(DEFAULT_MEMORY.search_threshold);
-      document.getElementById('merge-threshold').value = String(DEFAULT_MEMORY.merge_threshold);
-    }
-    renderImportanceRows(scoresByType);
-    document.getElementById('search-threshold-val').textContent = fmtThreshold(document.getElementById('search-threshold').value);
-    document.getElementById('merge-threshold-val').textContent = fmtThreshold(document.getElementById('merge-threshold').value);
-    validateThresholds();
-    if (memoryThresholdClamped) {
-      showToast('检索/合并阈值曾超出服务端允许范围，已自动调整到边界值', 'warning');
-    }
-  }
-
   async function loadVectorConfig() {
     var res = await adminRequest('GET', '/api/admin/vector-db-config');
     if (!res || res.code !== 0 || !res.data) return;
     var d = res.data;
     document.getElementById('vector-endpoint').value = d.endpoint != null ? String(d.endpoint) : '';
     document.getElementById('vector-collection').value = d.collection_name != null ? String(d.collection_name) : '';
-    // 原样展示接口返回的 top_k（≥1）；仅当缺失或非法时用 5，避免把如 50 静默改成 5 导致误保存
     var tk = parseInt(d.top_k, 10);
     document.getElementById('vector-top-k').value = (!isNaN(tk) && tk >= 1) ? tk : 5;
     var masked = d.api_key_masked != null ? String(d.api_key_masked) : '';
     document.getElementById('vector-api-key-masked').value = masked;
   }
 
+  /* ─────────── 全局用户记忆 ─────────── */
+  function getSelectedDocIds() {
+    var ids = [];
+    document.querySelectorAll('#global-tbody input.global-row-check:checked').forEach(function (cb) {
+      ids.push(cb.getAttribute('data-doc-id'));
+    });
+    return ids;
+  }
+
+  function renderGlobalTable(list) {
+    var tbody = document.getElementById('global-tbody');
+    var table = document.getElementById('global-table');
+    var empty = document.getElementById('global-empty');
+    var pager = document.getElementById('global-pager');
+    tbody.innerHTML = '';
+    document.getElementById('global-check-all').checked = false;
+
+    if (!list || !list.length) {
+      table.style.display = 'none';
+      pager.style.display = 'none';
+      empty.style.display = 'block';
+      empty.textContent = globalLastQuery ? '未检索到符合条件的用户记忆' : '暂无数据，请输入条件后搜索';
+      return;
+    }
+
+    empty.style.display = 'none';
+    table.style.display = '';
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      var docId = item.doc_id != null ? String(item.doc_id) : '';
+      html += '<tr>';
+      html += '  <td><input type="checkbox" class="global-row-check" data-doc-id="' + esc(docId) + '"></td>';
+      html += '  <td>' + esc(item.user_id != null ? String(item.user_id) : '-') + '</td>';
+      html += '  <td>' + esc(item.key || '') + '</td>';
+      html += '  <td>' + esc(item.value || '') + '</td>';
+      html += '  <td><button class="btn btn-danger" style="padding:2px 10px;height:26px;font-size:12px" ' +
+              'onclick="globalDeleteOne(this)" data-doc-id="' + esc(docId) + '">删除</button></td>';
+      html += '</tr>';
+    }
+    tbody.innerHTML = html;
+
+    var totalPages = Math.max(1, Math.ceil(globalTotal / globalPageSize));
+    document.getElementById('global-page-info').textContent =
+      '第 ' + globalPage + ' / ' + totalPages + ' 页，共 ' + globalTotal + ' 条';
+    document.getElementById('btn-global-prev').disabled = globalPage <= 1;
+    document.getElementById('btn-global-next').disabled = globalPage >= totalPages;
+    pager.style.display = 'flex';
+  }
+
+  async function loadGlobalMemories() {
+    var userIdRaw = (document.getElementById('global-user-id').value || '').trim();
+    var keyword = (document.getElementById('global-keyword').value || '').trim();
+    globalLastQuery = { userId: userIdRaw, keyword: keyword };
+
+    var query = '?page=' + globalPage + '&page_size=' + globalPageSize +
+                '&keyword=' + encodeURIComponent(keyword);
+    if (userIdRaw) query += '&user_id=' + encodeURIComponent(userIdRaw);
+
+    var res = await adminRequest('GET', '/api/admin/memories/global' + query);
+    if (!res || res.code !== 0 || !res.data) {
+      renderGlobalTable([]);
+      return;
+    }
+    var d = res.data;
+    globalTotal = typeof d.total === 'number' ? d.total : (d.list || []).length;
+
+    var warn = document.getElementById('global-truncated');
+    if (d.truncated) {
+      warn.style.display = 'block';
+      warn.textContent = '⚠️ 未指定用户，结果仅取自最多 300 条用户记忆，可能不完整，建议填写用户 ID 精确检索';
+    } else {
+      warn.style.display = 'none';
+    }
+
+    renderGlobalTable(d.list || []);
+  }
+
+  function doGlobalDelete(docIds) {
+    if (!docIds.length) {
+      showToast('请先勾选要删除的记录', 'warning');
+      return;
+    }
+    showConfirm('确定删除选中的 ' + docIds.length + ' 条用户记忆吗？删除后不可恢复。', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/memories/batch-delete', { doc_ids: docIds });
+      if (res && res.code === 0) {
+        var data = res.data || {};
+        var failed = (data.failed_doc_ids || []).length;
+        var msg = '已删除 ' + (data.deleted_count || 0) + ' 条';
+        if (failed) msg += '，' + failed + ' 条失败';
+        showToast(msg, failed ? 'warning' : 'success');
+        loadGlobalMemories();
+      }
+    }, null, { danger: true });
+  }
+
+  /* 单条删除（复用 batch-delete） */
+  window.globalDeleteOne = function (btn) {
+    var docId = btn.getAttribute('data-doc-id');
+    if (docId) doGlobalDelete([docId]);
+  };
+
+  /* ─────────── 初始化 ─────────── */
   async function loadAll() {
     var wrap = document.getElementById('memory-page-wrap');
     if (wrap) wrap.classList.add('is-loading');
-
-    await Promise.all([loadMemoryRules(), loadVectorConfig()]);
-
+    await Promise.all([loadStep6Prompt(), loadVectorConfig()]);
     if (wrap) wrap.classList.remove('is-loading');
   }
 
@@ -470,27 +537,22 @@
     document.getElementById('header-mount').innerHTML = renderHeader('记忆规则配置');
 
     initTabs('memory-tabs');
+    renderTaskFieldInputs();
 
-    bindRangeDisplay('search-threshold', 'search-threshold-val');
-    bindRangeDisplay('merge-threshold', 'merge-threshold-val');
-
-    document.getElementById('btn-save-memory-rules').onclick = async function () {
-      if (!validateMemoryRulesBeforeSave()) return;
-      var rules = buildImportanceRulesBody();
-      if (!rules) return;
-      var body = {
-        extract_prompt: document.getElementById('extract-prompt').value || '',
-        importance_rules: rules,
-        store_threshold: parseInt(document.getElementById('store-threshold').value, 10),
-        search_threshold: Number(document.getElementById('search-threshold').value),
-        merge_threshold: Number(document.getElementById('merge-threshold').value)
-      };
-      var res = await adminRequest('PUT', '/api/admin/memory-rules', body);
+    /* Step6 Prompt 保存即发布 */
+    document.getElementById('btn-save-step6-prompt').onclick = async function () {
+      var body = collectStep6Form();
+      if (!body) return;
+      var btn = this;
+      btn.disabled = true;
+      var res = await adminRequest('PUT', '/api/admin/step6-memory-prompt', body);
+      btn.disabled = false;
       if (res && res.code === 0) {
-        showToast('记忆规则配置已保存', 'success');
+        showToast('Step6 记忆 Prompt 已保存并发布', 'success');
       }
     };
 
+    /* 向量数据库 */
     document.getElementById('btn-toggle-api-key').onclick = function () {
       if (vectorKeyPlainVisible) closeApiKeyPlainEditor();
       else openApiKeyPlainEditor();
@@ -517,7 +579,6 @@
       if (plainKey) body.api_key = plainKey;
 
       showVectorTestResult('alert-info', '正在测试连接...');
-      // silentErrorToast：业务错误仅在结果区展示，避免与 adminRequest 内 Toast 重复
       var res = await adminRequest(
         'POST',
         '/api/admin/vector-db-config/test-connection',
@@ -580,6 +641,28 @@
         resetVectorTestResult();
         await loadVectorConfig();
       }
+    };
+
+    /* 全局用户记忆 */
+    document.getElementById('btn-global-search').onclick = function () {
+      globalPage = 1;
+      loadGlobalMemories();
+    };
+    document.getElementById('btn-global-batch-delete').onclick = function () {
+      doGlobalDelete(getSelectedDocIds());
+    };
+    document.getElementById('btn-global-prev').onclick = function () {
+      if (globalPage > 1) { globalPage--; loadGlobalMemories(); }
+    };
+    document.getElementById('btn-global-next').onclick = function () {
+      globalPage++;
+      loadGlobalMemories();
+    };
+    document.getElementById('global-check-all').onclick = function () {
+      var checked = this.checked;
+      document.querySelectorAll('#global-tbody input.global-row-check').forEach(function (cb) {
+        cb.checked = checked;
+      });
     };
 
     loadAll();

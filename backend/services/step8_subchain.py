@@ -59,7 +59,7 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
 
     子链路步骤：
     1. Step1：并行装载上下文（recent_conversations, relationship, emotion）
-    2. Step1.5 变体：查询重写（输入用 future.action 替代 last_user_text）
+    2. Step1.5 变体：查询重写（rewrite_input 传 future.action，约 20 字）
     3. Step2：多路向量检索（完全复用）
     4. Step3 变体：Prompt 拼装（模块9 替换为【主动发起】）
     5. Step5：LLM 调用（Schema 一致，完全复用）
@@ -101,7 +101,7 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
             relationship_info, time_description, activity_description,
         )
 
-        # ── Step1.5 变体：用 future.action 替代 last_user_text ──
+        # ── Step1.5 变体：rewrite_input 传 future_action（约 20 字，非用户消息包，C17/C31）──
         r_for_persona = await get_redis()
         persona_text = await r_for_persona.get(REDIS_KEY_PERSONA)
         if not persona_text:
@@ -109,7 +109,7 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
 
         query_rewrite_result = await execute_query_rewrite(
             user_id=user_id,
-            last_user_text=future_action,
+            rewrite_input=future_action,
             persona_text=persona_text,
             round_context=round_context,
             recent_conversations=recent_10,

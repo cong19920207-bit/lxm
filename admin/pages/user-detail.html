@@ -312,6 +312,28 @@
     .mem-item:last-child {
       border-bottom: none;
     }
+    /* ─── 页内说明（私有状态 Tab） ─── */
+    .mem-note {
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #876800;
+      background: rgba(250, 173, 20, 0.1);
+      border: 1px solid rgba(250, 173, 20, 0.3);
+      border-radius: 4px;
+    }
+    /* ─── KV 两层（key 加粗 + value 正文） ─── */
+    .mem-kv {
+      flex: 1;
+      min-width: 0;
+    }
+    .mem-key {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
     .mem-content {
       flex: 1;
       min-width: 0;
@@ -408,6 +430,7 @@
     <div class="tabs" id="detail-tabs">
       <div class="tab-item active" data-target="tab-conversation">历史对话</div>
       <div class="tab-item" data-target="tab-memory">用户记忆</div>
+      <div class="tab-item" data-target="tab-private">私有状态</div>
       <div class="tab-item" data-target="tab-emotion">情绪日志</div>
       <div class="tab-item" data-target="tab-diary">AI日记</div>
       <div class="tab-item" data-target="tab-agent-messages">主动消息</div>
@@ -433,14 +456,29 @@
       </div>
     </div>
     <div class="tab-pane" id="tab-memory">
-      <!-- 搜索栏 -->
+      <!-- 搜索 + 新增栏（主键 doc_id；编辑仅改 value，改 key 走删除+新增） -->
       <div class="mem-filter">
-        <input type="text" id="mem-keyword" placeholder="输入关键词搜索记忆...">
-        <button class="btn btn-primary" onclick="searchMemories()">搜索</button>
+        <input type="text" id="mem-keyword" placeholder="输入关键词搜索用户记忆...">
+        <button class="btn btn-primary" onclick="searchUserMemories()">搜索</button>
+        <button class="btn btn-primary" onclick="addUserMemory()">+ 新增</button>
       </div>
-      <!-- 记忆列表 -->
+      <!-- 用户记忆列表 -->
       <div class="mem-list" id="memories-list">
         <div class="mem-empty">加载中...</div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-private">
+      <!-- 页内说明：避免运营误把用户事实写入私有状态 -->
+      <div class="mem-note">角色对该用户的私有设定，非用户自传事实</div>
+      <!-- 搜索 + 新增栏 -->
+      <div class="mem-filter">
+        <input type="text" id="priv-keyword" placeholder="输入关键词搜索私有状态...">
+        <button class="btn btn-primary" onclick="searchPrivateSettings()">搜索</button>
+        <button class="btn btn-primary" onclick="addPrivateSetting()">+ 新增</button>
+      </div>
+      <!-- 私有状态列表 -->
+      <div class="mem-list" id="private-list">
+        <div class="mem-empty">切换到本 Tab 后自动加载</div>
       </div>
     </div>
     <div class="tab-pane" id="tab-emotion">
@@ -795,112 +833,211 @@ async function loadConversations(page) {
   document.getElementById('conv-load-more').style.display = convHasMore ? '' : 'none';
 }
 
-/* ─── Tab2 用户记忆 ─── */
+/* ─── Tab2/Tab3 用户记忆 + 私有状态（KV 向量，主键 doc_id） ─── */
+/* 两 Tab 复用同一套 CRUD，仅接口与容器不同；编辑仅改 value，改 key 走删除+新增（§7.2） */
+var KV_CONFIGS = {
+  user: {
+    kind: 'user',
+    path: 'user-memories',
+    keywordEl: 'mem-keyword',
+    listEl: 'memories-list',
+    emptyText: '暂无用户记忆',
+    addTitle: '新增用户记忆'
+  },
+  'private': {
+    kind: 'private',
+    path: 'private-settings',
+    keywordEl: 'priv-keyword',
+    listEl: 'private-list',
+    emptyText: '暂无私有状态',
+    addTitle: '新增私有状态'
+  }
+};
 
-function searchMemories() {
-  var keyword = document.getElementById('mem-keyword').value.trim();
-  loadMemories(keyword);
+function kvBaseUrl(cfg) {
+  return '/api/admin/users/' + userId + '/' + cfg.path;
 }
 
-async function loadMemories(keyword) {
-  var container = document.getElementById('memories-list');
+function searchUserMemories() { loadKvEntries(KV_CONFIGS.user); }
+function searchPrivateSettings() { loadKvEntries(KV_CONFIGS['private']); }
+
+async function loadKvEntries(cfg) {
+  var container = document.getElementById(cfg.listEl);
+  if (!container) return;
   container.innerHTML = '<div class="mem-empty">加载中...</div>';
 
-  var query = '?keyword=' + encodeURIComponent(keyword || '');
-  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/memories' + query);
+  var keyword = (document.getElementById(cfg.keywordEl).value || '').trim();
+  var query = '?keyword=' + encodeURIComponent(keyword) + '&page=1&page_size=100';
+  var res = await adminRequest('GET', kvBaseUrl(cfg) + query);
 
   if (!res || res.code !== 0) {
     container.innerHTML = '<div class="mem-empty">加载失败，请重试</div>';
     return;
   }
 
-  var list = (res.data && res.data.list) || res.data || [];
+  var list = (res.data && res.data.list) || [];
   if (!list.length) {
-    container.innerHTML = '<div class="mem-empty">暂无记忆数据</div>';
+    container.innerHTML = '<div class="mem-empty">' + esc(cfg.emptyText) + '</div>';
     return;
   }
 
   var html = '';
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
-    html += '<div class="mem-item" data-id="' + item.id + '">';
-    html += '  <div class="mem-content">' + esc(item.content) + '</div>';
-    html += '  <span class="mem-source-tag">' + esc(item.source || '未知') + '</span>';
-    html += '  <span class="mem-time">' + formatDateTime(item.created_at) + '</span>';
+    html += '<div class="mem-item" data-kind="' + cfg.kind + '" data-doc-id="' + esc(item.doc_id) + '">';
+    html += '  <div class="mem-kv">';
+    html += '    <div class="mem-key">' + esc(item.key || '') + '</div>';
+    html += '    <div class="mem-content">' + esc(item.value || '') + '</div>';
+    html += '  </div>';
     html += '  <div class="mem-actions">';
-    html += '    <button class="btn btn-default" onclick="editMemory(this,' + item.id + ')">编辑</button>';
-    html += '    <button class="btn btn-danger" onclick="deleteMemory(' + item.id + ')">删除</button>';
+    html += '    <button class="btn btn-default" onclick="editKvEntry(this)">编辑</button>';
+    html += '    <button class="btn btn-danger" onclick="deleteKvEntry(this)">删除</button>';
     html += '  </div>';
     html += '</div>';
   }
   container.innerHTML = html;
 }
 
-/* 点击编辑：切换为 input + 保存/取消 */
-function editMemory(btn, memoryId) {
+function kvCfgFromRow(row) {
+  return KV_CONFIGS[row.getAttribute('data-kind')] || KV_CONFIGS.user;
+}
+
+/* 编辑：仅改 value（key 不可改），切换为 input + 保存/取消 */
+function editKvEntry(btn) {
   var row = btn.closest('.mem-item');
   var contentEl = row.querySelector('.mem-content');
   var actionsEl = row.querySelector('.mem-actions');
   var originalText = contentEl.textContent;
 
+  contentEl.setAttribute('data-original', originalText);
   contentEl.innerHTML = '<input type="text" value="' + esc(originalText) + '">';
   contentEl.querySelector('input').focus();
 
   actionsEl.innerHTML =
-    '<button class="btn btn-primary" onclick="saveMemory(this,' + memoryId + ')">保存</button>' +
-    '<button class="btn btn-default" onclick="cancelEditMemory(this)">取消</button>';
+    '<button class="btn btn-primary" onclick="saveKvEntry(this)">保存</button>' +
+    '<button class="btn btn-default" onclick="cancelKvEntry(this)">取消</button>';
 }
 
-/* 取消编辑：恢复原文 */
-function cancelEditMemory(btn) {
-  var keyword = document.getElementById('mem-keyword').value.trim();
-  loadMemories(keyword);
-}
-
-/* 保存编辑 */
-async function saveMemory(btn, memoryId) {
+function cancelKvEntry(btn) {
   var row = btn.closest('.mem-item');
-  var input = row.querySelector('.mem-content input');
-  var newContent = input.value.trim();
+  loadKvEntries(kvCfgFromRow(row));
+}
 
-  if (!newContent) {
-    showToast('记忆内容不能为空', 'warning');
+async function saveKvEntry(btn) {
+  var row = btn.closest('.mem-item');
+  var cfg = kvCfgFromRow(row);
+  var docId = row.getAttribute('data-doc-id');
+  var input = row.querySelector('.mem-content input');
+  var newValue = (input.value || '').trim();
+
+  if (!newValue) {
+    showToast('内容不能为空', 'warning');
     return;
   }
 
   btn.disabled = true;
   btn.textContent = '保存中...';
 
-  var res = await adminRequest('PUT', '/api/admin/users/' + userId + '/memories/' + memoryId, {
-    content: newContent
-  });
+  var res = await adminRequest(
+    'PUT',
+    kvBaseUrl(cfg) + '/' + encodeURIComponent(docId),
+    { value: newValue }
+  );
 
   if (res && res.code === 0) {
     showToast('保存成功', 'success');
-    var keyword = document.getElementById('mem-keyword').value.trim();
-    loadMemories(keyword);
+    loadKvEntries(cfg);
   } else {
     btn.disabled = false;
     btn.textContent = '保存';
   }
 }
 
-/* 删除记忆 */
-function deleteMemory(memoryId) {
-  showConfirm('确定要删除这条记忆吗？删除后不可恢复。', async function () {
-    var res = await adminRequest('DELETE', '/api/admin/users/' + userId + '/memories/' + memoryId);
+function deleteKvEntry(btn) {
+  var row = btn.closest('.mem-item');
+  var cfg = kvCfgFromRow(row);
+  var docId = row.getAttribute('data-doc-id');
+  showConfirm('确定要删除这条记录吗？删除后不可恢复。', async function () {
+    var res = await adminRequest('DELETE', kvBaseUrl(cfg) + '/' + encodeURIComponent(docId));
     if (res && res.code === 0) {
       showToast('删除成功', 'success');
-      var keyword = document.getElementById('mem-keyword').value.trim();
-      loadMemories(keyword);
+      loadKvEntries(cfg);
     }
   }, null, { danger: true });
 }
 
+function addUserMemory() { showKvAddModal(KV_CONFIGS.user); }
+function addPrivateSetting() { showKvAddModal(KV_CONFIGS['private']); }
+
+/* 新增：三层 key + value（改 key 也走此入口，先删旧条目再新增） */
+function showKvAddModal(cfg) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML =
+    '<div class="modal-content" style="min-width:420px;max-width:520px">' +
+      '<div class="modal-header">' +
+        '<h3>' + esc(cfg.addTitle) + '</h3>' +
+        '<button class="btn btn-link" id="__kv_close">✕</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<div class="form-item" style="margin-bottom:14px">' +
+          '<label>Key（三层结构，如 偏好-饮食-口味）</label>' +
+          '<input type="text" id="__kv_key" class="form-control" placeholder="XXX-XXX-XXX" autocomplete="off">' +
+        '</div>' +
+        '<div class="form-item" style="margin-bottom:0">' +
+          '<label>Value</label>' +
+          '<input type="text" id="__kv_value" class="form-control" placeholder="请输入内容" autocomplete="off">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button class="btn btn-default" id="__kv_cancel">取消</button>' +
+        '<button class="btn btn-primary" id="__kv_ok">保存</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  function close() { overlay.remove(); }
+  overlay.querySelector('#__kv_close').onclick = close;
+  overlay.querySelector('#__kv_cancel').onclick = close;
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+  overlay.querySelector('#__kv_ok').onclick = async function () {
+    var key = (overlay.querySelector('#__kv_key').value || '').trim();
+    var value = (overlay.querySelector('#__kv_value').value || '').trim();
+    if (!key || !value) {
+      showToast('Key 和 Value 均不能为空', 'warning');
+      return;
+    }
+    var okBtn = this;
+    okBtn.disabled = true;
+    okBtn.textContent = '保存中...';
+    var res = await adminRequest('POST', kvBaseUrl(cfg), { key: key, value: value });
+    if (res && res.code === 0) {
+      showToast('新增成功', 'success');
+      close();
+      loadKvEntries(cfg);
+    } else {
+      okBtn.disabled = false;
+      okBtn.textContent = '保存';
+    }
+  };
+
+  setTimeout(function () { overlay.querySelector('#__kv_key').focus(); }, 100);
+}
+
+/* 私有状态 Tab：首次切入懒加载 */
+var privateTabLoaded = false;
+document.querySelector('[data-target="tab-private"]').addEventListener('click', function () {
+  if (!privateTabLoaded) {
+    loadKvEntries(KV_CONFIGS['private']);
+    privateTabLoaded = true;
+  }
+});
+
 /* ─── 页面加载完成后执行 ─── */
 loadUserDetail();
 loadConversations(1);
-loadMemories('');
+loadKvEntries(KV_CONFIGS.user);
 
 /* ─── Tab 主动消息（按用户懒加载） ─── */
 async function loadAgentMessages() {

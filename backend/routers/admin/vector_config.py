@@ -90,10 +90,16 @@ class PromptTokenPatch(BaseModel):
     user_input: int | None = Field(default=None, ge=1, le=20000)
 
 
+def _prompt_hot_config_keys() -> tuple[str, ...]:
+    """参与热配的模块键（user_nickname 固定 50，仅代码侧，C30）"""
+    return tuple(k for k in MODULE_TOKEN_LIMITS if k != "user_nickname")
+
+
 def _prompt_defaults_flat() -> dict[str, int]:
-    """完整 Prompt Token 配置（与 prompt_builder 默认一致）"""
+    """完整 Prompt Token 配置（供管理端展示与 PATCH，不含 user_nickname）"""
     out = {"max_total": MAX_TOTAL_TOKENS}
-    out.update(MODULE_TOKEN_LIMITS)
+    for key in _prompt_hot_config_keys():
+        out[key] = MODULE_TOKEN_LIMITS[key]
     return out
 
 
@@ -107,7 +113,7 @@ def _prompt_effective_from_db_row(raw: Any) -> dict[str, int]:
                     merged["max_total"] = mt
             except (TypeError, ValueError):
                 pass
-        for key in MODULE_TOKEN_LIMITS:
+        for key in _prompt_hot_config_keys():
             if key in raw:
                 try:
                     v = int(raw[key])

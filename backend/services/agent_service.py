@@ -649,7 +649,11 @@ class AgentService:
     async def _search_memories_for_agent(
         self, user_id: int, query_text: str, top_k: int = 3
     ) -> list:
-        """检索用户相关记忆，返回类 Memory 对象列表供 PromptBuilder 使用"""
+        """检索用户相关记忆，返回类 Memory 对象列表供 PromptBuilder 使用
+
+        P1（长记忆第一套下线）：仅走 DashVector 向量检索，不依赖 MySQL memory 表校验，
+        且一律不过滤 mem_* 前缀文档；旧脏数据依赖 M2 人工清理（STEP-016），运行时不过滤，请勿误加。
+        """
         try:
             query_embedding = await embedding_service.get_embedding(query_text)
             if not query_embedding:

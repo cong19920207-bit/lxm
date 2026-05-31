@@ -1,6 +1,6 @@
 # 技术债务记录
 
-**专项决策**：AI 日记改造范围、权限、运维约定见 **`docs/diary-refactor-decisions.md`**（与 **TD-006、TD-007、TD-013、TD-014** 对应）；**运维 / 手动批跑 / 发布门禁**见 **`docs/ops-diary.md`**。H5 对话「历史/新消息」队列、打断与落库见 **TD-015**（**部分清偿**，见正文）；**按轮情绪 / `round_id`（TD-016）**：**V2-A/B/C** 已合并（库表、闭环写入、**管理端用户详情 →「情绪日志」只读 Tab** + `emotion-rounds`）；口语「**后台情绪还没做完**」多指 **TD-020**（短期属性 Admin/Agent/统计读边等），**不等价**于只读 Tab 未交付；H5 是否进一步按 `round_id` 做展示增强见体验/工单；**记忆检索 query 改写 / LLM 重写**见 **TD-017**；**日记「有互动」与仅失败 user 行**见 **TD-018**；**H5 多 Tab 并行聊天与 SSE 代展示**见 **TD-019**；**用户短期情绪属性（与句级/轮级情绪分层、Redis 与 DB 展示口径）**见 **TD-020**（**V3-A 基座已落地**，Admin/策略仍待）；**双轨用户记忆（列表库 vs Step6 向量）及合并口径**见 **TD-022、TD-023**。
+**专项决策**：AI 日记改造范围、权限、运维约定见 **`docs/diary-refactor-decisions.md`**（与 **TD-006、TD-007、TD-013、TD-014** 对应）；**运维 / 手动批跑 / 发布门禁**见 **`docs/ops-diary.md`**。H5 对话「历史/新消息」队列、打断与落库见 **TD-015**（**部分清偿**，见正文）；**按轮情绪 / `round_id`（TD-016）**：**V2-A/B/C** 已合并（库表、闭环写入、**管理端用户详情 →「情绪日志」只读 Tab** + `emotion-rounds`）；口语「**后台情绪还没做完**」多指 **TD-020**（短期属性 Admin/Agent/统计读边等），**不等价**于只读 Tab 未交付；H5 是否进一步按 `round_id` 做展示增强见体验/工单；**记忆检索 query 改写 / LLM 重写**见 **TD-017**；**日记「有互动」与仅失败 user 行**见 **TD-018**；**H5 多 Tab 并行聊天与 SSE 代展示**见 **TD-019**；**用户短期情绪属性（与句级/轮级情绪分层、Redis 与 DB 展示口径）**见 **TD-020**（**V3-A 基座已落地**，Admin/策略仍待）；**双轨用户记忆（列表库 vs Step6 向量）及合并口径**见 **TD-022、TD-023**；**Step6 四类 KV「一行一条」落库稳定性（L4 检测 / L5 自动修复）**见 **TD-028、TD-029**。
 
 ### [TD-001] users 表遗留字段待清理
 
@@ -285,10 +285,11 @@
 - **依赖**：已满足（TD-015 打包与闭环路径清晰）。
 - **风险等级**：**低**（管理端只读；主链未改）
 
-### [TD-017] 记忆检索：查询改写 / LLM 重写检索 query（**待清偿**）
+### [TD-017] 记忆检索：查询改写 / LLM 重写检索 query（**部分清偿 · 2026-05-30**）
 
-- **背景**：当前对话链路用**用户原文**（或 TD-015 定稿后用于 embedding 的约定文本）直接 `get_embedding` → DashVector 检索，**无**查询改写层。产品希望未来可增强召回（同义扩展、多轮指代消解、隐私脱敏后再检索等）。
-- **当前处理**：无；与 **TD-015** 中「确认点 2」首版方案（建议 **末条 user** 做 embedding）独立，**不阻塞** TD-015。
+- **背景**：对话链路曾用用户原文直接 `get_embedding` → DashVector 检索。产品希望增强召回（同义扩展、多轮指代消解、隐私脱敏后再检索等）。
+- **当前处理（2026-05-30 · PRD v6.1）**：主链已实现 **Step1.5**（`query_rewrite_service`：13 字段、四路 Question/Keywords/CandidateKeys、HyDE 规则、失败降级单 Embedding）；Step2 按路检索与 **2.5 补充路** 已落地。见 `docs/contract.md`「2026-05-30 摘要」。
+- **仍待评估**：独立小模型/规则缓存、改写 on/off A/B、与 embedding 缓存 key 策略等（原 TD-017 完整愿景）；**不阻塞**现网主链。
 - **待处理**：
   1. 设计改写链路：独立小 LLM / 规则 / 缓存；输入为「本轮用于检索的文本」，输出为「检索 query」再 embedding。
   2. 与 `embedding_service` Redis 缓存 key 策略对齐（改写结果 vs 原文分别缓存或统一 key）。
@@ -361,9 +362,10 @@
 - **风险等级**：**低**（当前占位不影响主对话核心链路；仅影响 Prompt 辅助上下文质量）
 - **关联**：`doc/对话链路改造-需求确认记录.md` §2.10 **R-L1L3-11**；Step3 新增模块 B「时间与活动状态」。
 
-### [TD-022] 用户记忆双轨并存：MySQL「列表记忆」与 Step6 四路向量未收敛（**待清偿**）
+### [TD-022] 用户记忆双轨并存：MySQL「列表记忆」与 Step6 四路向量未收敛（**已清偿**）
 
-- **背景**：当前存在**两套并行**的用户相关记忆链路，**不互为替代**，且 Step2 检索侧**未隔离**。
+- **清偿说明（2026-05-31，长记忆第一套下线 PRD v1.3 一次发布）**：第一套写入已下线——`chat.py` 删除 `memory_service.extract_and_save` 调用，物理删除 `extract_and_save`/`_deduplicate_and_save` 及专属私有方法，其余记忆方法标 `@deprecated`；H5/Admin 改读 Step6 user 向量（`/api/memory/list` 只读、`user-memories`/`private-settings`、`memories/global`/`batch-delete`）；唯一写入真相源收敛为 **Step6 向量**。运行时**不过滤 `mem_*`**（P1，推翻原 M13/M10），存量 `mem_*` 脏数据靠 **M2 发布前人工清理**（DashVector 删 `mem_` 前缀 + 清空 MySQL `memory` 表业务数据，表结构保留 M8），见 STEP-016 运维 checklist。PR 号占位：`<PR-待补>`。
+- **背景（历史）**：当前存在**两套并行**的用户相关记忆链路，**不互为替代**，且 Step2 检索侧**未隔离**。
 - **第一套（列表 / CRUD）**：
   - **写入**：对话成功闭环后置任务 **`memory_service.extract_and_save`**（`MEMORY_EXTRACT_PROMPT` → LLM 返回 `{"memory_list":["短句",...]}`）；用户 **H5「我的记忆」** 与 **管理端用户详情 → 记忆** 的 **手动添加** 亦写入同路径。
   - **存储**：**MySQL `memory` 表**为主；向量侧经 **`vector_service.upsert`**，`doc_id` 形如 **`mem_{memory_id}`**，`type = user`，`fields` 含 `user_id`、`content` 等。
@@ -383,9 +385,10 @@
 - **风险等级**：**中**（长期语义漂移与排障成本；短期功能可用）
 - **关联**：**TD-017**（检索 query 侧）、**TD-023**（合并与去重口径）；实现锚点：`backend/services/memory_service.py`、`backend/services/memory_llm_service.py`、`backend/services/multi_vector_retrieval_service.py`、`backend/routers/chat.py`（后置任务与 Step6 入队）。
 
-### [TD-023] 用户记忆跨源合并与去重口径待统一（**待清偿**）
+### [TD-023] 用户记忆跨源合并与去重口径待统一（**已缓解**）
 
-- **背景**：在 **TD-022** 双轨前提下，「同一用户事实」可能以 **不同形态** 并存——例如 **`mem_*` 整句摘要** 与 **Step6 `user:` 行级 `key：value`** 在 **同一 `type=user` 检索池** 中均可命中；第一套另有 **MySQL + 向量相似度 ≥ 0.92 合并**（`memory_service._deduplicate_and_save`），第二套为 **同 `memory_type` + 同 stable `key` 的 upsert 覆盖**，**两套合并语义互不自动对齐**。
+- **缓解说明（2026-05-31）**：随 TD-022 下线第一套写入，「同一用户事实」不再产生 `mem_*` 新增，新写入唯一走 Step6 **同 `memory_type` + 同 stable `key` 的 upsert 覆盖**（合并阈值 ≥0.92 的 MySQL 去重逻辑已随 `_deduplicate_and_save` 物理删除）。**残留**：存量历史 `mem_*` 与 `user:…` 在清理前仍同池召回（靠 M2 人工清理，P1），跨源对账脚本仍未提供；待 M2 清理完成后本项可视情况关闭。
+- **背景（历史）**：在 **TD-022** 双轨前提下，「同一用户事实」可能以 **不同形态** 并存——例如 **`mem_*` 整句摘要** 与 **Step6 `user:` 行级 `key：value`** 在 **同一 `type=user` 检索池** 中均可命中；第一套另有 **MySQL + 向量相似度 ≥ 0.92 合并**（`memory_service._deduplicate_and_save`），第二套为 **同 `memory_type` + 同 stable `key` 的 upsert 覆盖**，**两套合并语义互不自动对齐**。
 - **问题**：缺少 **跨 `doc_id` 方案 / 跨表** 的统一「合并、覆盖、废弃」规则；清理其中一套时易产生 **孤儿向量**、**重复注入** 或 **用户删列表但对话仍召回旧向量** 等产品/数据一致性问题。
 - **待处理（建议与 TD-022 同一里程碑清偿）**：
   1. **定义合并产品口径**：何种情况视为同一记忆（语义相似 vs key 相同 vs 人工绑定）；**列表删除**是否级联删向量、是否影响 Step6 行。
@@ -396,9 +399,10 @@
 - **风险等级**：**中**（数据一致性与检索可解释性；误操作可影响多用户向量集合）
 - **关联**：**TD-022**；`backend/services/memory_service.py`（合并阈值与 `mem_*`）、`backend/services/memory_llm_service.py`（`parse_kv_lines` / `upsert_step6_vectors`）、`backend/routers/admin/memory_mgmt.py`。
 
-### [TD-024] H5 设置页用户偏好开关后端未实现（**待清偿**）
+### [TD-024] H5 设置页用户偏好开关后端未实现（**部分清偿**）
 
-- **位置**：`frontend/pages/settings.html` → `GET/PUT /api/user/settings`（`memory_auto_extract`、`agent_message_enabled`）
+- **部分清偿说明（2026-05-31，C-07）**：`settings.html`「记忆自动提取」Toggle 已**移除**，改为只读说明行「记忆整理 / 对话结束后会自动整理成记忆，无需手动设置」，并删除前端对 `memory_auto_extract` 的读取与 PUT；记忆由 Step6 自动整理，`memory_auto_extract` 偏好缺口**不复存在**。**残留**：`agent_message_enabled`（主动消息推送）Toggle 仍在线、后端 `GET/PUT /api/user/settings` 仍未实现/未读取，本项**未全量清偿**。
+- **位置**：`frontend/pages/settings.html` → `GET/PUT /api/user/settings`（~~`memory_auto_extract`~~ 已移除、`agent_message_enabled` 仍待）
 - **问题**：前端 Toggle 已接线并默认 `active`；后端 **`routers/user.py` 未挂载**、无持久化字段；保存时接口不存在或失败 Toast；即使补接口，记忆提取链路与 Agent 扫描**当前也未读取**这两项开关。
 - **待处理**：
   1. 在 `users` 表或独立用户设置表增加字段并迁移；
@@ -407,6 +411,51 @@
 - **触发时机**：产品要求设置页「记忆自动提取」「主动消息推送」真实生效时排期。
 - **风险等级**：**中**（UI 可交互但偏好不持久、不生效，易误导用户）
 - **关联**：`docs/contract.md`「H5 用户（占位）」；`frontend/pages/settings.html`。
+
+### [TD-026] Step6/Admin 前写入的 DashVector 文档缺少 key_l1/key_l2（**待清偿**）
+
+- **背景**：2026-05-30 起 Step2 主路 `build_filter` 支持 **`key_l2 IN (...)`** 结构化过滤（由 Step1.5 `CandidateKeys` 推导）。**新写入**（Step6 `upsert_step6_vectors`、Admin `_build_knowledge_fields`）均补齐 `key_l1`/`key_l2`；**历史向量**可能仅有 `type`/`user_id`/`content`，无二级 Key 字段。
+- **当前处理**：主路 `candidate_keys` 过滤对旧文档**不命中**时，依赖 **2.5 补充路**（`candidate_keys=[]`、更宽 filter）与纯向量相似度兜底；**不阻断**主对话。
+- **待处理**：离线批量回填 `key_l1`/`key_l2`（需从 `content` 或 `stable_key` 解析）；或产品接受旧文档仅走补充路/降级召回。
+- **触发时机**：运营反馈「结构化 Key 检索召回偏少」或要做全量 Key 运营筛选时排期。
+- **风险等级**：**低～中**（召回质量与可解释性）
+- **关联**：`docs/contract.md`「2026-05-30 摘要」；`backend/utils/dashvector_client.py` `build_filter`。
+
+### [TD-027] Step2 补充路触发阈值与 top_k 未纳入热配（**待清偿**）
+
+- **背景**：`multi_vector_retrieval_service` 中 **`SUPPLEMENT_TRIGGER_THRESHOLD=0.75`**（`count<2 OR max_score<0.75`）与补充路 **`top_k=3`** 为**代码常量**；`vector_retrieval_config` 热配仅覆盖主路 **`top_k`/`threshold`**。
+- **当前处理**：按 PRD C2/C7/C36 写死，管理端不可调。
+- **待处理**：产品确认是否将补充路阈值/top_k 并入 `vector_retrieval_config` 或独立配置键；变更时同步契约与 `tests/test_multi_vector_retrieval_service.py`。
+- **触发时机**：运营需按环境调补充路 aggressiveness 时排期。
+- **风险等级**：**低**
+- **关联**：`docs/contract.md` §向量召回与 Prompt Token 热配置。
+
+### [TD-028] Step6 四类 KV 写入前缺少「多 key 挤一行」检测与阻断（**L4 · 待清偿**）
+
+- **背景**：Step6 字段 **`CharacterPublicSettings` / `CharacterPrivateSettings` / `CharacterKnowledges` / `UserSettings`** 约定为 **多行 `key：value`（全角冒号）**，**一行一条**；`parse_kv_lines` 仅按 **`\n` 拆行**，每行取**首处** `：` 为界。2026-05 已在 **`build_step6_prompt`** 增加「多条信息分行规则」与反例（Prompt-first），但 **写入链路无确定性校验**。
+- **问题（稳定性 L4）**：当 LLM 仍将多条独立 `三层key：value` 写在**同一行**（常见以 **`；` + 下一 key** 串联）时，解析只得 **1 条** `(key, value)`，`value` 内夹带其它 key 全文 → **静默错误落库**（角色知识库后台可见「一条 value 含多个 key」）；**无日志指标、无告警、无跳过写入**，运营只能人工发现并编辑。
+- **当前处理**：依赖 Prompt 约束 + few-shot 多行 `\n` 示例；**不满足**「坏格式可自动发现或不落库」的 **L4** 目标。
+- **待处理（建议最小集）**：
+  1. 在 **`upsert_step6_vectors`** 调用 **`parse_kv_lines` 之后**（或解析函数出口），对每字段每行 `(key, value)` 做 **启发式检测**：例如 `value` 内再出现 **`；`（或 `;`）后接合法三层 key + 全角 `：`**，或「`parse_kv_lines` 行数 = 1 但 value 汉字数 / 嵌套 key 模式异常」。
+  2. 命中时 **`logger.warning`**（含 `user_id`、`field_name`、`round_id` 若可得、截断 preview），可选递增 Redis/日计数 **`step6_kv_merge_risk:{date}`** 供监控页或日志检索。
+  3. **产品择一**：仅观测（仍写入，便于对比 Prompt 效果）；或 **跳过该字段当轮向量写入**（relationship 标量仍可按既有逻辑写回，避免整轮 Step6 失败）；或 **跳过单行** 仅丢弃可疑行。须在 **`docs/contract.md`** STEP-014 写明行为。
+  4. 管理端 **角色知识库列表** 可选：对 `content` / `value` 做同款检测并展示「疑似合并」标记（非必须，可与 1 共用工具函数）。
+- **触发时机**：Prompt 加强后仍抽检到合并条；或要把「每条知识独立向量」视为硬 SLA 时排期 **TD-028**（可与 **TD-029** 分阶段）。
+- **风险等级**：**中**（数据质量与检索语义；不阻断主对话 SSE）
+- **关联**：**TD-022**（Step6 向量轨）；`backend/services/memory_llm_service.py`（`parse_kv_lines`、`upsert_step6_vectors`、`build_step6_prompt`）；`backend/utils/character_knowledge_validate.py`（`validate_key` 复用）；`backend/services/character_knowledge_service.py`（展示侧可选）。
+
+### [TD-029] Step6 四类 KV 同行多 key 无自动拆分/重试修复（**L5 · 待清偿**）
+
+- **背景**：在 **TD-028（L4）** 仅解决「能看见 / 能选择不落库」的前提下，**L5** 要求坏格式 **自动修复** 后仍按约定 **多条独立 upsert**，而非长期依赖人工改后台或重跑对话。
+- **问题**：即使 Prompt 合规率提升，模型仍可能偶发同行拼接；当前 **无**（a）确定性 **拆行**（例如在 `；` + 合法三层 `key：` 处切分为多行再 `parse_kv_lines`）；（b）检测到违规后的 **Step6 子链路重试**（附「请用 `\n` 分行」类纠错提示）；（c）对已落库脏数据的 **离线重解析脚本**。
+- **待处理（与 TD-028 二选一或组合，须产品确认）**：
+  1. **解析兜底（偏 L5）**：扩展 `parse_kv_lines`（或前置 normalize）：在保留「**默认仍为一行一条**」前提下，对 **行首 / `\n` / `；`** 后的合法三层 `key：` 切分点拆成多段再 upsert；切分后仍走 **`validate_key` / `validate_value`**；需评估 value 正文误拆风险并写单测（含截图同款 `体育-球类-篮球：…；体育-球类-乒乓球：…`）。
+  2. **重试兜底**：当 TD-028 检测命中且策略为「拒绝写入」时，**仅重试 Step6 LLM 一次**（`execute_step6` 已有 1 次整体重试，可改为「解析层违规触发的定向重试」并在 Prompt 末尾追加一行纠错说明），避免与 JSON 解析失败混为一谈。
+  3. **数据修复（可选二期）**：对 DashVector `character_knowledge` / `character_global` 等 `content` 批量重跑新解析器并 upsert（评估 embedding 成本；与 **TD-026** 回填可同窗口）。
+- **实现约定**：若采用解析兜底，契约须写明 **「Prompt 要求换行 + 解析器对同行多 key 的兼容边界」**，避免与运营手动在后台录入的单行 value（内含分号但非 key）冲突；**优先**在 TD-028 观测 1～2 周再决定是否上 1，降低误拆。
+- **触发时机**：**TD-028** 指标显示违规率仍高于可接受阈值；或上线后仍频繁出现合并条且人工处理成本高。
+- **风险等级**：**中**（误拆导致向量语义碎片化；重试增加 Step6 耗时与 LLM 成本）
+- **关联**：**TD-028**（L4 前置观测）；**TD-026**（重解析时可顺带补 `key_l1`/`key_l2`）；`backend/services/step6_orchestrator.py`。
 
 ### [TD-025] H5 改密码前后端契约不一致（**待清偿**）
 

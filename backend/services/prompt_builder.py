@@ -30,6 +30,7 @@ MODULE_TOKEN_LIMITS = {
     "emotion": 270,
     "time_activity": 80,          # 模块 B：时间与活动状态
     "recent_chat": 1800,
+    "user_nickname": 50,          # 用户称呼，硬编码上限，绝不裁剪（C8/C30）
     "user_input": 900,
 }
 
@@ -52,6 +53,7 @@ MODULE_ORDER = [
     "emotion",
     "time_activity",
     "recent_chat",
+    "user_nickname",   # 新增：recent_chat 之后、user_input 之前，绝不裁剪（C8）
     "user_input",
 ]
 
@@ -365,7 +367,10 @@ class PromptBuilder:
             if config and isinstance(config, dict):
                 max_total = int(config.get("max_total", MAX_TOTAL_TOKENS))
                 limits = dict(MODULE_TOKEN_LIMITS)
+                # user_nickname 固定 50 Token（C30），不参与热配覆盖
                 for key in limits:
+                    if key == "user_nickname":
+                        continue
                     if key in config:
                         val = int(config[key])
                         if val > 0:
@@ -429,6 +434,10 @@ class PromptBuilder:
         module_texts["recent_chat"] = self._build_recent_chat(
             recent_conversations, limits,
         )
+        # 用户称呼模块（C8）：recent_chat 之后、user_input 之前，绝不裁剪
+        module_texts["user_nickname"] = self._build_user_nickname_prompt(
+            relationship_info,
+        )
         module_texts["user_input"] = self._build_user_input(user_input, limits)
 
         # 合并所有条目用于模块 A 的 score 裁剪
@@ -483,6 +492,8 @@ class PromptBuilder:
         relationship_prompt = self._build_relationship_prompt(
             relationship_info, limits,
         )
+        # 用户称呼模块（C14/C26）：Agent 无 recent_chat，位置在 relationship 之后、memory 之前
+        user_nickname_prompt = self._build_user_nickname_prompt(relationship_info)
         memory_prompt = self._build_memory_prompt(user_memories, limits)
         emotion_prompt = self._build_emotion_history_prompt(emotion_history, limits)
         task_prompt = self._build_active_task_instruction(trigger_type, limits)
@@ -491,6 +502,7 @@ class PromptBuilder:
             system_prompt,
             persona_prompt,
             relationship_prompt,
+            user_nickname_prompt,
             memory_prompt,
             emotion_prompt,
             task_prompt,
@@ -574,6 +586,10 @@ class PromptBuilder:
         )
         module_texts["recent_chat"] = self._build_recent_chat(
             recent_conversations, limits,
+        )
+        # 用户称呼模块（C4）：与主链一致，recent_chat 之后、user_input 之前，绝不裁剪
+        module_texts["user_nickname"] = self._build_user_nickname_prompt(
+            relationship_info,
         )
         # Step8 差异点：模块9 用【主动发起】替代【用户消息】
         module_texts["user_input"] = self._build_proactive_input(
@@ -700,13 +716,37 @@ class PromptBuilder:
             working.pop()
         return ""
 
+    def _build_user_nickname_prompt(self, relationship_info) -> str:
+        """
+        用户称呼模块（C3/C8/C16）：直接从 relationship_info 取昵称/真名，
+        不经 round_context 中转。绝不裁剪。三种分支 + 全空返回 ""（不输出该模块）。
+        """
+        hobby = (getattr(relationship_info, "user_hobby_name", None) or "").strip()
+        real = (getattr(relationship_info, "user_real_name", None) or "").strip()
+
+        if hobby and real:
+            return (
+                "【用户称呼】\n"
+                f"用户偏好被称为「{hobby}」（日常优先使用）；"
+                f"真名为「{real}」（正式场合备用）"
+            )
+        elif hobby:
+            return (
+                "【用户称呼】\n"
+                f"请用「{hobby}」称呼用户（用户偏好称呼，日常优先使用）"
+            )
+        elif real:
+            return f"【用户称呼】\n用户真名为「{real}」，可在合适场合使用"
+        return ""
+
     def _build_relationship_prompt(
         self, relationship_info, limits: dict | None = None,
     ) -> str:
         """
-        模块4：Relationship Prompt（含扩展字段：关系描述、用户印象、称呼）。
+        模块4：Relationship Prompt（含扩展字段：关系描述、用户印象）。
 
         扩展部分可在全局裁剪中被移除（优先级4）。
+        称呼行已移除（C3），改由独立的 user_nickname 模块承担。
         """
         lim = (limits or MODULE_TOKEN_LIMITS)["relationship"]
 
@@ -740,6 +780,7 @@ class PromptBuilder:
             )
 
         # 关系扩展字段（R-MEM-05 / STEP-004）
+        # C3：称呼行（亲密称呼/用户真名）已移除，统一由 user_nickname 独立模块承担
         if relationship_info:
             rd = getattr(relationship_info, "relation_description", None)
             parts.append(f"关系描述：{rd if rd else '暂无，初次互动'}")
@@ -747,16 +788,8 @@ class PromptBuilder:
             ud = getattr(relationship_info, "user_description", None)
             if ud:
                 parts.append(f"对TA的印象：{ud}")
-
-            uhn = getattr(relationship_info, "user_hobby_name", None)
-            parts.append(f"亲密称呼：{uhn if uhn else '无'}")
-
-            urn = getattr(relationship_info, "user_real_name", None)
-            parts.append(f"用户真名：{urn if urn else '无'}")
         else:
             parts.append("关系描述：暂无，初次互动")
-            parts.append("亲密称呼：无")
-            parts.append("用户真名：无")
 
         return truncate_to_tokens("\n".join(parts), lim)
 
