@@ -1,6 +1,6 @@
 # 技术债务记录
 
-**专项决策**：AI 日记改造范围、权限、运维约定见 **`docs/diary-refactor-decisions.md`**（与 **TD-006、TD-007、TD-013、TD-014** 对应）；**运维 / 手动批跑 / 发布门禁**见 **`docs/ops-diary.md`**。H5 对话「历史/新消息」队列、打断与落库见 **TD-015**（**部分清偿**，见正文）；**按轮情绪 / `round_id`（TD-016）**：**V2-A/B/C** 已合并（库表、闭环写入、**管理端用户详情 →「情绪日志」只读 Tab** + `emotion-rounds`）；口语「**后台情绪还没做完**」多指 **TD-020**（短期属性 Admin/Agent/统计读边等），**不等价**于只读 Tab 未交付；H5 是否进一步按 `round_id` 做展示增强见体验/工单；**记忆检索 query 改写 / LLM 重写**见 **TD-017**；**日记「有互动」与仅失败 user 行**见 **TD-018**；**H5 多 Tab 并行聊天与 SSE 代展示**见 **TD-019**；**用户短期情绪属性（与句级/轮级情绪分层、Redis 与 DB 展示口径）**见 **TD-020**（**V3-A 基座已落地**，Admin/策略仍待）；**双轨用户记忆（列表库 vs Step6 向量）及合并口径**见 **TD-022、TD-023**；**Step6 四类 KV「一行一条」落库稳定性（L4 检测 / L5 自动修复）**见 **TD-028、TD-029**。
+**专项决策**：AI 日记改造范围、权限、运维约定见 **`docs/diary-refactor-decisions.md`**（与 **TD-006、TD-007、TD-013、TD-014** 对应）；**运维 / 手动批跑 / 发布门禁**见 **`docs/ops-diary.md`**。H5 对话「历史/新消息」队列、打断与落库见 **TD-015**（**部分清偿**，见正文）；**按轮情绪 / `round_id`（TD-016）**：**V2-A/B/C** 已合并（库表、闭环写入、**管理端用户详情 →「情绪日志」只读 Tab** + `emotion-rounds`）；口语「**后台情绪还没做完**」多指 **TD-020**（短期属性 Admin/Agent/统计读边等），**不等价**于只读 Tab 未交付；H5 是否进一步按 `round_id` 做展示增强见体验/工单；**记忆检索 query 改写 / LLM 重写**见 **TD-017**；**日记「有互动」与仅失败 user 行**见 **TD-018**；**H5 多 Tab 并行聊天与 SSE 代展示**见 **TD-019**；**用户短期情绪属性（与句级/轮级情绪分层、Redis 与 DB 展示口径）**见 **TD-020**（**V3-A 基座已落地**，Admin/策略仍待）；**双轨用户记忆（列表库 vs Step6 向量）及合并口径**见 **TD-022、TD-023**；**Step6 四类 KV「一行一条」落库稳定性（L4 检测 / L5 自动修复）**见 **TD-028、TD-029**；**内容安全 `failed_blocked` 不可叹号重发（H5 / Open 共用）**见 **TD-030**；**Open API `check_send_quota`（10104）非原子**见 **TD-031**（PRD §8 TD-NEW-05）。
 
 ### [TD-001] users 表遗留字段待清理
 
@@ -467,6 +467,33 @@
 - **触发时机**：安全审查或改密码功能正式验收时。
 - **风险等级**：**中**（已知安全与契约偏差）
 - **关联**：`backend/schemas/auth.py` `ResetPasswordRequest`；管理端改密见 `POST /api/admin/auth/change-password`（已实现完整校验，可作参考）。
+
+### [TD-030] 内容安全 `failed_blocked` 未纳入叹号重发窗口（H5 / Open 共用，**待清偿**）
+
+- **位置**：`backend/services/chat_service.py` → `open_window_has_bang` / `enqueue_resend`；`POST /api/chat/resend`；`POST /api/open/v1/chat/resend`（共用同一判定链，见 **`docs/design/PRD-OpenAPI-APIKey-v1.md`** §8 **TD-NEW-02**）。
+- **问题**：Step5 / Step5.5 对外 `messages[].content` 任一条内容安全不通过时，user 行标 **`delivery_status=failed_blocked`**（见 **STEP-012** / `docs/contract.md` H5 对话 send 语义）。当前叹号判定 **仅**包含 `failed_timeout`、`failed_error`，**不含** `failed_blocked`。后果：该 user 行 **无叹号 UI**（H5）、**不可** `resend`（返回 **10107** `ERR_CHAT_NOTHING_TO_RESEND`）；用户/第三方须 **重新 send 新消息**，易误判为「系统无响应」。
+- **需求确认（2026-06-04）**：Open API v1 需求评审 **V4 方案 A** — **本期接受现状**，与 H5 保持一致；**不**在 Open 单独放宽 resend 规则。
+- **当前处理**：
+  1. 运行时逻辑 **不改**；Open `resend` 与 H5 共用 `_open_window_has_bang`（经 N5 `chat_service` 搬迁后仍须保持单点判定）。
+  2. 第三方文档 **`docs/design/open-api-v1.md`** 已写明：仅 `failed_timeout` / `failed_error` 可 resend；`failed_blocked` 请 **重新 send**。
+- **待处理（单独立项，H5 + Open 同期）**：
+  1. 产品确认：`failed_blocked` 是否允许叹号重发（重跑 LLM 仍可能再次 blocked，价值待评估）。
+  2. 若做：扩展 `_open_window_has_bang` 含 `DELIVERY_STATUS_FAILED_BLOCKED`；H5 `chat.html` 叹号展示规则对齐；Open resend 共用；更新 `docs/contract.md` 与 Open 集成文档。
+  3. 若不做：可在 H5 timeline / 失败 user 行增加 **明确文案**（如「内容未通过审核，请修改后重发」），降低困惑。
+- **触发时机**：用户/运营反馈 blocked 场景无法恢复；或 Open 第三方集成验收反馈 resend 语义不清时评估。
+- **风险等级**：**低**（发生频率相对 timeout/error 较低；send 入队前 10101 已挡大部分输入侧违规；主要影响 **模型输出侧** blocked）
+- **关联**：**TD-015**（叹号与 resend 主链）；**PRD-OpenAPI-APIKey-v1** §8 **TD-NEW-02**、§5.2 对话共用规则（C11）。
+
+### [TD-031] Open API `check_send_quota`（10104）为非原子「先 SELECT 再 INSERT」（**待清偿**）
+
+- **位置**：`backend/services/chat_service.py` → `fetch_open_window_user_rows` + `check_send_quota`（PRD V9 / §8 TD-NEW-05）；H5/Open send 共用。
+- **问题**：10104 判定为 **先读未闭环 user 行、再 INSERT 新 user 行**，无 Redis 锁 / Lua / 事务级原子保护。H5 现网已如此；Open 搬迁后 **行为一致，不新增恶化**；极端并发（H5+Open 双端）下两请求可能同时读到 pending&lt;5 并均入队。
+- **需求确认（2026-06-04）**：PRD V9 / TD-NEW-05 — **本期接受**，50 用户规模影响可忽略。
+- **当前处理**：不改功能设计；Open v1 已落地，行为与 H5 一致；PRD §8 已标注。
+- **待处理（单独立项）**：Redis 原子计数或等价机制；**须 H5 + Open 同期改造**。
+- **触发时机**：并发 send 导致队列明显超过 5 且无叹号时评估。
+- **风险等级**：**低**
+- **关联**：PRD **TD-NEW-05**；**TD-030**（独立项）。
 
 ---
 

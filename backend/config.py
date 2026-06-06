@@ -143,3 +143,24 @@ def get_dashvector_collection() -> str:
 def get_redis_user_emotion_ttl_seconds() -> int:
     """用户短期情绪 Redis 键 user_emotion:{user_id} 的 TTL（秒），默认 3600。见 TD-020 / V3-A。"""
     return int(os.getenv("REDIS_USER_EMOTION_TTL", "3600"))
+
+
+# ============ Open API Key ============
+
+_OPEN_API_PEPPER_MIN_LEN = 32
+
+
+def get_open_api_pepper() -> str:
+    """Open API Key 哈希 pepper（必填，长度 ≥32，与 JWT 无关）。"""
+    pepper = (os.getenv("OPEN_API_PEPPER") or "").strip()
+    if len(pepper) < _OPEN_API_PEPPER_MIN_LEN:
+        raise RuntimeError(
+            f"OPEN_API_PEPPER 未配置或长度不足 {_OPEN_API_PEPPER_MIN_LEN}，"
+            "请使用 openssl rand -hex 32 生成并写入 .env"
+        )
+    return pepper
+
+
+def validate_open_api_pepper_on_startup() -> None:
+    """应用启动时校验 OPEN_API_PEPPER（N1 / V2）。"""
+    get_open_api_pepper()

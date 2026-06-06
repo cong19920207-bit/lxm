@@ -1354,11 +1354,103 @@ function renderAccountTab() {
       '<span style="color:var(--text-secondary);font-size:14px">当前状态</span>' +
       statusTag +
     '</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">' +
       '<button type="button" class="' + actionBtnClass + '" onclick="toggleUserStatus()">' + esc(actionBtnLabel) + '</button>' +
       '<button type="button" class="btn btn-default" onclick="resetUserPassword()">重置密码</button>' +
-    '</div>';
+    '</div>' +
+    '<div class="info-card-title" style="margin-top:8px">Open API Key</div>' +
+    '<div id="open-api-key-area" style="font-size:14px;color:var(--text-secondary)">加载中...</div>';
   syncTopBarToggleStatusBtn();
+  loadOpenApiKeyBlock();
+}
+
+function formatOpenApiMinute(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  var h = String(d.getHours()).padStart(2, '0');
+  var min = String(d.getMinutes()).padStart(2, '0');
+  return y + '-' + m + '-' + day + ' ' + h + ':' + min;
+}
+
+async function loadOpenApiKeyBlock() {
+  var area = document.getElementById('open-api-key-area');
+  if (!area) return;
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/open-api-key');
+  if (!res || res.code !== 0) {
+    area.textContent = '加载失败';
+    return;
+  }
+  var d = res.data || {};
+  var enabled = !!d.enabled;
+  var statusHtml = enabled
+    ? '<span class="tag tag-success">已开通</span>'
+    : '<span class="tag">未开通</span>';
+  var metaHtml = enabled
+    ? '<div class="info-row" style="margin-top:12px"><span class="info-label">Key 脱敏</span><span class="info-value" style="font-family:monospace">' + esc(d.key_prefix || '') + '</span></div>' +
+      '<div class="info-row"><span class="info-label">首次签发</span><span class="info-value">' + esc(formatOpenApiMinute(d.created_at)) + '</span></div>' +
+      '<div class="info-row"><span class="info-label">最后使用</span><span class="info-value">' + esc(formatOpenApiMinute(d.last_used_at)) + '</span></div>'
+    : '<p style="margin:12px 0 0">尚未生成 API Key，第三方无法调用 Open API。</p>';
+  var btnLabel = enabled ? '重新生成 Key' : '生成 API Key';
+  area.innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">' + statusHtml + '</div>' +
+    metaHtml +
+    '<div style="margin-top:16px">' +
+      '<button type="button" class="btn btn-primary" onclick="generateOpenApiKey(' + (enabled ? 'true' : 'false') + ')">' + esc(btnLabel) + '</button>' +
+    '</div>';
+}
+
+function showOpenApiKeyOnceModal(apiKey, keyPrefix) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML =
+    '<div class="modal-content" style="min-width:360px;max-width:520px">' +
+      '<div class="modal-header"><h3>API Key 已生成</h3><button type="button" class="btn btn-link" id="__oak_close">✕</button></div>' +
+      '<div class="modal-body">' +
+        '<p style="margin:0 0 8px;font-size:13px;color:var(--text-secondary)">明文仅展示一次，请立即复制。前缀：' + esc(keyPrefix || '') + '</p>' +
+        '<div id="__oak_display" style="font-size:14px;font-family:monospace;word-break:break-all;padding:12px;background:#fafafa;border-radius:8px">' + esc(apiKey) + '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-default" id="__oak_copy">复制</button>' +
+        '<button type="button" class="btn btn-primary" id="__oak_ok">关闭</button>' +
+      '</div></div>';
+  document.body.appendChild(overlay);
+  function closeModal() { overlay.remove(); loadOpenApiKeyBlock(); }
+  overlay.querySelector('#__oak_close').onclick = closeModal;
+  overlay.querySelector('#__oak_ok').onclick = closeModal;
+  overlay.querySelector('#__oak_copy').onclick = function () {
+    var ta = document.createElement('textarea');
+    ta.value = apiKey;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    overlay.querySelector('#__oak_copy').textContent = '已复制✓';
+  };
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+}
+
+function generateOpenApiKey(isRegenerate) {
+  var msg = isRegenerate
+    ? '重新生成后旧 Key 立即失效，确定继续？'
+    : '将为该用户生成 Open API Key，确定继续？';
+  showConfirm(msg, async function () {
+    var res = await adminRequest('POST', '/api/admin/users/' + userId + '/open-api-key');
+    if (!res || res.code !== 0) return;
+    var key = (res.data && res.data.api_key) || '';
+    if (!key) {
+      showToast('未返回 API Key', 'error');
+      return;
+    }
+    showOpenApiKeyOnceModal(key, res.data.key_prefix);
+    showToast(res.message || '生成成功', 'success');
+  });
 }
 
 function toggleUserStatus() {

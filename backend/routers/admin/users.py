@@ -32,6 +32,7 @@ from backend.constants import (
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
 from backend.services.admin_diary_query import fetch_admin_diary_list_page
+from backend.services.open_api_key_service import get_key_status, upsert_api_key
 from backend.services.user_vector_memory_service import user_vector_memory_service
 from backend.utils.admin_auth import get_current_admin, log_operation, require_role
 
@@ -801,6 +802,82 @@ async def list_user_diaries(
     if err:
         return err
     return ApiResponse.ok(data=data)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Open API Key：GET/POST /users/{user_id}/open-api-key
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+@router.get(
+    "/users/{user_id}/open-api-key",
+    dependencies=[require_role("super_admin", "ops_admin")],
+)
+async def get_user_open_api_key(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
+    status = await get_key_status(db, user_id)
+    if status is None:
+        return ApiResponse.ok(data={"enabled": False})
+    return ApiResponse.ok(data=status)
+
+
+@router.post(
+    "/users/{user_id}/open-api-key",
+    dependencies=[require_role("super_admin", "ops_admin")],
+)
+async def create_or_regenerate_open_api_key(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
+
+    try:
+        api_key, is_create, old_prefix = await upsert_api_key(db, user_id, admin_user.id)
+    except ValueError:
+        return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
+
+    status = await get_key_status(db, user_id)
+
+    if is_create:
+        await log_operation(
+            db=db,
+            admin_user=admin_user,
+            module="用户管理",
+            action="create",
+            target_description=(
+                f"为用户 {user.username}(ID:{user_id}) 生成 Open API Key，前缀 {status['key_prefix']}"
+            ),
+            request=request,
+        )
+    else:
+        await log_operation(
+            db=db,
+            admin_user=admin_user,
+            module="用户管理",
+            action="edit",
+            target_description=f"重新生成用户 {user.username}(ID:{user_id}) 的 Open API Key",
+            before_value=old_prefix,
+            after_value=status["key_prefix"],
+            request=request,
+        )
+
+    await db.commit()
+
+    return ApiResponse.ok(
+        data={
+            "api_key": api_key,
+            "key_prefix": status["key_prefix"],
+            "created_at": status["created_at"],
+        },
+        message="API Key 已生成，请立即复制保存，关闭后无法再次查看",
+    )
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

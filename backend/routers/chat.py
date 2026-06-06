@@ -19,17 +19,14 @@ from backend.constants import (
     DELIVERY_STATUS_FAILED_BLOCKED,
     DELIVERY_STATUS_FAILED_ERROR,
     DELIVERY_STATUS_FAILED_TIMEOUT,
-    DELIVERY_STATUS_PENDING_LLM,
-    ERR_CHAT_NOTHING_TO_RESEND,
     ERR_CHAT_QUEUE_FULL,
-    ERR_CHAT_RESEND_LIMIT,
     ERR_CONTENT_EMPTY,
     ERR_CONTENT_UNSAFE,
     ERR_LLM_FAILED,
-    PERSONA_RISK_KEYWORDS,
 )
+from backend.services import chat_service
+from backend.services.timeline_read_service import get_timeline
 from backend.database import async_session_maker, get_db
-from backend.models.agent_message import AgentMessage
 from backend.models.conversation_log import ConversationLog
 from backend.models.emotion_log import EmotionLog
 from backend.models.relationship import Relationship
@@ -39,11 +36,8 @@ from backend.schemas.common import ApiResponse
 from backend.services.chat_queue_service import (
     cancel_local_debounce_task,
     redis_get_generation,
-    redis_set_generation,
-    schedule_debounced,
-    try_consume_resend_quota,
 )
-from backend.services.content_safety_service import check_content
+from backend.services.content_safety_service import check_content  # noqa: F401 — 测试与 Step 安全链仍引用
 from backend.services.llm_service import Step5ParseError, llm_service, merge_messages_if_exceed
 from backend.services.multi_vector_retrieval_service import execute_multi_vector_retrieval
 from backend.services.prompt_builder import (
@@ -57,9 +51,9 @@ from backend.services.prompt_builder import (
 from backend.services.query_rewrite_service import execute_query_rewrite
 from backend.services.step5_5_service import execute_step5_5
 from backend.services.step6_orchestrator import Step6Snapshot, execute_step6
+from backend.services.timeline_seq_service import allocate_sort_seq
 from backend.services.relationship_service import RelationshipService
 from backend.services import user_short_term_emotion_service
-from backend.services.timeline_seq_service import allocate_sort_seq
 from backend.utils.auth_middleware import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -69,9 +63,6 @@ router = APIRouter(prefix="/api/chat", tags=["对话"])
 _SSE_CHUNK_SIZE = 2
 _SSE_CHUNK_DELAY = 0.03
 
-# 每代 SSE 等待 LLM 闭环结果；§2.11.2 调至 120s，Nginx proxy_read_timeout 须 ≥ 130s
-_BUNDLE_WAIT_TIMEOUT_SEC = 120.0
-
 # bundled 截断上限（C28/C29）：取尾部 4000 字符（约 1500~2000 Token，
 # 在阿里云 text-embedding-v3 安全范围内）。Step1.5 输入与降级 fallback_embedding 共用。
 BUNDLED_MAX_CHARS = 4000
@@ -80,13 +71,6 @@ BUNDLED_MAX_CHARS = 4000
 def _truncate_bundled(text: str) -> str:
     """取尾部 BUNDLED_MAX_CHARS 字符；尾部语义更重要（最后几条消息，C29）。"""
     return text[-BUNDLED_MAX_CHARS:] if len(text) > BUNDLED_MAX_CHARS else text
-
-# generation_id -> Future，供 SSE 与打包任务对接
-_generation_futures: dict[str, asyncio.Future] = {}
-# Worker 早于 SSE await 完成时暂存结果，避免客户端永远等不到
-_generation_results: dict[str, dict[str, Any]] = {}
-_gen_future_lock = asyncio.Lock()
-
 
 # ============ 数据读取（独立 session 防 gather 冲突）============
 
@@ -144,13 +128,7 @@ async def _get_latest_emotion(user_id: int, db: AsyncSession | None = None) -> d
         return await _fetch(session)
 
 
-def _detect_persona_risk(text: str) -> tuple[bool, str | None]:
-    text_lower = text.lower()
-    for risk_type, keywords in PERSONA_RISK_KEYWORDS.items():
-        for kw in keywords:
-            if kw in text_lower:
-                return True, risk_type
-    return False, None
+_detect_persona_risk = chat_service._detect_persona_risk
 
 
 # ============ 内容安全：messages 逐条检测 ============
@@ -197,97 +175,6 @@ async def _check_inner_monologue_safety(inner_monologue: str, user_id: int) -> s
 
 
 # ============ 未闭环窗口 / 队列 ============
-
-
-async def _max_assistant_sort_seq(session: AsyncSession, user_id: int) -> int | None:
-    stmt = select(func.max(ConversationLog.sort_seq)).where(
-        ConversationLog.user_id == user_id,
-        ConversationLog.role == "assistant",
-    )
-    return (await session.execute(stmt)).scalar()
-
-
-async def _fetch_open_window_user_rows(session: AsyncSession, user_id: int) -> list[ConversationLog]:
-    """最后一条 assistant 之后、尚未闭环的全部 user 行（按 sort_seq 升序）。"""
-    max_a = await _max_assistant_sort_seq(session, user_id)
-    q = select(ConversationLog).where(
-        ConversationLog.user_id == user_id,
-        ConversationLog.role == "user",
-    )
-    if max_a is not None:
-        q = q.where(ConversationLog.sort_seq > max_a)
-    q = q.order_by(ConversationLog.sort_seq.asc())
-    return list((await session.execute(q)).scalars().all())
-
-
-def _open_window_has_bang(rows: list[ConversationLog]) -> bool:
-    return any(
-        r.delivery_status in (DELIVERY_STATUS_FAILED_TIMEOUT, DELIVERY_STATUS_FAILED_ERROR)
-        for r in rows
-    )
-
-
-def _should_block_new_send(open_rows: list[ConversationLog]) -> bool:
-    """无叹号时未处理 user 行 ≥5 则拒绝新入队。"""
-    pending = [
-        r
-        for r in open_rows
-        if r.delivery_status != DELIVERY_STATUS_DELIVERED
-    ]
-    if len(pending) >= 5 and not _open_window_has_bang(open_rows):
-        return True
-    return False
-
-
-# ============ generation + Future ============
-
-
-async def _invalidate_generation_future(old_gen: str | None) -> None:
-    if not old_gen:
-        return
-    async with _gen_future_lock:
-        _generation_results.pop(old_gen, None)
-        fut = _generation_futures.pop(old_gen, None)
-    if fut is not None and not fut.done():
-        fut.set_result({"obsolete": True})
-
-
-async def _new_generation_for_user(user_id: int) -> str:
-    """换新代并作废旧代 Future。"""
-    r = await get_redis()
-    key = f"chat:gen:{user_id}"
-    old = await r.get(key)
-    new_gen = str(uuid.uuid4())
-    await redis_set_generation(user_id, new_gen)
-    await _invalidate_generation_future(old)
-    return new_gen
-
-
-async def _get_or_create_bundle_future(gen: str) -> asyncio.Future:
-    """send/resend 与 SSE 共用同一 Future；若 Worker 已先完成则返回已完成的 Future。"""
-    loop = asyncio.get_running_loop()
-    async with _gen_future_lock:
-        cached = _generation_results.pop(gen, None)
-        if cached is not None:
-            fut_done: asyncio.Future = loop.create_future()
-            fut_done.set_result(cached)
-            return fut_done
-        fut = _generation_futures.get(gen)
-        if fut is None:
-            fut = loop.create_future()
-            _generation_futures[gen] = fut
-        return fut
-
-
-async def _resolve_generation_future(gen: str, payload: dict[str, Any]) -> None:
-    """唤醒等待中的 SSE；若无 waiter 则写入缓存供后续 get_or_create 立即取走。"""
-    async with _gen_future_lock:
-        fut = _generation_futures.get(gen)
-        if fut is not None and not fut.done():
-            fut.set_result(payload)
-            return
-        # 尚无 Future（例如 instant 调度在 StreamingResponse 被读前已跑完）
-        _generation_results[gen] = payload
 
 
 # ============ 落库与后置任务 ============
@@ -495,7 +382,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
             if not gen_before:
                 return
 
-            open_rows = await _fetch_open_window_user_rows(db, user_id)
+            open_rows = await chat_service.fetch_open_window_user_rows(db, user_id)
             if not open_rows:
                 return
 
@@ -579,6 +466,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
 
             gen_check = await redis_get_generation(user_id)
             if gen_check != gen_before:
+                await chat_service.schedule_recovery_bundle(user_id, _execute_llm_bundle)
                 return
 
             try:
@@ -591,7 +479,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
                 gen_after = await redis_get_generation(user_id)
                 if gen_after == gen_before:
                     await _mark_pack_failed(pack_rows, DELIVERY_STATUS_FAILED_TIMEOUT)
-                    await _resolve_generation_future(
+                    await chat_service.resolve_generation_future(
                         gen_before,
                         {"error": True, "code": ERR_LLM_FAILED, "message": str(e)},
                     )
@@ -599,6 +487,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
 
             gen_after_llm = await redis_get_generation(user_id)
             if gen_after_llm != gen_before:
+                await chat_service.schedule_recovery_bundle(user_id, _execute_llm_bundle)
                 return
 
             # ── §9.1 内容安全：inner_monologue 检测（违规仅日志+替换空串，不拦截）──
@@ -615,7 +504,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
                     "Step5 messages 内容安全拦截 user_id=%d: %s", user_id, step5_msgs_reason
                 )
                 await _mark_pack_failed(pack_rows, DELIVERY_STATUS_FAILED_BLOCKED)
-                await _resolve_generation_future(
+                await chat_service.resolve_generation_future(
                     gen_before,
                     {"error": True, "code": ERR_CONTENT_UNSAFE, "message": "内容安全拦截"},
                 )
@@ -729,7 +618,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
             # 将合并后的结构化数据写入 Future payload，供 SSE / done / 后续环节使用
             step5_dump = step5_result.model_dump()
             step5_dump["messages"] = [m.model_dump() for m in final_messages]
-            await _resolve_generation_future(
+            await chat_service.resolve_generation_future(
                 gen_before,
                 {
                     "error": False,
@@ -745,7 +634,7 @@ async def _execute_llm_bundle(user_id: int) -> None:
         try:
             gen_b = await redis_get_generation(user_id)
             if gen_b:
-                await _resolve_generation_future(
+                await chat_service.resolve_generation_future(
                     gen_b,
                     {"error": True, "code": ERR_LLM_FAILED, "message": str(e)},
                 )
@@ -762,11 +651,8 @@ async def _sse_chat_wait_bundle(
 ):
     """§2.9.4 多气泡 SSE：meta(message_count) → delta(message_index) → done(messages+emotion)。"""
 
-    fut = await _get_or_create_bundle_future(generation_id)
-    try:
-        payload = await asyncio.wait_for(fut, timeout=_BUNDLE_WAIT_TIMEOUT_SEC)
-    except asyncio.TimeoutError:
-        # 超时也先发 meta，保证前端能识别流
+    payload = await chat_service.await_bundle_payload(generation_id)
+    if payload.get("error") and payload.get("code") == ERR_LLM_FAILED and payload.get("message") == "等待回复超时":
         meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0}, ensure_ascii=False)
         yield f"data: {meta}\n\n"
         err = json.dumps(
@@ -775,10 +661,6 @@ async def _sse_chat_wait_bundle(
         )
         yield f"data: {err}\n\n"
         return
-    finally:
-        async with _gen_future_lock:
-            _generation_futures.pop(generation_id, None)
-            _generation_results.pop(generation_id, None)
 
     if payload.get("obsolete"):
         meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0}, ensure_ascii=False)
@@ -801,16 +683,8 @@ async def _sse_chat_wait_bundle(
         yield f"data: {err}\n\n"
         return
 
-    # 提取多条 messages（Step5 结构化输出）
-    step5_data = payload.get("step5") or {}
-    messages_raw = step5_data.get("messages") or []
-    emotion_data = payload.get("emotion") or {"label": "平静", "confidence": 1.0}
-
-    # 兜底：若 step5.messages 为空则回退到 reply 单条
-    if not messages_raw:
-        reply = payload.get("reply") or ""
-        messages_raw = [{"type": "text", "content": reply}] if reply else []
-
+    done_messages, emotion_data, _round_id = chat_service.build_done_messages_from_payload(payload)
+    messages_raw = done_messages
     message_count = len(messages_raw)
 
     # CP2：首包携带 message_count + generation_id
@@ -832,8 +706,6 @@ async def _sse_chat_wait_bundle(
             yield f"data: {event}\n\n"
             await asyncio.sleep(_SSE_CHUNK_DELAY)
 
-    # done 携带完整 messages 数组 + emotion（真相源）
-    done_messages = [{"type": m.get("type", "text"), "content": m.get("content", "")} for m in messages_raw]
     done_event = json.dumps(
         {"type": "done", "messages": done_messages, "emotion": emotion_data},
         ensure_ascii=False,
@@ -850,59 +722,26 @@ async def chat_send(
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    user_content = req.content.strip()
-    if not user_content:
-        return ApiResponse.fail(ERR_CONTENT_EMPTY)
+    safety = await chat_service.check_content_safety(req.content)
+    if not safety.get("ok"):
+        if safety["code"] == ERR_CONTENT_UNSAFE:
+            logger.warning("用户输入未通过安全检查: user_id=%d", user_id)
+        return ApiResponse.fail(safety["code"])
 
-    # M11/P7：send 阶段不再做向量检索/记忆注入计算（无下游消费者，已删 gather 三件套
-    # + _search_memories + memory_injected 计算）；记忆召回统一在 _execute_llm_bundle 内
-    # Step1.5→Step2 路径完成。conversation_log.memory_injected 列保留，新 user 行恒 null。
-    safety_result = await check_content(user_content)
-    if not safety_result["is_safe"]:
-        logger.warning("用户输入未通过安全检查: user_id=%d", user_id)
-        return ApiResponse.fail(ERR_CONTENT_UNSAFE)
-
-    persona_risk_flag, persona_risk_type = _detect_persona_risk(user_content)
-
-    open_rows = await _fetch_open_window_user_rows(db, user_id)
-    if _should_block_new_send(open_rows):
+    if await chat_service.check_send_quota(user_id, db):
+        await chat_service.trigger_recovery_if_queue_stuck(
+            user_id, db, _execute_llm_bundle
+        )
         return ApiResponse.fail(ERR_CHAT_QUEUE_FULL)
 
-    generation_id = await _new_generation_for_user(user_id)
-    await _get_or_create_bundle_future(generation_id)
-
-    seqs = await allocate_sort_seq(user_id, count=1, db=db)
-    user_log = ConversationLog(
-        user_id=user_id,
-        role="user",
-        content=user_content,
-        memory_injected=None,  # M11：新 user 行恒 null
-        persona_risk_flag=persona_risk_flag,
-        persona_risk_type=persona_risk_type,
-        sort_seq=seqs[0],
-        delivery_status=DELIVERY_STATUS_PENDING_LLM,
-        skipped_in_prompt=False,
+    generation_id = await chat_service.enqueue_send(
+        user_id,
+        db,
+        safety["content"],
+        safety["persona_risk_flag"],
+        safety["persona_risk_type"],
+        _execute_llm_bundle,
     )
-    db.add(user_log)
-    await db.commit()
-
-    # R-FUT-03：用户发新消息时将 proactive_times 清零
-    try:
-        async with async_session_maker() as _reset_db:
-            _rel_stmt = select(Relationship).where(Relationship.user_id == user_id)
-            _rel_result = await _reset_db.execute(_rel_stmt)
-            _rel = _rel_result.scalar_one_or_none()
-            if _rel is not None and _rel.proactive_times != 0:
-                _rel.proactive_times = 0
-                await _reset_db.commit()
-                logger.info("proactive_times 清零: user_id=%d", user_id)
-    except Exception:
-        logger.exception("proactive_times 清零失败: user_id=%d", user_id)
-
-    async def _debounced_run() -> None:
-        await _execute_llm_bundle(user_id)
-
-    await schedule_debounced(user_id, _debounced_run)
 
     return StreamingResponse(
         _sse_chat_wait_bundle(user_id, generation_id),
@@ -922,17 +761,11 @@ async def chat_resend(
     req: ChatResendRequest = ChatResendRequest(),
 ):
     """叹号重发：不插入 user；限流 2 次/分钟；立即调度打包 LLM（无防抖）。"""
-    open_rows = await _fetch_open_window_user_rows(db, user_id)
-    if not _open_window_has_bang(open_rows):
-        return ApiResponse.fail(ERR_CHAT_NOTHING_TO_RESEND)
-
-    batch_key = str(min(r.sort_seq for r in open_rows))
-    if not await try_consume_resend_quota(user_id, batch_key):
-        return ApiResponse.fail(ERR_CHAT_RESEND_LIMIT)
-
-    generation_id = await _new_generation_for_user(user_id)
-    await _get_or_create_bundle_future(generation_id)
-    asyncio.create_task(_execute_llm_bundle(user_id))
+    generation_id, err_code = await chat_service.enqueue_resend(
+        user_id, db, _execute_llm_bundle
+    )
+    if err_code is not None:
+        return ApiResponse.fail(err_code)
 
     return StreamingResponse(
         _sse_chat_wait_bundle(user_id, generation_id),
@@ -989,29 +822,6 @@ async def chat_history(
     )
 
 
-def _timeline_conv_item(row: ConversationLog) -> dict[str, Any]:
-    """timeline 单条 conversation_log：含 delivery_status / skipped_in_prompt / sort_seq（A1 助手 null）。"""
-    if row.role == "assistant":
-        ds: str | None = None
-        sk: bool | None = None
-    else:
-        ds = row.delivery_status
-        sk = bool(row.skipped_in_prompt) if row.skipped_in_prompt is not None else False
-
-    return {
-        "source": row.role,
-        "sort_seq": row.sort_seq,
-        "id": row.id,
-        "content": row.content,
-        "created_at": row.created_at.isoformat() if row.created_at else None,
-        "emotion_label": row.emotion_label,
-        "is_read": None,
-        "trigger_type": None,
-        "delivery_status": ds,
-        "skipped_in_prompt": sk,
-    }
-
-
 @router.get("/timeline")
 async def chat_timeline(
     cursor: int | None = Query(None, description="游标：上一页返回的 next_cursor（sort_seq 值），首屏不传"),
@@ -1019,64 +829,10 @@ async def chat_timeline(
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    fetch_limit = limit + 1
-
-    conv_filter = ConversationLog.user_id == user_id
-    if cursor is not None:
-        conv_filter = conv_filter & (ConversationLog.sort_seq < cursor)
-    conv_stmt = (
-        select(ConversationLog)
-        .where(conv_filter)
-        .order_by(desc(ConversationLog.sort_seq))
-        .limit(fetch_limit)
-    )
-    conv_result = await db.execute(conv_stmt)
-    conv_rows = list(conv_result.scalars().all())
-
-    agent_filter = AgentMessage.user_id == user_id
-    if cursor is not None:
-        agent_filter = agent_filter & (AgentMessage.sort_seq < cursor)
-    agent_stmt = (
-        select(AgentMessage)
-        .where(agent_filter)
-        .order_by(desc(AgentMessage.sort_seq))
-        .limit(fetch_limit)
-    )
-    agent_result = await db.execute(agent_stmt)
-    agent_rows = list(agent_result.scalars().all())
-
-    merged: list[dict[str, Any]] = []
-    for row in conv_rows:
-        merged.append(_timeline_conv_item(row))
-
-    for row in agent_rows:
-        merged.append(
-            {
-                "source": "agent",
-                "sort_seq": row.sort_seq,
-                "id": row.id,
-                "content": row.content,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "emotion_label": None,
-                "is_read": row.is_read,
-                "trigger_type": row.trigger_type,
-                "delivery_status": None,
-                "skipped_in_prompt": None,
-            }
+    # 首屏拉取时若满队且全 pending_llm，后台补跑 bundle（刷新页可自愈死锁）
+    if cursor is None:
+        await chat_service.trigger_recovery_if_queue_stuck(
+            user_id, db, _execute_llm_bundle
         )
-
-    merged.sort(key=lambda x: x["sort_seq"], reverse=True)
-
-    has_more = len(merged) > limit
-    page_items = merged[:limit]
-    page_items.reverse()
-
-    next_cursor = page_items[0]["sort_seq"] if page_items and has_more else None
-
-    return ApiResponse.ok(
-        data={
-            "items": page_items,
-            "next_cursor": next_cursor,
-            "has_more": has_more,
-        }
-    )
+    data = await get_timeline(user_id, db, cursor=cursor, limit=limit)
+    return ApiResponse.ok(data=data)

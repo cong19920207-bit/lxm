@@ -15,12 +15,14 @@ from backend.models.relationship_change_history import RelationshipChangeHistory
 from backend.models.relationship_growth_log import RelationshipGrowthLog
 from backend.models.relationship_level_history import RelationshipLevelHistory
 from backend.models.user import User
+from backend.models.user_api_key import UserApiKey
 from backend.models.user_short_term_emotion import UserShortTermEmotion
 from backend.models.user_timeline_seq import UserTimelineSeq
 from backend.models.world_state import WorldState
 
 __all__ = [
     "User",
+    "UserApiKey",
     "UserShortTermEmotion",
     "ConversationLog",
     "Memory",

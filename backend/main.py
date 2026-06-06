@@ -56,6 +56,9 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时建表、启动定时任务，关闭时优雅停止"""
+    from backend.config import validate_open_api_pepper_on_startup
+
+    validate_open_api_pepper_on_startup()
     await create_all_tables()
     from backend.tasks.scheduler import start_scheduler, shutdown_scheduler
     from backend.services.diary_rules_loader import get_scheduled_diary_cron_times
@@ -94,6 +97,12 @@ app.include_router(memory_router)
 app.include_router(relationship_router)
 app.include_router(agent_router)
 app.include_router(app_router)
+
+from backend.routers.open.chat import router as open_chat_router  # noqa: E402
+from backend.routers.open.agent import router as open_agent_router  # noqa: E402
+
+app.include_router(open_chat_router)
+app.include_router(open_agent_router)
 
 # 管理后台路由
 from backend.routers.admin import auth as admin_auth  # noqa: E402
