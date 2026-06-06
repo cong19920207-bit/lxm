@@ -400,6 +400,17 @@ class TestAdminUserDiariesApi:
         assert r.json()["code"] == ADMIN_ERR_QUERY_DATE_FORMAT_INVALID
 
     @pytest.mark.asyncio
+    async def test_start_after_end_fails(self, client: AsyncClient):
+        await _create_admin_user("sudud4", "Super@Dud423!!", "super_admin")
+        uid, _ = await _register_and_token(client)
+        token = await _admin_token(client, "sudud4", "Super@Dud423!!")
+        r = await client.get(
+            f"/api/admin/users/{uid}/diaries?page=1&start_date=2026-06-05&end_date=2026-06-04",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.json()["code"] == ADMIN_ERR_QUERY_DATE_FORMAT_INVALID
+
+    @pytest.mark.asyncio
     async def test_ai_trainer_forbidden(self, client: AsyncClient):
         await _create_admin_user("aidud", "Ai@Dud1234!!", "ai_trainer")
         uid, _ = await _register_and_token(client)

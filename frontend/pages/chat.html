@@ -905,6 +905,27 @@
       return { pending, hasBang }
     }
 
+    /** 与后端 pack 闭环一致：done 时将当前未闭环窗口内 user 行标为 delivered */
+    function markOpenWindowUsersDelivered() {
+      const rows = [...document.querySelectorAll('#chat-messages .msg-row')]
+      let lastAiIdx = -1
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i].classList.contains('ai') && !rows[i].classList.contains('agent')) {
+          lastAiIdx = i
+          break
+        }
+      }
+      for (let i = lastAiIdx + 1; i < rows.length; i++) {
+        const row = rows[i]
+        if (!row.classList.contains('user')) continue
+        const ds = row.getAttribute('data-delivery') || ''
+        if (ds === 'pending_llm' || ds === 'failed_timeout' || ds === 'failed_error') {
+          row.setAttribute('data-delivery', 'delivered')
+          row.querySelectorAll('.msg-bang').forEach(function (b) { b.remove() })
+        }
+      }
+    }
+
     /**
      * 解析对话 SSE（§2.9.4 多气泡协议）。
      * 协议：meta(message_count+generation_id) → delta(message_index+content) → done(messages+emotion)
@@ -975,19 +996,7 @@
               if (data.emotion && data.emotion.label) updateChatBackgroundEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
               if (sessionAtStart === chatSendSession) {
-                if (clearAllFailedUserRowsOnDone) {
-                  document.querySelectorAll('#chat-messages .msg-row.user').forEach(function (row) {
-                    const ds = row.getAttribute('data-delivery') || ''
-                    if (ds === 'failed_timeout' || ds === 'failed_error') {
-                      row.setAttribute('data-delivery', 'delivered')
-                      row.querySelectorAll('.msg-bang').forEach(function (b) { b.remove() })
-                    }
-                  })
-                } else if (userRowForFailure && userRowForFailure.parentNode) {
-                  userRowForFailure.setAttribute('data-delivery', 'delivered')
-                  const bangEl = userRowForFailure.querySelector('.msg-bang')
-                  if (bangEl) bangEl.remove()
-                }
+                markOpenWindowUsersDelivered()
               }
             }
           } catch (e) {
@@ -1005,6 +1014,7 @@
       const { pending, hasBang } = countOpenPendingUsers()
       if (pending >= 5 && !hasBang) {
         alert('待处理消息过多，请先等待回复或处理失败提示后再发')
+        loadTimeline(true)
         return
       }
 
@@ -1063,8 +1073,14 @@
 
         const contentType = response.headers.get('content-type') || ''
         if (contentType.includes('application/json')) {
-          await response.json().catch(() => ({})) /* 业务失败信封，与 !response.ok 路径一致 */
+          const body = await response.json().catch(() => ({}))
           aiBubble.removeRow()
+          if (body && body.code === 10104) {
+            if (userRow.parentNode) userRow.remove()
+            alert(body.message || '待处理消息过多，请先等待或处理失败提示')
+            loadTimeline(true)
+            return
+          }
           if (userRow.parentNode) {
             userRow.setAttribute('data-delivery', 'failed_error')
             ensureUserRowBangButton(userRow)

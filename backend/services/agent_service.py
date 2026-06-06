@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import get_llm_timeout_chat_seconds
 from backend.constants import MEMORY_TYPE_USER, PERSONA_RISK_KEYWORDS
 from backend.database import async_session_maker
 from backend.models.agent_message import AgentMessage, TriggerType
@@ -20,7 +21,11 @@ from backend.models.relationship import Relationship
 from backend.models.user import User
 from backend.redis_client import get_redis
 from backend.services.embedding_service import embedding_service
-from backend.services.llm_service import llm_service
+from backend.services.llm_service import (
+    Step5ParseError,
+    llm_service,
+    merge_messages_if_exceed,
+)
 from backend.services.prompt_builder import PromptBuilder
 from backend.services.timeline_seq_service import allocate_sort_seq
 from backend.services.vector_service import vector_service
@@ -310,16 +315,9 @@ class AgentService:
                     relationship_info=relationship_info,
                 )
 
-            # 调用 LLM 生成消息
+            # 调用 LLM 生成消息（Step5 解析，与 Step8 / 主对话契约一致）
             fallback = AGENT_FALLBACK_REPLIES.get(trigger_type, "想你了，你还好吗？")
-            async with async_session_maker() as db:
-                llm_result = await llm_service.generate_with_fallback(
-                    prompt=prompt,
-                    fallback_reply=fallback,
-                    db=db,
-                )
-
-            reply = llm_result.get("reply", fallback)
+            reply = await self._call_llm_for_agent_prompt(prompt, fallback)
 
             # 关键词扫描（persona_risk_flag）
             persona_risk = self._check_persona_risk(reply)
@@ -632,6 +630,34 @@ class AgentService:
     # ================================================================
     #  辅助方法
     # ================================================================
+
+    async def _call_llm_for_agent_prompt(self, prompt: str, fallback: str) -> str:
+        """
+        使用 Step5 解析 LLM 输出并拼成主动消息正文。
+
+        解析失败或 HTTP 异常时返回调用方传入的类型兜底（AGENT_FALLBACK_REPLIES），
+        不使用对话链路的 DEFAULT_FALLBACK（走神）或 admin_config.fallback_reply。
+        """
+        try:
+            step5_result = await llm_service.chat_with_step5_parse(
+                prompt,
+                timeout_sec=get_llm_timeout_chat_seconds(),
+            )
+            merged = merge_messages_if_exceed(step5_result.messages)
+            parts = [
+                str(m.content).strip()
+                for m in merged
+                if getattr(m, "content", None) and str(m.content).strip()
+            ]
+            reply = "\n".join(parts)
+            if reply.strip():
+                return reply
+            logger.warning("[Agent] Step5 messages 合并后为空，使用类型兜底")
+        except Step5ParseError as e:
+            logger.warning("[Agent] Step5 解析失败，使用类型兜底: %s", str(e))
+        except Exception as e:
+            logger.error("[Agent] LLM 调用失败，使用类型兜底: %s", str(e))
+        return fallback
 
     async def _get_night_keywords(self) -> list[str]:
         """从 Redis 读取凌晨关键词，未配置则返回默认列表"""

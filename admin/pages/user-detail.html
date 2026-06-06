@@ -446,13 +446,13 @@
         <input type="date" id="conv-end-date">
         <button class="btn btn-primary" id="btnConvSearch" onclick="searchConversations()">查询</button>
       </div>
+      <!-- 加载更早（区间内更旧记录） -->
+      <div class="conv-load-more" id="conv-load-earlier" style="display:none">
+        <button class="btn btn-default" id="btnLoadEarlier" onclick="loadEarlierConversations()">加载更早</button>
+      </div>
       <!-- 聊天气泡列表 -->
       <div class="conv-list" id="conversations-list">
         <div class="conv-empty">加载中...</div>
-      </div>
-      <!-- 加载更多 -->
-      <div class="conv-load-more" id="conv-load-more" style="display:none">
-        <button class="btn btn-default" id="btnLoadMore" onclick="loadMoreConversations()">加载更多</button>
       </div>
     </div>
     <div class="tab-pane" id="tab-memory">
@@ -713,81 +713,41 @@ function renderInfoCards(data) {
 
 /* ─── Tab1 历史对话 ─── */
 var convCurrentPage = 0;
-var convHasMore = true;
+var convHasEarlier = false;
 var convLoading = false;
+var CONV_DEFAULT_DAYS = 7;
 
-function searchConversations() {
-  convCurrentPage = 0;
-  convHasMore = true;
-  document.getElementById('conversations-list').innerHTML = '<div class="conv-empty">加载中...</div>';
-  document.getElementById('conv-load-more').style.display = 'none';
-  loadConversations(1);
+function convFormatDateInput(d) {
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 }
 
-function loadMoreConversations() {
-  if (convLoading || !convHasMore) return;
-  loadConversations(convCurrentPage + 1);
+function initConvDateFilters() {
+  var startEl = document.getElementById('conv-start-date');
+  var endEl = document.getElementById('conv-end-date');
+  if (!startEl || !endEl) return;
+  if (!startEl.value || !endEl.value) {
+    var end = new Date();
+    var start = new Date();
+    start.setDate(start.getDate() - CONV_DEFAULT_DAYS);
+    startEl.value = convFormatDateInput(start);
+    endEl.value = convFormatDateInput(end);
+  }
 }
 
-async function loadConversations(page) {
-  if (convLoading) return;
-  convLoading = true;
+function convDeliveryLabel(ds) {
+  if (!ds) return '';
+  var m = {
+    delivered: '已送达',
+    pending_llm: '等待回复',
+    failed_timeout: '超时失败',
+    failed_error: '发送失败'
+  };
+  return m[ds] || ds;
+}
 
-  var btn = document.getElementById('btnLoadMore');
-  if (btn) { btn.disabled = true; btn.textContent = '加载中...'; }
-
-  var startDate = document.getElementById('conv-start-date').value;
-  var endDate = document.getElementById('conv-end-date').value;
-
-  var query = '?page=' + page;
-  if (startDate) query += '&start_date=' + startDate;
-  if (endDate) query += '&end_date=' + endDate;
-
-  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/conversations' + query);
-
-  convLoading = false;
-  if (btn) { btn.disabled = false; btn.textContent = '加载更多'; }
-
-  if (!res || res.code !== 0) {
-    if (page === 1) {
-      document.getElementById('conversations-list').innerHTML =
-        '<div class="conv-empty">加载失败，请重试</div>';
-    }
-    return;
-  }
-
-  var list = (res.data && res.data.list) || [];
-  var total = (res.data && res.data.total) || 0;
-  var pageSize = (res.data && res.data.page_size) || 20;
-
-  convCurrentPage = page;
-  convHasMore = page * pageSize < total;
-
-  /* 首页加载清空列表 */
-  var container = document.getElementById('conversations-list');
-  if (page === 1) {
-    container.innerHTML = '';
-  }
-
-  if (page === 1 && list.length === 0) {
-    container.innerHTML = '<div class="conv-empty">暂无对话记录</div>';
-    document.getElementById('conv-load-more').style.display = 'none';
-    return;
-  }
-
-  /* 渲染气泡 */
+function buildConversationsHtml(list) {
   var html = '';
-  function convDeliveryLabel(ds) {
-    if (!ds) return '';
-    var m = {
-      delivered: '已送达',
-      pending_llm: '等待回复',
-      failed_timeout: '超时失败',
-      failed_error: '发送失败'
-    };
-    return m[ds] || ds;
-  }
-
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
     var isUser = item.role === 'user';
@@ -827,10 +787,131 @@ async function loadConversations(page) {
     html += '  </div>';
     html += '</div>';
   }
-  container.insertAdjacentHTML('beforeend', html);
+  return html;
+}
 
-  /* 加载更多按钮 */
-  document.getElementById('conv-load-more').style.display = convHasMore ? '' : 'none';
+function updateConvEarlierButton() {
+  var wrap = document.getElementById('conv-load-earlier');
+  if (wrap) {
+    wrap.style.display = convHasEarlier ? '' : 'none';
+  }
+}
+
+async function fetchConversationsPage(page) {
+  var startDate = document.getElementById('conv-start-date').value;
+  var endDate = document.getElementById('conv-end-date').value;
+  var query = '?page=' + page;
+  if (startDate) query += '&start_date=' + encodeURIComponent(startDate);
+  if (endDate) query += '&end_date=' + encodeURIComponent(endDate);
+
+  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/conversations' + query);
+  if (!res || res.code !== 0) {
+    return null;
+  }
+  return {
+    list: (res.data && res.data.list) || [],
+    total: (res.data && res.data.total) || 0,
+    pageSize: (res.data && res.data.page_size) || 20
+  };
+}
+
+function searchConversations() {
+  convCurrentPage = 0;
+  convHasEarlier = false;
+  document.getElementById('conversations-list').innerHTML = '<div class="conv-empty">加载中...</div>';
+  updateConvEarlierButton();
+  loadConversationsInitial();
+}
+
+function loadEarlierConversations() {
+  if (convLoading || !convHasEarlier) return;
+  loadConversationsPage(convCurrentPage - 1, false);
+}
+
+async function loadConversationsInitial() {
+  if (convLoading) return;
+  convLoading = true;
+  initConvDateFilters();
+
+  var probe = await fetchConversationsPage(1);
+  convLoading = false;
+
+  var container = document.getElementById('conversations-list');
+  if (!probe) {
+    container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
+    updateConvEarlierButton();
+    return;
+  }
+
+  if (probe.total === 0 || probe.list.length === 0) {
+    container.innerHTML = '<div class="conv-empty">暂无对话记录</div>';
+    convCurrentPage = 0;
+    convHasEarlier = false;
+    updateConvEarlierButton();
+    return;
+  }
+
+  var lastPage = Math.max(1, Math.ceil(probe.total / probe.pageSize));
+  var payload = probe;
+  if (lastPage > 1) {
+    convLoading = true;
+    var lastRes = await fetchConversationsPage(lastPage);
+    convLoading = false;
+    if (!lastRes) {
+      container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
+      updateConvEarlierButton();
+      return;
+    }
+    payload = lastRes;
+  }
+
+  convCurrentPage = lastPage;
+  convHasEarlier = lastPage > 1;
+  container.innerHTML = buildConversationsHtml(payload.list);
+  updateConvEarlierButton();
+  container.scrollTop = container.scrollHeight;
+}
+
+async function loadConversationsPage(page, replace) {
+  if (convLoading) return;
+  convLoading = true;
+
+  var btn = document.getElementById('btnLoadEarlier');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '加载中...';
+  }
+
+  var container = document.getElementById('conversations-list');
+  var oldScrollHeight = replace ? 0 : container.scrollHeight;
+
+  var payload = await fetchConversationsPage(page);
+
+  convLoading = false;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '加载更早';
+  }
+
+  if (!payload) {
+    if (replace) {
+      container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
+    }
+    updateConvEarlierButton();
+    return;
+  }
+
+  var html = buildConversationsHtml(payload.list);
+  if (replace) {
+    container.innerHTML = html;
+  } else {
+    container.insertAdjacentHTML('afterbegin', html);
+    container.scrollTop = container.scrollHeight - oldScrollHeight;
+  }
+
+  convCurrentPage = page;
+  convHasEarlier = page > 1;
+  updateConvEarlierButton();
 }
 
 /* ─── Tab2/Tab3 用户记忆 + 私有状态（KV 向量，主键 doc_id） ─── */
@@ -1036,7 +1117,8 @@ document.querySelector('[data-target="tab-private"]').addEventListener('click', 
 
 /* ─── 页面加载完成后执行 ─── */
 loadUserDetail();
-loadConversations(1);
+initConvDateFilters();
+loadConversationsInitial();
 loadKvEntries(KV_CONFIGS.user);
 
 /* ─── Tab 主动消息（按用户懒加载） ─── */

@@ -3,7 +3,6 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -19,10 +18,10 @@ from backend.constants import (
     ADMIN_ERR_AGENT_MESSAGE_RULE_INVALID,
     ADMIN_ERR_AGENT_RULE_PARAM_INVALID,
     ADMIN_ERR_AGENT_TRIGGER_TYPE_INVALID,
-    ADMIN_ERR_QUERY_DATE_FORMAT_INVALID,
 )
 from backend.schemas.common import ApiResponse
 from backend.services.admin_config_service import admin_config_service
+from backend.services.admin_date_filter import append_created_at_range, parse_admin_date_range
 from backend.utils.admin_auth import get_current_admin, log_operation, require_role
 
 logger = logging.getLogger(__name__)
@@ -281,18 +280,10 @@ async def get_agent_messages(
         filters.append(AgentMessage.trigger_type == trigger_type)
     if is_read is not None:
         filters.append(AgentMessage.is_read == is_read)
-    if start_date:
-        try:
-            dt = datetime.strptime(start_date, "%Y-%m-%d")
-            filters.append(AgentMessage.created_at >= dt)
-        except ValueError:
-            return ApiResponse.fail(ADMIN_ERR_QUERY_DATE_FORMAT_INVALID, message="start_date 格式错误，应为 YYYY-MM-DD")
-    if end_date:
-        try:
-            dt = datetime.strptime(end_date, "%Y-%m-%d")
-            filters.append(AgentMessage.created_at < dt + timedelta(days=1))
-        except ValueError:
-            return ApiResponse.fail(ADMIN_ERR_QUERY_DATE_FORMAT_INVALID, message="end_date 格式错误，应为 YYYY-MM-DD")
+    start_dt, end_exclusive, date_err = parse_admin_date_range(start_date, end_date)
+    if date_err is not None:
+        return date_err
+    append_created_at_range(filters, AgentMessage.created_at, start_dt, end_exclusive)
 
     where_clause = and_(*filters) if filters else True
 

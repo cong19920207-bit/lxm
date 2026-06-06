@@ -31,6 +31,7 @@ from backend.constants import (
 )
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
+from backend.services.admin_date_filter import append_created_at_range, parse_admin_date_range
 from backend.services.admin_diary_query import fetch_admin_diary_list_page
 from backend.services.open_api_key_service import get_key_status, upsert_api_key
 from backend.services.user_vector_memory_service import user_vector_memory_service
@@ -271,14 +272,14 @@ async def get_user_conversations(
     if not user_result.scalar():
         return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
 
+    start_dt, end_exclusive, date_err = parse_admin_date_range(start_date, end_date)
+    if date_err is not None:
+        return date_err
+
     conv_filters = [ConversationLog.user_id == user_id]
     agent_filters = [AgentMessage.user_id == user_id]
-    if start_date:
-        conv_filters.append(ConversationLog.created_at >= start_date)
-        agent_filters.append(AgentMessage.created_at >= start_date)
-    if end_date:
-        conv_filters.append(ConversationLog.created_at <= end_date)
-        agent_filters.append(AgentMessage.created_at <= end_date)
+    append_created_at_range(conv_filters, ConversationLog.created_at, start_dt, end_exclusive)
+    append_created_at_range(agent_filters, AgentMessage.created_at, start_dt, end_exclusive)
 
     count_conv_stmt = select(func.count()).select_from(ConversationLog).where(*conv_filters)
     count_agent_stmt = select(func.count()).select_from(AgentMessage).where(*agent_filters)
@@ -410,11 +411,12 @@ async def get_user_emotion_rounds(
     if not user_result.scalar():
         return ApiResponse.fail(ADMIN_ERR_USER_NOT_FOUND)
 
+    start_dt, end_exclusive, date_err = parse_admin_date_range(start_date, end_date)
+    if date_err is not None:
+        return date_err
+
     filters = [EmotionLog.user_id == user_id]
-    if start_date:
-        filters.append(EmotionLog.created_at >= start_date)
-    if end_date:
-        filters.append(EmotionLog.created_at <= end_date)
+    append_created_at_range(filters, EmotionLog.created_at, start_dt, end_exclusive)
 
     count_stmt = select(func.count()).select_from(EmotionLog).where(*filters)
     total_result = await db.execute(count_stmt)
