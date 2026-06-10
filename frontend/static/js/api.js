@@ -17,6 +17,35 @@ const AVATAR_MAP = {
   '困倦':    '/static/images/avatar/emotion_sleepy.png',
 }
 
+/** 情绪 → 状态语兜底映射（首页与设置页共用，清偿 TD-HOME-07） */
+const EMOTION_STATUS_MAP = {
+  '开心': '今天状态不错，继续陪伴你吧~',
+  '平静': '今天也在呢，等你来聊天~',
+  '好奇': '对新的一天充满好奇呢~',
+  '想念': '有点想你了，来聊聊吧~',
+  '担心': '一直在想着你，还好吗~',
+  '害羞': '见到你有点开心又不好意思~',
+  '困倦': '有点困啦，但还是想陪着你~',
+}
+
+/** 状态语最终兜底文案 */
+const DEFAULT_STATUS_TEXT = '今天状态不错，继续陪伴你吧~'
+
+/**
+ * 解析关系状态语：status_text → 情绪映射 → 默认文案
+ * @param {object|null|undefined} data 关系 status 接口 data
+ * @returns {string}
+ */
+function resolveStatusText(data) {
+  if (!data) return DEFAULT_STATUS_TEXT
+  if (data.status_text) return data.status_text
+  const emotion = data.ai_current_emotion
+  if (emotion && EMOTION_STATUS_MAP[emotion]) {
+    return EMOTION_STATUS_MAP[emotion]
+  }
+  return DEFAULT_STATUS_TEXT
+}
+
 /**
  * 统一请求函数
  * 自动携带 Token，401 自动跳登录页，统一错误处理

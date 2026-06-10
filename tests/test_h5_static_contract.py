@@ -10,10 +10,17 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 FRONTEND_PAGES = REPO / "frontend" / "pages"
+FRONTEND_JS = REPO / "frontend" / "static" / "js"
 
 
 def _read(name: str) -> str:
     p = FRONTEND_PAGES / name
+    assert p.is_file(), f"missing {p}"
+    return p.read_text(encoding="utf-8")
+
+
+def _read_js(name: str) -> str:
+    p = FRONTEND_JS / name
     assert p.is_file(), f"missing {p}"
     return p.read_text(encoding="utf-8")
 
@@ -87,6 +94,13 @@ def test_login_html_auth_ids():
 
 def test_settings_change_password_ids():
     html = _read("settings.html")
+    api_js = _read_js("api.js")
+    for fragment in (
+        "EMOTION_STATUS_MAP",
+        "resolveStatusText",
+        "DEFAULT_STATUS_TEXT",
+    ):
+        assert fragment in api_js, fragment
     for fragment in (
         'id="password-form"',
         'id="old-password"',
@@ -102,7 +116,7 @@ def test_settings_change_password_ids():
         'id="linxiaomeng-avatar"',
         "/api/app/persona-background",
         "/api/relationship/status",
-        "EMOTION_STATUS_MAP",
+        "resolveStatusText",
         "toggleAbout",
         "handleChangePassword",
         "toggleSetting",
@@ -171,9 +185,9 @@ def test_relationship_html_surface_contract():
 
 
 def test_index_html_home_surface_contract():
-    """首页：未读角标 DOM、气泡文案容器、Hero 背景、主题进度条覆盖、未读呼吸类名（与 contract 摘要一致）。"""
+    """首页深色改版：一屏布局、Hero、顶栏亲密度、五接口并行、预览卡 DOM 与 CTA（与 contract 2026-06-10 摘要一致）。"""
     html = _read("index.html")
-    theme = (REPO / "frontend" / "static" / "css" / "h5-theme.css").read_text(encoding="utf-8")
+    api_js = _read_js("api.js")
     for fragment in (
         'id="unread-badge"',
         "unread-badge--active",
@@ -181,14 +195,37 @@ def test_index_html_home_surface_contract():
         'id="status-text"',
         "home-status-bubble",
         "/api/agent/unread-count",
+        "/api/relationship/detail",
+        "/api/memory/list",
+        "/api/diary/list",
         "classList.add('unread-badge--active')",
         "home-hero",
         "/static/images/Index/index.png",
         'id="linxiaomeng-avatar"',
-        "home-rel-card",
-        "home-feature-grid",
+        "updateAvatarEmotion",
+        "resolveStatusText",
+        "和她说说话吧",
+        "她在等你哦",
+        "home-quick-actions",
+        "home-quick-actions-wrap",
+        "home-memory-card",
+        "home-diary-card",
+        "home-relationship-card",
+        "home-card-meta-row",
+        "home-card-right--rel",
+        "home-card-chevron",
+        'id="relationship-level-name"',
+        "记录她的心情和生活",
+        "home-cta-btn",
+        "home-cta-arrow",
+        'id="known-days"',
+        "getBeijingDate",
+        "max-height: 100vh",
+        "overflow: hidden",
     ):
         assert fragment in html, fragment
-    assert "body.h5-skin .h5-home-main .home-rel-card .progress-bar" in theme
-    assert "linear-gradient(90deg, #3b82f6 0%, #ec4899 100%)" in theme
-    assert "home-hero .h5-home-decor::before" in theme
+    assert "resolveStatusText" in api_js
+    assert "home-rel-card" not in html
+    assert "home-feature-grid" not in html
+    assert "h5-home-decor" not in html
+    assert "overflow-y: auto" not in html.split(".home-cards-scroll")[1].split("}")[0]
