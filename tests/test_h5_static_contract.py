@@ -222,6 +222,16 @@ def test_index_html_home_surface_contract():
         "getBeijingDate",
         "max-height: 100vh",
         "overflow: hidden",
+        'id="home-loading-screen"',
+        'id="loading-avatar"',
+        "lxm_home_loader_done",
+        "我在。别急。",
+        "马上就见面了。",
+        "正在靠近你的世界",
+        "loading-avatar-ring",
+        "home-enter-item",
+        "is-enter-reveal",
+        "Promise.allSettled",
     ):
         assert fragment in html, fragment
     assert "resolveStatusText" in api_js

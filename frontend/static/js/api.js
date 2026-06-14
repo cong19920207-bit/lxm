@@ -85,6 +85,11 @@ function saveToken(token) {
 
 function clearToken() {
   localStorage.removeItem('token')
+  try {
+    sessionStorage.removeItem('lxm_home_loader_done')
+  } catch (e) {
+    /* sessionStorage 不可用时忽略 */
+  }
 }
 
 function checkLogin() {
@@ -118,13 +123,20 @@ function formatTime(isoString) {
  * 预加载图片避免闪烁
  */
 function updateAvatarEmotion(emotionLabel) {
-  const img = document.getElementById('linxiaomeng-avatar')
-  if (!img) return
+  const imgs = [
+    document.getElementById('linxiaomeng-avatar'),
+  ].filter(Boolean)
+  if (!imgs.length) return
 
   const src = AVATAR_MAP[emotionLabel] || AVATAR_MAP['default']
+  const fallback = AVATAR_MAP['default']
   const preload = new Image()
-  preload.onload = () => { img.src = src }
-  preload.onerror = () => { img.src = AVATAR_MAP['default'] }
+  preload.onload = () => {
+    imgs.forEach((img) => { img.src = src })
+  }
+  preload.onerror = () => {
+    imgs.forEach((img) => { img.src = fallback })
+  }
   preload.src = src
 }
 
