@@ -33,6 +33,8 @@ def test_chat_html_send_contract():
     assert 'type="button"' in html
     assert "class=\"send-btn" in html or "class='send-btn" in html
     assert "CHAT_SEND_DEBOUNCE_MS" in html
+    assert "getOpenWindowUserRows" in html
+    assert "markOpenWindowUsersDelivered" in html
     assert "updateSendBtn" in html
     assert "addEventListener('mousedown'" in html
     assert "addEventListener('touchstart'" in html

@@ -1,7 +1,7 @@
 # 林小梦主页改版 PRD
 
-> 版本：v1.7
-> 状态：**需求已全部对齐**（C1–C19、Q1–Q4、R1–R4、N1–N5 已确认；K1–K7 已闭合，见 §12）
+> 版本：v1.8
+> 状态：**需求已全部对齐**（C1–C19、Q1–Q4、R1–R4、N1–N5 已确认；K1–K7 已闭合；**v1.8** 全屏加载页增量已落地，见 §4.7）
 > 涉及模块：H5 主页（`frontend/pages/index.html`）、关系模块、记忆模块、日记模块、聊天入口、主题样式层
 > 基准代码：`lxm_for/frontend/pages/index.html`
 > 目标参照：深夜版主页设计稿（深色玻璃拟态 / 赛博紫调）
@@ -275,26 +275,46 @@
 
 ## 4.7 完整页面加载流程
 
+> **v1.8 增量**：首访/刷新先走全屏加载门闩，再进入 v1.7 主页渲染；同标签内 Session 跳过加载层（仍 `loadPage`）。详见 **`docs/contract.md` 文首 2026-06-14 摘要**。
+
 ```mermaid
 flowchart TD
     A[进入 index.html] --> B[checkLogin]
-    B --> C[并行请求 API]
-    C --> D[relationship/status]
-    C --> E[relationship/detail]
-    C --> F[memory/list page=1]
-    C --> G[diary/list page=1]
-    C --> H[agent/unread-count]
-    D --> I[渲染亲密度 + 情绪]
-    E --> J[渲染陪伴天数 known_days]
-    F --> K[渲染我们的记忆预览]
-    G --> L[渲染日记预览 + NEW]
-    H --> M[渲染未读角标]
-    I --> N[content-loaded 展示真实内容]
-    J --> N
-    K --> N
-    L --> N
-    M --> N
+    B --> C{sessionStorage.lxm_home_loader_done === '1' 且非刷新?}
+    C -->|是| D[跳过全屏加载层]
+    C -->|否| E[展示 #home-loading-screen]
+    E --> F[并行门闩]
+    F --> G[预载静态图 + 情绪头像]
+    F --> H[loadPage deferAvatar:true]
+    F --> I[elapsed ≥ 3000ms]
+    G --> J{进度 100% 且三项均满足?}
+    H --> J
+    I --> J
+    J -->|否| F
+    J -->|是| K[固定停留 500ms]
+    K --> L[加载层淡出 + 主页 is-enter-reveal 入场]
+    L --> M[写入 lxm_home_loader_done]
+    D --> N[loadPage 正常]
+    M --> O[updateAvatarEmotion 一次同步双头像]
+    N --> P[渲染各模块]
+    O --> P
+    P --> Q[content-loaded 展示真实内容]
 ```
+
+### 4.7.1 全屏加载页（v1.8）
+
+| 项 | 约定 |
+|---|---|
+| 层 ID | `#home-loading-screen`（全屏盖住主页直至门闩满足） |
+| 最短展示 | **3000ms**；进度至 **100%** 后再固定 **500ms** 退出 |
+| Session | `sessionStorage.lxm_home_loader_done`；同标签再次进入 **跳过**；**刷新**清除标记；**`clearToken()`** 清除标记 |
+| 加载头像 | `#loading-avatar` → `/static/images/Index/loader_avatar.jpg`（与顶栏情绪图分离） |
+| 顶栏头像 | `loadPage({ deferAvatar: true })` 期间不换图；情绪图预载完成后 **`updateAvatarEmotion` 仅一次**同步 `#loading-avatar` + `#linxiaomeng-avatar` |
+| API | 五接口 **`Promise.allSettled`**（与 v1.7 `loadPage` 一致） |
+| 文案 | 副标题「正在靠近你的世界」；底部轮播三句（我在。别急。/ 马上就见面了。/ 来了？我等你一会儿了。） |
+| 退出过渡 | **A+**：加载层 `is-exiting` 淡出 + 主页 `is-enter-reveal` 轻 fade + `home-enter-item` 七段 stagger |
+| 骨架屏 | `.skeleton-wrap` 保留作 API 失败兜底；正常路径与 `content-loaded` 同步 |
+| 无障碍/动效 | `prefers-reduced-motion: reduce` 关闭粒子/波纹/过渡 |
 
 ---
 
@@ -387,24 +407,26 @@ flowchart TD
 
 | 文件 | 改动内容 | 改动量 |
 |---|---|---|
-| `frontend/pages/index.html` | 结构、深色 CSS、卡片、快捷栏、数据加载；移除装饰球 DOM/样式（**N2**） | **大** |
-| `frontend/static/js/api.js` | 新增 `EMOTION_STATUS_MAP`、`DEFAULT_STATUS_TEXT`、`resolveStatusText`（**N4**） | 小 |
+| `frontend/pages/index.html` | 结构、深色 CSS、卡片、快捷栏、数据加载；**v1.8** 全屏加载层与入场动画；移除装饰球 DOM/样式（**N2**） | **大** |
+| `frontend/static/js/api.js` | 新增 `EMOTION_STATUS_MAP`、`DEFAULT_STATUS_TEXT`、`resolveStatusText`（**N4**）；**v1.8** `updateAvatarEmotion` 同步 `#loading-avatar`；`clearToken` 清除 `lxm_home_loader_done` | 小 |
 | `frontend/pages/settings.html` | 删除本地状态语 map，改引 `api.js`（**N4**） | 小 |
 | `tests/test_h5_static_contract.py` | 重写 `test_index_html_home_surface_contract`（K6 + **N5**） | 小 |
 | `docs/contract.md` | 文首追加首页深色改版摘要，废止 2026-05-23 旧首页表述（**N5**） | 小 |
 | `frontend/static/images/Index/in_memery/sunset.png` | 记忆卡占位图（C17） | 已有 |
 | `frontend/static/images/Index/in_diary/diary_1.png` | 日记卡占位图（C17） | 已有 |
-| `frontend/static/images/Index/index.png` | Hero 立绘（C18，不换图） | 已有 |
+| `frontend/static/images/Index/index.png` | Hero 立绘（C18，不换图）；**v1.8** 加载页 `#home-loading-hero` 同源 | 已有 |
+| `frontend/static/images/Index/loader_avatar.jpg` | **v1.8** 加载页专用头像（非情绪图） | 已有 |
 | `frontend/static/css/common.css` | 可选：主页色板变量 | 小 |
 | `backend/routers/relationship.py` | 可选：`status` 补字段 | 小（非本期必做） |
 | 子页面及其他前端 | 不改 | — |
 
-### 7.1 静态契约测试锚点（N5，DOM 定稿后微调）
+### 7.1 静态契约测试锚点（N5 + v1.8，DOM 定稿后微调）
 
 | 动作 | 锚点 |
 |---|---|
 | **保留** | `unread-badge`、`/api/agent/unread-count`、`home-hero`、`index.png`、`linxiaomeng-avatar`、`status-text` |
-| **新增** | `updateAvatarEmotion`、`resolveStatusText`（或 `api.js` 引用）、`/api/relationship/detail`、`/api/memory/list`、`/api/diary/list`、CTA「和她说说话吧」 |
+| **新增（v1.7）** | `updateAvatarEmotion`、`resolveStatusText`（或 `api.js` 引用）、`/api/relationship/detail`、`/api/memory/list`、`/api/diary/list`、CTA「和她说说话吧」 |
+| **新增（v1.8）** | `#home-loading-screen`、`#loading-avatar`、`lxm_home_loader_done`、`loading-avatar-ring`、`home-enter-item`、`is-enter-reveal`、`Promise.allSettled`、加载文案（我在。别急。/ 正在靠近你的世界） |
 | **删除** | `home-rel-card`、`home-feature-grid`、`h5-home-decor::before`、theme `.home-rel-card .progress-bar` 渐变断言 |
 
 ---
@@ -516,3 +538,4 @@ flowchart TD
 | v1.5 | 2026-06-07 | 确认 Q2-B（深夜+晚上显示 Good night）；新增 §4.8.1；需求全部闭合 |
 | v1.6 | 2026-06-07 | 确认 R1–R4；新增 §12 K1–K6 闭合表；修正 §3 过时描述；补 TD-HOME-06/07 |
 | v1.7 | 2026-06-09 | 代码对齐复审确认 N1–N5；更新 §4.2/§4.5/§7/§8；新增 K7、TD-HOME-08；§11 扩 N 系列 |
+| v1.8 | 2026-06-14 | 全屏加载页增量：§4.7 门闩流程、§4.7.1 加载页约定；§7 资源与静态测试锚点；与 `contract.md` 2026-06-14 摘要对齐 |

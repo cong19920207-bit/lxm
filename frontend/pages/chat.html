@@ -893,11 +893,28 @@
     const CHAT_SEND_DEBOUNCE_MS = 300
     let lastSendOrResendAt = 0
 
+    /** 未闭环窗口内 user 行：最后一条已落库 assistant（非 agent、非流式中）之后，与后端 fetch_open_window_user_rows 对齐 */
+    function getOpenWindowUserRows() {
+      const rows = [...document.querySelectorAll('#chat-messages .msg-row')]
+      let lastAiIdx = -1
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const row = rows[i]
+        if (!row.classList.contains('ai') || row.classList.contains('agent')) continue
+        if (row.getAttribute('data-ai-in-flight') === '1') continue
+        lastAiIdx = i
+        break
+      }
+      const users = []
+      for (let i = lastAiIdx + 1; i < rows.length; i++) {
+        if (rows[i].classList.contains('user')) users.push(rows[i])
+      }
+      return users
+    }
+
     function countOpenPendingUsers() {
-      const users = [...document.querySelectorAll('#chat-messages .msg-row.user')]
       let pending = 0
       let hasBang = false
-      for (const el of users) {
+      for (const el of getOpenWindowUserRows()) {
         const d = el.getAttribute('data-delivery') || ''
         if (d === 'failed_timeout' || d === 'failed_error') hasBang = true
         if (d === 'pending_llm' || d === 'failed_timeout' || d === 'failed_error') pending++
@@ -905,19 +922,9 @@
       return { pending, hasBang }
     }
 
-    /** 与后端 pack 闭环一致：done 时将当前未闭环窗口内 user 行标为 delivered */
+    /** 与后端 pack 闭环一致：将未闭环窗口内 user 行标为 delivered（须在 finalize 前调用） */
     function markOpenWindowUsersDelivered() {
-      const rows = [...document.querySelectorAll('#chat-messages .msg-row')]
-      let lastAiIdx = -1
-      for (let i = rows.length - 1; i >= 0; i--) {
-        if (rows[i].classList.contains('ai') && !rows[i].classList.contains('agent')) {
-          lastAiIdx = i
-          break
-        }
-      }
-      for (let i = lastAiIdx + 1; i < rows.length; i++) {
-        const row = rows[i]
-        if (!row.classList.contains('user')) continue
+      for (const row of getOpenWindowUserRows()) {
         const ds = row.getAttribute('data-delivery') || ''
         if (ds === 'pending_llm' || ds === 'failed_timeout' || ds === 'failed_error') {
           row.setAttribute('data-delivery', 'delivered')
@@ -929,12 +936,11 @@
     /**
      * 解析对话 SSE（§2.9.4 多气泡协议）。
      * 协议：meta(message_count+generation_id) → delta(message_index+content) → done(messages+emotion)
-     * sseCtx.userRowForFailure：send 传入；failed 时标叹号态，done 时标 delivered 并移除叹号。
-     * sseCtx.clearAllFailedUserRowsOnDone：重发链路；done 成功后将列表内全部 failed_* user 行标 delivered 并移除叹号。
+     * sseCtx.userRowForFailure：send 传入；failed 时标叹号态。
+     * done 成功时 markOpenWindowUsersDelivered 标未闭环窗口内 user（含 resend 成功后的 failed_*）。
      */
     async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
       const userRowForFailure = sseCtx && sseCtx.userRowForFailure
-      const clearAllFailedUserRowsOnDone = !!(sseCtx && sseCtx.clearAllFailedUserRowsOnDone)
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -986,7 +992,8 @@
               aiBubble.appendTextAt(msgIdx, data.content)
               scrollToBottom()
             } else if (data.type === 'done') {
-              // §2.7.5：done.messages 为真相源，纠偏/定稿所有气泡
+              // 须在 finalize 前标记：finalize 后新 AI 在列表末尾，否则窗口 user 不会被标 delivered
+              markOpenWindowUsersDelivered()
               const doneMessages = Array.isArray(data.messages) ? data.messages : []
               if (doneMessages.length > 0) {
                 aiBubble.finalize(doneMessages, data.emotion)
@@ -995,9 +1002,6 @@
               }
               if (data.emotion && data.emotion.label) updateChatBackgroundEmotion(data.emotion.label)
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
-              if (sessionAtStart === chatSendSession) {
-                markOpenWindowUsersDelivered()
-              }
             }
           } catch (e) {
             console.error('SSE parse error:', e)

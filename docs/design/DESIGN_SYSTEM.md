@@ -163,13 +163,24 @@ className="h-14 bg-gradient-to-r from-red-400 to-red-500
 
 ### H5 首页（`index.html`，与 `docs/contract.md` 对齐）
 
-- **Hero**：**`.home-hero`** 使用 **`/static/images/Index/index.png`** 铺满顶区；左下 **林小梦** 白字 + 星标 + **`.home-status-bubble`**（轻圆角白卡，无漫画三角尾巴）；**`#linxiaomeng-avatar`** 保留 DOM 仅 **`display:none`**。
-- **顶栏**：叠在 Hero 上；左 **用户名首字** 半透明圆钮，右 **设置** 入口保留。
-- **装饰**：黄/粉浮动球在 **`.home-hero .h5-home-decor`** 内，**`h5-wiggle` / `h5-float-y`**；减少动态效果时关闭。
-- **未读角标**：`#unread-badge` 叠在「进入聊天」主按钮角上；仅 **`GET /api/agent/unread-count`** 的 **`count > 0`** 时展示，并加 **`.unread-badge--active`** 做轻量呼吸缩放。
-- **状态语文**：**`#status-text`** 在 **`GET /api/relationship/status`** 成功后赋值（优先 **`data.status_text`**，否则默认「和你在一起的每一天都很开心」）。
-- **关系区**：**`.home-rel-card`** 横卡（心形图标 + 等级文案 + 进度条 + 分数）；填充 **蓝→粉** 渐变，**`width` 0.8s 过渡**。
-- **功能入口**：**`.home-feature-grid`** 三卡（标题 + 副标题 + chevron），跳转记忆/日记/关系；底部 **渐变胶囊**「进入聊天」+ 聊天气泡 SVG。
+**全屏加载层（v1.8，首访/刷新）**
+
+- **`#home-loading-screen`**：全屏深色底 **`#0a0a1a`**（**`html:has(#home-loading-screen)`** 防白闪）；退出前 **`is-exiting`** 淡出。
+- **背景**：**`#home-loading-hero`** 使用 **`/static/images/Index/index.png`**，随进度提亮/去模糊；粒子层 **`#home-loading-particles`**。
+- **品牌区**：**`#loading-avatar`** → **`loader_avatar.jpg`**（加载专用，**非**情绪图）；**`.loading-avatar-ring`** 渐变环 + **`.loading-avatar-ripple`** 双圈波纹；标题 **林小梦** + 副标题 **正在靠近你的世界**。
+- **底部**：**`#home-loading-message`** 三句轮播；进度条 **`#home-loading-bar-fill`** + **`#home-loading-percent`**。
+- **门闩**：静态图预载 + 情绪头像预载 + **`loadPage({ deferAvatar: true })`** **`Promise.allSettled`** + 最短 **3s** + 100% 后 **500ms**；**`sessionStorage.lxm_home_loader_done`** 同标签跳过。
+- **入场（A+）**：加载层淡出后主页 **`is-enter-reveal` → `is-enter-active`** 轻 fade + **`home-enter-item`** 七段 stagger。
+
+**主页（v1.7 深色沉浸，加载完成后）**
+
+- **Hero**：**`.home-hero`** **`index.png`** 夜景遮罩；顶栏 **`#linxiaomeng-avatar`** + **`updateAvatarEmotion`**（与加载头像 **`#loading-avatar`** 同步，若层仍存在）；**`#known-days`** 陪伴天数；右侧亲密度胶囊（**`#progress-fill` / `#progress-info`**）。
+- **时钟与台词**：北京时间大字号时钟 + 时段词 + **`#status-text`**（**`resolveStatusText`**）；Good night 条件装饰 + 波形纯装饰。
+- **快捷栏**：**`.home-quick-actions-wrap`** 内 5 项 Toast「敬请期待」。
+- **预览卡**：**`.home-memory-card`** / **`.home-diary-card`** / **`.home-relationship-card`** 纵向一屏（**`max-height:100vh`**、**`overflow:hidden`**）；日记/关系右栏 **`.home-card-meta-row`**。
+- **底部 CTA**：**`.home-cta-btn`**「和她说说话吧」+ **`#unread-badge`**（**`count > 0`** 时 **`.unread-badge--active`**）。
+- **骨架屏**：**`.skeleton-wrap`** 作 API 失败兜底；正常路径 **`#main-content.content-loaded`**。
+- **减少动态**：**`prefers-reduced-motion: reduce`** 关闭粒子、波纹、入场与未读呼吸动画。
 
 ### H5 聊天页（`chat.html`，沉浸参考图）
 

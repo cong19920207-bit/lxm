@@ -2,7 +2,7 @@
 
 > 文档路径：`docs/progress/林小梦主页改版-v1_progress.md`
 > 创建时间：2026-06-10
-> PRD 来源：`docs/design/PRD-林小梦主页改版-v1.md`（v1.7）
+> PRD 来源：`docs/design/PRD-林小梦主页改版-v1.md`（v1.8）
 > 拆解文档：`docs/design/林小梦主页改版-v1_steps.md`（2026-06-10 修订）
 > 契约文档：`docs/contract.md`
 
@@ -69,6 +69,19 @@
 | 2026-06-10 | STEP-002 | settings 静态测试断言迁移（N4） | `tests/test_h5_static_contract.py` |
 | 2026-06-10 | STEP-019 | 文首首页深色改版摘要；废止 2026-05-23 旧摘要 | `docs/contract.md` 文首 |
 | 2026-06-10 | STEP-020 | 一屏布局、预览卡右栏 DOM、静态测试锚点增补 | `docs/contract.md` 文首；`tests/test_h5_static_contract.py` |
+| 2026-06-14 | 发布后增量 | 全屏加载页（`b1a446e`）、主页素材同步（`894ee7e`）；契约/PRD/设计系统对齐 v1.8 | `docs/contract.md` 文首 2026-06-14；`PRD` §4.7/§7.1；`DESIGN_SYSTEM` H5 首页 |
+
+---
+
+## 发布后增量（v1.8 全屏加载页）
+
+> STEP-001～020 已于 2026-06-10 全部完成；以下为 **main 合并后** 的增量，不新增 STEP 编号。
+
+| 日期 | 提交/事项 | 内容 | 状态 |
+|------|----------|------|------|
+| 2026-06-14 | `b1a446e` | 全屏加载层 `#home-loading-screen`、门闩 3s+500ms、Session 跳过、`loader_avatar.jpg`、A+ 入场、`deferAvatar`、`Promise.allSettled` | ✅ |
+| 2026-06-14 | `894ee7e` | 主页静态素材（`index.png`、`sunset.png`、`diary_1.png` 等）与改版文档同步 | ✅ |
+| 2026-06-14 | 文档 | `contract.md` / PRD v1.8 / `DESIGN_SYSTEM` / 本进度文件对齐现网 | ✅ |
 
 ---
 
@@ -86,3 +99,4 @@
 |------|---------|---------|---------|
 | 2026-06-10 | 步骤文档按审查报告修订 | 002,004,007,013,014,017,018,019 | 见 `林小梦主页改版-v1_steps-review.md` |
 | 2026-06-10 | 首页一屏布局与预览卡结构对齐设计稿 | STEP-020 | 废止 STEP-015「卡片区可滚动」实现；PRD §视觉小屏条目仍以 contract 为准 |
+| 2026-06-14 | v1.8 全屏加载页落地 | 发布后增量 | 不新增 STEP；契约/PRD/设计系统同步 |
