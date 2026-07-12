@@ -6,7 +6,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # asyncmy 在部分架构（如 Apple Silicon）无预编译 wheel，需 gcc 编译
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 国内构建：apt 走阿里云 Debian 镜像，避免 deb.debian.org 超时/极慢
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
