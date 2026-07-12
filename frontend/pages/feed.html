@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>林小梦 - 朋友圈</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/h5-theme.css">
+  <style>
+    /* 朋友圈页色板 */
+    body.feed-page {
+      --feed-purple-accent: #8B5CF6;
+      --feed-purple-liked: #E879A9;
+      --feed-purple-soft: #F3EEFA;
+      --feed-panel-bg: #F8F7FC;
+      --feed-text: #2D2A35;
+      --feed-text-muted: #9B95A8;
+      --feed-icon-stroke: #B8B0C8;
+      --feed-node: #A66BFF;
+      --feed-timeline-x: 80px;
+      --feed-divider-left: 92px;
+      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    }
+
+    html:has(> body.feed-page),
+    body.h5-skin.feed-page {
+      background: linear-gradient(180deg, #EDE4F7 0%, #F8F7FC 45%, #FFFFFF 100%);
+    }
+
+    .feed-wrap {
+      min-height: 100vh; display: flex; flex-direction: column;
+      background: transparent;
+      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    }
+
+    /* ===== Header ===== */
+    .feed-hero {
+      position: relative;
+      flex-shrink: 0;
+      height: 40vh;
+      min-height: 200px;
+      max-height: 380px;
+      background-color: #2A1B4A;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .feed-hero::after {
+      content: '';
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(42, 27, 74, 0.25) 70%,
+        rgba(42, 27, 74, 0.55) 100%);
+    }
+    /* 顶栏：位置对齐日记页 */
+    .feed-hero-bar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 4;
+      box-sizing: border-box;
+      padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    /* 返回/消息：与日记页 back-btn 同款玻璃钮 */
+    .feed-hero-bar .back-btn,
+    .feed-hero-bar .msg-btn {
+      width: 36px; height: 36px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; cursor: pointer; border: none; border-radius: 18px;
+      background: rgba(184, 168, 240, 0.45);
+      color: rgba(255, 255, 255, 0.92);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+        0 0 8px rgba(184, 168, 240, 0.2);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+      transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+      position: relative;
+    }
+    .feed-hero-bar .back-btn svg,
+    .feed-hero-bar .msg-btn svg {
+      display: block; width: 18px; height: 18px;
+    }
+    .feed-hero-bar .back-btn:active,
+    .feed-hero-bar .msg-btn:active {
+      background: rgba(184, 168, 240, 0.58);
+      transform: scale(0.96);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+        0 0 10px rgba(184, 168, 240, 0.28);
+    }
+    .msg-badge {
+      position: absolute; top: -4px; right: -4px;
+      min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+      border-radius: 8px; background: #e64340; color: #fff;
+      font-size: 10px; line-height: 16px; text-align: center;
+    }
+    /* 身份区：封面左下 */
+    .feed-hero-identity {
+      position: absolute; left: 20px; right: 20px; bottom: 32px; z-index: 5;
+      display: flex; align-items: flex-end; gap: 14px;
+    }
+    .feed-hero-avatar-wrap {
+      position: relative; flex-shrink: 0; width: 96px; height: 96px;
+    }
+    .feed-hero-avatar {
+      width: 96px; height: 96px; border-radius: 26px; object-fit: cover;
+      border: 2px solid #C4B5FD; background: #eee;
+      box-shadow:
+        0 0 0 3px rgba(167, 139, 250, 0.35),
+        0 4px 24px rgba(139, 92, 246, 0.4);
+      display: block;
+    }
+    .avatar-spark {
+      position: absolute; right: -5px; bottom: -2px;
+      width: 16px; height: 16px;
+      background: radial-gradient(circle, #E9D5FF 0%, #A78BFA 55%, transparent 70%);
+      clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+      filter: drop-shadow(0 0 4px rgba(196, 181, 253, 0.9));
+      pointer-events: none;
+    }
+    .feed-hero-meta {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 6px; min-width: 0; flex: 1; margin-bottom: 2px;
+    }
+    .feed-hero-identity .nickname {
+      color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.45);
+      font-size: 18px; font-weight: 700; line-height: 1.3;
+    }
+    .feed-hero-identity .sig {
+      color: rgba(255, 255, 255, 0.88); text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      font-size: 12px; font-weight: 400; line-height: 1.35;
+      word-break: break-word; max-width: 100%;
+    }
+    /* 城市胶囊：签名下方（降低透明度，文字更清晰） */
+    .home-city-pill {
+      display: none;
+      align-items: center; gap: 6px;
+      box-sizing: border-box;
+      min-height: 32px; padding: 0 12px;
+      border-radius: 16px;
+      background: rgba(111, 66, 193, 0.62);
+      border: 1px solid rgba(210, 180, 255, 0.78);
+      color: #FFFFFF;
+      font-size: 14px; font-weight: 500; line-height: 1;
+      white-space: nowrap;
+      box-shadow:
+        0 4px 12px rgba(55, 24, 105, 0.28),
+        0 0 10px rgba(165, 92, 255, 0.22);
+    }
+    .home-city-pill.is-visible { display: inline-flex; }
+    .home-city-pill .loc-ico {
+      width: 14px; height: 14px; flex-shrink: 0; color: #F3E9FF;
+    }
+
+    /* ===== Feed 面板：浅色 + 紫色眩光 ===== */
+    .feed-main {
+      position: relative; z-index: 3; flex: 1;
+      margin-top: -28px;
+      padding: 16px 0 calc(24px + var(--safe-area-bottom));
+      background: rgba(248, 247, 252, 0.98);
+      border: 1px solid rgba(160, 112, 255, 0.26);
+      border-bottom: none;
+      border-radius: 28px 28px 0 0;
+      box-shadow:
+        0 -6px 20px rgba(92, 48, 168, 0.14),
+        0 0 14px rgba(148, 83, 240, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+    #feed-list {
+      display: flex; flex-direction: column;
+      position: relative;
+      padding: 0 24px;
+    }
+    /* 竖向时间线 */
+    #feed-list::before {
+      content: '';
+      position: absolute;
+      left: var(--feed-timeline-x);
+      top: 0; bottom: 0;
+      width: 1px;
+      background: rgba(114, 88, 168, 0.16);
+      pointer-events: none;
+    }
+
+    .feed-item {
+      display: flex; gap: 20px;
+      padding: 0;
+      background: transparent;
+      border-bottom: none;
+      position: relative;
+    }
+    /* 帖间分割线：正文下方 20px，线后再 20px（不铺满日期栏） */
+    .feed-item:not(:last-child) {
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    .feed-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: var(--feed-divider-left);
+      right: 0;
+      bottom: 0;
+      height: 1px;
+      background: rgba(91, 78, 126, 0.12);
+      pointer-events: none;
+    }
+    .feed-item .date-col {
+      flex: 0 0 56px; padding-top: 0;
+      display: flex; flex-direction: column; align-items: flex-start;
+      position: relative; z-index: 1;
+    }
+    /* 同日后续条：左列留空，仅保留时间节点 */
+    .feed-item .date-col.date-col--empty { min-height: 1px; }
+    /* 圆形时间节点：相对条目定位，对齐列表竖线（80px - 列表padding24px - 半宽4px） */
+    .feed-item .timeline-node {
+      position: absolute;
+      left: 52px; top: 4px;
+      width: 8px; height: 8px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: var(--feed-node);
+      border: 2px solid #F8F7FC;
+      box-shadow:
+        0 0 0 2px rgba(166, 107, 255, 0.16),
+        0 0 8px rgba(150, 87, 255, 0.38);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .feed-item .date-col .date-day {
+      font-size: 24px; font-weight: 700; color: var(--feed-text);
+      line-height: 1.1; letter-spacing: -0.02em;
+    }
+    .feed-item .date-col .date-month {
+      margin-top: 2px; font-size: 12px; font-weight: 600;
+      color: var(--feed-text); line-height: 1.25;
+    }
+    .feed-item .date-col .date-rel {
+      margin-top: 6px; font-size: 11px; font-weight: 400;
+      color: var(--feed-text-muted); line-height: 1.4; white-space: nowrap;
+    }
+    .feed-item .date-col .date-city {
+      margin-top: 4px; display: flex; align-items: flex-start; gap: 2px;
+      max-width: 56px; font-size: 10px; font-weight: 400;
+      color: var(--feed-text-muted); line-height: 1.35; word-break: break-all;
+    }
+    .feed-item .date-col .date-city .loc-ico {
+      flex: 0 0 auto; margin-top: 1px; width: 9px; height: 9px;
+      opacity: 0.8; color: var(--feed-text-muted);
+    }
+    .feed-item .content-col { flex: 1; min-width: 0; }
+
+    /* 正文 */
+    .feed-text-block {
+      position: relative;
+    }
+    .feed-text {
+      font-size: 14px; line-height: 22px; font-weight: 400; color: var(--feed-text);
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .feed-text.collapsed {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
+      overflow: hidden;
+      white-space: normal;
+    }
+    /* meta 行：左时间、右展开/收起 */
+    .feed-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 6px;
+      min-height: 20px;
+    }
+    .feed-meta-row .feed-time {
+      flex: 1; min-width: 0;
+      font-size: 13px; line-height: 20px; font-weight: 400;
+      color: var(--feed-text-muted);
+    }
+    .feed-meta-row .feed-expand {
+      flex-shrink: 0;
+      display: none;
+      border: none; background: none; padding: 0;
+      color: #8B5CF6;
+      font-size: 14px; line-height: 20px; font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .feed-meta-row .feed-expand.is-visible { display: block; }
+    /* 单 # 起标：至空格/标点前着色（成对收尾 # 一并纳入） */
+    .hashtag { color: var(--feed-purple-accent); }
+
+    /* 图片区：单图 4:3 横卡；多图规则不变 */
+    .feed-images { margin-top: 10px; display: grid; gap: 6px; }
+    .feed-images.count-1 { grid-template-columns: 1fr; max-width: 70%; }
+    .feed-images.count-2 { grid-template-columns: 1fr 1fr; max-width: 66%; }
+    .feed-images.count-3plus { grid-template-columns: repeat(3, 1fr); }
+    .feed-images .thumb {
+      position: relative; width: 100%; background: #eee; overflow: hidden; border-radius: 12px;
+    }
+    .feed-images.count-1 .thumb { aspect-ratio: 4 / 3; }
+    .feed-images.count-1 .thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .feed-images.count-2 .thumb, .feed-images.count-3plus .thumb { aspect-ratio: 1 / 1; }
+    .feed-images.count-2 .thumb img, .feed-images.count-3plus .thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .thumb.img-failed { background: #ddd; }
+    .thumb.img-failed img { visibility: hidden; }
+
+    /* 互动栏 */
+    .feed-actions { margin-top: 12px; display: flex; align-items: center; gap: 22px; }
+    .feed-actions .act {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--feed-purple-accent); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer;
+      user-select: none; -webkit-user-select: none;
+    }
+    .feed-actions .act .ico {
+      display: flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; color: var(--feed-icon-stroke);
+    }
+    .feed-actions .act .ico svg { width: 18px; height: 18px; display: block; }
+    .feed-actions .act.liked { color: var(--feed-purple-liked); }
+    .feed-actions .act.liked .ico { color: var(--feed-purple-liked); }
+    .feed-actions .act:active { transform: scale(0.92); opacity: 0.85; }
+
+    /* 评论区 */
+    .feed-comments {
+      margin-top: 10px; background: var(--feed-purple-soft);
+      border-radius: 12px; padding: 8px 12px;
+    }
+    .comment-row, .comment-reply { font-size: 13px; line-height: 1.7; word-break: break-word; }
+    .comment-author { color: var(--feed-purple-accent); }
+    .comment-content { color: var(--feed-text); }
+    /* 林小梦回复行可点：打开「回复林小梦」输入面板 */
+    .comment-reply { cursor: pointer; }
+    .lxm-reply-text {
+      color: var(--feed-text);
+    }
+    .comment-reply-loading { font-size: 12px; color: var(--feed-text-muted); line-height: 1.7; }
+    .comment-highlighted { animation: cflash 1.5s ease; border-radius: 4px; }
+    @keyframes cflash {
+      0%, 100% { background: transparent; }
+      20%, 60% { background: rgba(196, 181, 253, 0.45); }
+    }
+
+    /* 骨架屏（下拉刷新等非首进仍用；首进由全屏 boot 遮罩覆盖） */
+    .skeleton-card {
+      display: flex; gap: 20px; padding: 16px 24px;
+    }
+    .sk-date { flex: 0 0 56px; }
+    .sk-line, .sk-date {
+      background: linear-gradient(90deg, #EDE4F7 25%, #F8F7FC 37%, #EDE4F7 63%);
+      background-size: 400% 100%; animation: shimmer 1.4s infinite; border-radius: 4px;
+    }
+    .sk-date { height: 48px; }
+    .sk-body { flex: 1; }
+    .sk-body .sk-line { height: 14px; margin-bottom: 10px; }
+    .sk-body .sk-line.w60 { width: 60%; }
+    .sk-body .sk-img {
+      height: 120px; margin-top: 8px;
+      background: linear-gradient(90deg, #EDE4F7 25%, #F8F7FC 37%, #EDE4F7 63%);
+      background-size: 400% 100%; animation: shimmer 1.4s infinite; border-radius: 12px;
+    }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+    /* 进页全屏 loading：进度驱动透明度/模糊（对齐首页 loader） */
+    .feed-boot-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      pointer-events: auto;
+      /* alpha / blur 由 JS 按进度写入 CSS 变量 */
+      --feed-boot-alpha: 0.88;
+      --feed-boot-blur: 12px;
+      background: rgba(248, 247, 252, var(--feed-boot-alpha));
+      -webkit-backdrop-filter: blur(var(--feed-boot-blur));
+      backdrop-filter: blur(var(--feed-boot-blur));
+      transition: opacity 0.3s ease;
+    }
+    .feed-boot-loading.is-visible { display: flex; }
+    .feed-boot-loading.is-exiting {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .feed-boot-spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(139, 92, 246, 0.22);
+      border-top-color: var(--feed-purple-accent);
+      animation: feed-boot-spin 0.8s linear infinite;
+      margin-bottom: 14px;
+    }
+    @keyframes feed-boot-spin {
+      to { transform: rotate(360deg); }
+    }
+    .feed-boot-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--feed-text-muted);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .feed-boot-spinner { animation: none; }
+      .feed-boot-loading { transition: none; }
+    }
+
+    .feed-state { text-align: center; padding: 40px 20px; color: var(--feed-text-muted); font-size: 14px; }
+    .feed-state .btn-retry {
+      margin-top: 14px; padding: 8px 22px; border: none; border-radius: 20px;
+      background: var(--feed-purple-accent); color: #fff; font-size: 14px; cursor: pointer;
+    }
+    .no-more-text { text-align: center; padding: 16px; color: var(--feed-text-muted); font-size: 12px; }
+
+    #pull-tip {
+      text-align: center; color: var(--feed-text-muted); font-size: 12px;
+      height: 0; overflow: hidden; transition: height 0.2s;
+    }
+    #pull-tip.show { height: 30px; line-height: 30px; }
+
+    #new-feed-bar {
+      position: sticky; top: 8px; z-index: 50; margin: 8px auto; width: fit-content;
+      display: none; align-items: center; gap: 6px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(196, 181, 253, 0.5);
+      color: #6D28D9; font-size: 13px; padding: 8px 16px; border-radius: 999px;
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(88, 60, 140, 0.12); cursor: pointer;
+    }
+    #new-feed-bar.is-visible { display: flex; }
+    #new-feed-bar .new-feed-go { margin-left: 4px; font-weight: 600; opacity: 0.85; }
+
+    /* ===== 全屏预览 ===== */
+    .preview-overlay {
+      position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.96);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      touch-action: none; overscroll-behavior: contain;
+    }
+    .preview-overlay img {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+      transform-origin: center center; will-change: transform;
+    }
+    .preview-close {
+      position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 16px;
+      width: 38px; height: 38px; border-radius: 19px; border: none;
+      background: rgba(255,255,255,0.2); color: #fff; font-size: 20px; z-index: 10000;
+    }
+    .preview-counter {
+      position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); left: 0; right: 0;
+      text-align: center; color: rgba(255,255,255,0.85); font-size: 13px;
+    }
+
+    /* ===== 评论输入面板 ===== */
+    .comment-mask { position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.35); display: none; }
+    .comment-mask.show { display: block; }
+    .comment-panel {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001;
+      background: #fff; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -2px 12px rgba(88, 60, 140, 0.12); transform: translateY(100%);
+      transition: transform 0.2s ease;
+    }
+    .comment-panel.show { transform: translateY(0); }
+    .comment-panel .row { display: flex; align-items: flex-end; gap: 8px; }
+    .comment-panel textarea {
+      flex: 1; border: 1px solid #E9D5FF; border-radius: 8px; padding: 8px 10px;
+      font-size: 14px; line-height: 1.5; resize: none; max-height: 96px; box-sizing: border-box;
+      outline: none; background: var(--feed-purple-soft);
+    }
+    .comment-panel .send {
+      flex: 0 0 auto; border: none; border-radius: 8px; padding: 8px 16px;
+      background: #cfcfd4; color: #fff; font-size: 14px;
+    }
+    .comment-panel .send.active { background: var(--feed-purple-accent); }
+    .comment-panel .counter { text-align: right; font-size: 11px; color: var(--feed-text-muted); margin-top: 4px; }
+  </style>
+</head>
+<body class="h5-skin feed-page">
+  <!-- 进页全屏 loading：列表+首屏图就绪后关闭 -->
+  <div class="feed-boot-loading is-visible" id="feed-boot-loading" role="status" aria-live="polite">
+    <div class="feed-boot-spinner" aria-hidden="true"></div>
+    <div class="feed-boot-text">正在进入她的生活…</div>
+  </div>
+  <div class="feed-wrap">
+    <header class="feed-hero" id="feed-hero" role="banner">
+      <div class="feed-hero-bar">
+        <button type="button" class="back-btn" onclick="goBack()" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button type="button" class="msg-btn" onclick="location.href='/pages/chat.html'" aria-label="消息">
+          <!-- 设计图同款线框气泡（无切图，内联 SVG） -->
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6.5 17.2V8.6A2.6 2.6 0 0 1 9.1 6h7.8A2.6 2.6 0 0 1 19.5 8.6v5.2a2.6 2.6 0 0 1-2.6 2.6H10.2L6.5 19.2v-2z"
+              stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+            <circle cx="10.2" cy="11.2" r="0.85" fill="currentColor"/>
+            <circle cx="13" cy="11.2" r="0.85" fill="currentColor"/>
+            <circle cx="15.8" cy="11.2" r="0.85" fill="currentColor"/>
+          </svg>
+          <span class="msg-badge" id="msg-badge" style="display:none">0</span>
+        </button>
+      </div>
+      <div class="feed-hero-identity">
+        <div class="feed-hero-avatar-wrap">
+          <img class="feed-hero-avatar" id="feed-avatar" src="/static/images/avatar/character-ref/base.png" alt="林小梦">
+          <span class="avatar-spark" aria-hidden="true"></span>
+        </div>
+        <div class="feed-hero-meta">
+          <div class="nickname" id="feed-nickname">林小梦</div>
+          <div class="sig" id="feed-signature"></div>
+          <div class="home-city-pill" id="feed-home-city" aria-label="主场城市"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="feed-main">
+      <div id="pull-tip">松开刷新</div>
+      <div id="new-feed-bar" role="button" tabindex="0">
+        <span aria-hidden="true">✨</span>
+        <span>林小梦更新了 <span id="new-feed-count">0</span> 条动态</span>
+        <span class="new-feed-go">查看 &gt;</span>
+      </div>
+      <div id="feed-skeleton"></div>
+      <div id="feed-list"></div>
+      <div class="no-more-text" id="no-more" style="display:none">没有更多啦</div>
+
+      <div class="feed-state" id="state-empty" style="display:none">这里还没有内容哦～</div>
+      <div class="feed-state" id="state-error" style="display:none">
+        <div id="state-error-text">加载失败，请检查网络后重试</div>
+        <button type="button" class="btn-retry" id="btn-retry">重新加载</button>
+      </div>
+      <div class="load-more-sentinel" id="bottom-sentinel" style="height:1px"></div>
+    </main>
+  </div>
+
+  <!-- 评论输入面板 -->
+  <div class="comment-mask" id="comment-mask"></div>
+  <div class="comment-panel" id="comment-panel">
+    <div class="row">
+      <textarea id="comment-input" rows="1" maxlength="200" placeholder="说点什么..." inputmode="text"></textarea>
+      <button type="button" class="send" id="comment-send">发送</button>
+    </div>
+    <div class="counter"><span id="comment-count">0</span> / 200</div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    checkLogin()
+
+    var loading = false
+    var noMore = false
+    var nextCursor = null
+    var lastLoadAt = 0
+    var commentingPostId = null
+    var commentingReplyToLxm = false
+
+    function escapeHtml(text) {
+      var div = document.createElement('div')
+      div.textContent = text == null ? '' : String(text)
+      return div.innerHTML
+    }
+
+    function goBack() {
+      if (document.referrer && document.referrer.indexOf('/pages/index.html') >= 0) {
+        history.back()
+      } else {
+        location.href = '/pages/index.html'
+      }
+    }
+
+    /* 相对时间（UI 4.3 微信同款）：刚刚 / X分钟前 / X小时前 / 昨天 / X天前
+       scheduled_publish_time 为北京墙钟 naive，按字符串解析，日界 Asia/Shanghai */
+    function parseWallClock(iso) {
+      if (!iso) return null
+      var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/)
+      if (!m) return null
+      return { y: +m[1], mo: +m[2], d: +m[3], h: +m[4], mi: +m[5] }
+    }
+
+    function beijingNowParts() {
+      var parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(new Date())
+      var get = function (t) {
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i].type === t) return parts[i].value
+        }
+        return '0'
+      }
+      return { y: +get('year'), mo: +get('month'), d: +get('day'), h: +get('hour'), mi: +get('minute') }
+    }
+
+    function formatFeedTime(iso) {
+      var d = parseWallClock(iso)
+      if (!d) return ''
+      var now = beijingNowParts()
+      var dayDiff = Math.floor(
+        (Date.UTC(now.y, now.mo - 1, now.d) - Date.UTC(d.y, d.mo - 1, d.d)) / 86400000
+      )
+      if (dayDiff >= 2) return dayDiff + '天前'
+      if (dayDiff === 1) return '昨天'
+      var mins = (now.h * 60 + now.mi) - (d.h * 60 + d.mi)
+      if (dayDiff < 0 || mins < 1) return '刚刚'
+      if (mins < 60) return mins + '分钟前'
+      return Math.floor(mins / 60) + '小时前'
+    }
+
+    /** 左列城市行（弱化；无城市则空） */
+    function buildCityHtml(city) {
+      var name = (city || '').trim()
+      if (!name) return ''
+      return '<div class="date-city">' +
+        '<svg class="loc-ico" viewBox="0 0 12 12" aria-hidden="true">' +
+        '<path fill="currentColor" d="M6 1.2c-1.9 0-3.4 1.5-3.4 3.3 0 2.5 3.4 6.3 3.4 6.3s3.4-3.8 3.4-6.3C9.4 2.7 7.9 1.2 6 1.2zm0 4.5a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/>' +
+        '</svg><span>' + escapeHtml(name) + '</span></div>'
+    }
+
+    /** 墙钟日期键 YYYY-MM-DD，用于同日左列合并 */
+    function wallDateKey(iso) {
+      var d = parseWallClock(iso)
+      if (!d) return ''
+      return d.y + '-' + String(d.mo).padStart(2, '0') + '-' + String(d.d).padStart(2, '0')
+    }
+
+    /** 左列相对日标签：今天 / 昨天；更早不展示 */
+    function formatDayLabel(iso) {
+      var d = parseWallClock(iso)
+      if (!d) return ''
+      var now = beijingNowParts()
+      var dayDiff = Math.floor(
+        (Date.UTC(now.y, now.mo - 1, now.d) - Date.UTC(d.y, d.mo - 1, d.d)) / 86400000
+      )
+      if (dayDiff === 0) return '今天'
+      if (dayDiff === 1) return '昨天'
+      return ''
+    }
+
+    /**
+     * 左列：大号日 + 月 + 今天/昨天 + 城市
+     * showDate=false 时同日后续条留空，仅保留时间节点
+     */
+    function buildDateColHtml(iso, city, showDate) {
+      if (!showDate) {
+        return '<div class="date-col date-col--empty" aria-hidden="true"></div>'
+      }
+      var cityHtml = buildCityHtml(city)
+      var d = parseWallClock(iso)
+      if (!d) {
+        return '<div class="date-col">' + cityHtml + '</div>'
+      }
+      var dayLabel = formatDayLabel(iso)
+      var dayLabelHtml = dayLabel
+        ? '<div class="date-rel">' + escapeHtml(dayLabel) + '</div>'
+        : ''
+      return '<div class="date-col">' +
+        '<div class="date-day">' + d.d + '</div>' +
+        '<div class="date-month">' + d.mo + '月</div>' +
+        dayLabelHtml +
+        cityHtml +
+        '</div>'
+    }
+
+    /* 互动图标：对齐 Figma「林小梦-朋友圈互动图标」v2 */
+    var ICON_HEART_OUTLINE =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 21.35 L10.55 20.03 C5.4 15.36 2 12.28 2 8.5 C2 5.42 4.42 3 7.5 3 C9.24 3 10.91 3.81 12 5.09 C13.09 3.81 14.76 3 16.5 3 C19.58 3 22 5.42 22 8.5 C22 12.28 18.6 15.36 13.45 20.04 L12 21.35 Z"/></svg>'
+    var ICON_HEART_FILL =
+      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+      '<path d="M12 21.35 L10.55 20.03 C5.4 15.36 2 12.28 2 8.5 C2 5.42 4.42 3 7.5 3 C9.24 3 10.91 3.81 12 5.09 C13.09 3.81 14.76 3 16.5 3 C19.58 3 22 5.42 22 8.5 C22 12.28 18.6 15.36 13.45 20.04 L12 21.35 Z"/></svg>'
+    var ICON_COMMENT =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M5 5 L19 5 C20.1 5 21 5.9 21 7 L21 13 C21 14.1 20.1 15 19 15 L10 15 L6 19 L6 15 L5 15 C3.9 15 3 14.1 3 13 L3 7 C3 5.9 3.9 5 5 5 Z"/></svg>'
+
+    function heartIconHtml(liked) {
+      return liked ? ICON_HEART_FILL : ICON_HEART_OUTLINE
+    }
+
+    function setLikeVisual(act, liked) {
+      if (!act) return
+      var icoEl = act.querySelector('.ico')
+      if (icoEl) icoEl.innerHTML = heartIconHtml(liked)
+      act.classList.toggle('liked', !!liked)
+    }
+
+    /* #话题 单井号着色：从 # 起至空格/标点前；成对收尾 # 一并纳入着色 */
+    function renderTextWithHashtags(text) {
+      var safe = escapeHtml(text)
+      // 终止符：空白、常见中英文标点、括号；可选吞掉成对收尾 #
+      return safe.replace(
+        /#([^\s#，。！？、；：…,.!?;:()（）\[\]【】<>《》「」]{1,30})(#?)/g,
+        '<span class="hashtag">#$1$2</span>'
+      )
+    }
+
+    /** 长文截断：展开/收起在 meta 行右侧；时间始终在左侧 */
+    function setupTextExpand(contentCol) {
+      if (!contentCol) return
+      var textEl = contentCol.querySelector('.feed-text')
+      var btn = contentCol.querySelector('.feed-expand')
+      if (!textEl || !btn) return
+      textEl.classList.add('collapsed')
+      btn.classList.remove('is-visible')
+      requestAnimationFrame(function () {
+        var needs = textEl.scrollHeight > textEl.clientHeight + 1
+        if (!needs) {
+          textEl.classList.remove('collapsed')
+          btn.classList.remove('is-visible')
+          btn.style.display = 'none'
+          return
+        }
+        btn.style.display = ''
+        btn.classList.add('is-visible')
+        btn.textContent = '展开'
+        btn.onclick = function () {
+          var collapsed = textEl.classList.contains('collapsed')
+          if (collapsed) {
+            textEl.classList.remove('collapsed')
+            btn.textContent = '收起'
+          } else {
+            textEl.classList.add('collapsed')
+            btn.textContent = '展开'
+          }
+        }
+      })
+    }
+
+    /* ===== Header 配置 ===== */
+    async function loadHeader() {
+      var res = await request('GET', '/api/feed/config/header')
+      var bg = '/static/images/feed/bg_default.jpg'
+      var avatar = '/static/images/avatar/character-ref/base.png'
+      var sig = ''
+      var nick = '林小梦'
+      var homeCity = ''
+      if (res && res.code === 0 && res.data) {
+        bg = res.data.header_bg_url || bg
+        avatar = res.data.header_avatar_url || avatar
+        sig = res.data.signature || ''
+        nick = res.data.display_nickname || nick
+        homeCity = (res.data.home_city || '').trim()
+      }
+      var hero = document.getElementById('feed-hero')
+      hero.style.backgroundImage = "url('" + bg + "')"
+      var av = document.getElementById('feed-avatar')
+      av.src = avatar
+      av.onerror = function () { this.onerror = null; this.src = '/static/images/avatar/character-ref/base.png' }
+      document.getElementById('feed-nickname').textContent = nick
+      document.getElementById('feed-signature').textContent = sig
+      var cityEl = document.getElementById('feed-home-city')
+      if (homeCity) {
+        cityEl.innerHTML =
+          '<svg class="loc-ico" viewBox="0 0 12 12" aria-hidden="true">' +
+          '<path fill="currentColor" d="M6 1.2c-1.9 0-3.4 1.5-3.4 3.3 0 2.5 3.4 6.3 3.4 6.3s3.4-3.8 3.4-6.3C9.4 2.7 7.9 1.2 6 1.2zm0 4.5a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/>' +
+          '</svg><span>' + escapeHtml(homeCity) + '</span>'
+        cityEl.classList.add('is-visible')
+      } else {
+        cityEl.classList.remove('is-visible')
+        cityEl.innerHTML = ''
+      }
+    }
+
+    async function loadMsgBadge() {
+      var res = await request('GET', '/api/agent/unread-count')
+      var el = document.getElementById('msg-badge')
+      if (res && res.code === 0 && res.data && res.data.count > 0) {
+        el.textContent = res.data.count > 99 ? '99+' : String(res.data.count)
+        el.style.display = ''
+      } else {
+        el.style.display = 'none'
+      }
+    }
+
+    /* ===== 列表渲染 ===== */
+    function buildImagesHtml(urls) {
+      if (!urls || urls.length === 0) return ''
+      var cls = urls.length === 1 ? 'count-1' : (urls.length === 2 ? 'count-2' : 'count-3plus')
+      var html = '<div class="feed-images ' + cls + '">'
+      urls.forEach(function (u, i) {
+        html += '<div class="thumb"><img loading="lazy" src="' + escapeHtml(u) +
+          '" data-idx="' + i + '" onerror="this.parentNode.classList.add(\'img-failed\')"></div>'
+      })
+      html += '</div>'
+      return html
+    }
+
+    function buildCommentsHtml(comments) {
+      if (!comments || comments.length === 0) return ''
+      var html = '<div class="feed-comments">'
+      comments.forEach(function (c) {
+        // 仅 reply_to_lxm 标记的评论显示「我回复 林小梦」；普通发评仍为「我」
+        var authorLabel = c.reply_to_lxm ? '我回复 林小梦：' : '我：'
+        html += '<div class="comment-row" data-comment-id="' + c.id + '">' +
+          '<span class="comment-author">' + authorLabel + '</span>' +
+          '<span class="comment-content">' + escapeHtml(c.content) + '</span></div>'
+        if (c.lxm_reply) {
+          html += '<div class="comment-reply" data-comment-id="' + c.id + '">' +
+            '<span class="comment-author">林小梦回复 我：</span>' +
+            '<span class="comment-content lxm-reply-text">' + escapeHtml(c.lxm_reply) + '</span></div>'
+        }
+      })
+      html += '</div>'
+      return html
+    }
+
+    function buildFeedItem(post, showDate) {
+      var item = document.createElement('div')
+      item.className = 'feed-item'
+      item.dataset.id = post.id
+      item.dataset.liked = post.user_liked ? '1' : '0'
+      item.dataset.likes = post.display_likes || 0
+      item.dataset.dateKey = wallDateKey(post.scheduled_publish_time)
+      // 展示评论数对齐点赞：display_comments = base×倍率 + 真实可见条数（后端组装）
+      var commentCount = (post.display_comments != null)
+        ? post.display_comments
+        : ((post.comments && post.comments.length) ? post.comments.length : 0)
+      item.dataset.comments = commentCount
+
+      item.innerHTML =
+        '<span class="timeline-node" aria-hidden="true"></span>' +
+        buildDateColHtml(post.scheduled_publish_time, post.city, showDate !== false) +
+        '<div class="content-col">' +
+          '<div class="feed-text-block">' +
+            '<div class="feed-text">' + renderTextWithHashtags(post.content_text || '') + '</div>' +
+          '</div>' +
+          '<div class="feed-meta-row">' +
+            '<span class="feed-time">' + escapeHtml(formatFeedTime(post.scheduled_publish_time)) + '</span>' +
+            '<button type="button" class="feed-expand">展开</button>' +
+          '</div>' +
+          buildImagesHtml(post.image_urls) +
+          '<div class="feed-actions">' +
+            '<div class="act like-act' + (post.user_liked ? ' liked' : '') + '" role="button" aria-label="点赞">' +
+              '<span class="ico">' + heartIconHtml(!!post.user_liked) + '</span>' +
+              '<span class="like-count">' + (post.display_likes || 0) + '</span></div>' +
+            '<div class="act comment-act" role="button" aria-label="评论">' +
+              '<span class="ico">' + ICON_COMMENT + '</span>' +
+              '<span class="comment-count">' + commentCount + '</span></div>' +
+          '</div>' +
+          buildCommentsHtml(post.comments) +
+        '</div>'
+
+      setupTextExpand(item.querySelector('.content-col'))
+
+      // 图片点击预览
+      var imgs = item.querySelectorAll('.feed-images img')
+      var urls = post.image_urls || []
+      imgs.forEach(function (img) {
+        img.addEventListener('click', function () {
+          openPreview(urls, parseInt(img.dataset.idx, 10) || 0)
+        })
+      })
+      // 点赞
+      item.querySelector('.like-act').addEventListener('click', function () { onToggleLike(item) })
+      // 评论：💬 普通发评（落款「我：」）
+      item.querySelector('.comment-act').addEventListener('click', function () { openCommentPanel(post.id, false) })
+      // 点击林小梦回复 → 连续互动发评（落款「我回复 林小梦：」）
+      item.querySelectorAll('.comment-reply').forEach(function (el) {
+        el.addEventListener('click', function () { openCommentPanel(post.id, true) })
+      })
+
+      return item
+    }
+
+    function showState(id) {
+      document.getElementById('state-empty').style.display = id === 'empty' ? 'block' : 'none'
+      document.getElementById('state-error').style.display = id === 'error' ? 'block' : 'none'
+    }
+
+    function renderSkeleton(show) {
+      var sk = document.getElementById('feed-skeleton')
+      if (!show) { sk.innerHTML = ''; return }
+      var one = '<div class="skeleton-card"><div class="sk-date"></div>' +
+        '<div class="sk-body"><div class="sk-line"></div><div class="sk-line w60"></div><div class="sk-img"></div></div></div>'
+      sk.innerHTML = one + one + one
+    }
+
+    /** 进页全屏 loading：渐进透明度 + 硬超时防卡死（对齐首页 loader） */
+    var BOOT_MIN_MS = 700
+    var BOOT_HARD_MS = 8000
+    var BOOT_IMG_MAX = 6
+    var BOOT_IMG_TIMEOUT_MS = 2500
+    var BOOT_ALPHA_START = 0.88
+    var BOOT_ALPHA_END = 0.12
+    var BOOT_BLUR_START = 12
+    var BOOT_EXIT_MS = 300
+
+    var bootLoadingPending = true
+    var bootListDone = false
+    var bootImgRatio = 0
+    var bootStartAt = Date.now()
+    var bootHardTimer = null
+    var bootProgressTimer = null
+    var bootDismissed = false
+
+    function clamp01(n) {
+      if (n < 0) return 0
+      if (n > 1) return 1
+      return n
+    }
+
+    function updateFeedBootVisual(progress) {
+      var el = document.getElementById('feed-boot-loading')
+      if (!el) return
+      var p = clamp01(progress)
+      var alpha = BOOT_ALPHA_START + (BOOT_ALPHA_END - BOOT_ALPHA_START) * p
+      var blur = BOOT_BLUR_START * (1 - p)
+      el.style.setProperty('--feed-boot-alpha', String(alpha))
+      el.style.setProperty('--feed-boot-blur', blur.toFixed(1) + 'px')
+    }
+
+    function computeBootProgress() {
+      var elapsed = Date.now() - bootStartAt
+      var timeRatio = Math.min(elapsed / BOOT_MIN_MS, 1)
+      // 列表 40% + 首屏图 50% + 时间门闩 10%
+      var asset = (bootListDone ? 0.4 : 0) + bootImgRatio * 0.5
+      var target = Math.min(asset + timeRatio * 0.1, 1)
+      if (bootListDone && bootImgRatio >= 1 && elapsed >= BOOT_MIN_MS) target = 1
+      return target
+    }
+
+    function clearBootTimers() {
+      if (bootHardTimer) { clearTimeout(bootHardTimer); bootHardTimer = null }
+      if (bootProgressTimer) { clearInterval(bootProgressTimer); bootProgressTimer = null }
+    }
+
+    function dismissFeedBootLoading() {
+      if (bootDismissed) return
+      bootDismissed = true
+      bootLoadingPending = false
+      clearBootTimers()
+      updateFeedBootVisual(1)
+      var el = document.getElementById('feed-boot-loading')
+      if (!el) return
+      el.classList.add('is-exiting')
+      setTimeout(function () {
+        el.classList.remove('is-visible')
+        el.classList.remove('is-exiting')
+      }, BOOT_EXIT_MS)
+    }
+
+    function startFeedBootProgress() {
+      bootStartAt = Date.now()
+      bootListDone = false
+      bootImgRatio = 0
+      bootDismissed = false
+      bootLoadingPending = true
+      updateFeedBootVisual(0)
+      var el = document.getElementById('feed-boot-loading')
+      if (el) {
+        el.classList.remove('is-exiting')
+        el.classList.add('is-visible')
+      }
+      // 硬超时：到点强制关遮罩，避免永久卡住
+      bootHardTimer = setTimeout(function () {
+        dismissFeedBootLoading()
+      }, BOOT_HARD_MS)
+      bootProgressTimer = setInterval(function () {
+        if (bootDismissed) return
+        updateFeedBootVisual(computeBootProgress())
+      }, 50)
+    }
+
+    /**
+     * 等待首屏图片就绪（最多 maxCount 张，超时兜底）。
+     * 强制 eager；绑监听后再读 complete，避免竞态；支持 decode()。
+     * onProgress(ratio 0~1) 供渐进透明度使用。
+     */
+    function waitFirstScreenImages(rootEl, maxCount, timeoutMs, onProgress) {
+      maxCount = maxCount == null ? BOOT_IMG_MAX : maxCount
+      timeoutMs = timeoutMs == null ? BOOT_IMG_TIMEOUT_MS : timeoutMs
+      var scope = rootEl || document.getElementById('feed-list') || document
+      var all = scope.querySelectorAll('.feed-images img')
+      var imgs = []
+      for (var i = 0; i < all.length && imgs.length < maxCount; i++) {
+        try { all[i].loading = 'eager' } catch (e) { /* ignore */ }
+        imgs.push(all[i])
+      }
+      if (!imgs.length) {
+        if (onProgress) onProgress(1)
+        return Promise.resolve()
+      }
+      return new Promise(function (resolve) {
+        var total = imgs.length
+        var settled = 0
+        var done = false
+        var seen = {}
+        function report() {
+          if (onProgress) onProgress(clamp01(settled / total))
+        }
+        function finish() {
+          if (done) return
+          done = true
+          settled = total
+          report()
+          resolve()
+        }
+        var timer = setTimeout(finish, timeoutMs)
+        function markDone(img, handler) {
+          var key = imgs.indexOf(img)
+          if (key < 0 || seen[key]) return
+          seen[key] = true
+          if (handler) {
+            img.removeEventListener('load', handler)
+            img.removeEventListener('error', handler)
+          }
+          if (done) return
+          settled += 1
+          report()
+          if (settled >= total) {
+            clearTimeout(timer)
+            finish()
+          }
+        }
+        imgs.forEach(function (img) {
+          function handler() { markDone(img, handler) }
+          img.addEventListener('load', handler)
+          img.addEventListener('error', handler)
+          // 绑完再读 complete，避免「已完成却漏监听」
+          if (img.complete) {
+            markDone(img, handler)
+            return
+          }
+          if (typeof img.decode === 'function') {
+            img.decode().then(function () { markDone(img, handler) }).catch(function () { /* load/error 兜底 */ })
+          }
+        })
+        report()
+      })
+    }
+
+    async function hideBootLoadingAfterReady() {
+      if (!bootLoadingPending || bootDismissed) return
+      try {
+        await waitFirstScreenImages(
+          document.getElementById('feed-list'),
+          BOOT_IMG_MAX,
+          BOOT_IMG_TIMEOUT_MS,
+          function (ratio) {
+            bootImgRatio = ratio
+            updateFeedBootVisual(computeBootProgress())
+          }
+        )
+      } catch (e) {
+        bootImgRatio = 1
+      }
+      // 等最少展示时长，再退场
+      var remain = BOOT_MIN_MS - (Date.now() - bootStartAt)
+      if (remain > 0) {
+        await new Promise(function (r) { setTimeout(r, remain) })
+      }
+      updateFeedBootVisual(1)
+      dismissFeedBootLoading()
+    }
+
+    /** 列表已出且 boot 未关时，统一补走退场（含哨兵抢跑兜底） */
+    async function finishBootAfterListReady() {
+      if (!bootLoadingPending || bootDismissed) return
+      bootListDone = true
+      updateFeedBootVisual(computeBootProgress())
+      var hasImg = document.querySelectorAll('#feed-list .feed-images img').length > 0
+      if (!hasImg) bootImgRatio = 1
+      try {
+        await hideBootLoadingAfterReady()
+      } catch (e) {
+        dismissFeedBootLoading()
+      }
+    }
+
+    async function loadFeed(reset) {
+      // 进页 boot 未结束前，禁止无限滚动抢占首屏请求
+      if (!reset && bootLoadingPending && !bootDismissed) return
+      if (loading) return
+      var nowTs = Date.now()
+      if (!reset && nowTs - lastLoadAt < 500) return  // 无限滚动限流 500ms
+      lastLoadAt = nowTs
+      loading = true
+      var isBootReset = !!(reset && bootLoadingPending && !bootDismissed)
+
+      try {
+        if (reset) {
+          nextCursor = null
+          noMore = false
+          document.getElementById('feed-list').innerHTML = ''
+          document.getElementById('no-more').style.display = 'none'
+          showState(null)
+          // 首进由全屏 boot 遮罩承担；下拉刷新等仍用骨架
+          if (!isBootReset) renderSkeleton(true)
+        }
+
+        var path = '/api/feed/list?size=20'
+        if (nextCursor) path += '&cursor=' + encodeURIComponent(nextCursor)
+        var res = await request('GET', path)
+        renderSkeleton(false)
+
+        if (!res || res.code !== 0 || !res.data) {
+          if (reset) {
+            showState('error')
+            document.getElementById('state-error-text').textContent = (res && res.message) || '加载失败，请检查网络后重试'
+          } else {
+            showToast((res && res.message) || '加载失败', 'error')
+          }
+          return
+        }
+
+        var posts = res.data.posts || []
+        var list = document.getElementById('feed-list')
+        if (reset && posts.length === 0) {
+          showState('empty')
+          noMore = true
+          return
+        }
+        // 同日左列合并：跨分页延续上一条的 dateKey
+        var lastDateKey = null
+        if (!reset && list.children.length > 0) {
+          lastDateKey = list.children[list.children.length - 1].dataset.dateKey || null
+        }
+        posts.forEach(function (p) {
+          var dateKey = wallDateKey(p.scheduled_publish_time)
+          var showDate = !dateKey || dateKey !== lastDateKey
+          if (dateKey) lastDateKey = dateKey
+          var el = buildFeedItem(p, showDate)
+          list.appendChild(el)
+          if (typeof observeReadTargets === 'function') observeReadTargets(el)
+        })
+
+        nextCursor = res.data.next_cursor
+        if (!nextCursor) {
+          noMore = true
+          if (list.children.length > 0) document.getElementById('no-more').style.display = 'block'
+        }
+
+        if (reset) maybeScrollToAnchor()
+      } catch (err) {
+        console.error('[feed] loadFeed 异常', err)
+        if (reset) {
+          showState('error')
+          document.getElementById('state-error-text').textContent = '加载失败，请检查网络后重试'
+        }
+      } finally {
+        loading = false
+        // 首进 reset，或 boot 未关时已有列表内容（哨兵抢跑兜底）
+        if (bootLoadingPending && !bootDismissed && (isBootReset || document.getElementById('feed-list').children.length > 0)) {
+          await finishBootAfterListReady()
+        }
+      }
+    }
+
+    /* ===== 锚点滚动（STEP-025） ===== */
+    function maybeScrollToAnchor() {
+      var id = window.__feedAnchorCommentId__
+      if (!id) return
+      setTimeout(function () {
+        var el = document.querySelector('.comment-reply[data-comment-id="' + id + '"]') ||
+                 document.querySelector('.comment-reply-loading[data-comment-id="' + id + '"]') ||
+                 document.querySelector('.comment-row[data-comment-id="' + id + '"]')
+        if (el) {
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          el.classList.add('comment-highlighted')
+          setTimeout(function () { el.classList.remove('comment-highlighted') }, 1600)
+        }
+        window.__feedAnchorCommentId__ = null
+      }, 60)
+    }
+
+    /* ===== 点赞（STEP-024，乐观更新 + 回滚 + 300ms 防抖） ===== */
+    function onToggleLike(item) {
+      if (item.dataset.likeLock === '1') return
+      item.dataset.likeLock = '1'
+      setTimeout(function () { item.dataset.likeLock = '0' }, 300)
+
+      var postId = item.dataset.id
+      var wasLiked = item.dataset.liked === '1'
+      var likes = parseInt(item.dataset.likes, 10) || 0
+      var act = item.querySelector('.like-act')
+      var cntEl = item.querySelector('.like-count')
+
+      // 乐观更新
+      var newLiked = !wasLiked
+      var newLikes = likes + (newLiked ? 1 : -1)
+      if (newLikes < 0) newLikes = 0
+      item.dataset.liked = newLiked ? '1' : '0'
+      item.dataset.likes = newLikes
+      cntEl.textContent = newLikes
+      setLikeVisual(act, newLiked)
+
+      var method = newLiked ? 'POST' : 'DELETE'
+      request(method, '/api/feed/' + postId + '/like').then(function (res) {
+        if (!res || res.code !== 0 || !res.data) {
+          // 回滚
+          item.dataset.liked = wasLiked ? '1' : '0'
+          item.dataset.likes = likes
+          cntEl.textContent = likes
+          setLikeVisual(act, wasLiked)
+          showToast('操作失败，请重试', 'error')
+          return
+        }
+        // 以服务端为准
+        item.dataset.liked = res.data.user_liked ? '1' : '0'
+        item.dataset.likes = res.data.display_likes
+        cntEl.textContent = res.data.display_likes
+        setLikeVisual(act, !!res.data.user_liked)
+      })
+    }
+
+    /* ===== 评论输入面板（STEP-024） ===== */
+    var maskEl = document.getElementById('comment-mask')
+    var panelEl = document.getElementById('comment-panel')
+    var inputEl = document.getElementById('comment-input')
+    var sendEl = document.getElementById('comment-send')
+    var countEl = document.getElementById('comment-count')
+
+    function openCommentPanel(postId, replyToLxm) {
+      commentingPostId = postId
+      commentingReplyToLxm = !!replyToLxm
+      inputEl.value = ''
+      inputEl.placeholder = commentingReplyToLxm ? '回复林小梦...' : '说点什么...'
+      countEl.textContent = '0'
+      sendEl.classList.remove('active')
+      maskEl.classList.add('show')
+      panelEl.classList.add('show')
+      setTimeout(function () { inputEl.focus() }, 50)
+    }
+    function closeCommentPanel() {
+      commentingPostId = null
+      commentingReplyToLxm = false
+      inputEl.placeholder = '说点什么...'
+      maskEl.classList.remove('show')
+      panelEl.classList.remove('show')
+      inputEl.blur()
+    }
+    maskEl.addEventListener('click', closeCommentPanel)
+    inputEl.addEventListener('input', function () {
+      var len = inputEl.value.length
+      countEl.textContent = String(len)
+      sendEl.classList.toggle('active', inputEl.value.trim().length >= 1)
+    })
+    sendEl.addEventListener('click', async function () {
+      var content = inputEl.value.trim()
+      if (content.length < 1 || commentingPostId == null) return
+      var postId = commentingPostId
+      var replyToLxm = commentingReplyToLxm
+      sendEl.disabled = true
+      var body = { content: content }
+      if (replyToLxm) body.reply_to_lxm = true
+      var res = await request('POST', '/api/feed/' + postId + '/comments', body)
+      sendEl.disabled = false
+      if (!res || res.code !== 0) {
+        var code = res ? res.code : -1
+        var msg = res ? res.message : '发送失败'
+        if (code === 10504) msg = '你刚刚才评论过，等 30 秒吧~'
+        showToast(msg, 'error')
+        return
+      }
+      // 成功：追加到评论区（按本次是否回复小梦决定落款）
+      var cid = (res.data && res.data.comment_id) ? res.data.comment_id : null
+      appendMyComment(postId, content, replyToLxm, cid)
+      closeCommentPanel()
+    })
+
+    function appendMyComment(postId, content, replyToLxm, commentId) {
+      var item = document.querySelector('.feed-item[data-id="' + postId + '"]')
+      if (!item) return
+      var col = item.querySelector('.content-col')
+      var box = col.querySelector('.feed-comments')
+      if (!box) {
+        box = document.createElement('div')
+        box.className = 'feed-comments'
+        col.appendChild(box)
+      }
+      var row = document.createElement('div')
+      row.className = 'comment-row'
+      if (commentId) row.setAttribute('data-comment-id', String(commentId))
+      var authorLabel = replyToLxm ? '我回复 林小梦：' : '我：'
+      row.innerHTML = '<span class="comment-author">' + authorLabel + '</span><span class="comment-content">' +
+        escapeHtml(content) + '</span>'
+      box.appendChild(row)
+      // 评论角标：展示数在假数底上 +1（与点赞 display_likes 增量同模式）
+      var n = (parseInt(item.dataset.comments, 10) || 0) + 1
+      item.dataset.comments = n
+      var cntEl = item.querySelector('.comment-count')
+      if (cntEl) cntEl.textContent = String(n)
+    }
+
+    /* ===== 全屏预览（STEP-023 / UI 5.2 / TD-001） ===== */
+    function openPreview(urls, startIdx) {
+      if (!urls || urls.length === 0) return
+      var idx = startIdx || 0
+      var scale = 1, startDist = 0, baseScale = 1
+      var startX = 0, moved = false, pinching = false
+
+      var overlay = document.createElement('div')
+      overlay.className = 'preview-overlay'
+      var img = document.createElement('img')
+      img.src = urls[idx]
+      var closeBtn = document.createElement('button')
+      closeBtn.className = 'preview-close'; closeBtn.textContent = '×'
+      var counter = document.createElement('div')
+      counter.className = 'preview-counter'
+      function updateCounter() { counter.textContent = (idx + 1) + ' / ' + urls.length }
+      updateCounter()
+      overlay.appendChild(img); overlay.appendChild(closeBtn); overlay.appendChild(counter)
+      document.body.appendChild(overlay)
+
+      // TD-001：禁用浏览器边缘返回手势
+      var prevOverscroll = document.body.style.overscrollBehaviorX
+      document.body.style.overscrollBehaviorX = 'contain'
+      document.body.style.overflow = 'hidden'
+
+      function setScale(s) { scale = Math.min(3, Math.max(1, s)); img.style.transform = 'scale(' + scale + ')' }
+      function show(i) { idx = (i + urls.length) % urls.length; img.src = urls[idx]; setScale(1); updateCounter() }
+
+      function onTouchStart(e) {
+        if (e.touches.length === 2) {
+          pinching = true
+          startDist = dist(e.touches); baseScale = scale
+        } else if (e.touches.length === 1) {
+          startX = e.touches[0].clientX; moved = false
+        }
+      }
+      function onTouchMove(e) {
+        e.preventDefault()  // 阻断边缘返回 / 页面滚动
+        if (e.touches.length === 2) {
+          var d = dist(e.touches)
+          if (startDist > 0) setScale(baseScale * (d / startDist))
+        } else if (e.touches.length === 1 && !pinching) {
+          var dx = e.touches[0].clientX - startX
+          if (Math.abs(dx) > 8) moved = true
+        }
+      }
+      function onTouchEnd(e) {
+        if (pinching) { pinching = false; startDist = 0; return }
+        if (scale > 1.05) return  // 放大态下不切换
+        var endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : startX
+        var dx = endX - startX
+        if (moved && Math.abs(dx) > 50) {
+          if (dx < 0) show(idx + 1); else show(idx - 1)
+        } else if (!moved) {
+          closePreview()  // 单击关闭
+        }
+      }
+      function dist(t) {
+        var a = t[0], b = t[1]
+        return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      }
+      function closePreview() {
+        overlay.removeEventListener('touchmove', onTouchMove)
+        overlay.remove()
+        document.body.style.overscrollBehaviorX = prevOverscroll
+        document.body.style.overflow = ''
+      }
+
+      overlay.addEventListener('touchstart', onTouchStart, { passive: true })
+      overlay.addEventListener('touchmove', onTouchMove, { passive: false })
+      overlay.addEventListener('touchend', onTouchEnd, { passive: true })
+      closeBtn.addEventListener('click', function (e) { e.stopPropagation(); closePreview() })
+    }
+
+    /* ===== 下拉刷新 ===== */
+    (function initPullRefresh() {
+      var main = document.querySelector('.feed-main')
+      var startY = 0, pulling = false
+      var tip = document.getElementById('pull-tip')
+      window.addEventListener('touchstart', function (e) {
+        if (window.scrollY <= 0 && e.touches.length === 1) { startY = e.touches[0].clientY; pulling = true }
+      }, { passive: true })
+      window.addEventListener('touchmove', function (e) {
+        if (!pulling) return
+        var dy = e.touches[0].clientY - startY
+        if (dy > 60) tip.classList.add('show')
+      }, { passive: true })
+      window.addEventListener('touchend', function (e) {
+        if (!pulling) return
+        pulling = false
+        if (tip.classList.contains('show')) {
+          tip.classList.remove('show')
+          loadFeed(true)
+        }
+      }, { passive: true })
+    })()
+
+    /* ===== 无限滚动：首屏 boot 结束后再挂载，避免哨兵抢跑导致遮罩不关 ===== */
+    var sentinelEnabled = false
+    var sentinelObserver = new IntersectionObserver(function (entries) {
+      if (!sentinelEnabled) return
+      if (entries[0].isIntersecting && !loading && !noMore) loadFeed(false)
+    })
+
+    function enableFeedInfiniteScroll() {
+      if (sentinelEnabled) return
+      sentinelEnabled = true
+      sentinelObserver.observe(document.getElementById('bottom-sentinel'))
+    }
+
+    document.getElementById('btn-retry').addEventListener('click', function () { loadFeed(true) })
+
+    /* ===== SSE 新帖实时推送（STEP-026，仅朋友圈页挂载） ===== */
+    var pendingNewCount = 0
+    var feedEventSource = null
+    var sseRetryDelay = 1000
+
+    function updateNewFeedBar() {
+      var bar = document.getElementById('new-feed-bar')
+      if (pendingNewCount > 0) {
+        document.getElementById('new-feed-count').textContent = pendingNewCount
+        bar.classList.add('is-visible')
+      } else {
+        bar.classList.remove('is-visible')
+      }
+    }
+
+    document.getElementById('new-feed-bar').addEventListener('click', function () {
+      pendingNewCount = 0
+      updateNewFeedBar()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      loadFeed(true)
+    })
+
+    function connectFeedSSE() {
+      var token = localStorage.getItem('token')
+      if (!token) return
+      try {
+        feedEventSource = new EventSource('/api/feed/events?token=' + encodeURIComponent(token))
+      } catch (e) { return }
+
+      feedEventSource.onmessage = function (ev) {
+        if (!ev || !ev.data) return
+        try {
+          var payload = JSON.parse(ev.data)
+          if (payload && payload.type === 'feed_new') {
+            pendingNewCount += (payload.delta || 1)
+            updateNewFeedBar()
+          }
+        } catch (e) { /* 忽略非 JSON（心跳注释不会进入 onmessage） */ }
+      }
+
+      feedEventSource.onopen = function () { sseRetryDelay = 1000 }
+
+      feedEventSource.onerror = function () {
+        // EventSource 默认自动重连；此处叠加指数退避，最大 30s
+        if (feedEventSource) { feedEventSource.close(); feedEventSource = null }
+        setTimeout(connectFeedSSE, sseRetryDelay)
+        sseRetryDelay = Math.min(sseRetryDelay * 2, 30000)
+      }
+    }
+
+    window.addEventListener('beforeunload', function () {
+      if (feedEventSource) { feedEventSource.close(); feedEventSource = null }
+    })
+
+    /* ===== 已读上报（STEP-029） ===== */
+    var reportedComments = {}   // 已上报评论回复曝光的 comment_id 集合
+    var reportedPosts = {}      // 已上报停留已读的 post_id 集合
+    var postDwellTimers = {}    // post_id → setTimeout id
+
+    // 评论回复曝光观察器：60% 进入视口即上报 lxm_reply 已读
+    var commentReplyObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return
+        var id = entry.target.getAttribute('data-comment-id')
+        if (!id || reportedComments[id]) return
+        reportedComments[id] = true
+        commentReplyObserver.unobserve(entry.target)
+        request('POST', '/api/feed/comments/' + id + '/read').then(function () {
+          if (typeof pendingReplyCount === 'number' && pendingReplyCount > 0) pendingReplyCount--
+        })
+      })
+    }, { threshold: 0.6 })
+
+    // Feed 卡片停留观察器：进入视口计时 3s 未离开视同已读，触发已读 IM 判定
+    var postDwellObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var postId = entry.target.dataset.id
+        if (!postId || reportedPosts[postId]) return
+        if (entry.isIntersecting) {
+          if (postDwellTimers[postId]) return
+          postDwellTimers[postId] = setTimeout(function () {
+            reportedPosts[postId] = true
+            delete postDwellTimers[postId]
+            postDwellObserver.unobserve(entry.target)
+            request('POST', '/api/feed/' + postId + '/read')
+          }, 3000)
+        } else if (postDwellTimers[postId]) {
+          clearTimeout(postDwellTimers[postId])
+          delete postDwellTimers[postId]
+        }
+      })
+    }, { threshold: 0.5 })
+
+    // 每次渲染完新卡片后调用，挂载两类观察器
+    // 注意：loadFeed 传入的 rootEl 常为帖子节点本身；querySelectorAll 只匹配后代，须先 observe 自身
+    function observeReadTargets(rootEl) {
+      var scope = rootEl || document
+      if (rootEl && rootEl.classList && rootEl.classList.contains('feed-item') && rootEl.dataset.id) {
+        postDwellObserver.observe(rootEl)
+      }
+      scope.querySelectorAll('.feed-item[data-id]').forEach(function (el) {
+        postDwellObserver.observe(el)
+      })
+      scope.querySelectorAll('.comment-reply[data-comment-id]').forEach(function (el) {
+        var id = el.getAttribute('data-comment-id')
+        if (id && !reportedComments[id]) commentReplyObserver.observe(el)
+      })
+    }
+
+    /* ===== 初始化（STEP-022 mounted） ===== */
+    async function initFeed() {
+      startFeedBootProgress()
+      loadHeader()
+      loadMsgBadge()
+      try {
+        var enterRes = await request('POST', '/api/feed/enter')
+        var params = new URLSearchParams(location.search)
+        var focus = params.get('focus') === 'unread_reply'
+        if (enterRes && enterRes.code === 0 && enterRes.data && enterRes.data.anchor_comment_id) {
+          window.__feedAnchorCommentId__ = enterRes.data.anchor_comment_id
+        } else if (focus) {
+          window.__feedAnchorCommentId__ = null
+        }
+        await loadFeed(true)
+        enableFeedInfiniteScroll()
+        connectFeedSSE()
+      } catch (err) {
+        console.error('[feed] initFeed 异常', err)
+        dismissFeedBootLoading()
+        enableFeedInfiniteScroll()
+        showState('error')
+        document.getElementById('state-error-text').textContent = '加载失败，请检查网络后重试'
+      }
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') loadMsgBadge()
+    })
+
+    initFeed().catch(function (err) {
+      console.error('[feed] initFeed 未捕获异常', err)
+      dismissFeedBootLoading()
+      enableFeedInfiniteScroll()
+    })
+  </script>
+</body>
+</html>

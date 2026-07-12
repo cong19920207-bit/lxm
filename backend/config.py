@@ -145,6 +145,71 @@ def get_redis_user_emotion_ttl_seconds() -> int:
     return int(os.getenv("REDIS_USER_EMOTION_TTL", "3600"))
 
 
+# ============ DeepSeek（生活流 LLM-01~07，与豆包对话主链完全独立） ============
+
+def get_deepseek_api_key() -> str:
+    """获取 DeepSeek API Key（技术凭证，不进后台 UI）。缺失返回空字符串，启动阶段仅 WARN 不阻断。"""
+    return os.getenv("DEEPSEEK_API_KEY", "")
+
+
+def get_deepseek_base_url() -> str:
+    """获取 DeepSeek Endpoint，默认 https://api.deepseek.com。"""
+    return os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+
+
+def warn_deepseek_config_on_startup() -> None:
+    """应用启动时校验 DeepSeek 配置：缺失仅 WARN，不阻断启动（避免测试环境阻塞，STEP-002）。"""
+    import logging
+
+    if not get_deepseek_api_key():
+        logging.getLogger(__name__).warning(
+            "DEEPSEEK_API_KEY 未配置，生活流 LLM-01~07 调用将失败；本地/测试环境可忽略此告警"
+        )
+
+
+# ============ LiblibAI 图像生成 / 阿里云 OSS（生活流 STEP-012） ============
+
+def get_liblib_access_key() -> str:
+    """LiblibAI AccessKey（HMAC-SHA1 签名用）。缺失返回空字符串。"""
+    return os.getenv("LIBLIB_ACCESS_KEY", "")
+
+
+def get_liblib_secret_key() -> str:
+    """LiblibAI SecretKey（HMAC-SHA1 签名用）。缺失返回空字符串。"""
+    return os.getenv("LIBLIB_SECRET_KEY", "")
+
+
+def get_liblib_base_url() -> str:
+    """LiblibAI Endpoint。默认官方开放平台地址。"""
+    return os.getenv("LIBLIB_BASE_URL", "https://openapi.liblibai.cloud")
+
+
+def get_oss_access_key_id() -> str:
+    return os.getenv("OSS_ACCESS_KEY_ID", "")
+
+
+def get_oss_access_key_secret() -> str:
+    return os.getenv("OSS_ACCESS_KEY_SECRET", "")
+
+
+def get_oss_endpoint() -> str:
+    return os.getenv("OSS_ENDPOINT", "")
+
+
+def get_oss_bucket() -> str:
+    return os.getenv("OSS_BUCKET", "")
+
+
+def get_oss_cdn_domain() -> str:
+    """OSS 对应 CDN 加速域名（写入 feed_post.image_urls 的最终 URL 前缀，不含协议）。"""
+    return os.getenv("OSS_CDN_DOMAIN", "")
+
+
+def get_feed_image_reference_public_url() -> str:
+    """参考基准图 base.png 的公网 URL（供 LiblibAI 图生图拉取）。"""
+    return os.getenv("FEED_IMAGE_REFERENCE_PUBLIC_URL", "")
+
+
 # ============ Open API Key ============
 
 _OPEN_API_PEPPER_MIN_LEN = 32

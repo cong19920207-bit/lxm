@@ -56,9 +56,10 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时建表、启动定时任务，关闭时优雅停止"""
-    from backend.config import validate_open_api_pepper_on_startup
+    from backend.config import validate_open_api_pepper_on_startup, warn_deepseek_config_on_startup
 
     validate_open_api_pepper_on_startup()
+    warn_deepseek_config_on_startup()
     await create_all_tables()
     from backend.tasks.scheduler import start_scheduler, shutdown_scheduler
     from backend.services.diary_rules_loader import get_scheduled_diary_cron_times
@@ -89,6 +90,7 @@ from backend.routers.memory import router as memory_router  # noqa: E402
 from backend.routers.agent import router as agent_router  # noqa: E402
 from backend.routers.relationship import router as relationship_router  # noqa: E402
 from backend.routers.app import router as app_router  # noqa: E402
+from backend.routers.feed import router as feed_router  # noqa: E402
 
 app.include_router(auth_router)
 app.include_router(chat_router)
@@ -97,6 +99,7 @@ app.include_router(memory_router)
 app.include_router(relationship_router)
 app.include_router(agent_router)
 app.include_router(app_router)
+app.include_router(feed_router)
 
 from backend.routers.open.chat import router as open_chat_router  # noqa: E402
 from backend.routers.open.agent import router as open_agent_router  # noqa: E402
@@ -122,6 +125,12 @@ from backend.routers.admin import stats as admin_stats  # noqa: E402
 from backend.routers.admin import system_monitor as admin_system_monitor  # noqa: E402
 from backend.routers.admin import vector_config as admin_vector_config  # noqa: E402
 from backend.routers.admin import knowledge_mgmt as admin_knowledge  # noqa: E402
+from backend.routers.admin import life_plan_mgmt as admin_life_plan  # noqa: E402
+from backend.routers.admin import worldview_mgmt as admin_worldview  # noqa: E402
+from backend.routers.admin import feed_mgmt as admin_feed_mgmt  # noqa: E402
+from backend.routers.admin import feed_comment_mgmt as admin_feed_comment  # noqa: E402
+from backend.routers.admin import agent_aware_mgmt as admin_agent_aware  # noqa: E402
+from backend.routers.admin import life_config_mgmt as admin_life_config  # noqa: E402
 
 app.include_router(admin_auth.router,
     prefix="/api/admin/auth", tags=["admin-auth"])
@@ -157,6 +166,18 @@ app.include_router(admin_vector_config.router,
     prefix="/api/admin/configs", tags=["admin-configs"])
 app.include_router(admin_knowledge.router,
     prefix="/api/admin", tags=["admin-character-knowledge"])
+app.include_router(admin_life_plan.router,
+    prefix="/api/admin", tags=["admin-life-plan"])
+app.include_router(admin_worldview.router,
+    prefix="/api/admin", tags=["admin-worldview"])
+app.include_router(admin_feed_mgmt.router,
+    prefix="/api/admin", tags=["admin-feed-mgmt"])
+app.include_router(admin_feed_comment.router,
+    prefix="/api/admin", tags=["admin-feed-comment"])
+app.include_router(admin_agent_aware.router,
+    prefix="/api/admin", tags=["admin-agent-aware"])
+app.include_router(admin_life_config.router,
+    prefix="/api/admin", tags=["admin-life-config"])
 
 # ============ 静态资源 & 页面路由（必须放在所有API路由之后） ============
 

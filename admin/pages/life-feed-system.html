@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>发布 & 系统参数 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .lf-block { margin-bottom: 20px; }
+    .lf-block h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: #333; }
+    .lf-desc { font-size: 12px; color: #888; margin: 4px 0 0; }
+    .lf-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 720px; }
+    .lf-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; }
+    .switch-row { display: flex; align-items: center; gap: 12px; }
+    .lf-block-actions { margin-top: 12px; display: flex; gap: 10px; }
+    .table-wrap { overflow-x: auto; }
+    .liblib-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 12px 0 16px;
+      max-width: 900px;
+    }
+    .liblib-metric {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .liblib-metric .metric-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .liblib-metric .metric-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.2;
+    }
+    .liblib-metric .metric-value.is-danger { color: var(--danger); }
+    .admin-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .admin-table .is-danger { color: var(--danger); font-weight: 500; }
+    .admin-table .empty-tip { text-align: center; color: #888; font-size: 12px; }
+    @media (max-width: 900px) {
+      .liblib-summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <!-- 自动发布开关 -->
+  <div class="page-card lf-block">
+    <h3>自动发布开关</h3>
+    <p class="lf-desc">控制定时任务是否自动发布到期的朋友圈内容。</p>
+    <div class="switch-row" style="margin-top:12px">
+      <label><input type="checkbox" id="auto-publish-enabled"> 启用自动发布（feed_auto_publish_enabled）</label>
+    </div>
+    <div class="lf-block-actions" data-edit-only>
+      <button type="button" class="btn btn-default" id="btn-save-auto-publish">保存草稿</button>
+    </div>
+  </div>
+
+  <!-- 发布窗口 & 可见范围 & 点赞参数 -->
+  <div class="page-card lf-block">
+    <h3>发布窗口 & 历史可见 & 点赞参数</h3>
+    <div class="lf-grid-3" style="margin-top:12px">
+      <div class="form-item">
+        <label>发布窗口 1（feed_publish_window_1）</label>
+        <input type="text" class="form-control" id="cfg-feed_publish_window_1" placeholder="10:00-12:00">
+      </div>
+      <div class="form-item">
+        <label>发布窗口 2（feed_publish_window_2）</label>
+        <input type="text" class="form-control" id="cfg-feed_publish_window_2" placeholder="15:00-20:00">
+      </div>
+      <div class="form-item">
+        <label>发布窗口 3（feed_publish_window_3）</label>
+        <input type="text" class="form-control" id="cfg-feed_publish_window_3" placeholder="20:00-23:00">
+      </div>
+    </div>
+    <div class="lf-grid-2" style="margin-top:16px">
+      <div class="form-item">
+        <label>历史可见范围（feed_history_visible_range）</label>
+        <select class="form-control" id="cfg-feed_history_visible_range">
+          <option value="7d">7d</option>
+          <option value="30d">30d</option>
+          <option value="180d">180d</option>
+          <option value="all">all</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label>base_likes 最小（feed_base_likes_min）</label>
+        <input type="number" class="form-control" id="cfg-feed_base_likes_min" min="0">
+      </div>
+      <div class="form-item">
+        <label>base_likes 最大（feed_base_likes_max）</label>
+        <input type="number" class="form-control" id="cfg-feed_base_likes_max" min="0">
+      </div>
+      <div class="form-item">
+        <label>like_multiplier 最小（feed_like_multiplier_min）</label>
+        <input type="number" class="form-control" id="cfg-feed_like_multiplier_min" min="1">
+      </div>
+      <div class="form-item">
+        <label>like_multiplier 最大（feed_like_multiplier_max）</label>
+        <input type="number" class="form-control" id="cfg-feed_like_multiplier_max" min="1">
+      </div>
+    </div>
+    <div class="lf-block-actions" data-edit-only>
+      <button type="button" class="btn btn-default" id="btn-save-publish-cfg">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-publish-publish-cfg">发布</button>
+    </div>
+  </div>
+
+  <!-- LiblibAI 生图参数（TB-LF-001） -->
+  <div class="page-card lf-block">
+    <h3>Liblib 生图参数</h3>
+    <p class="lf-desc">WebUI 开放接口 templateUuid 与 generateParams 默认值。AK/SK 仍走服务器环境变量。img2img UUID 为空时自拍图会失败并降级纯文字。</p>
+    <div class="lf-grid-2" style="margin-top:12px">
+      <div class="form-item">
+        <label>文生图 templateUuid（liblib_text2img_template_uuid）</label>
+        <input type="text" class="form-control" id="cfg-liblib_text2img_template_uuid" placeholder="Star-3 / daily·scenery·emotion">
+      </div>
+      <div class="form-item">
+        <label>图生图 templateUuid（liblib_img2img_template_uuid）</label>
+        <input type="text" class="form-control" id="cfg-liblib_img2img_template_uuid" placeholder="IMG1 / selfie，需控制台填写">
+      </div>
+      <div class="form-item">
+        <label>steps（liblib_gen_steps）</label>
+        <input type="number" class="form-control" id="cfg-liblib_gen_steps" min="1">
+      </div>
+      <div class="form-item">
+        <label>width（liblib_gen_width）</label>
+        <input type="number" class="form-control" id="cfg-liblib_gen_width" min="64">
+      </div>
+      <div class="form-item">
+        <label>height（liblib_gen_height）</label>
+        <input type="number" class="form-control" id="cfg-liblib_gen_height" min="64">
+      </div>
+      <div class="form-item">
+        <label>resizedWidth（liblib_img2img_resized_width）</label>
+        <input type="number" class="form-control" id="cfg-liblib_img2img_resized_width" min="64" placeholder="图生图参考图缩放宽">
+      </div>
+      <div class="form-item">
+        <label>resizedHeight（liblib_img2img_resized_height）</label>
+        <input type="number" class="form-control" id="cfg-liblib_img2img_resized_height" min="64" placeholder="图生图参考图缩放高">
+      </div>
+      <div class="form-item">
+        <label>img2img strength（liblib_img2img_strength）</label>
+        <input type="number" class="form-control" id="cfg-liblib_img2img_strength" min="0" max="1" step="0.01">
+      </div>
+    </div>
+    <div class="lf-block-actions" data-edit-only>
+      <button type="button" class="btn btn-default" id="btn-save-liblib-cfg">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-publish-liblib-cfg">发布</button>
+    </div>
+  </div>
+
+  <!-- LiblibAI 统计 -->
+  <div class="page-card lf-block">
+    <h3>LiblibAI 调用统计（近 7 天）</h3>
+    <div class="liblib-summary-grid" id="liblib-summary">
+      <div class="liblib-metric">
+        <div class="metric-label">合计调用</div>
+        <div class="metric-value" id="liblib-sum-total">-</div>
+      </div>
+      <div class="liblib-metric">
+        <div class="metric-label">成功</div>
+        <div class="metric-value" id="liblib-sum-success">-</div>
+      </div>
+      <div class="liblib-metric">
+        <div class="metric-label">失败</div>
+        <div class="metric-value" id="liblib-sum-failed">-</div>
+      </div>
+      <div class="liblib-metric">
+        <div class="metric-label">消耗积分</div>
+        <div class="metric-value" id="liblib-sum-points">-</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th class="num">调用次数</th>
+            <th class="num">成功</th>
+            <th class="num">失败</th>
+            <th class="num">消耗积分</th>
+          </tr>
+        </thead>
+        <tbody id="liblib-tbody">
+          <tr><td colspan="5" class="empty-tip">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PUBLISH_CFG_KEYS = [
+    'feed_publish_window_1', 'feed_publish_window_2', 'feed_publish_window_3',
+    'feed_history_visible_range',
+    'feed_base_likes_min', 'feed_base_likes_max',
+    'feed_like_multiplier_min', 'feed_like_multiplier_max'
+  ];
+
+  var LIBLIB_CFG_KEYS = [
+    'liblib_text2img_template_uuid', 'liblib_img2img_template_uuid',
+    'liblib_gen_steps', 'liblib_gen_width', 'liblib_gen_height',
+    'liblib_img2img_resized_width', 'liblib_img2img_resized_height',
+    'liblib_img2img_strength'
+  ];
+
+  async function loadAutoPublish() {
+    var res = await adminRequest('GET', '/api/admin/feed/config/auto-publish', null, false, { silentErrorToast: true });
+    if (res && res.code === 0) {
+      document.getElementById('auto-publish-enabled').checked = !!res.data.feed_auto_publish_enabled;
+    }
+  }
+
+  async function loadPublishConfig() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=' + encodeURIComponent(PUBLISH_CFG_KEYS.join(',')));
+    if (!res || res.code !== 0) return;
+    var data = res.data || {};
+    PUBLISH_CFG_KEYS.forEach(function (k) {
+      var el = document.getElementById('cfg-' + k);
+      if (!el) return;
+      var v = lfPickValue(data[k]);
+      if (v == null) return;
+      if (el.tagName === 'SELECT') {
+        el.value = String(v);
+      } else {
+        el.value = String(v);
+      }
+    });
+  }
+
+  async function loadLiblibConfig() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=' + encodeURIComponent(LIBLIB_CFG_KEYS.join(',')));
+    if (!res || res.code !== 0) return;
+    var data = res.data || {};
+    LIBLIB_CFG_KEYS.forEach(function (k) {
+      var el = document.getElementById('cfg-' + k);
+      if (!el) return;
+      var v = lfPickValue(data[k]);
+      if (v == null) return;
+      el.value = String(v);
+    });
+  }
+
+  function renderLiblibSummary(s) {
+    var total = (s && s.total) || 0;
+    var success = (s && s.success) || 0;
+    var failed = (s && s.failed) || 0;
+    var points = (s && s.points_used) || 0;
+    document.getElementById('liblib-sum-total').textContent = total;
+    document.getElementById('liblib-sum-success').textContent = success;
+    var failedEl = document.getElementById('liblib-sum-failed');
+    failedEl.textContent = failed;
+    if (failed > 0) {
+      failedEl.classList.add('is-danger');
+    } else {
+      failedEl.classList.remove('is-danger');
+    }
+    document.getElementById('liblib-sum-points').textContent = points;
+  }
+
+  async function loadLiblibStats() {
+    var res = await adminRequest('GET', '/api/admin/stats/liblib?days=7');
+    var tbody = document.getElementById('liblib-tbody');
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-tip">加载失败</td></tr>';
+      renderLiblibSummary(null);
+      return;
+    }
+    var data = res.data || {};
+    renderLiblibSummary(data.summary || {});
+    var daily = data.daily || [];
+    if (!daily.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-tip">暂无数据</td></tr>';
+      return;
+    }
+    tbody.innerHTML = daily.map(function (d) {
+      var failed = d.failed || 0;
+      var failedClass = failed > 0 ? 'num is-danger' : 'num';
+      return '<tr><td>' + lfEscapeHtml(d.date) + '</td>' +
+        '<td class="num">' + (d.total || 0) + '</td>' +
+        '<td class="num">' + (d.success || 0) + '</td>' +
+        '<td class="' + failedClass + '">' + failed + '</td>' +
+        '<td class="num">' + (d.points_used || 0) + '</td></tr>';
+    }).join('');
+  }
+
+  function readPublishCfgValues() {
+    var out = {};
+    PUBLISH_CFG_KEYS.forEach(function (k) {
+      var el = document.getElementById('cfg-' + k);
+      if (!el) return;
+      var raw = el.value.trim();
+      if (k.indexOf('feed_base_likes') >= 0 || k.indexOf('feed_like_multiplier') >= 0) {
+        out[k] = parseInt(raw, 10);
+      } else {
+        out[k] = raw;
+      }
+    });
+    return out;
+  }
+
+  function readLiblibCfgValues() {
+    var out = {};
+    LIBLIB_CFG_KEYS.forEach(function (k) {
+      var el = document.getElementById('cfg-' + k);
+      if (!el) return;
+      var raw = el.value.trim();
+      if (k === 'liblib_gen_steps' || k === 'liblib_gen_width' || k === 'liblib_gen_height'
+          || k === 'liblib_img2img_resized_width' || k === 'liblib_img2img_resized_height') {
+        out[k] = parseInt(raw, 10);
+      } else if (k === 'liblib_img2img_strength') {
+        out[k] = parseFloat(raw);
+      } else {
+        out[k] = raw;
+      }
+    });
+    return out;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage('life-feed-system', '发布 & 系统参数', ['super_admin', 'ai_trainer', 'tech_ops'])) return;
+
+    document.getElementById('btn-save-auto-publish').onclick = async function () {
+      var enabled = document.getElementById('auto-publish-enabled').checked;
+      var res = await adminRequest('PUT', '/api/admin/feed/config/auto-publish', { enabled: enabled });
+      if (res && res.code === 0) showToast('自动发布开关草稿已保存', 'success');
+    };
+
+    document.getElementById('btn-save-publish-cfg').onclick = async function () {
+      var vals = readPublishCfgValues();
+      for (var k in vals) {
+        if (!Object.prototype.hasOwnProperty.call(vals, k)) continue;
+        await lfSaveDraft(k, vals[k]);
+      }
+      loadPublishConfig();
+    };
+
+    document.getElementById('btn-publish-publish-cfg').onclick = function () {
+      var vals = readPublishCfgValues();
+      var keys = Object.keys(vals);
+      showConfirmInput(
+        '批量发布系统参数',
+        '将依次发布 ' + keys.length + ' 项配置，立即生效并开启 5 分钟监控窗口。',
+        '确认发布',
+        async function () {
+          for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            await adminRequest('POST', '/api/admin/life-config/publish', {
+              config_key: k,
+              config_value: vals[k]
+            });
+          }
+          showToast('已全部发布', 'success');
+          loadPublishConfig();
+        }
+      );
+    };
+
+    document.getElementById('btn-save-liblib-cfg').onclick = async function () {
+      var vals = readLiblibCfgValues();
+      for (var k in vals) {
+        if (!Object.prototype.hasOwnProperty.call(vals, k)) continue;
+        await lfSaveDraft(k, vals[k]);
+      }
+      loadLiblibConfig();
+    };
+
+    document.getElementById('btn-publish-liblib-cfg').onclick = function () {
+      var vals = readLiblibCfgValues();
+      var keys = Object.keys(vals);
+      showConfirmInput(
+        '批量发布 Liblib 生图参数',
+        '将依次发布 ' + keys.length + ' 项配置，立即生效并开启 5 分钟监控窗口。',
+        '确认发布',
+        async function () {
+          for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            await adminRequest('POST', '/api/admin/life-config/publish', {
+              config_key: k,
+              config_value: vals[k]
+            });
+          }
+          showToast('已全部发布', 'success');
+          loadLiblibConfig();
+        }
+      );
+    };
+
+    loadAutoPublish();
+    loadPublishConfig();
+    loadLiblibConfig();
+    loadLiblibStats();
+  });
+</script>
+</body>
+</html>

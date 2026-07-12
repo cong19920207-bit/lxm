@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>感知消息 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row .form-control { width: 150px; }
+    .filter-row .spacer { flex: 1; }
+    .text-muted { font-size: 12px; color: #888; }
+    .text-truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
+    .op-btn {
+      background: transparent; border: none; cursor: pointer; font-size: 13px;
+      padding: 2px 6px; border-radius: 3px; transition: all 0.2s; margin-right: 4px;
+    }
+    .op-btn-detail { color: var(--primary); }
+    .op-btn-detail:hover { background: #e6f7ff; }
+    .op-btn-danger { color: var(--danger); }
+    .op-btn-danger:hover { background: #fff2f0; }
+    .empty-tip { text-align: center; padding: 48px 0; color: var(--text-disabled); font-size: 14px; }
+    .modal-wide { max-width: 640px; }
+    .detail-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; font-size: 13px; }
+    .detail-grid .k { color: #888; }
+    .detail-grid .v { word-break: break-all; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <div class="filter-row">
+      <label>用户 ID</label>
+      <input type="number" class="form-control" id="filter-user-id" placeholder="可选">
+      <label>触发类型</label>
+      <select class="form-control" id="filter-trigger">
+        <option value="">全部</option>
+        <option value="LIKE_AWARE">点赞感知</option>
+        <option value="READ_AWARE">已读感知</option>
+      </select>
+      <label>状态</label>
+      <select class="form-control" id="filter-status">
+        <option value="">全部</option>
+        <option value="pending">待发送</option>
+        <option value="generating">生成中</option>
+        <option value="sent">已发送</option>
+        <option value="failed">失败</option>
+      </select>
+      <button type="button" class="btn btn-default" id="btn-search">查询</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-default" id="btn-reset-counters" style="display:none">重置特殊档计数</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>队列 ID</th>
+            <th>用户</th>
+            <th>触发类型</th>
+            <th>关联帖子</th>
+            <th>状态</th>
+            <th>消息摘要</th>
+            <th>计划发送</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="aware-tbody">
+          <tr><td colspan="9" class="empty-tip">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="aware-pagination"></div>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div id="detail-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>感知消息详情</h3>
+      <button type="button" class="btn btn-link" id="detail-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="detail-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="detail-modal-cancel">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PAGE_KEY = 'agent-aware';
+  var currentPage = 1;
+  var pageSize = 20;
+
+  function isReadonly() { return isLifeFeedReadOnly(PAGE_KEY); }
+
+  function openModal(id) {
+    var el = document.getElementById(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  function truncate(text, n) {
+    text = text || '';
+    if (text.length <= n) return text;
+    return text.slice(0, n) + '…';
+  }
+
+  function triggerLabel(t) {
+    if (t === 'LIKE_AWARE') return '点赞感知';
+    if (t === 'READ_AWARE') return '已读感知';
+    return t || '-';
+  }
+
+  function statusTag(st) {
+    var map = {
+      pending: ['tag tag-warning', '待发送'],
+      generating: ['tag tag-blue', '生成中'],
+      sent: ['tag tag-success', '已发送'],
+      failed: ['tag tag-error', '失败']
+    };
+    var m = map[st] || ['tag tag-default', st || '-'];
+    return '<span class="' + m[0] + '">' + lfEscapeHtml(m[1]) + '</span>';
+  }
+
+  window.goAwarePage = function (p) {
+    currentPage = p;
+    loadAware();
+  };
+
+  window.showAwareDetail = async function (id) {
+    var res = await adminRequest('GET', '/api/admin/agent-aware/' + id);
+    if (!res || res.code !== 0) return;
+    var r = res.data || {};
+    var extra = r.extra_context;
+    if (extra != null && typeof extra === 'object') {
+      try { extra = JSON.stringify(extra, null, 2); } catch (e) { extra = String(extra); }
+    }
+    var rows = [
+      ['队列 ID', r.queue_id],
+      ['用户', (r.user_nickname || '') + ' #' + r.user_id],
+      ['触发类型', triggerLabel(r.aware_type || r.trigger_type)],
+      ['状态', r.status || '-'],
+      ['关联帖子', r.related_post_id || '-'],
+      ['关系阶段', r.relationship_stage || '-'],
+      ['Prompt', r.prompt_key || '-'],
+      ['计划发送', formatDateTime(r.due_at)],
+      ['创建时间', formatDateTime(r.created_at)],
+      ['agent_message_id', r.agent_message_id || '-'],
+      ['消息内容', r.agent_message_content || '-'],
+      ['失败原因', r.fail_reason || '-'],
+      ['extra_context', extra || '-']
+    ];
+    document.getElementById('detail-body').innerHTML = rows.map(function (pair) {
+      return '<div class="k">' + lfEscapeHtml(pair[0]) + '</div>' +
+        '<div class="v">' + lfEscapeHtml(String(pair[1])) + '</div>';
+    }).join('');
+    openModal('detail-modal');
+  };
+
+  window.retryAware = function (id) {
+    showConfirm('确认重试队列 #' + id + '？', async function () {
+      var res = await adminRequest('POST', '/api/admin/agent-aware/' + id + '/retry');
+      if (res && res.code === 0) {
+        showToast('已触发重试', 'success');
+        loadAware();
+      }
+    });
+  };
+
+  window.deleteAware = function (id) {
+    showConfirm('确认删除队列 #' + id + '？（不撤回已送达 IM）', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/agent-aware/' + id);
+      if (res && res.code === 0) {
+        showToast('已删除', 'success');
+        loadAware();
+      }
+    }, null, { danger: true });
+  };
+
+  async function loadAware() {
+    var uid = document.getElementById('filter-user-id').value.trim();
+    var tt = document.getElementById('filter-trigger').value;
+    var st = document.getElementById('filter-status').value;
+    var q = '?page=' + currentPage + '&size=' + pageSize;
+    if (uid) q += '&user_id=' + encodeURIComponent(uid);
+    if (tt) q += '&trigger_type=' + encodeURIComponent(tt);
+    if (st) q += '&status=' + encodeURIComponent(st);
+
+    var res = await adminRequest('GET', '/api/admin/agent-aware' + q);
+    var tbody = document.getElementById('aware-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+    var data = res.data || {};
+    var rows = data.list || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">暂无感知消息</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        var trigger = r.aware_type || r.trigger_type || '-';
+        var userLabel = r.user_nickname
+          ? lfEscapeHtml(r.user_nickname) + ' <span class="text-muted">#' + r.user_id + '</span>'
+          : String(r.user_id);
+        var msg = r.agent_message_content || r.fail_reason || '-';
+        var ops = '<button class="op-btn op-btn-detail" onclick="showAwareDetail(' + r.queue_id + ')">详情</button>';
+        if (!readonly) {
+          if (r.status === 'failed') {
+            ops += '<button class="op-btn op-btn-detail" onclick="retryAware(' + r.queue_id + ')">重试</button>';
+          }
+          ops += '<button class="op-btn op-btn-danger" onclick="deleteAware(' + r.queue_id + ')">删除</button>';
+        }
+        return '<tr>' +
+          '<td>' + r.queue_id + '</td>' +
+          '<td>' + userLabel + '</td>' +
+          '<td>' + lfEscapeHtml(triggerLabel(trigger)) + '</td>' +
+          '<td>' + (r.related_post_id || '-') + '</td>' +
+          '<td>' + statusTag(r.status) + '</td>' +
+          '<td class="text-truncate" title="' + lfEscapeHtml(msg) + '">' +
+            lfEscapeHtml(truncate(msg, 36)) + '</td>' +
+          '<td>' + formatDateTime(r.due_at) + '</td>' +
+          '<td>' + formatDateTime(r.created_at) + '</td>' +
+          '<td>' + ops + '</td></tr>';
+      }).join('');
+    }
+    renderPagination('aware-pagination', data.page || currentPage, data.total || 0, data.size || pageSize, 'goAwarePage');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage(PAGE_KEY, '感知消息', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+
+    // 重置特殊档：仅 super_admin
+    var resetBtn = document.getElementById('btn-reset-counters');
+    if (getAdminRole() === 'super_admin') {
+      resetBtn.style.display = '';
+      resetBtn.onclick = function () {
+        var uid = document.getElementById('filter-user-id').value.trim();
+        if (!uid) {
+          showToast('请先在「用户 ID」填入要重置的用户', 'error');
+          return;
+        }
+        showConfirm('确认重置用户 #' + uid + ' 的点赞/已读感知特殊档计数？', async function () {
+          var res = await adminRequest('POST', '/api/admin/users/' + uid + '/aware/reset');
+          if (res && res.code === 0) showToast('已重置特殊档计数', 'success');
+        }, null, { danger: true });
+      };
+    }
+
+    document.getElementById('btn-search').onclick = function () { currentPage = 1; loadAware(); };
+
+    var closeDetail = function () { closeModal('detail-modal'); };
+    document.getElementById('detail-modal-close').onclick = closeDetail;
+    document.getElementById('detail-modal-cancel').onclick = closeDetail;
+    document.getElementById('detail-modal').onclick = closeDetail;
+
+    loadAware();
+  });
+</script>
+</body>
+</html>

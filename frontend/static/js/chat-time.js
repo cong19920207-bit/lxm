@@ -2,10 +2,13 @@
 /**
  * 聊天居中时间戳工具（自然日、中英文、12/24 小时）
  * 仅用于 H5 chat.html；记忆页等继续使用 api.js 的 formatTime。
+ * 展示与自然日一律按 Asia/Shanghai（北京时间），不依赖设备本地时区。
  */
 
 /** 超过该间隔（或跨自然日）则插入居中时间戳 */
 var CHAT_TIME_GAP_MS = 5 * 60 * 1000
+
+var CHAT_TZ = 'Asia/Shanghai'
 
 var CHAT_TIME_STRINGS = {
   zh: {
@@ -55,46 +58,79 @@ function setChatTimeOptions(partial) {
   return getChatTimeOptions()
 }
 
-/** 本地自然日 0:00 时间戳 */
-function startOfLocalDay(ts) {
-  var d = new Date(ts)
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+/**
+ * 取某时刻在北京时区的年月日时分与星期
+ * @returns {{ y: number, mo: number, d: number, h: number, mi: number, wd: number }}
+ */
+function getBeijingParts(ts) {
+  var parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: CHAT_TZ,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    weekday: 'short',
+    hour12: false,
+  }).formatToParts(new Date(ts))
+  var map = {}
+  for (var i = 0; i < parts.length; i++) {
+    map[parts[i].type] = parts[i].value
+  }
+  var wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  var h = Number(map.hour)
+  // 部分环境 24:xx 表示午夜
+  if (h === 24) h = 0
+  return {
+    y: Number(map.year),
+    mo: Number(map.month),
+    d: Number(map.day),
+    h: h,
+    mi: Number(map.minute),
+    wd: wdMap[map.weekday] != null ? wdMap[map.weekday] : 0,
+  }
 }
 
-/** 是否同一本地自然日 */
-function isSameLocalDay(a, b) {
-  return startOfLocalDay(a) === startOfLocalDay(b)
+/** 北京自然日序号（用于日差，非 Unix 日） */
+function beijingDayIndex(ts) {
+  var p = getBeijingParts(ts)
+  return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / 86400000)
+}
+
+/** 是否同一北京自然日 */
+function isSameBeijingDay(a, b) {
+  return beijingDayIndex(a) === beijingDayIndex(b)
 }
 
 /**
- * laterTs 相对 earlierTs 相差的自然日数（非负，按本地日历）
+ * laterTs 相对 earlierTs 相差的北京自然日数（非负）
  */
-function diffLocalDays(laterTs, earlierTs) {
-  var dayMs = 86400000
-  return Math.round((startOfLocalDay(laterTs) - startOfLocalDay(earlierTs)) / dayMs)
+function diffBeijingDays(laterTs, earlierTs) {
+  return beijingDayIndex(laterTs) - beijingDayIndex(earlierTs)
 }
 
-/** 本地自然周起点（weekStartsOn：1=周一，0=周日） */
-function startOfLocalWeek(ts) {
-  var d = new Date(ts)
-  var day = d.getDay()
+/** 北京自然周起点的 dayIndex（weekStartsOn：1=周一，0=周日） */
+function beijingWeekStartIndex(ts) {
+  var p = getBeijingParts(ts)
+  var day = p.wd
   var offset
   if (chatTimeOptions.weekStartsOn === 1) {
     offset = day === 0 ? 6 : day - 1
   } else {
     offset = day
   }
-  return startOfLocalDay(ts) - offset * 86400000
+  return beijingDayIndex(ts) - offset
 }
 
-function isSameLocalWeek(a, b) {
-  return startOfLocalWeek(a) === startOfLocalWeek(b)
+function isSameBeijingWeek(a, b) {
+  return beijingWeekStartIndex(a) === beijingWeekStartIndex(b)
 }
 
-/** 格式化为时:分（随 locale / hour12） */
+/** 格式化为时:分（北京时间，随 locale / hour12） */
 function formatHourMinute(ts) {
   var loc = chatTimeOptions.locale === 'en' ? 'en-US' : 'zh-CN'
   return new Intl.DateTimeFormat(loc, {
+    timeZone: CHAT_TZ,
     hour: 'numeric',
     minute: '2-digit',
     hour12: chatTimeOptions.hour12,
@@ -102,7 +138,7 @@ function formatHourMinute(ts) {
 }
 
 /**
- * 居中分组时间戳文案
+ * 居中分组时间戳文案（北京时间）
  * 当天 → 14:30；昨天/前天/本周周几/更早 2026/5/23 14:30
  */
 function formatChatTime(timestamp) {
@@ -112,19 +148,20 @@ function formatChatTime(timestamp) {
   var now = Date.now()
   var hm = formatHourMinute(ts)
   var strings = CHAT_TIME_STRINGS[chatTimeOptions.locale] || CHAT_TIME_STRINGS.zh
-  var days = diffLocalDays(now, ts)
+  var days = diffBeijingDays(now, ts)
 
   if (days === 0) return hm
   if (days === 1) return strings.yesterday + ' ' + hm
   if (days === 2) return strings.dayBeforeYesterday + ' ' + hm
 
-  if (days > 2 && isSameLocalWeek(now, ts)) {
-    var wd = strings.weekdays[new Date(ts).getDay()]
+  if (days > 2 && isSameBeijingWeek(now, ts)) {
+    var p = getBeijingParts(ts)
+    var wd = strings.weekdays[p.wd]
     return wd + ' ' + hm
   }
 
-  var d = new Date(ts)
-  return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm
+  var d = getBeijingParts(ts)
+  return d.y + '/' + d.mo + '/' + d.d + ' ' + hm
 }
 
 /**
@@ -139,6 +176,6 @@ function shouldShowTimeStamp(current, prev) {
 
   var prv = typeof prev === 'number' ? prev : new Date(prev).getTime()
   if (!Number.isFinite(prv)) return true
-  if (!isSameLocalDay(cur, prv)) return true
+  if (!isSameBeijingDay(cur, prv)) return true
   return cur - prv > CHAT_TIME_GAP_MS
 }

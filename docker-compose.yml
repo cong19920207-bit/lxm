@@ -1,8 +1,10 @@
 # 本地开发：MySQL / Redis / Backend / Nginx。
 # - H5（经 nginx:80）：./frontend 挂载，改文件强刷即生效。
-# - 管理后台（/admin 反代 backend）：./admin 挂载到 backend /app/admin，改 HTML/JS 后重启 backend 或 uvicorn 热重载即可；改 backend/ 或 requirements 须 build。
-# - 角色知识库（STEP-027）：依赖 .env 中 DASHVECTOR_* 与 Embedding；无库结构迁移，发版后 build backend 即可。
-# 库结构升级：先 alembic（见 docs/docker-admin-deploy.md），一般无需重建 mysql 容器或删数据卷。
+# - 管理后台（/admin 反代 backend）：./admin 挂载到 backend /app/admin，改 HTML/JS 后刷新即可；改 backend/ 或 requirements 须 build。
+# - 直连 :8000 时 H5 静态与页面：./frontend 同样挂载到 backend /app/frontend（与 nginx 一致，免 rebuild）。
+# - 生活流（M1）：.env 须含 DEEPSEEK_* / LIBLIB_* / OSS_* / FEED_IMAGE_REFERENCE_PUBLIC_URL；库结构 v6a→v6e 见 alembic。
+# - 角色知识库（STEP-027）：依赖 .env 中 DASHVECTOR_* 与 Embedding。
+# 库结构升级：docker compose build backend && docker compose exec backend alembic upgrade head（见 docs/ops/docker-admin-deploy.md）。
 # 容器系统时区：与杭州一致（Asia/Shanghai）。APScheduler 日记/清零等 Cron 在代码中仍使用 UTC，不受此处影响。
 
 services:
@@ -55,6 +57,8 @@ services:
     volumes:
       # 管理后台静态与页面：本地改 admin/ 无需每次 rebuild（API 仍在 backend/ 镜像内）
       - ./admin:/app/admin:ro
+      # H5 静态与页面：直连 :8000 或与 nginx 保持一致；朋友圈 feed.html / 参考图 base.png 等
+      - ./frontend:/app/frontend:ro
     depends_on:
       mysql:
         condition: service_healthy

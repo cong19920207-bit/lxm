@@ -66,11 +66,43 @@ ERR_DIARY_NOT_FOUND = 10300  # 日记不存在
 # ============ 主动消息模块 10400-10499 ============
 ERR_AGENT_MSG_NOT_FOUND = 10400  # 主动消息不存在
 
+# ============ 生活流·朋友圈模块 10500-10599（M1 STEP-015~018）============
+ERR_FEED_POST_NOT_FOUND = 10500  # 帖子不存在 / 未到点 / 已隐藏，对用户不可见
+ERR_FEED_POST_HIDDEN = 10501     # 帖子被管理员隐藏（is_visible=0）
+ERR_COMMENT_EMPTY = 10502        # 评论内容为空
+ERR_COMMENT_TOO_LONG = 10503     # 评论超过 200 字
+ERR_COMMENT_RATE_LIMIT = 10504   # 30 秒内重复评论同帖
+ERR_CONTENT_SAFETY_VIOLATION = 10505  # 评论内容安全违规
+ERR_FEED_COMMENT_FORBIDDEN = 10506    # 越权操作他人评论（M2 STEP-029 已读上报）
+
 # ============ 关系等级 ============
 RELATION_LEVEL_STRANGER = 0  # 陌生
 RELATION_LEVEL_FRIEND = 1  # 朋友（200分）
 RELATION_LEVEL_CLOSE = 2  # 亲密（800分）
 RELATION_LEVEL_SOULMATE = 3  # 知己（2000分）
+
+# ============ 生活流 DeepSeek 节点模型配置 key（STEP-002；LLM-01~07 各自独立可切换）============
+# 说明：仅声明 admin_config 的 config_key 常量与默认模型名；实际种子写入在 STEP-004。
+DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEEPSEEK_MODEL_LLM_01 = "deepseek_model_llm_01"  # 周大纲
+DEEPSEEK_MODEL_LLM_02 = "deepseek_model_llm_02"  # 日场景
+DEEPSEEK_MODEL_LLM_03 = "deepseek_model_llm_03"  # 她的宇宙
+DEEPSEEK_MODEL_LLM_04 = "deepseek_model_llm_04"  # 文案
+DEEPSEEK_MODEL_LLM_05 = "deepseek_model_llm_05"  # 评论回复
+DEEPSEEK_MODEL_LLM_06 = "deepseek_model_llm_06"  # 点赞感知 IM
+DEEPSEEK_MODEL_LLM_07 = "deepseek_model_llm_07"  # 已读感知 IM
+
+# node_key（llm_01~llm_07）→ admin_config config_key 映射，供 deepseek_llm_service 读取
+DEEPSEEK_NODE_MODEL_CONFIG_KEYS = {
+    "llm_01": DEEPSEEK_MODEL_LLM_01,
+    "llm_02": DEEPSEEK_MODEL_LLM_02,
+    "llm_03": DEEPSEEK_MODEL_LLM_03,
+    "llm_04": DEEPSEEK_MODEL_LLM_04,
+    "llm_05": DEEPSEEK_MODEL_LLM_05,
+    "llm_06": DEEPSEEK_MODEL_LLM_06,
+    "llm_07": DEEPSEEK_MODEL_LLM_07,
+}
 
 # ============ DashVector 向量类型常量（R-L1L3-08 / R-VEC-01）============
 MEMORY_TYPE_CHARACTER_GLOBAL = "character_global"       # 角色公开设定
@@ -116,6 +148,13 @@ ERROR_MESSAGES = {
     ERR_MEMORY_EXTRACT_FAILED: "记忆提取失败",
     ERR_DIARY_NOT_FOUND: "日记不存在",
     ERR_AGENT_MSG_NOT_FOUND: "主动消息不存在",
+    ERR_FEED_POST_NOT_FOUND: "内容不存在或已下架",
+    ERR_FEED_POST_HIDDEN: "内容已下架",
+    ERR_COMMENT_EMPTY: "评论内容不能为空",
+    ERR_COMMENT_TOO_LONG: "评论最多 200 字",
+    ERR_COMMENT_RATE_LIMIT: "评论太频繁，请稍后再试",
+    ERR_CONTENT_SAFETY_VIOLATION: "评论包含不适当内容，请修改后重试",
+    ERR_FEED_COMMENT_FORBIDDEN: "无权操作该评论",
 }
 
 # ============ 人格风险检测关键词 ============
@@ -219,6 +258,26 @@ ADMIN_ERR_CHARACTER_KNOWLEDGE_DUPLICATE_KEY = 20050  # 同 type+key 已存在
 ADMIN_ERR_CHARACTER_KNOWLEDGE_NOT_FOUND = 20051  # doc_id 不存在
 ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED = 20052  # Embedding 或 DashVector 失败
 
+# --- 生活流后台管理（M3 STEP-006/008/010/014）---
+ADMIN_ERR_LIFE_OUTLINE_ALREADY_EXISTS = 20053   # 一键生成：剩余自然日已有落库
+ADMIN_ERR_LIFE_OUTLINE_EXISTS_ON_DATE = 20054   # 新增单日大纲：该日已存在
+ADMIN_ERR_LIFE_OUTLINE_MISSING = 20055          # 手动生成日场景：当日大纲缺失
+ADMIN_ERR_LIFE_CATEGORY_INVALID = 20056         # categories/category 不在 categories_vocab 内
+ADMIN_ERR_LIFE_PLAN_NOT_FOUND = 20057           # 日计划/大纲不存在
+ADMIN_ERR_LIFE_SCENE_NOT_FOUND = 20058          # 指定 scene_id 不存在
+ADMIN_ERR_LIFE_PARAM_INVALID = 20059            # 生活流后台通用参数非法
+ADMIN_ERR_WORLDVIEW_SNAPSHOT_NOT_FOUND = 20060  # 快照不存在
+ADMIN_ERR_WORLDVIEW_EVENT_NOT_FOUND = 20061     # 事件不存在
+ADMIN_ERR_WORLDVIEW_ATTITUDE_INVALID = 20062    # core_attitude 非四选项之一
+ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN = 20063     # 后台朋友圈帖子不存在
+ADMIN_ERR_FEED_AI_DESCRIPTION_REQUIRED = 20064  # AI 生成缺少 description
+ADMIN_ERR_FEED_POST_MODE_INVALID = 20065        # 手动新增 mode 非 upload/ai_generate
+ADMIN_ERR_LIFE_GENERATE_FAILED = 20066          # LLM 生成失败（手动触发）
+ADMIN_ERR_FEED_COMMENT_NOT_FOUND = 20067        # 后台评论不存在
+ADMIN_ERR_AGENT_AWARE_NOT_FOUND = 20068         # 感知队列记录不存在
+ADMIN_ERR_AGENT_AWARE_RETRY_INVALID = 20069     # 仅 failed 状态可重试
+ADMIN_ERR_RELATIONSHIP_NOT_FOUND = 20070        # 用户关系记录不存在（重置特殊档计数）
+
 # ============ 管理后台错误信息映射（供路由与前端统一展示）============
 ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_AUTH_LOGIN_FAILED: "账号或密码错误",
@@ -273,4 +332,22 @@ ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_CHARACTER_KNOWLEDGE_DUPLICATE_KEY: "该类型下 key 已存在",
     ADMIN_ERR_CHARACTER_KNOWLEDGE_NOT_FOUND: "条目不存在",
     ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED: "向量写入失败，请稍后重试",
+    ADMIN_ERR_LIFE_OUTLINE_ALREADY_EXISTS: "剩余自然日已有大纲，无法一键生成",
+    ADMIN_ERR_LIFE_OUTLINE_EXISTS_ON_DATE: "该日期大纲已存在",
+    ADMIN_ERR_LIFE_OUTLINE_MISSING: "当日周大纲缺失，无法生成日场景",
+    ADMIN_ERR_LIFE_CATEGORY_INVALID: "内容分类不在允许的词汇表内",
+    ADMIN_ERR_LIFE_PLAN_NOT_FOUND: "生活计划不存在",
+    ADMIN_ERR_LIFE_SCENE_NOT_FOUND: "指定场景不存在",
+    ADMIN_ERR_LIFE_PARAM_INVALID: "参数不合法",
+    ADMIN_ERR_WORLDVIEW_SNAPSHOT_NOT_FOUND: "快照不存在",
+    ADMIN_ERR_WORLDVIEW_EVENT_NOT_FOUND: "事件不存在",
+    ADMIN_ERR_WORLDVIEW_ATTITUDE_INVALID: "核心态度必须是 喜欢/排斥/矛盾/无感 之一",
+    ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN: "朋友圈内容不存在",
+    ADMIN_ERR_FEED_AI_DESCRIPTION_REQUIRED: "AI 生成需要提供 description",
+    ADMIN_ERR_FEED_POST_MODE_INVALID: "手动新增模式必须是 upload 或 ai_generate",
+    ADMIN_ERR_LIFE_GENERATE_FAILED: "内容生成失败，请稍后重试",
+    ADMIN_ERR_FEED_COMMENT_NOT_FOUND: "评论不存在",
+    ADMIN_ERR_AGENT_AWARE_NOT_FOUND: "感知队列记录不存在",
+    ADMIN_ERR_AGENT_AWARE_RETRY_INVALID: "仅生成失败(failed)的记录可手动重试",
+    ADMIN_ERR_RELATIONSHIP_NOT_FOUND: "用户关系记录不存在",
 }

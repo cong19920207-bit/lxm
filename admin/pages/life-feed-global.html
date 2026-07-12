@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生活流 · 全局配置 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    /* 配置块通用样式 */
+    .lf-block {
+      margin-bottom: 20px;
+    }
+    .lf-block h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lf-draft-flag {
+      font-size: 12px;
+      color: #d46b08;
+      background: #fff7e6;
+      border: 1px solid #ffd591;
+      border-radius: 4px;
+      padding: 1px 8px;
+    }
+    .lf-desc {
+      font-size: 12px;
+      color: #888;
+      margin: 4px 0 0;
+      line-height: 1.6;
+    }
+    .lf-note-card {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #333;
+    }
+    .lf-block-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+    }
+    /* 标签编辑器 */
+    .lf-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      min-height: 28px;
+    }
+    .lf-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #e6f7ff;
+      color: #096dd9;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .lf-tag .lf-tag-del {
+      cursor: pointer;
+      color: #999;
+      font-weight: bold;
+      line-height: 1;
+    }
+    .lf-tag .lf-tag-del:hover {
+      color: #ff4d4f;
+    }
+    .lf-tag-input-row {
+      display: flex;
+      gap: 8px;
+      max-width: 420px;
+    }
+    .lf-tag-input-row .form-control {
+      flex: 1;
+    }
+    .lf-img-preview {
+      display: block;
+      max-width: 260px;
+      max-height: 160px;
+      margin-top: 8px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+    .lf-img-preview.is-empty {
+      display: none;
+    }
+    .lf-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 24px;
+      max-width: 720px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <!-- 人设说明块 -->
+  <div class="lf-note-card" role="note">
+    <p style="margin:0 0 10px">基础人设复用人格管理页，在此可扩展生活流特有偏好。</p>
+    <button type="button" class="btn btn-default btn-sm"
+            onclick="window.location.href='/admin/pages/persona.html'">前往人格管理页 →</button>
+  </div>
+
+  <!-- 生活流人设扩展 -->
+  <div class="page-card lf-block">
+    <h3>生活流人设扩展 <span class="lf-draft-flag" id="flag-persona-ext" style="display:none">（有未发布草稿）</span></h3>
+    <p class="lf-desc">以下 4 项为生活流专用人设文本，走草稿 / 发布流程。</p>
+    <div id="persona-ext-fields" style="margin-top:12px"></div>
+  </div>
+
+  <!-- 词汇表编辑器 -->
+  <div class="page-card lf-block">
+    <h3>词汇表编辑器</h3>
+    <p class="lf-desc">以标签形式管理，支持增删；保存 / 发布时提交为数组。</p>
+
+    <div class="lf-block" style="margin-top:16px">
+      <h3 style="font-size:14px">
+        场景分类词（categories_vocab）
+        <span class="lf-draft-flag" id="flag-categories_vocab" style="display:none">（有未发布草稿）</span>
+      </h3>
+      <div class="lf-tags" id="tags-categories_vocab"></div>
+      <div class="lf-tag-input-row">
+        <input type="text" class="form-control" id="input-categories_vocab" placeholder="输入后点击添加" autocomplete="off">
+        <button type="button" class="btn btn-default" data-add-tag="categories_vocab">添加</button>
+      </div>
+      <div class="lf-block-actions" data-edit-only>
+        <button type="button" class="btn btn-default" data-save-tag="categories_vocab">保存草稿</button>
+        <button type="button" class="btn btn-primary" data-publish-tag="categories_vocab">发布</button>
+      </div>
+    </div>
+
+    <div class="lf-block" style="margin-top:20px">
+      <h3 style="font-size:14px">
+        情绪词（emotion_vocab）
+        <span class="lf-draft-flag" id="flag-emotion_vocab" style="display:none">（有未发布草稿）</span>
+      </h3>
+      <p class="lf-desc">增删情绪词后保存 / 发布前，会提示同步更新图像映射表。</p>
+      <div class="lf-tags" id="tags-emotion_vocab"></div>
+      <div class="lf-tag-input-row">
+        <input type="text" class="form-control" id="input-emotion_vocab" placeholder="输入后点击添加" autocomplete="off">
+        <button type="button" class="btn btn-default" data-add-tag="emotion_vocab">添加</button>
+      </div>
+      <div class="lf-block-actions" data-edit-only>
+        <button type="button" class="btn btn-default" data-save-tag="emotion_vocab">保存草稿</button>
+        <button type="button" class="btn btn-primary" data-publish-tag="emotion_vocab">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 朋友圈页 Header 展示配置 -->
+  <div class="page-card lf-block">
+    <h3>朋友圈页 Header 展示配置
+      <span class="lf-draft-flag" id="flag-feed-header" style="display:none">（有未发布草稿）</span>
+    </h3>
+
+    <div class="form-item" style="margin-top:12px">
+      <label>Header 背景图 URL（feed_page_header_bg_url）</label>
+      <input type="text" class="form-control" id="cfg-feed_page_header_bg_url" placeholder="https://..." autocomplete="off">
+      <img class="lf-img-preview is-empty" id="preview-feed_page_header_bg_url" alt="背景图预览">
+    </div>
+
+    <div class="form-item mt-16">
+      <label>Header 头像 URL（feed_page_header_avatar_url）</label>
+      <input type="text" class="form-control" id="cfg-feed_page_header_avatar_url" placeholder="https://..." autocomplete="off">
+      <p class="lf-desc">默认使用 persona 头像。</p>
+      <img class="lf-img-preview is-empty" id="preview-feed_page_header_avatar_url" alt="头像预览">
+    </div>
+
+    <div class="form-item mt-16">
+      <label>个性签名（feed_page_signature）</label>
+      <input type="text" class="form-control" id="cfg-feed_page_signature" maxlength="30" placeholder="最多 30 字" autocomplete="off">
+      <p class="lf-desc">单行文本，最多 30 个字。</p>
+    </div>
+
+    <div class="form-item mt-16">
+      <label>展示昵称（feed_page_display_nickname · 只读）</label>
+      <input type="text" class="form-control" value="林小梦" disabled>
+    </div>
+
+    <div class="lf-block-actions" data-edit-only>
+      <button type="button" class="btn btn-default" id="btn-save-feed-header">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-publish-feed-header">发布</button>
+    </div>
+  </div>
+
+  <!-- 主场城市 -->
+  <div class="page-card lf-block">
+    <h3>主场城市
+      <span class="lf-draft-flag" id="flag-home_city" style="display:none">（有未发布草稿）</span>
+    </h3>
+    <div class="form-item" style="margin-top:12px;max-width:420px">
+      <label>home_city</label>
+      <input type="text" class="form-control" id="cfg-home_city" autocomplete="off">
+      <p class="lf-desc">主场城市，影响文案生成城市序列。</p>
+    </div>
+    <div class="lf-block-actions" data-edit-only>
+      <button type="button" class="btn btn-default" id="btn-save-home_city">保存草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-publish-home_city">发布</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script>
+  // 可进入本页的角色：编辑角色 + ops_admin（只读）
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'ops_admin'];
+  // 可编辑（可见保存 / 发布按钮）的角色
+  var EDIT_ROLES = ['super_admin', 'ai_trainer'];
+
+  // 生活流人设扩展的 4 个 config_key（纯文本 textarea）
+  var PERSONA_EXT_KEYS = [
+    { key: 'lxm_likes', label: '喜欢（lxm_likes）' },
+    { key: 'lxm_dislikes', label: '不喜欢（lxm_dislikes）' },
+    { key: 'lxm_writing_style', label: '文风（lxm_writing_style）' },
+    { key: 'lxm_content_limits', label: '内容限制（lxm_content_limits）' }
+  ];
+
+  // 需要一次性拉取的所有 config_key
+  var ALL_KEYS = [
+    'lxm_likes', 'lxm_dislikes', 'lxm_writing_style', 'lxm_content_limits',
+    'categories_vocab', 'emotion_vocab',
+    'feed_page_header_bg_url', 'feed_page_header_avatar_url',
+    'feed_page_signature', 'home_city'
+  ];
+
+  // 标签编辑器当前值 { config_key: [tag, tag, ...] }
+  var _tagState = {};
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // 从 life-config 返回项中取「展示值」：草稿优先
+  function pickValue(item) {
+    if (!item) return null;
+    if (item.has_draft) return item.draft;
+    return item.active;
+  }
+
+  // ─── 保存 / 发布通用封装 ───
+
+  async function saveDraft(configKey, configValue) {
+    var res = await adminRequest('PUT', '/api/admin/life-config/draft', {
+      config_key: configKey,
+      config_value: configValue
+    });
+    if (res && res.code === 0) {
+      showToast('草稿已保存', 'success');
+      return true;
+    }
+    return false;
+  }
+
+  function publishConfig(configKey, configValue) {
+    showConfirmInput(
+      '发布配置：' + configKey,
+      '发布后将立即生效并开启 5 分钟监控窗口，请确认配置无误。',
+      '确认发布',
+      async function () {
+        var res = await adminRequest('POST', '/api/admin/life-config/publish', {
+          config_key: configKey,
+          config_value: configValue
+        });
+        if (res && res.code === 0) {
+          showToast('已发布，5 分钟监控窗口已开启', 'success');
+          loadAll();
+        }
+      }
+    );
+  }
+
+  // ─── 人设扩展（textarea）───
+
+  function renderPersonaExtFields() {
+    var html = '';
+    for (var i = 0; i < PERSONA_EXT_KEYS.length; i++) {
+      var it = PERSONA_EXT_KEYS[i];
+      html +=
+        '<div class="form-item" style="margin-bottom:16px">' +
+          '<label>' + escapeHtml(it.label) +
+            ' <span class="lf-draft-flag" id="flag-' + it.key + '" style="display:none">（有未发布草稿）</span>' +
+          '</label>' +
+          '<textarea class="form-control" id="cfg-' + it.key + '" rows="3"></textarea>' +
+          '<div class="lf-block-actions" data-edit-only>' +
+            '<button type="button" class="btn btn-default" data-save-text="' + it.key + '">保存草稿</button>' +
+            '<button type="button" class="btn btn-primary" data-publish-text="' + it.key + '">发布</button>' +
+          '</div>' +
+        '</div>';
+    }
+    document.getElementById('persona-ext-fields').innerHTML = html;
+  }
+
+  // ─── 标签编辑器 ───
+
+  function renderTags(configKey) {
+    var box = document.getElementById('tags-' + configKey);
+    var arr = _tagState[configKey] || [];
+    if (!arr.length) {
+      box.innerHTML = '<span class="text-secondary" style="font-size:13px">（暂无，可在下方添加）</span>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < arr.length; i++) {
+      html += '<span class="lf-tag">' + escapeHtml(arr[i]) +
+        '<span class="lf-tag-del" data-del-tag="' + configKey + '" data-idx="' + i + '">✕</span></span>';
+    }
+    box.innerHTML = html;
+  }
+
+  function addTag(configKey) {
+    var input = document.getElementById('input-' + configKey);
+    var val = input.value.trim();
+    if (!val) return;
+    if (!_tagState[configKey]) _tagState[configKey] = [];
+    if (_tagState[configKey].indexOf(val) >= 0) {
+      showToast('该标签已存在', 'warning');
+      return;
+    }
+    _tagState[configKey].push(val);
+    input.value = '';
+    renderTags(configKey);
+  }
+
+  function delTag(configKey, idx) {
+    if (_tagState[configKey]) {
+      _tagState[configKey].splice(idx, 1);
+      renderTags(configKey);
+    }
+  }
+
+  // 情绪词特有：保存 / 发布前提示同步图像映射表
+  function withEmotionSyncConfirm(configKey, next) {
+    if (configKey === 'emotion_vocab') {
+      showConfirm(
+        '请同步更新图像映射表 emotion_img_keyword 与 emotion_atmosphere_desc（在 Prompt 管理页 Tab4），否则新增情绪词可能无对应图像映射。',
+        next
+      );
+    } else {
+      next();
+    }
+  }
+
+  // ─── 数据加载与回填 ───
+
+  async function loadAll() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=' + encodeURIComponent(ALL_KEYS.join(',')));
+    if (!res || res.code !== 0) return;
+    var data = res.data || {};
+
+    // 1. 人设扩展 textarea
+    var personaHasDraft = false;
+    for (var i = 0; i < PERSONA_EXT_KEYS.length; i++) {
+      var k = PERSONA_EXT_KEYS[i].key;
+      var item = data[k];
+      var v = pickValue(item);
+      var el = document.getElementById('cfg-' + k);
+      if (el) el.value = (v == null) ? '' : String(v);
+      toggleFlag('flag-' + k, item && item.has_draft);
+      if (item && item.has_draft) personaHasDraft = true;
+    }
+    toggleFlag('flag-persona-ext', personaHasDraft);
+
+    // 2. 词汇表标签
+    ['categories_vocab', 'emotion_vocab'].forEach(function (k) {
+      var item = data[k];
+      var v = pickValue(item);
+      _tagState[k] = Array.isArray(v) ? v.slice() : [];
+      renderTags(k);
+      toggleFlag('flag-' + k, item && item.has_draft);
+    });
+
+    // 3. 朋友圈 Header
+    var headerKeys = ['feed_page_header_bg_url', 'feed_page_header_avatar_url', 'feed_page_signature'];
+    var headerHasDraft = false;
+    headerKeys.forEach(function (k) {
+      var item = data[k];
+      var v = pickValue(item);
+      var el = document.getElementById('cfg-' + k);
+      if (el) el.value = (v == null) ? '' : String(v);
+      if (item && item.has_draft) headerHasDraft = true;
+    });
+    toggleFlag('flag-feed-header', headerHasDraft);
+    updatePreview('feed_page_header_bg_url');
+    updatePreview('feed_page_header_avatar_url');
+
+    // 4. 主场城市
+    var cityItem = data['home_city'];
+    var cityVal = pickValue(cityItem);
+    document.getElementById('cfg-home_city').value = (cityVal == null) ? '' : String(cityVal);
+    toggleFlag('flag-home_city', cityItem && cityItem.has_draft);
+  }
+
+  function toggleFlag(elId, show) {
+    var el = document.getElementById(elId);
+    if (el) el.style.display = show ? 'inline-block' : 'none';
+  }
+
+  function updatePreview(configKey) {
+    var input = document.getElementById('cfg-' + configKey);
+    var img = document.getElementById('preview-' + configKey);
+    if (!input || !img) return;
+    var url = input.value.trim();
+    if (url) {
+      img.src = url;
+      img.classList.remove('is-empty');
+    } else {
+      img.removeAttribute('src');
+      img.classList.add('is-empty');
+    }
+  }
+
+  // ─── 事件绑定 ───
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!checkAdminLogin()) return;
+    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
+      window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('life-feed-global');
+    document.getElementById('header-mount').innerHTML = renderHeader('生活流 · 全局配置');
+
+    renderPersonaExtFields();
+
+    // 人设扩展：保存 / 发布（事件委托）
+    document.getElementById('persona-ext-fields').addEventListener('click', function (e) {
+      var saveBtn = e.target.closest('[data-save-text]');
+      var pubBtn = e.target.closest('[data-publish-text]');
+      if (saveBtn) {
+        var k = saveBtn.getAttribute('data-save-text');
+        saveDraft(k, document.getElementById('cfg-' + k).value);
+      } else if (pubBtn) {
+        var pk = pubBtn.getAttribute('data-publish-text');
+        publishConfig(pk, document.getElementById('cfg-' + pk).value);
+      }
+    });
+
+    // 标签编辑器：添加 / 删除 / 保存 / 发布（页面级委托）
+    document.body.addEventListener('click', function (e) {
+      var addBtn = e.target.closest('[data-add-tag]');
+      var delBtn = e.target.closest('[data-del-tag]');
+      var saveBtn = e.target.closest('[data-save-tag]');
+      var pubBtn = e.target.closest('[data-publish-tag]');
+
+      if (addBtn) {
+        addTag(addBtn.getAttribute('data-add-tag'));
+      } else if (delBtn) {
+        delTag(delBtn.getAttribute('data-del-tag'), parseInt(delBtn.getAttribute('data-idx'), 10));
+      } else if (saveBtn) {
+        var sk = saveBtn.getAttribute('data-save-tag');
+        withEmotionSyncConfirm(sk, function () {
+          saveDraft(sk, _tagState[sk] || []);
+        });
+      } else if (pubBtn) {
+        var pk = pubBtn.getAttribute('data-publish-tag');
+        withEmotionSyncConfirm(pk, function () {
+          publishConfig(pk, _tagState[pk] || []);
+        });
+      }
+    });
+
+    // 标签输入框回车快捷添加
+    ['categories_vocab', 'emotion_vocab'].forEach(function (k) {
+      document.getElementById('input-' + k).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); addTag(k); }
+      });
+    });
+
+    // 朋友圈 Header：图片预览
+    document.getElementById('cfg-feed_page_header_bg_url').addEventListener('input', function () {
+      updatePreview('feed_page_header_bg_url');
+    });
+    document.getElementById('cfg-feed_page_header_avatar_url').addEventListener('input', function () {
+      updatePreview('feed_page_header_avatar_url');
+    });
+
+    // 朋友圈 Header：保存 / 发布（3 个可写 key 逐个提交）
+    var HEADER_KEYS = ['feed_page_header_bg_url', 'feed_page_header_avatar_url', 'feed_page_signature'];
+    document.getElementById('btn-save-feed-header').onclick = async function () {
+      for (var i = 0; i < HEADER_KEYS.length; i++) {
+        var k = HEADER_KEYS[i];
+        await saveDraft(k, document.getElementById('cfg-' + k).value);
+      }
+      loadAll();
+    };
+    document.getElementById('btn-publish-feed-header').onclick = function () {
+      showConfirmInput(
+        '发布朋友圈 Header 配置',
+        '将发布背景图、头像、个性签名 3 项配置，立即生效并开启 5 分钟监控窗口。',
+        '确认发布',
+        async function () {
+          for (var i = 0; i < HEADER_KEYS.length; i++) {
+            var k = HEADER_KEYS[i];
+            await adminRequest('POST', '/api/admin/life-config/publish', {
+              config_key: k,
+              config_value: document.getElementById('cfg-' + k).value
+            });
+          }
+          showToast('已发布，5 分钟监控窗口已开启', 'success');
+          loadAll();
+        }
+      );
+    };
+
+    // 主场城市：保存 / 发布
+    document.getElementById('btn-save-home_city').onclick = function () {
+      saveDraft('home_city', document.getElementById('cfg-home_city').value);
+    };
+    document.getElementById('btn-publish-home_city').onclick = function () {
+      publishConfig('home_city', document.getElementById('cfg-home_city').value);
+    };
+
+    loadAll();
+  });
+</script>
+</body>
+</html>

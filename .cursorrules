@@ -109,7 +109,9 @@ world_state, admin_config
 
 ## 代码规范
 - API响应统一格式：{"code": 0, "data": {}, "message": "success"}
-- 所有LLM调用：timeout=15s，retry=2次，指数退避
+- LLM 超时（分客户端，互不影响）：
+  - 豆包对话主链：`LLM_TIMEOUT_CHAT` 默认 45s；其它豆包调用见 `LLM_TIMEOUT`（默认 45s）
+  - 生活流 DeepSeek（`deepseek_client`）：单次默认 **45s**，retry=2 次，指数退避 2s/4s；感知 IM（llm_06/07）业务层显式同为 45s
 - 环境变量统一在.env，通过config.py读取
 - 异步操作使用async/await
 - JWT鉴权：除登录注册外所有接口必须校验

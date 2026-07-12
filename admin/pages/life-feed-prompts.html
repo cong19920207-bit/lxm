@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt · 生活流 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .lf-block { margin-bottom: 20px; }
+    .lf-block h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #333; }
+    .lf-desc { font-size: 12px; color: #888; margin: 0 0 8px; }
+    .lf-draft-flag { font-size: 12px; color: #d46b08; background: #fff7e6; border: 1px solid #ffd591; border-radius: 4px; padding: 1px 8px; margin-left: 8px; }
+    .prompt-item { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }
+    .prompt-item:last-child { border-bottom: none; }
+    .prompt-item textarea { font-family: monospace; font-size: 12px; min-height: 120px; }
+    .prompt-item textarea.json-area { min-height: 200px; }
+    .lf-block-actions { margin-top: 8px; display: flex; gap: 10px; }
+    .tab-actions { margin: 16px 0; display: flex; gap: 10px; }
+    .param-section { margin-bottom: 18px; }
+    .param-section h4 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #444; }
+    .param-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .param-grid .form-item label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .param-grid code { font-size: 11px; color: #aaa; }
+    @media (max-width: 1100px) { .param-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <div class="tabs" id="main-tabs">
+      <div class="tab-item active" data-target="tab-content">内容Prompt（P-01~05）</div>
+      <div class="tab-item" data-target="tab-interact">互动Prompt（P-06~14）</div>
+      <div class="tab-item" data-target="tab-image">图像映射</div>
+    </div>
+
+    <!-- Tab1: 内容 Prompt -->
+    <div class="tab-pane active" id="tab-content">
+      <div class="tab-actions" data-edit-only>
+        <button type="button" class="btn btn-default" id="btn-save-content">保存全部草稿</button>
+        <button type="button" class="btn btn-primary" id="btn-publish-content">发布全部</button>
+      </div>
+      <div id="content-prompts"></div>
+    </div>
+
+    <!-- Tab2: 互动 Prompt -->
+    <div class="tab-pane" id="tab-interact">
+      <!-- 互动参数（延迟/窗口/模型）STEP-033 -->
+      <div class="page-card" style="padding:16px;margin-bottom:16px">
+        <h3 style="margin-top:0">互动参数（评论回复 / 点赞感知 / 已读感知）</h3>
+        <p class="lf-desc">关系四档命名沿用 IM：陌生 / 朋友 / 亲密 / 知己；延迟单位为秒。</p>
+        <div class="tab-actions" data-edit-only>
+          <button type="button" class="btn btn-default" id="btn-save-params">保存参数草稿</button>
+          <button type="button" class="btn btn-primary" id="btn-publish-params">发布参数</button>
+        </div>
+        <div id="interact-params"></div>
+      </div>
+
+      <div class="tab-actions" data-edit-only>
+        <button type="button" class="btn btn-default" id="btn-save-interact">保存全部 Prompt 草稿</button>
+        <button type="button" class="btn btn-primary" id="btn-publish-interact">发布全部 Prompt</button>
+      </div>
+      <div id="interact-prompts"></div>
+    </div>
+
+    <!-- Tab3: 图像映射 -->
+    <div class="tab-pane" id="tab-image">
+      <p class="lf-desc">6 张图像关键词映射表，JSON 格式编辑。</p>
+      <div class="tab-actions" data-edit-only>
+        <button type="button" class="btn btn-default" id="btn-save-image">保存全部草稿</button>
+        <button type="button" class="btn btn-primary" id="btn-publish-image">发布全部</button>
+      </div>
+      <div id="image-prompts"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var CONTENT_KEYS = [
+    { key: 'prompt_p01_system', label: 'P-01 System · 周大纲生成' },
+    { key: 'prompt_p01_user', label: 'P-01 User · 周大纲生成' },
+    { key: 'prompt_p02_system', label: 'P-02 System · 日场景细节生成' },
+    { key: 'prompt_p02_user', label: 'P-02 User · 日场景细节生成' },
+    { key: 'prompt_p03_system', label: 'P-03 System · 她的宇宙（动态快照+静态事件）' },
+    { key: 'prompt_p03_user', label: 'P-03 User · 她的宇宙（动态快照+静态事件）' },
+    { key: 'prompt_p04_system', label: 'P-04 System · 朋友圈主文案生成' },
+    { key: 'prompt_p04_user', label: 'P-04 User · 朋友圈主文案生成' },
+    { key: 'prompt_p05_departure', label: 'P-05 出发 · 旅游叙事上下文' },
+    { key: 'prompt_p05_transit', label: 'P-05 途中 · 旅游叙事上下文' },
+    { key: 'prompt_p05_return', label: 'P-05 返程 · 旅游叙事上下文' },
+    { key: 'prompt_p05_oneday', label: 'P-05 一日游 · 旅游叙事上下文' }
+  ];
+
+  var INTERACT_KEYS = [
+    { key: 'prompt_p06_system', label: 'P-06 System · 评论回复生成' },
+    { key: 'prompt_p06_user', label: 'P-06 User · 评论回复生成' },
+    { key: 'prompt_p07_system', label: 'P-07 System · 点赞感知 IM 生成' },
+    { key: 'prompt_p07_user', label: 'P-07 User · 点赞感知 IM 生成' },
+    { key: 'prompt_p08_system', label: 'P-08 System · 已读感知·陌生档' },
+    { key: 'prompt_p08_user', label: 'P-08 User · 已读感知·陌生档' },
+    { key: 'prompt_p09_system', label: 'P-09 System · 已读感知·朋友档' },
+    { key: 'prompt_p09_user', label: 'P-09 User · 已读感知·朋友档' },
+    { key: 'prompt_p10_system', label: 'P-10 System · 已读感知·亲密档' },
+    { key: 'prompt_p10_user', label: 'P-10 User · 已读感知·亲密档' },
+    { key: 'prompt_p11_system', label: 'P-11 System · 已读感知·知己档' },
+    { key: 'prompt_p11_user', label: 'P-11 User · 已读感知·知己档' },
+    { key: 'prompt_p12_pos', label: 'P-12 Positive · 人物自拍图生图' },
+    { key: 'prompt_p12_neg', label: 'P-12 Negative · 人物自拍图生图' },
+    { key: 'prompt_p13a_pos', label: 'P-13A Positive · 非人物图·日常生活' },
+    { key: 'prompt_p13a_neg', label: 'P-13A Negative · 非人物图·日常生活' },
+    { key: 'prompt_p13b_pos', label: 'P-13B Positive · 非人物图·风景旅行' },
+    { key: 'prompt_p13b_neg', label: 'P-13B Negative · 非人物图·风景旅行' },
+    { key: 'prompt_p13c_pos', label: 'P-13C Positive · 非人物图·情绪表达' },
+    { key: 'prompt_p13c_neg', label: 'P-13C Negative · 非人物图·情绪表达' },
+    { key: 'prompt_p14_system', label: 'P-14 System · 已读感知·特殊窗口档' },
+    { key: 'prompt_p14_user', label: 'P-14 User · 已读感知·特殊窗口档' }
+  ];
+
+  var IMAGE_KEYS = [
+    { key: 'venue_type_img_keyword', label: 'venue_type_img_keyword' },
+    { key: 'category_img_keyword', label: 'category_img_keyword' },
+    { key: 'emotion_img_keyword', label: 'emotion_img_keyword' },
+    { key: 'emotion_atmosphere_desc', label: 'emotion_atmosphere_desc' },
+    { key: 'emotion_fallback_img_keyword', label: 'emotion_fallback_img_keyword' },
+    { key: 'emotion_fallback_atmosphere_desc', label: 'emotion_fallback_atmosphere_desc' }
+  ];
+
+  // ── STEP-033 互动参数（延迟/窗口/模型）──
+  var STAGES = [
+    { k: 'stranger', label: '陌生' },
+    { k: 'friend', label: '朋友' },
+    { k: 'intimate', label: '亲密' },
+    { k: 'soulmate', label: '知己' }
+  ];
+  var MODEL_KEYS = [
+    { key: 'deepseek_model_llm_05', label: 'LLM-05 评论回复模型' },
+    { key: 'deepseek_model_llm_06', label: 'LLM-06 点赞感知模型' },
+    { key: 'deepseek_model_llm_07', label: 'LLM-07 已读感知模型' }
+  ];
+  function delayGroup(prefix) {
+    var arr = [];
+    STAGES.forEach(function (s) {
+      arr.push({ key: prefix + '_' + s.k + '_min', label: s.label + ' min' });
+      arr.push({ key: prefix + '_' + s.k + '_max', label: s.label + ' max' });
+    });
+    return arr;
+  }
+  var COMMENT_DELAY = delayGroup('comment_reply_delay');
+  var LIKE_DELAY = delayGroup('like_regular_delay');
+  var READ_DELAY = delayGroup('read_regular_delay');
+  var LIKE_SPECIAL = [
+    { key: 'like_aware_special_window_hours', label: '窗口(小时)' },
+    { key: 'like_aware_special_max_count', label: '上限次数' },
+    { key: 'like_aware_special_delay_sec', label: '延迟(秒)' }
+  ];
+  var READ_SPECIAL = [
+    { key: 'read_aware_special_window_hours', label: '窗口(小时)' },
+    { key: 'read_aware_special_max_count', label: '上限次数' },
+    { key: 'read_aware_special_delay_sec', label: '延迟(秒)' },
+    { key: 'read_suppress_after_like_im_hours', label: '点赞后抑制(小时)' },
+    { key: 'read_aware_user_cooldown_hours', label: '用户冷却(小时)·窗口内最多1条已读' }
+  ];
+  var PARAM_NUM_LIST = COMMENT_DELAY.concat(LIKE_DELAY, READ_DELAY, LIKE_SPECIAL, READ_SPECIAL);
+  var PARAM_NUM_KEYS = PARAM_NUM_LIST.map(function (x) { return x.key; });
+  var PARAM_ALL_KEYS = MODEL_KEYS.map(function (x) { return x.key; }).concat(PARAM_NUM_KEYS);
+
+  var ALL_KEYS = CONTENT_KEYS.concat(INTERACT_KEYS).concat(IMAGE_KEYS)
+    .map(function (x) { return x.key; }).concat(PARAM_ALL_KEYS);
+  var _configData = {};
+
+  function paramSection(title, keys, type) {
+    var h = '<div class="param-section"><h4>' + lfEscapeHtml(title) + '</h4><div class="param-grid">';
+    keys.forEach(function (it) {
+      h += '<div class="form-item"><label>' + lfEscapeHtml(it.label) +
+        ' <code>' + it.key + '</code></label>' +
+        '<input type="' + type + '" class="form-control" id="cfg-' + it.key + '"></div>';
+    });
+    h += '</div></div>';
+    return h;
+  }
+
+  function renderParams() {
+    var html = '';
+    html += paramSection('模型版本', MODEL_KEYS, 'text');
+    html += paramSection('评论回复延迟（秒）', COMMENT_DELAY, 'number');
+    html += paramSection('点赞感知 · 常规档延迟（秒）', LIKE_DELAY, 'number');
+    html += paramSection('点赞感知 · 特殊档', LIKE_SPECIAL, 'number');
+    html += paramSection('已读感知 · 常规档延迟（秒）', READ_DELAY, 'number');
+    html += paramSection('已读感知 · 特殊档', READ_SPECIAL, 'number');
+    document.getElementById('interact-params').innerHTML = html;
+  }
+
+  function renderPromptList(containerId, keyList, isJson) {
+    var html = '';
+    for (var i = 0; i < keyList.length; i++) {
+      var it = keyList[i];
+      html += '<div class="prompt-item">' +
+        '<h3>' + lfEscapeHtml(it.label) +
+        ' <code style="font-size:12px;color:#888">' + it.key + '</code>' +
+        '<span class="lf-draft-flag" id="flag-' + it.key + '" style="display:none">（有未发布草稿）</span></h3>' +
+        '<textarea class="form-control' + (isJson ? ' json-area' : '') + '" id="cfg-' + it.key + '" rows="6"></textarea>' +
+        '<div class="lf-block-actions" data-edit-only>' +
+          '<button type="button" class="btn btn-default btn-sm" data-save-key="' + it.key + '">保存草稿</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" data-publish-key="' + it.key + '">发布</button>' +
+        '</div></div>';
+    }
+    document.getElementById(containerId).innerHTML = html;
+  }
+
+  function toggleFlag(key, show) {
+    var el = document.getElementById('flag-' + key);
+    if (el) el.style.display = show ? 'inline' : 'none';
+  }
+
+  function readKeyValue(key) {
+    var el = document.getElementById('cfg-' + key);
+    if (!el) return null;
+    var raw = el.value;
+    if (IMAGE_KEYS.some(function (k) { return k.key === key; })) {
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        showToast(key + ' JSON 格式错误', 'error');
+        return null;
+      }
+    }
+    if (PARAM_NUM_KEYS.indexOf(key) >= 0) {
+      var n = parseInt(raw, 10);
+      if (isNaN(n) || n < 0) {
+        showToast(key + ' 必须为非负整数', 'error');
+        return null;
+      }
+      return n;
+    }
+    return raw;
+  }
+
+  function fillAll() {
+    for (var i = 0; i < ALL_KEYS.length; i++) {
+      var k = ALL_KEYS[i];
+      var item = _configData[k];
+      var v = lfPickValue(item);
+      var el = document.getElementById('cfg-' + k);
+      if (!el) continue;
+      if (v == null) {
+        el.value = '';
+      } else if (typeof v === 'object') {
+        el.value = JSON.stringify(v, null, 2);
+      } else {
+        el.value = String(v);
+      }
+      toggleFlag(k, item && item.has_draft);
+    }
+  }
+
+  async function loadAll() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=' + encodeURIComponent(ALL_KEYS.join(',')));
+    if (!res || res.code !== 0) return;
+    _configData = res.data || {};
+    fillAll();
+  }
+
+  async function saveKeys(keys) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = readKeyValue(keys[i]);
+      if (v === null) return false;
+      await lfSaveDraft(keys[i], v);
+    }
+    await loadAll();
+    return true;
+  }
+
+  function publishKeys(keys) {
+    showConfirmInput(
+      '批量发布 Prompt',
+      '将发布 ' + keys.length + ' 项 Prompt 配置，立即生效并开启 5 分钟监控窗口。',
+      '确认发布',
+      async function () {
+        for (var i = 0; i < keys.length; i++) {
+          var v = readKeyValue(keys[i]);
+          if (v === null) return;
+          await adminRequest('POST', '/api/admin/life-config/publish', {
+            config_key: keys[i],
+            config_value: v
+          });
+        }
+        showToast('已全部发布', 'success');
+        loadAll();
+      }
+    );
+  }
+
+  function switchToTab(targetId) {
+    document.querySelectorAll('#main-tabs .tab-item').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.target === targetId);
+    });
+    document.querySelectorAll('.tab-pane').forEach(function (p) {
+      p.classList.toggle('active', p.id === targetId);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage('life-feed-prompts', 'Prompt · 生活流', ['super_admin', 'ai_trainer'])) return;
+
+    renderPromptList('content-prompts', CONTENT_KEYS, false);
+    renderPromptList('interact-prompts', INTERACT_KEYS, false);
+    renderPromptList('image-prompts', IMAGE_KEYS, true);
+    renderParams();
+
+    initTabs('main-tabs');
+    if (location.hash === '#tab-interact') {
+      switchToTab('tab-interact');
+    }
+
+    document.body.addEventListener('click', function (e) {
+      var saveBtn = e.target.closest('[data-save-key]');
+      var pubBtn = e.target.closest('[data-publish-key]');
+      if (saveBtn) {
+        var sk = saveBtn.getAttribute('data-save-key');
+        var sv = readKeyValue(sk);
+        if (sv !== null) lfSaveDraft(sk, sv).then(loadAll);
+      } else if (pubBtn) {
+        var pk = pubBtn.getAttribute('data-publish-key');
+        var pv = readKeyValue(pk);
+        if (pv !== null) lfPublishConfig(pk, pv, loadAll);
+      }
+    });
+
+    var contentKeyList = CONTENT_KEYS.map(function (x) { return x.key; });
+    var interactKeyList = INTERACT_KEYS.map(function (x) { return x.key; });
+    var imageKeyList = IMAGE_KEYS.map(function (x) { return x.key; });
+
+    document.getElementById('btn-save-content').onclick = function () { saveKeys(contentKeyList); };
+    document.getElementById('btn-save-interact').onclick = function () { saveKeys(interactKeyList); };
+    document.getElementById('btn-save-image').onclick = function () { saveKeys(imageKeyList); };
+    document.getElementById('btn-publish-content').onclick = function () { publishKeys(contentKeyList); };
+    document.getElementById('btn-publish-interact').onclick = function () { publishKeys(interactKeyList); };
+    document.getElementById('btn-publish-image').onclick = function () { publishKeys(imageKeyList); };
+    document.getElementById('btn-save-params').onclick = function () { saveKeys(PARAM_ALL_KEYS); };
+    document.getElementById('btn-publish-params').onclick = function () { publishKeys(PARAM_ALL_KEYS); };
+
+    loadAll();
+  });
+</script>
+</body>
+</html>

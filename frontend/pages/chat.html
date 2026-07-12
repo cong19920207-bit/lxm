@@ -44,7 +44,7 @@
       background: rgba(0, 0, 0, 0.25);
     }
 
-    /* 顶部栏（66px ≈ 原 88px 的 3/4，含状态栏区域） */
+    /* 顶部栏：三块独立胶囊（图2结构），无整条底栏 */
     .chat-top-bar {
       position: fixed;
       top: 0;
@@ -57,61 +57,92 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(0, 0, 0, 0.15);
-      -webkit-backdrop-filter: blur(20px);
-      backdrop-filter: blur(20px);
+      background: transparent;
     }
 
+    /* 顶栏三件共用：高透毛玻璃 + 亮边高光（对齐参考图） */
     .chat-top-bar .back-btn,
-    .chat-top-bar .more-btn {
+    .chat-top-bar .bar-profile,
+    .chat-top-bar .bar-actions {
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(180, 160, 255, 0.08) 40%,
+        rgba(40, 28, 70, 0.18) 100%
+      );
+      border: 1px solid rgba(230, 220, 255, 0.42);
+      -webkit-backdrop-filter: blur(28px) saturate(1.35);
+      backdrop-filter: blur(28px) saturate(1.35);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(120, 90, 200, 0.12),
+        0 0 0 0.5px rgba(200, 180, 255, 0.18),
+        0 4px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    .chat-top-bar .back-btn {
       width: 36px;
       height: 36px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: none;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.1);
       color: #fff;
-      font-size: 20px;
+      font-size: 18px;
       line-height: 1;
       padding: 0;
       cursor: pointer;
     }
 
-    .chat-top-bar .more-btn {
-      font-size: 22px;
-      letter-spacing: 1px;
+    .chat-top-bar .back-btn:active {
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(180, 160, 255, 0.14) 45%,
+        rgba(50, 35, 90, 0.28) 100%
+      );
     }
 
-    .chat-top-bar .back-btn:active,
-    .chat-top-bar .more-btn:active {
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    .chat-top-bar .bar-center {
+    /* 身份胶囊 */
+    .chat-top-bar .bar-profile {
       flex: 1;
       min-width: 0;
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 10px;
+      padding: 4px 14px 4px 4px;
+      border-radius: 999px;
+      box-sizing: border-box;
     }
 
-    .chat-top-bar .bar-center .avatar-wrapper {
-      width: 44px;
-      height: 44px;
+    .chat-top-bar .bar-profile .avatar-wrapper {
+      position: relative;
+      width: 40px;
+      height: 40px;
       flex-shrink: 0;
     }
 
-    .chat-top-bar .bar-center .avatar-wrapper img {
-      width: 44px;
-      height: 44px;
+    .chat-top-bar .bar-profile .avatar-wrapper img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #fff;
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+      display: block;
+    }
+
+    /* 在线绿点叠在头像右下 */
+    .chat-top-bar .bar-profile .online-dot {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #A6FF7B;
+      border: 2px solid rgba(20, 12, 40, 0.55);
+      box-sizing: border-box;
     }
 
     .chat-top-bar .bar-titles {
@@ -127,26 +158,79 @@
       font-weight: 600;
       color: #fff;
       line-height: 1.2;
-    }
-
-    .chat-top-bar .bar-status {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .chat-top-bar .online-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #A6FF7B;
-      flex-shrink: 0;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
     }
 
     .chat-top-bar .online-text {
       font-size: 12px;
-      color: rgba(166, 255, 123, 0.8);
+      color: rgba(166, 255, 123, 0.9);
       line-height: 1.2;
+    }
+
+    /* 右侧功能胶囊：朋友圈 + 记忆星云（无文案） */
+    .chat-top-bar .bar-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 4px;
+      border-radius: 999px;
+      box-sizing: border-box;
+    }
+
+    .chat-top-bar .bar-action {
+      position: relative;
+      width: 40px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 18px;
+    }
+
+    .chat-top-bar .bar-action:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .chat-top-bar .bar-action img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .chat-top-bar .bar-actions .bar-divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(196, 181, 253, 0.28);
+      flex-shrink: 0;
+    }
+
+    /* 朋友圈未读角标（回复+新动态之和） */
+    .chat-top-bar .feed-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 8px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 16px;
+      text-align: center;
+      box-sizing: border-box;
+      display: none;
+    }
+
+    .chat-top-bar .feed-badge.is-on {
+      display: block;
     }
 
     /* 未读提示条（沉浸风） */
@@ -240,17 +324,19 @@
     }
 
     .msg-row .msg-avatar {
-      width: 24px;
-      height: 24px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       margin-top: 2px;
       object-fit: cover;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
       flex-shrink: 0;
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
 
-    .msg-row.ai { gap: 8px; }
-    .msg-row.user { gap: 8px; }
+    .msg-row.ai { gap: 10px; }
+    .msg-row.user { gap: 10px; }
 
     .msg-row .msg-body {
       flex: 1;
@@ -269,28 +355,79 @@
       align-items: flex-start;
     }
 
+    /* 气泡主体：大圆角毛玻璃（对齐效果图） */
     .msg-bubble {
-      max-width: 70%;
-      padding: 14px 16px;
-      border-radius: 28px;
+      max-width: 72%;
+      padding: 12px 16px;
+      border-radius: 24px;
       font-size: 15px;
-      line-height: 1.5;
+      line-height: 1.55;
       overflow-wrap: break-word;
       word-break: normal;
       position: relative;
+      -webkit-backdrop-filter: blur(22px) saturate(1.25);
+      backdrop-filter: blur(22px) saturate(1.25);
     }
 
+    /* 用户气泡：半透明紫玻璃 + 白字 + 右下紫菱形角标 */
     .msg-row.user .msg-bubble {
-      background: rgba(221, 244, 200, 0.85);
-      color: #1A1A1A;
+      color: #fff;
+      background: linear-gradient(
+        160deg,
+        rgba(210, 190, 255, 0.42) 0%,
+        rgba(130, 100, 200, 0.38) 45%,
+        rgba(100, 75, 175, 0.40) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(80, 50, 150, 0.15),
+        0 8px 22px rgba(40, 20, 80, 0.28);
+      text-shadow: 0 1px 2px rgba(40, 20, 80, 0.25);
     }
 
+    /* AI 气泡：半透明白玻璃 + 深色字 + 左下紫菱形角标 */
     .msg-row.ai .msg-bubble {
-      background: rgba(255, 255, 255, 0.72);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
       color: #1A1A1A;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(245, 240, 255, 0.58) 55%,
+        rgba(230, 220, 250, 0.52) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        inset 0 -1px 0 rgba(160, 140, 220, 0.12),
+        0 8px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    /* 角标紫菱形：按产品要求隐藏，样式保留便于以后打开 */
+    .msg-row.ai .msg-bubble::after,
+    .msg-row.user .msg-bubble::after {
+      content: '';
+      display: none;
+      position: absolute;
+      bottom: -3px;
+      width: 9px;
+      height: 9px;
+      background: linear-gradient(145deg, #F8F0FF 0%, #D8B4FE 35%, #A78BFA 70%, #7C3AED 100%);
+      transform: rotate(45deg);
+      border-radius: 1.5px;
+      border: 0.5px solid rgba(255, 255, 255, 0.55);
+      box-shadow:
+        0 0 5px 1.5px rgba(196, 181, 253, 1),
+        0 0 12px 4px rgba(139, 92, 246, 0.65);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .msg-row.ai .msg-bubble::after {
+      left: 14px;
+    }
+
+    .msg-row.user .msg-bubble::after {
+      right: 14px;
     }
 
     .msg-row.agent .msg-bubble {
@@ -308,31 +445,47 @@
       border-radius: 8px;
     }
 
-    /* 居中分组时间戳（微信式） */
+    /* 居中分组时间戳（微信式胶囊） */
     .msg-time-divider {
-      width: 100%;
+      width: fit-content;
+      max-width: 90%;
+      margin: 12px auto;
+      padding: 4px 10px;
       text-align: center;
       font-size: 12px;
       line-height: 1.2;
-      color: rgba(255, 255, 255, 0.55);
-      margin: 12px 0;
+      color: rgba(255, 255, 255, 0.62);
+      background: rgba(0, 0, 0, 0.28);
+      border-radius: 999px;
       user-select: none;
       flex-shrink: 0;
     }
 
-    /* 底部输入区：深色条 + 白 pill + 绿发送 */
+    /* 底部输入区：浮起玻璃面板 + 白 pill + 紫发送 */
     .input-area {
       position: fixed;
       bottom: 0;
-      left: 0;
-      right: 0;
+      left: 8px;
+      right: 8px;
       z-index: 100;
-      padding: 10px 12px calc(10px + var(--safe-area-bottom));
-      background: rgba(0, 0, 0, 0.42);
+      padding: 6px 12px calc(10px + var(--safe-area-bottom));
+      background: rgba(28, 18, 48, 0.62);
       -webkit-backdrop-filter: blur(30px);
       backdrop-filter: blur(30px);
-      border-radius: 32px 32px 0 0;
+      border-radius: 28px 28px 20px 20px;
+      border: 1px solid rgba(196, 181, 253, 0.18);
       box-sizing: border-box;
+    }
+
+    /* 仅视觉：上沿短横线 */
+    .input-area::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      margin: 2px auto 8px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.28);
     }
 
     .input-area-inner {
@@ -366,8 +519,8 @@
       height: 44px;
       border: none;
       border-radius: 50%;
-      background: #A6FF7B;
-      color: #2D6A4B;
+      background: #7C5CFF;
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -375,7 +528,13 @@
       flex-shrink: 0;
       cursor: pointer;
       transition: background-color 0.2s, color 0.2s;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 2px 10px rgba(124, 92, 255, 0.45);
+    }
+
+    .send-btn svg {
+      width: 20px;
+      height: 20px;
+      display: block;
     }
 
     .send-btn:disabled,
@@ -386,6 +545,11 @@
       pointer-events: none;
       opacity: 1;
       box-shadow: none;
+    }
+
+    .send-btn:disabled svg,
+    .send-btn.disabled svg {
+      opacity: 0.7;
     }
 
     .thinking-bubble .msg-content .loading-dots {
@@ -467,22 +631,29 @@
 
     <div class="chat-top-bar">
       <button type="button" class="back-btn" onclick="location.href='/pages/index.html'" aria-label="返回">←</button>
-      <div class="bar-center">
+      <div class="bar-profile">
         <div class="avatar-wrapper">
           <img id="chat-header-avatar"
                src="/static/images/avatar/default.png"
                alt="林小梦"
                onerror="this.onerror=null;this.src='/static/images/avatar/default.png'">
+          <span class="online-dot" aria-hidden="true"></span>
         </div>
         <div class="bar-titles">
           <span class="name">林小梦</span>
-          <div class="bar-status">
-            <span class="online-dot"></span>
-            <span class="online-text">在线</span>
-          </div>
+          <span class="online-text">在线</span>
         </div>
       </div>
-      <button type="button" class="more-btn" aria-label="更多">⋯</button>
+      <div class="bar-actions">
+        <button type="button" class="bar-action" id="btn-feed" onclick="goChatFeed()" aria-label="朋友圈">
+          <img src="/static/images/chat/icon-feed.png" alt="">
+          <span class="feed-badge" id="feed-badge" aria-hidden="true">0</span>
+        </button>
+        <span class="bar-divider" aria-hidden="true"></span>
+        <button type="button" class="bar-action" onclick="location.href='/pages/memory.html'" aria-label="记忆星云">
+          <img src="/static/images/chat/icon-memory-nebula.png" alt="">
+        </button>
+      </div>
     </div>
 
     <div class="agent-tip hidden" id="agent-tip">
@@ -502,7 +673,11 @@
                   oncompositionend="autoResize(this); updateSendBtn(); saveDraft()"
                   onkeyup="updateSendBtn()"
                   onkeydown="handleEnterKey(event)"></textarea>
-        <button type="button" class="send-btn disabled" id="send-btn" disabled onclick="handleSend()">➤</button>
+        <button type="button" class="send-btn disabled" id="send-btn" disabled onclick="handleSend()" aria-label="发送">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.4 20.6L21 12 3.4 3.4 3.4 10.2 14 12 3.4 13.8z" fill="currentColor"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -608,12 +783,25 @@
     }
 
     /* ====== 居中时间戳 DOM 辅助 ====== */
+    /**
+     * 解析消息时间：无时区后缀的 ISO 按 UTC（后端 utcnow naive），再供北京时间格式化
+     */
     function parseMessageTimestamp(isoOrMs) {
       if (typeof isoOrMs === 'number' && Number.isFinite(isoOrMs)) return isoOrMs
       if (!isoOrMs) return Date.now()
-      const d = new Date(isoOrMs)
-      const t = d.getTime()
-      return Number.isFinite(t) ? t : Date.now()
+      if (typeof isoOrMs === 'string') {
+        var s = isoOrMs.trim()
+        // 已有 Z / ±offset 则直接解析；否则按 UTC naive 补 Z
+        if (/^\d{4}-\d{2}-\d{2}T/.test(s) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+          s = s + 'Z'
+        }
+        var d = new Date(s)
+        var t = d.getTime()
+        return Number.isFinite(t) ? t : Date.now()
+      }
+      var d2 = new Date(isoOrMs)
+      var t2 = d2.getTime()
+      return Number.isFinite(t2) ? t2 : Date.now()
     }
 
     function getRowTimestamp(row) {
@@ -1347,12 +1535,54 @@
     }
 
     /* ====== 页面初始化 ====== */
+    /** 朋友圈角标：未读回复 + 新动态之和 */
+    window.__chatFeedBadge = { unread: 0, newCount: 0 }
+
+    async function loadChatFeedBadge() {
+      try {
+        const res = await request('GET', '/api/feed/badge')
+        let unread = 0
+        let newCount = 0
+        if (res && res.code === 0 && res.data) {
+          unread = Number(res.data.unread_reply_count) || 0
+          newCount = Number(res.data.new_post_count) || 0
+        }
+        window.__chatFeedBadge = { unread: unread, newCount: newCount }
+        const total = unread + newCount
+        const badge = document.getElementById('feed-badge')
+        if (!badge) return
+        if (total > 0) {
+          badge.textContent = formatBadgeCount(total)
+          badge.classList.add('is-on')
+          badge.setAttribute('aria-hidden', 'false')
+        } else {
+          badge.textContent = '0'
+          badge.classList.remove('is-on')
+          badge.setAttribute('aria-hidden', 'true')
+        }
+      } catch (e) {
+        /* 角标失败不影响聊天 */
+      }
+    }
+
+    /** 点击朋友圈：有未读回复则带 focus，否则进列表顶部 */
+    function goChatFeed() {
+      const b = window.__chatFeedBadge || {}
+      if ((b.unread || 0) > 0) {
+        location.href = '/pages/feed.html?focus=unread_reply'
+      } else {
+        location.href = '/pages/feed.html'
+      }
+    }
+
     async function initChat() {
       loadDraft()
 
       syncChatBottomPadding()
       setupInputAreaBottomSync()
       setupSendBtnKeepKeyboard()
+
+      loadChatFeedBadge()
 
       await loadTimeline(true)
 
@@ -1373,6 +1603,10 @@
 
       setupScrollObserver()
     }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') loadChatFeedBadge()
+    })
 
     initChat()
   </script>

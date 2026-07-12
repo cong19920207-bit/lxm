@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生活流 · 她的宇宙 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row .form-control { width: 180px; }
+    .text-muted { font-size: 12px; color: #888; }
+    .table-wrap { overflow-x: auto; }
+    .text-truncate { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 操作按钮：对齐用户管理列表 */
+    .op-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: all 0.2s;
+      margin-right: 4px;
+    }
+    .op-btn-detail { color: var(--primary); }
+    .op-btn-detail:hover { background: #e6f7ff; }
+    .op-btn-danger { color: var(--danger); }
+    .op-btn-danger:hover { background: #fff2f0; }
+    .modal-wide { max-width: 560px; }
+    .range-hint { font-size: 12px; color: #888; }
+    .empty-tip { text-align: center; padding: 48px 0; color: var(--text-disabled); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <div class="tabs" id="main-tabs">
+      <div class="tab-item active" data-target="tab-snapshots">快照</div>
+      <div class="tab-item" data-target="tab-events">事件库</div>
+    </div>
+
+    <!-- Tab1: 快照 -->
+    <div class="tab-pane active" id="tab-snapshots">
+      <div class="filter-row">
+        <label>计划日期（可选，清空=近14天）</label>
+        <input type="date" class="form-control" id="snapshot-plan-date">
+        <button type="button" class="btn btn-default" id="btn-load-snapshots">查询</button>
+        <button type="button" class="btn btn-default" id="btn-clear-date">近14天</button>
+        <span class="range-hint" id="snapshot-range-hint"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>计划日期（plan_date）</th>
+              <th>场景ID（scene_id）</th>
+              <th>感受摘要（feeling_text）</th>
+              <th>情绪值（emotion_value）</th>
+              <th>关注点（focus_tag）</th>
+              <th>价值观触发（worldview_trigger）</th>
+              <th>生成状态（gen_status）</th>
+              <th data-edit-only>操作</th>
+            </tr>
+          </thead>
+          <tbody id="snapshots-tbody">
+            <tr><td colspan="9" class="empty-tip">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="snapshots-pagination"></div>
+    </div>
+
+    <!-- Tab2: 事件库 -->
+    <div class="tab-pane" id="tab-events">
+      <div class="filter-row">
+        <label>关键词（event_name）</label>
+        <input type="text" class="form-control" id="event-keyword" placeholder="模糊搜索，可空">
+        <button type="button" class="btn btn-default" id="btn-search-events">搜索</button>
+        <button type="button" class="btn btn-primary" data-edit-only id="btn-add-event">+ 新增事件</button>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>事件名（event_name）</th>
+              <th>核心态度（core_attitude）</th>
+              <th>事件观点（event_view）</th>
+              <th>来源场景（source_scene_id）</th>
+              <th>创建时间（created_at）</th>
+              <th data-edit-only>操作</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody">
+            <tr><td colspan="7" class="empty-tip">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="events-pagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 快照编辑弹窗 -->
+<div id="snapshot-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>编辑快照</h3>
+      <button type="button" class="btn btn-link" id="snapshot-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" id="snapshot-modal-meta" style="margin-bottom:12px"></p>
+      <div class="form-item">
+        <label>感受描述（feeling_text）</label>
+        <textarea class="form-control" id="ss-feeling_text" rows="3"></textarea>
+      </div>
+      <div class="form-item">
+        <label>情绪值（emotion_value）</label>
+        <input type="text" class="form-control" id="ss-emotion_value" list="emotion-vocab-list" placeholder="可从词表选择，也可自由输入">
+        <datalist id="emotion-vocab-list"></datalist>
+      </div>
+      <div class="form-item">
+        <label>关注点（focus_tag）</label>
+        <input type="text" class="form-control" id="ss-focus_tag">
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label>价值观触发（worldview_trigger）</label>
+        <textarea class="form-control" id="ss-worldview_trigger" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="snapshot-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="snapshot-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 事件新增/编辑弹窗 -->
+<div id="event-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="event-modal-title">新增事件</h3>
+      <button type="button" class="btn btn-link" id="event-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="required">事件名（event_name）</label>
+        <input type="text" class="form-control" id="ev-event_name">
+      </div>
+      <div class="form-item">
+        <label class="required">核心态度（core_attitude）</label>
+        <select class="form-control" id="ev-core_attitude">
+          <option value="喜欢">喜欢</option>
+          <option value="排斥">排斥</option>
+          <option value="矛盾">矛盾</option>
+          <option value="无感">无感</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="required">事件观点（event_view）</label>
+        <textarea class="form-control" id="ev-event_view" rows="3"></textarea>
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label>来源场景（source_scene_id，可选）</label>
+        <input type="text" class="form-control" id="ev-source_scene_id" placeholder="如 scene_2026-07-09_001">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="event-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="event-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PAGE_KEY = 'worldview';
+  var snapshotPage = 1;
+  var snapshotSize = 20;
+  var eventPage = 1;
+  var eventSize = 20;
+  var editingSnapshotId = null;
+  var editingEventId = null;
+  var emotionVocab = [];
+  var snapshotCache = {}; // id -> row
+  var eventCache = {};    // id -> row
+
+  function isReadonly() { return isLifeFeedReadOnly(PAGE_KEY); }
+
+  function openModal(id) {
+    var el = document.getElementById(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  function statusTag(st) {
+    var cls = 'tag tag-default';
+    if (st === 'ready') cls = 'tag tag-success';
+    else if (st === 'failed') cls = 'tag tag-error';
+    else if (st === 'generating') cls = 'tag tag-blue';
+    return '<span class="' + cls + '">' + lfEscapeHtml(st || '-') + '</span>';
+  }
+
+  function truncate(text, n) {
+    text = text || '';
+    if (text.length <= n) return text;
+    return text.slice(0, n) + '…';
+  }
+
+  async function loadEmotionVocab() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=emotion_vocab', null, false, { silentErrorToast: true });
+    if (!res || res.code !== 0) return;
+    var val = lfPickValue((res.data || {}).emotion_vocab);
+    emotionVocab = Array.isArray(val) ? val : [];
+    document.getElementById('emotion-vocab-list').innerHTML = emotionVocab.map(function (e) {
+      return '<option value="' + lfEscapeHtml(e) + '">';
+    }).join('');
+  }
+
+  window.goSnapshotPage = function (p) {
+    snapshotPage = p;
+    loadSnapshots();
+  };
+
+  async function loadSnapshots() {
+    var pd = document.getElementById('snapshot-plan-date').value;
+    var readonly = isReadonly();
+    var tbody = document.getElementById('snapshots-tbody');
+    var hint = document.getElementById('snapshot-range-hint');
+    var q;
+    var singleDay = !!pd;
+
+    if (singleDay) {
+      q = '?plan_date=' + encodeURIComponent(pd);
+      hint.textContent = '单日：' + pd + '（同日内按 scene_id 早→晚）';
+    } else {
+      q = '?page=' + snapshotPage + '&size=' + snapshotSize;
+      hint.textContent = '默认近 14 天：日期倒序，同日内早→晚';
+    }
+
+    var res = await adminRequest('GET', '/api/admin/worldview/snapshots' + q);
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+
+    var rows = [];
+    var total = 0;
+    if (singleDay) {
+      rows = res.data || [];
+      total = rows.length;
+      document.getElementById('snapshots-pagination').innerHTML = '';
+    } else {
+      var data = res.data || {};
+      rows = data.list || [];
+      total = data.total || 0;
+      if (data.start && data.end) {
+        hint.textContent = '范围 ' + data.start + ' ~ ' + data.end + '（日期倒序，同日内早→晚）';
+      }
+      renderPagination('snapshots-pagination', data.page || snapshotPage, total, data.size || snapshotSize, 'goSnapshotPage');
+    }
+
+    snapshotCache = {};
+    rows.forEach(function (r) { snapshotCache[r.id] = r; });
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">暂无快照</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(function (r) {
+      var ops = '';
+      if (!readonly) {
+        ops = '<button class="op-btn op-btn-detail" onclick="editSnapshot(' + r.id + ')">编辑</button>' +
+          '<button class="op-btn op-btn-danger" onclick="deleteSnapshot(' + r.id + ')">删除</button>';
+      }
+      return '<tr><td>' + r.id + '</td><td>' + lfEscapeHtml(r.plan_date) +
+        '</td><td>' + lfEscapeHtml(r.scene_id) +
+        '</td><td class="text-truncate" title="' + lfEscapeHtml(r.feeling_text) + '">' + lfEscapeHtml(truncate(r.feeling_text, 40)) +
+        '</td><td>' + lfEscapeHtml(r.emotion_value || '-') +
+        '</td><td>' + lfEscapeHtml(r.focus_tag || '-') +
+        '</td><td class="text-truncate" title="' + lfEscapeHtml(r.worldview_trigger) + '">' + lfEscapeHtml(truncate(r.worldview_trigger, 24)) +
+        '</td><td>' + statusTag(r.gen_status) + '</td>' +
+        (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+    }).join('');
+  }
+
+  window.editSnapshot = function (id) {
+    var r = snapshotCache[id];
+    if (!r) { showToast('数据已过期，请重新查询', 'warning'); return; }
+    editingSnapshotId = id;
+    document.getElementById('snapshot-modal-meta').textContent =
+      'ID=' + id + ' · ' + (r.plan_date || '') + ' · ' + (r.scene_id || '') + ' · ' + (r.gen_status || '');
+    document.getElementById('ss-feeling_text').value = r.feeling_text || '';
+    document.getElementById('ss-emotion_value').value = r.emotion_value || '';
+    document.getElementById('ss-focus_tag').value = r.focus_tag || '';
+    document.getElementById('ss-worldview_trigger').value = r.worldview_trigger || '';
+    openModal('snapshot-modal');
+  };
+
+  window.deleteSnapshot = function (id) {
+    showConfirm('确认删除快照 #' + id + '？', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/worldview/snapshots/' + id);
+      if (res && res.code === 0) {
+        var ref = res.data && res.data.referenced_by_post;
+        if (ref) {
+          showToast('已删除（该快照曾被朋友圈帖子 #' + ref + ' 引用）', 'warning');
+        } else {
+          showToast('已删除', 'success');
+        }
+        loadSnapshots();
+      }
+    }, null, { danger: true });
+  };
+
+  async function submitSnapshot() {
+    if (!editingSnapshotId) return;
+    var body = {
+      feeling_text: document.getElementById('ss-feeling_text').value,
+      emotion_value: document.getElementById('ss-emotion_value').value.trim(),
+      focus_tag: document.getElementById('ss-focus_tag').value.trim(),
+      worldview_trigger: document.getElementById('ss-worldview_trigger').value
+    };
+    var res = await adminRequest('PUT', '/api/admin/worldview/snapshots/' + editingSnapshotId, body);
+    if (res && res.code === 0) {
+      showToast('已保存', 'success');
+      closeModal('snapshot-modal');
+      loadSnapshots();
+    }
+  }
+
+  window.goEventPage = function (p) {
+    eventPage = p;
+    loadEvents();
+  };
+
+  async function loadEvents() {
+    var kw = document.getElementById('event-keyword').value.trim();
+    var q = '?page=' + eventPage + '&size=' + eventSize;
+    if (kw) q += '&keyword=' + encodeURIComponent(kw);
+    var res = await adminRequest('GET', '/api/admin/worldview/events' + q);
+    var tbody = document.getElementById('events-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+    var data = res.data || {};
+    var rows = data.list || [];
+    eventCache = {};
+    rows.forEach(function (r) { eventCache[r.id] = r; });
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-tip">暂无事件</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        var ops = '';
+        if (!readonly) {
+          ops = '<button class="op-btn op-btn-detail" onclick="editEvent(' + r.id + ')">编辑</button>' +
+            '<button class="op-btn op-btn-danger" onclick="deleteEvent(' + r.id + ')">删除</button>';
+        }
+        var attitude = r.core_attitude
+          ? '<span class="tag tag-blue">' + lfEscapeHtml(r.core_attitude) + '</span>'
+          : '-';
+        return '<tr><td>' + r.id + '</td><td>' + lfEscapeHtml(r.event_name) +
+          '</td><td>' + attitude +
+          '</td><td class="text-truncate" title="' + lfEscapeHtml(r.event_view) + '">' + lfEscapeHtml(truncate(r.event_view, 40)) +
+          '</td><td>' + lfEscapeHtml(r.source_scene_id || '-') +
+          '</td><td>' + formatDateTime(r.created_at) + '</td>' +
+          (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+      }).join('');
+    }
+    renderPagination('events-pagination', data.page || eventPage, data.total || 0, data.size || eventSize, 'goEventPage');
+  }
+
+  window.openAddEvent = function () {
+    editingEventId = null;
+    document.getElementById('event-modal-title').textContent = '新增事件';
+    document.getElementById('ev-event_name').value = '';
+    document.getElementById('ev-core_attitude').value = '无感';
+    document.getElementById('ev-event_view').value = '';
+    document.getElementById('ev-source_scene_id').value = '';
+    openModal('event-modal');
+  };
+
+  window.editEvent = function (id) {
+    var r = eventCache[id];
+    if (!r) { showToast('数据已过期，请重新查询', 'warning'); return; }
+    editingEventId = id;
+    document.getElementById('event-modal-title').textContent = '编辑事件';
+    document.getElementById('ev-event_name').value = r.event_name || '';
+    document.getElementById('ev-core_attitude').value = r.core_attitude || '无感';
+    document.getElementById('ev-event_view').value = r.event_view || '';
+    document.getElementById('ev-source_scene_id').value = r.source_scene_id || '';
+    openModal('event-modal');
+  };
+
+  window.deleteEvent = function (id) {
+    showConfirm('确认删除事件 #' + id + '？', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/worldview/events/' + id);
+      if (res && res.code === 0) { showToast('已删除', 'success'); loadEvents(); }
+    }, null, { danger: true });
+  };
+
+  async function submitEvent() {
+    var body = {
+      event_name: document.getElementById('ev-event_name').value.trim(),
+      core_attitude: document.getElementById('ev-core_attitude').value,
+      event_view: document.getElementById('ev-event_view').value.trim(),
+      source_scene_id: document.getElementById('ev-source_scene_id').value.trim() || null
+    };
+    if (!body.event_name || !body.event_view || !body.core_attitude) {
+      showToast('请填写事件名、态度与观点', 'warning');
+      return;
+    }
+    var res;
+    if (editingEventId) {
+      res = await adminRequest('PUT', '/api/admin/worldview/events/' + editingEventId, body);
+    } else {
+      res = await adminRequest('POST', '/api/admin/worldview/events', body);
+    }
+    if (res && res.code === 0) {
+      showToast('已保存', 'success');
+      closeModal('event-modal');
+      loadEvents();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 她的宇宙', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    initTabs('main-tabs');
+
+    // 默认近 14 天：日期框留空
+    document.getElementById('snapshot-plan-date').value = '';
+
+    document.getElementById('btn-load-snapshots').onclick = function () {
+      snapshotPage = 1;
+      loadSnapshots();
+    };
+    document.getElementById('btn-clear-date').onclick = function () {
+      document.getElementById('snapshot-plan-date').value = '';
+      snapshotPage = 1;
+      loadSnapshots();
+    };
+    document.getElementById('btn-search-events').onclick = function () { eventPage = 1; loadEvents(); };
+    document.getElementById('btn-add-event').onclick = openAddEvent;
+    document.getElementById('event-keyword').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { eventPage = 1; loadEvents(); }
+    });
+
+    document.getElementById('snapshot-modal-close').onclick = function () { closeModal('snapshot-modal'); };
+    document.getElementById('snapshot-modal-cancel').onclick = function () { closeModal('snapshot-modal'); };
+    document.getElementById('snapshot-modal').onclick = function (e) {
+      if (e.target === this) closeModal('snapshot-modal');
+    };
+    document.getElementById('snapshot-modal-submit').onclick = submitSnapshot;
+
+    document.getElementById('event-modal-close').onclick = function () { closeModal('event-modal'); };
+    document.getElementById('event-modal-cancel').onclick = function () { closeModal('event-modal'); };
+    document.getElementById('event-modal').onclick = function (e) {
+      if (e.target === this) closeModal('event-modal');
+    };
+    document.getElementById('event-modal-submit').onclick = submitEvent;
+
+    loadEmotionVocab().then(function () {
+      loadSnapshots();
+      loadEvents();
+    });
+  });
+</script>
+</body>
+</html>

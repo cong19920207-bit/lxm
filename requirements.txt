@@ -44,6 +44,10 @@ psutil>=5.9.0
 # Excel导出
 openpyxl>=3.1.0
 
+# 生活流图片处理与对象存储（STEP-012）
+Pillow>=10.2.0
+oss2>=2.18.0
+
 # 测试
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

@@ -5,6 +5,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# asyncmy 在部分架构（如 Apple Silicon）无预编译 wheel，需 gcc 编译
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # 安装依赖（国内构建常用清华 PyPI 镜像，避免访问 pypi.org / files.pythonhosted.org 超时）
 COPY requirements.txt .
 ENV PIP_DEFAULT_TIMEOUT=120

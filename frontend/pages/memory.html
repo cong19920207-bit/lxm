@@ -2,157 +2,607 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>林小梦 - 记忆</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>林小梦 - 记忆星云</title>
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
   <style>
-    .page-body {
-      padding: 56px 16px calc(16px + var(--safe-area-bottom));
+    html, body {
+      height: 100%;
+      overflow: hidden;
     }
 
-    /* 顶部只读说明（对话自动整理，暂不支持手动修改） */
-    .memory-tip {
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--color-gray);
-      background: rgba(232, 147, 138, 0.08);
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
+    body.h5-skin.memory-nebula-page {
+      --nebula-bg: #05050F;
+      --nebula-accent: #c4b5fd;
+      --nebula-text: #f3f4f6;
+      --nebula-muted: rgba(243, 244, 246, 0.55);
+      --nebula-border: rgba(155, 119, 255, 0.22);
+      margin: 0;
+      background: var(--nebula-bg);
+      color: var(--nebula-text);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* 记忆卡片（只读 KV） */
-    .memory-card {
-      margin-bottom: 12px;
+    .nebula-top-fade {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 19;
+      height: calc(116px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(180deg, rgba(3, 3, 14, 0.76) 0%, rgba(5, 5, 18, 0.3) 58%, transparent 100%);
+      pointer-events: none;
     }
 
-    .memory-key {
-      font-size: 14px;
+    .nebula-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+      pointer-events: none;
+    }
+
+    .nebula-top-bar .back-btn,
+    .nebula-top-bar .nebula-count-chip {
+      pointer-events: auto;
+    }
+
+    .nebula-top-bar .back-btn {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nebula-top-bar .back-btn-inner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(145deg, rgba(33, 27, 58, 0.62), rgba(8, 8, 24, 0.42));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      color: var(--nebula-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .nebula-top-bar .back-btn-inner svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .nebula-top-bar .bar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 150px;
+      pointer-events: none;
+    }
+
+    .nebula-top-bar .bar-title {
+      font-size: 17px;
+      line-height: 1.2;
       font-weight: 600;
-      color: var(--color-text);
-      word-break: break-word;
-      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.96);
+      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.58);
     }
 
-    .memory-value {
+    .nebula-top-bar .bar-subtitle {
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      color: rgba(226, 219, 255, 0.62);
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .nebula-count-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      color: rgba(237, 232, 255, 0.74);
+      background: linear-gradient(145deg, rgba(33, 27, 58, 0.54), rgba(8, 8, 24, 0.36));
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 50%;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .nebula-top-bar .back-btn:active .back-btn-inner,
+    .nebula-count-chip:active {
+      transform: scale(0.94);
+      background: rgba(47, 38, 78, 0.68);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .nebula-count-chip .chip-info {
+      width: 17px;
+      height: 17px;
+      opacity: 0.82;
+      flex-shrink: 0;
+    }
+
+    .nebula-stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background:
+        url('/static/images/memory-nebula/nebula-bg.jpg') center / cover no-repeat,
+        var(--nebula-bg);
+    }
+
+    #nebula-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      background: transparent;
+    }
+
+    .nebula-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      pointer-events: none;
+      background: rgba(5, 5, 15, 0.28);
+    }
+
+    .nebula-loading.is-visible {
+      display: flex;
+    }
+
+    .nebula-loading-spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(167, 139, 250, 0.25);
+      border-top-color: var(--nebula-accent);
+      animation: nebula-spin 0.8s linear infinite;
+      margin-bottom: 14px;
+    }
+
+    @keyframes nebula-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .nebula-loading-text {
       font-size: 14px;
-      line-height: 1.8;
-      color: var(--color-text);
+      line-height: 1.6;
+      color: var(--nebula-muted);
+    }
+
+    .nebula-empty {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 58%;
+      z-index: 6;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .nebula-empty.is-visible {
+      display: flex;
+    }
+
+    .nebula-empty-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 8px;
+    }
+
+    .nebula-empty-text {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--nebula-muted);
+      max-width: 260px;
+    }
+
+    .nebula-empty .btn-chat {
+      margin-top: 16px;
+      pointer-events: auto;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(18, 15, 38, 0.55);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      cursor: pointer;
+    }
+
+    /* 底栏：左提示常驻弱显，右回到中心 */
+    .nebula-bottom-bar {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .nebula-bottom-bar.is-hidden {
+      opacity: 0;
+    }
+
+    .nebula-bottom-bar.is-interacting {
+      opacity: 0.28;
+    }
+
+    .nebula-gesture-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px 7px 8px;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      color: rgba(239, 235, 255, 0.62);
+      background: linear-gradient(145deg, rgba(33, 27, 58, 0.48), rgba(8, 8, 24, 0.3));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      pointer-events: none;
+    }
+
+    .nebula-gesture-hint img {
+      width: 22px;
+      height: 22px;
+      opacity: 0.85;
+    }
+
+    .nebula-recenter {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.72);
+      background: linear-gradient(145deg, rgba(33, 27, 58, 0.62), rgba(8, 8, 24, 0.42));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.24);
+      border-radius: 999px;
+      padding: 8px 12px;
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nebula-recenter.is-visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .nebula-recenter svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.85;
+    }
+
+    .nebula-toast {
+      position: fixed;
+      left: 50%;
+      top: calc(72px + env(safe-area-inset-top, 0px));
+      transform: translateX(-50%) translateY(-6px);
+      z-index: 40;
+      max-width: min(300px, 82vw);
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.55;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.88);
+      background: rgba(18, 15, 38, 0.92);
+      border: 1px solid var(--nebula-border);
+      border-radius: 12px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .nebula-toast.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .nebula-sheet-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(0, 0, 0, 0.28);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.28s ease, visibility 0.28s ease;
+    }
+
+    .nebula-sheet-mask.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 卡片整图背景 */
+    .nebula-sheet {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      z-index: 31;
+      max-height: 40vh;
+      min-height: 220px;
+      padding: 0;
+      border: none;
+      background:
+        url('/static/images/memory-nebula/card-sheet-bg.png') center / 100% 100% no-repeat;
+      border-radius: 26px;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.4);
+      transform: translateY(110%);
+      transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+      touch-action: pan-y;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nebula-sheet.is-open {
+      transform: translateY(0);
+    }
+
+    .nebula-sheet-body {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 18px 16px;
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .nebula-sheet-handle {
+      width: 32px;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 10px auto 12px;
+      flex-shrink: 0;
+    }
+
+    .nebula-sheet-category {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: rgba(196, 181, 253, 0.95);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .nebula-sheet-category img {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .nebula-sheet-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #fff;
+      margin-bottom: 8px;
       word-break: break-word;
+      flex-shrink: 0;
+    }
+
+    .nebula-sheet-value {
+      font-size: 14px;
+      line-height: 1.75;
+      color: rgba(243, 244, 246, 0.82);
+      word-break: break-word;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 0;
+      padding-bottom: 8px;
+    }
+
+    .nebula-sheet-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+      padding-top: 4px;
+    }
+
+    .nebula-sheet-source {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(180, 170, 210, 0.72);
+      min-width: 0;
+    }
+
+    .nebula-sheet-source svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    .nebula-sheet-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: #e8d4a8;
+      background: rgba(70, 52, 28, 0.72);
+      border: 1px solid rgba(182, 154, 109, 0.35);
+      border-radius: 999px;
+      padding: 4px 9px;
+    }
+
+    .nebula-sheet-badge svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nebula-loading-spinner { animation: none; }
+      .nebula-sheet,
+      .nebula-sheet-mask,
+      .nebula-toast,
+      .nebula-bottom-bar,
+      .nebula-recenter,
+      .nebula-top-bar .back-btn-inner,
+      .nebula-count-chip {
+        transition: none;
+      }
     }
   </style>
 </head>
-<body class="h5-skin">
-  <!-- 顶部栏 -->
-  <div class="top-bar">
-    <div class="bar-left">
-      <button class="back-btn" onclick="history.back()">←</button>
+<body class="h5-skin memory-nebula-page">
+  <div class="nebula-top-fade" aria-hidden="true"></div>
+  <div class="nebula-top-bar">
+    <button type="button" class="back-btn" id="nebula-back" aria-label="返回">
+      <span class="back-btn-inner" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </span>
+    </button>
+    <div class="bar-center">
+      <div class="bar-title">记忆星云</div>
+      <div class="bar-subtitle" id="nebula-count-subtitle">0 颗记忆星体</div>
     </div>
-    <div class="bar-center">林小梦记住的你</div>
-    <div class="bar-right"></div>
+    <button type="button" class="nebula-count-chip" id="nebula-tip" aria-label="记忆说明">
+      <svg class="chip-info" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M8 7.2v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="8" cy="5.2" r="0.7" fill="currentColor"/>
+      </svg>
+    </button>
+    <span class="count-num" id="nebula-count-num" hidden>0</span>
   </div>
 
-  <div class="page-body">
-    <!-- 只读说明：内容由对话自动整理，暂不支持手动修改 -->
-    <div class="memory-tip">以下内容由对话自动整理，暂不支持手动修改</div>
+  <div class="nebula-stage" id="nebula-stage">
+    <canvas id="nebula-canvas" aria-label="记忆星云画布"></canvas>
 
-    <div id="memory-list"></div>
-    <div class="load-more-sentinel" id="bottom-sentinel"></div>
-    <div class="no-more-text" id="no-more" style="display:none">没有更多记忆了</div>
+    <div class="nebula-loading is-visible" id="nebula-loading" role="status">
+      <div class="nebula-loading-spinner" aria-hidden="true"></div>
+      <div class="nebula-loading-text">正在汇聚记忆星云…</div>
+    </div>
 
-    <!-- 空状态 -->
-    <div class="empty-state" id="empty-state" style="display:none">
-      <div class="empty-icon">
-        <div class="empty-bubble"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
-        <div class="empty-dot"></div>
+    <div class="nebula-empty" id="nebula-empty">
+      <div class="nebula-empty-title">这里还没有关于你的记忆</div>
+      <div class="nebula-empty-text">你们聊过的事情，会慢慢在这里亮起来。</div>
+      <button class="btn-chat" type="button" id="nebula-go-chat">去和她聊聊</button>
+    </div>
+  </div>
+
+  <div class="nebula-bottom-bar" id="nebula-bottom-bar">
+    <div class="nebula-gesture-hint" id="nebula-gesture-hint">
+      <img src="/static/images/memory-nebula/icon-gesture.png" alt="" aria-hidden="true">
+      <span>拖动探索 · 点击查看记忆</span>
+    </div>
+    <button type="button" class="nebula-recenter" id="nebula-recenter" aria-label="回到中心">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke-linecap="round"/>
+      </svg>
+      <span>回到中心</span>
+    </button>
+  </div>
+
+  <div class="nebula-toast" id="nebula-toast" role="status" aria-live="polite"></div>
+
+  <div class="nebula-sheet-mask" id="nebula-sheet-mask" aria-hidden="true"></div>
+  <div class="nebula-sheet" id="nebula-sheet" role="dialog" aria-modal="true" aria-labelledby="nebula-sheet-title" aria-hidden="true">
+    <div class="nebula-sheet-body">
+      <div class="nebula-sheet-handle" aria-hidden="true"></div>
+      <div class="nebula-sheet-category" id="nebula-sheet-category">
+        <img src="/static/images/memory-nebula/icon-cat-star.png" alt="" aria-hidden="true">
+        <span id="nebula-sheet-category-text"></span>
       </div>
-      <div class="empty-text">林小梦还在对话中了解你，暂无整理好的记忆</div>
-      <button class="btn-primary" onclick="location.href='/pages/chat.html'">去聊天</button>
+      <div class="nebula-sheet-title" id="nebula-sheet-title"></div>
+      <div class="nebula-sheet-value" id="nebula-sheet-value"></div>
+      <div class="nebula-sheet-footer">
+        <div class="nebula-sheet-source">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M21 12a8.5 8.5 0 01-12.4 7.6L4 21l1.5-4.2A8.5 8.5 0 1121 12z" stroke-linejoin="round"/>
+          </svg>
+          <span id="nebula-sheet-source-text">来自你们的对话</span>
+        </div>
+        <div class="nebula-sheet-badge" id="nebula-sheet-badge">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 1.2l1.5 4.2H14l-3.5 2.7 1.4 4.3L8 10.8 4.1 12.4l1.4-4.3L2 5.4h4.5L8 1.2z"/>
+          </svg>
+          <span>长期记忆</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="/static/js/api.js"></script>
-  <script>
-    checkLogin()
-
-    let currentPage = 1
-    let loading = false
-    let noMore = false
-    let totalLoaded = 0
-
-    /* ====== 加载记忆列表（只读 KV） ====== */
-    async function loadMemories(page) {
-      if (loading || noMore) return
-      loading = true
-
-      const res = await request('GET', '/api/memory/list?page=' + page)
-      if (res.code === 0 && res.data) {
-        const d = res.data
-        // 后端只读结构：{ total, page, page_size, list:[{doc_id, key, value, content}] }
-        const memories = Array.isArray(d.list) ? d.list : []
-        const pageSize = typeof d.page_size === 'number' ? d.page_size : 20
-        const total = typeof d.total === 'number' ? d.total : memories.length
-
-        if (memories.length === 0 && page === 1) {
-          document.getElementById('empty-state').style.display = 'flex'
-          loading = false
-          return
-        }
-
-        // 本页条数不足一页，或累计已覆盖服务端总数，则没有更多
-        const loadedAfter = totalLoaded + memories.length
-        if (memories.length < pageSize || loadedAfter >= total) {
-          noMore = true
-          if (loadedAfter > 0) {
-            document.getElementById('no-more').style.display = 'block'
-          }
-        }
-
-        memories.forEach(m => appendMemoryCard(m))
-        totalLoaded += memories.length
-        currentPage = page
-      }
-
-      loading = false
-    }
-
-    function appendMemoryCard(memory) {
-      const list = document.getElementById('memory-list')
-      const card = document.createElement('div')
-      card.className = 'card memory-card'
-      // 优先展示 key/value；缺 key 时退化为整行 content
-      const key = (memory.key || '').trim()
-      const value = (memory.value || memory.content || '').trim()
-      if (key) {
-        card.innerHTML = `
-          <div class="memory-key">${escapeHtml(key)}</div>
-          <div class="memory-value">${escapeHtml(value)}</div>
-        `
-      } else {
-        card.innerHTML = `<div class="memory-value">${escapeHtml(value)}</div>`
-      }
-      list.appendChild(card)
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div')
-      div.textContent = text == null ? '' : text
-      return div.innerHTML
-    }
-
-    /* ====== 触底加载 ====== */
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && !loading && !noMore) {
-        loadMemories(currentPage + 1)
-      }
-    })
-    observer.observe(document.getElementById('bottom-sentinel'))
-
-    /* ====== 初始化 ====== */
-    loadMemories(1)
-  </script>
+  <script src="/static/js/vendor/three.min.js"></script>
+  <script src="/static/js/vendor/three-line2.js?v=20260712-2"></script>
+  <script src="/static/js/memory-connection-layer.js?v=20260712-2"></script>
+  <script src="/static/js/memory-nebula.js?v=20260712-2"></script>
 </body>
 </html>

@@ -199,3 +199,64 @@ async def export_report(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get(
+    "/stats/liblib",
+    dependencies=[require_role("super_admin", "ai_trainer", "tech_ops")],
+)
+async def get_liblib_stats(
+    days: int = Query(7, ge=1, le=30, description="统计近 N 天"),
+    admin_user: AdminUser = Depends(get_current_admin),
+):
+    """LiblibAI 调用统计看板（STEP-036 · PRD 10.7#1）：读 Redis liblib_stats:{YYYYMMDD} HSET。
+
+    tech_ops 可只读本看板；返回近 days 天日汇总（total/success/failed/points_used）+ 合计。
+    """
+    from backend.redis_client import get_redis
+
+    today = datetime.date.today()
+    daily = []
+    sum_total = sum_success = sum_failed = sum_points = 0
+    try:
+        r = await get_redis()
+        for i in range(days - 1, -1, -1):
+            d = today - datetime.timedelta(days=i)
+            key = f"liblib_stats:{d.strftime('%Y%m%d')}"
+            h = await r.hgetall(key) or {}
+
+            def _int(v):
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    return 0
+
+            total = _int(h.get("total"))
+            success = _int(h.get("success"))
+            failed = _int(h.get("failed"))
+            points = _int(h.get("points_used"))
+            sum_total += total
+            sum_success += success
+            sum_failed += failed
+            sum_points += points
+            daily.append({
+                "date": d.strftime("%Y-%m-%d"),
+                "total": total,
+                "success": success,
+                "failed": failed,
+                "points_used": points,
+            })
+    except Exception as e:
+        logger.error("[看板] 读取 liblib_stats 失败: %s", e)
+        return ApiResponse.ok(data={"days": days, "daily": [], "summary": {}, "redis_error": True})
+
+    return ApiResponse.ok(data={
+        "days": days,
+        "daily": daily,
+        "summary": {
+            "total": sum_total,
+            "success": sum_success,
+            "failed": sum_failed,
+            "points_used": sum_points,
+        },
+    })

@@ -1,10 +1,30 @@
 # 项目契约文档
 
+> **2026-07-12 摘要（生活流正式合并）**：将 `docs/contract/drafts/生活流/` 下 **M1+M2+M3 契约草案**一次性合并进本文档——扩展既有表字段，新增生活流 8 表、用户端 `/api/feed/*`、感知 IM/SSE、定时任务、admin_config/环境变量、后台 6 路由 + 8 页 +「生活宇宙」菜单/RBAC。正式条目见下文 **「生活流（朋友圈）」** 各节；草案目录保留作快照。关系档映射以代码为准：**`0→stranger / 1→friend / 2→intimate / 3→soulmate`**（知己；草案 M1 曾写 `confidant` 为笔误）。
+
+> **2026-07-12 摘要（H5 朋友圈 · 话题着色 + 进页 boot）**：**`frontend/pages/feed.html`**（**不**改 `/api/feed/*` 与库表）。正文话题：**单 `#` 起标**着色至空格/标点（兼容 `#话题#`）；进页全屏 **`#feed-boot-loading`**（文案「正在进入她的生活…」）进度驱动 alpha/blur，列表+首屏图就绪后退场，**8s 硬超时**；无限滚动哨兵**延后挂载**（修复抢跑导致遮罩卡满 8s，**TB-LF-010**）。下拉刷新仍用骨架。细则见下文 **「生活流 · H5 `feed.html`」**（草案快照：`docs/contract/drafts/生活流/M1_契约草案.md`）。
+
+> **2026-07-12 摘要（H5 记忆星云 · 表现层对齐实况）**：**`frontend/pages/memory.html`** 顶栏主标题 **`.bar-title`** 定为 **「记忆星云」**（浏览器 `<title>`：**「林小梦 - 记忆星云」**）；副标题 **`#nebula-count-subtitle`** 为 **「N 颗记忆星体」**。右上 **`#nebula-tip`** 为说明圆钮（Toast：「记忆根据你们的对话自动整理，目前仅供查看。」），**无**旧「对话自动整理 · 只读」大角标。脚本栈：**`three.min.js`（r149）** + **`three-line2.js`** + **`memory-connection-layer.js`** + **`memory-nebula.js`**。中心节点 id **`core-memory`**（卡片分类「她记得 · 记忆总览」）；卫星星点按 `key` 首段分色；关系线由 **`MemoryConnectionLayer`** 接管（`buildSelectLinks` / `clearSelectLines` 为契约锚点）。详情卡：**不展示 `key`**，标题由 `value` 首句截断（`titleFromValue`），正文 `value||content`，底栏「来自你们的对话」+「长期记忆」。底栏：手势提示 + **回到中心**；空态浮层「去和她聊聊」。**`#nebula-count-num`** 仍为 **hidden** 兼容锚点（可见计数以 subtitle 为准）。**不**改 `/api/memory/*` 与库表。静态 **`test_memory_html_nebula_surface_contract`**。**废止**「顶栏主标题为『她记得的你』」及「中心恒星文案『林小梦的记忆核』落屏」口径。
+
+> **2026-07-12 摘要（朋友圈评论角标假数）**：**`feed_post`** 增 **`base_comments` / `comment_multiplier`**（迁移 **`v6e_display_comments_001`**）；历史帖默认 **0×1**（不回填，展示=真实可见条数）。新帖（LIFE001 / 后台手动）与点赞同范围随机写入。**`GET /api/feed/list`** 增 **`display_comments = base_comments × comment_multiplier + len(comments)`**；H5 **`feed.html`** 评论角标改用该字段，发评本地 **+1**。细则见下文 **「生活流」** 表/列表 API；单测 **`TestDisplayComments`**。
+
+> **2026-07-12 摘要（H5 首页朋友圈卡 · 未读胶囊与正文间距）**：**`frontend/pages/index.html`** 朋友圈富预览卡表现微调（**不**改 `/api/feed/*` 与库表）。**`#feed-reply-pill`** 从标题行移出，置于 **`.home-feed-main`** 内绝对定位（`position: absolute`，`right: min(172px, calc(46% + 4px))`），叠在左文案与右双图夹缝；有未读时**不**顶开「朋友圈」标题与缩略图位置；无缩略图时贴右（`:has(.home-feed-thumbs:empty)`）。**`.home-feed-body`**：`margin-top: 6px`、`line-height: 1.7`（两行预览更疏）。**`renderFeedReplyPill`** 显隐逻辑不变。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`** 增补锚点。**废止**「未读回复胶囊挂在 `.home-card-title-row` 内参与文档流」口径。
+
+> **2026-07-12 摘要（H5 记忆星云 · Three.js 3D）**：**`frontend/pages/memory.html`** + **`memory-nebula.js`** 升级为 **Three.js r149**（本地 **`/static/js/vendor/three.min.js`**，约 **608KB / gzip ~153KB**）真 3D 星云：**中心恒星常驻**（节点 id **`core-memory`**；无用户记忆亦可环视）；周围星点来自分页拉齐 **`GET /api/memory/list`**；自动慢转（`prefers-reduced-motion` 关闭）+ 单指滑动环视 + 双指远近 + 点选详情抽屉；空态改为底部浮层（不遮挡星云）。后续表现层文案/连接线以文首 **「H5 记忆星云 · 表现层对齐实况」** 为准。**不**改 `/api/memory/*` 与库表。静态 **`test_memory_html_nebula_surface_contract`**。
+
+> **2026-07-11 摘要（H5 记忆页 · 星云可视化）**：**`frontend/pages/memory.html`** 由只读卡片列表改为**全屏记忆星云**（**不**改 `/api/memory/*` 与库表）。脚本 **`/static/js/memory-nebula.js`**：分页拉齐 **`GET /api/memory/list`** → 哈希稳定落点 + 轻量斥力 → 按 `key` 首段分桶弱连线 → **Canvas 2D** 绘制；交互：单指平移、双指捏合缩放（clamp 约 **0.5×～3×**，自管 transform，不依赖浏览器页面缩放）、点选星点打开底部抽屉展示 `key`/`value`（无 key 退化 `content`）；顶栏标题「记忆星云」+ 只读角标「对话自动整理 · 只读」；空态引导去聊天。入口仍为首页快捷栏 / 聊天顶栏 → **`/pages/memory.html`**。静态 **`tests/test_h5_static_contract.py::test_memory_html_nebula_surface_contract`**。
+
+> **2026-07-11 摘要（H5 首页快捷栏 · 记忆星云）**：**`frontend/pages/index.html`** — 快捷互动第三项由「一起听歌」改为 **「记忆星云」**；图标与聊天页同源 **`/static/images/chat/icon-memory-nebula.png`**（`.home-quick-icon img` 约 **22×22**）；点击 → **`/pages/memory.html`**（与 **`chat.html`** 顶栏记忆星云入口一致）。其余四项（语音通话 / 视频通话 / 陪我入睡 / 更多互动）仍 Toast「敬请期待」。**不**改后端接口/库表。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`** 增补锚点。**废止**下文「快捷五项全部 Toast / 一起听歌」口径中与本条冲突的表述。
+
+> **2026-07-11 摘要（H5 聊天页顶栏/气泡对齐设计稿）**：**`frontend/pages/chat.html`** — 顶栏改为**三块独立胶囊**（透明底，无整条毛玻璃条）：左 **返回圆钮** → **`/pages/index.html`**；中 **`.bar-profile`**（**`#chat-header-avatar`** 固定 **`default.png`** + 头像右下绿点 +「林小梦」+ 状态文案仅 **「在线」**）；右 **`.bar-actions`** 双图标无文案（竖线分隔）——朋友圈图标 **`/static/images/chat/icon-feed.png`**（透明底，自首页同款素材抠黑；**`goChatFeed()`**），记忆星云 **`/static/images/chat/icon-memory-nebula.png`**（透明底 PNG）→ **`/pages/memory.html`**；**删除** **`.more-btn`** / 「⋯」/「📖」。朋友圈角标 **`#feed-badge`**：**`loadChatFeedBadge()`** 调 **`GET /api/feed/badge`**，展示数 = **`unread_reply_count + new_post_count`**（合计 0 隐藏；**`formatBadgeCount`**）；点击：有未读回复 → **`/pages/feed.html?focus=unread_reply`**，否则 **`/pages/feed.html`**（与首页 **`goFeed`** 一致）；**`visibilitychange`** 回页刷新角标。气泡：用户 **半透明紫 + 白字**；AI **白玻璃 + 左下紫菱形光点**（**`::after`**）；头像约 **36px**。底栏：浮起玻璃面板 + 顶部 **handle 短横线（仅视觉）**；**`#send-btn`** 启用 **`#7C5CFF`** + 纸飞机 SVG，禁用仍 **`#D8D8DC`/`#8E8E93`**；placeholder **`想和我吐槽什么…`** 不变。**时间**：**`parseMessageTimestamp`** 对无时区 ISO（后端 **`utcnow` naive `isoformat`**）补 **`Z`** 按 UTC 解析；**`chat-time.js`** 自然日/文案一律 **`Asia/Shanghai`**（**`getBeijingParts`** / **`isSameBeijingDay`**）。**发送/SSE/防抖/未闭环窗口逻辑不变**。静态 **`tests/test_h5_static_contract.py::test_chat_html_immersive_surface_contract`**；时间 **`tests/test_chat_time.py`**。**废止**下文 **2026-05-23** 聊天沉浸摘要中「整条毛玻璃顶栏 / `.more-btn` / 绿发送钮」表述。
+
+> **2026-07-11 摘要（H5 首页结构对齐设计稿）**：**`frontend/pages/index.html`** — 顶栏头像点击 → **`/pages/settings.html`**；右上胶囊改为粉心 + **`#relationship-level-name`**（陌生/朋友/亲密/知己）+ 进度，点击 → **`goToRelationship()`**；**删除**「关系状态」预览卡；朋友圈改为富预览卡（正文/双图/更新时间/底栏新动态引导 + 未读回复胶囊；**未读胶囊布局以 2026-07-12「H5 首页朋友圈卡 · 未读胶囊与正文间距」为准**）；日记卡保留，换 3D icon；底部 CTA/未读角标**不变**；快捷五项中第三项「记忆星云」见上条 **「H5 首页快捷栏 · 记忆星云」** 摘要（原「一起听歌」口径废止）。**`GET /api/feed/badge`** 增补 **`new_post_count`**（与 `has_new` 同源，对齐 list 可见窗；从未 enter 时 `new_post_count=0`）；首页 **`loadFeedHomeCard`** 并行 badge + **`GET /api/feed/list?size=8`**；聊天页亦消费同一 badge（角标求和，见上条摘要）。细则见下文 **「生活流 · GET /api/feed/badge」**。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`**；**`tests/test_step015_feed_service.py`**。
+
 > **2026-06-14 摘要（H5 未闭环窗口本地态修复）**：**`frontend/pages/chat.html`** — 新增 **`getOpenWindowUserRows()`**，与后端 **`chat_service.fetch_open_window_user_rows`** 对齐：以最后一条**已落库** assistant（**非** `.agent`、**非** `data-ai-in-flight="1"`）为界，其后的 user 行为**未闭环窗口**。**`countOpenPendingUsers`** 仅统计该窗口内 **`pending_llm` / `failed_timeout` / `failed_error`**（**不**扫全历史 user）。**`markOpenWindowUsersDelivered`** 在 SSE **`done`** 中**先于** **`finalize()`** 调用（`finalize` 后本轮 AI 已在列表末尾，若在之后标记则窗口 user 无法标 **`delivered`**，会导致下轮误弹「待处理消息过多」）。**`resend`** 成功时同一函数将窗口内 **`failed_*`** 标 **`delivered`** 并移除叹号。**`failed_blocked`** 仍**不**纳入前端叹号/预判（与 **TD-030** 一致）。**10104** / 前端满队预判时仍调用 **`loadTimeline(true)`**（仅追加 timeline，**非**完整自愈，见 **POST /api/chat/send**「H5 实现说明」）。单测 **`tests/test_h5_chat_open_window.py`**；静态锚点 **`tests/test_h5_static_contract.py`**。
 
 > **2026-06-14 摘要（H5 首页全屏加载页 · PRD v1.8 增量）**：**`frontend/pages/index.html`** 在深色沉浸主页（v1.7）之上新增 **全屏首屏加载层** **`#home-loading-screen`**（**不**改后端接口/库表）。**门闩**：并行预载静态图 **`index.png`**、**`loader_avatar.jpg`**、**`sunset.png`**、**`diary_1.png`**、**`default.png`** + 情绪头像（**`AVATAR_MAP[ai_current_emotion]`**，预载完成后 **仅一次** **`updateAvatarEmotion`**）+ **`loadPage`** 五接口 **`Promise.allSettled`**；且 **`elapsed ≥ 3000ms`**；进度至 **100%** 后再固定停留 **500ms** 退出。**Session**：**`sessionStorage.lxm_home_loader_done`**；同浏览器标签内再次进入 **`index.html`** **跳过**全屏加载（仍 **`loadPage`** 刷新数据）；**`performance.navigation.type === 'reload'`** 清除标记并重走加载；**`api.js` `clearToken()`**（登出/401）清除标记。**加载页 DOM**：**`#home-loading-hero`**（`index.png` 随进度提亮/去模糊）；**`#loading-avatar`** → **`/static/images/Index/loader_avatar.jpg`**（加载专用图，**非**顶栏情绪图）；**`.loading-avatar-ring`** 渐变环 + **`.loading-avatar-ripple`** 双圈波纹；品牌 **「林小梦」** + 副标题 **「正在靠近你的世界」**；底部 **`#home-loading-message`** 轮播三句（我在。别急。/ 马上就见面了。/ 来了？我等你一会儿了。）。**`loadPage({ deferAvatar: true })`** 加载期间不触发顶栏换图；API 完成后 **`#main-content.content-loaded`**（**`.skeleton-wrap`** 仍作失败兜底）。**退出过渡（A+）**：加载层 **`is-exiting`** 淡出 + 主页 **`is-enter-reveal` → `is-enter-active`** 轻 fade + **`home-enter-item`** 七段 stagger（**`--enter-delay` 0.1s～0.6s**）；**`html:has(#home-loading-screen)`** / **`html:has(.h5-home-page.is-enter-reveal)`** 强制深色底 **`#0a0a1a`** 防白闪。**`api.js`**：**`updateAvatarEmotion`** 同步更新 **`#linxiaomeng-avatar`** 与 **`#loading-avatar`**（若存在）。**`prefers-reduced-motion: reduce`** 关闭粒子/波纹/过渡动画。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`** 增补 **`#home-loading-screen`**、**`loading-avatar-ring`**、**`is-enter-reveal`**、**`lxm_home_loader_done`** 等锚点。
 >
-> **2026-06-10 摘要（H5 首页深色沉浸改版 · PRD v1.7）**：**`frontend/pages/index.html`** — 深色夜景 + 玻璃拟态局部样式（**不**改 **`h5-theme.css`** 全局）。顶栏：**`#linxiaomeng-avatar`** + **`updateAvatarEmotion`** +「林小梦」+ **`#known-days`**（**`GET /api/relationship/detail` → `milestones.known_days`**）+ 右侧亲密度胶囊（星标 + **`#progress-fill` / `#progress-info`**，点击 **`/pages/settings.html`**）；**移除** **`#user-initial`**、独立 ⚙️、中部 **`.home-rel-card`**、三宫格 **`.home-feature-grid`**。Hero：**`index.png`** 夜景遮罩 + 大字号北京时间时钟（**`getBeijingDate`** / **`Asia/Shanghai`**）+ 月亮 icon + 时段词 + 大字号引号 **`#status-text`**（**`resolveStatusText`**，**`api.js`** 上收 **N4**）+ Good night 装饰 + 波形纯装饰；**不展示**「她此刻的心情」标签（C12）。快捷栏 **`.home-quick-actions-wrap`** 玻璃条内 **`.home-quick-actions`** 5 项 Toast「敬请期待」。**一屏布局**：**`body.h5-skin` + `.h5-home-page`** **`height`/`max-height:100vh`**、**`overflow:hidden`**；**`.home-hero`** 高约 **44vh**（小屏 **40vh**）；**`.h5-home-main`** **`margin-top:-30px`** 叠压 Hero；**`.home-cards-scroll`** **`overflow:hidden`**（**不**纵向滚动，废止 PRD §4.1 #19「卡片区可滚动」实现口径）。三张纵向预览卡：**记忆**（左图标+标题副标题；右 **`#memory-preview`**+缩略图；**`GET /api/memory/list?page=1&page_size=1`**，**`list[0].value||content`** 截断 ~40 字）、**日记**（左标题+NEW+副标题「记录她的心情和生活」；右 **`#diary-preview`** + **`.home-card-meta-row`**（**`#diary-time`** + Lv0 **`#diary-lock`**）+ 缩略图；固定句 +「刚刚写下 ·」+ **`formatTime`**）、**关系**（左标题+副标题；右 **`.home-card-right--rel`** 内 **`#relationship-level-name`** + **`.home-card-chevron`**；四级 **`level_name`**，无暧昧副文案 C15-C）。底部 CTA **`.home-cta-btn`**「**和她说说话吧**」+ 副文案「她在等你哦」+ **`.home-cta-arrow`**；**`#unread-badge`** / **`GET /api/agent/unread-count`** 不变。**`loadPage`** 五接口 **`Promise.allSettled`** 并行（加载页门闩亦等 API settle；见 **2026-06-14** 摘要）。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`**；状态语 **`tests/test_h5_static_contract.py::test_settings_change_password_ids`** 断言 **`api.js`**。**废止**下文 **2026-05-23 首页摘要** 中横卡/三宫格/装饰球/隐藏头像等表述。
+> **2026-06-10 摘要（H5 首页深色沉浸改版 · PRD v1.7）**：**`frontend/pages/index.html`** — 深色夜景 + 玻璃拟态局部样式（**不**改 **`h5-theme.css`** 全局）。顶栏：**`#linxiaomeng-avatar`** + **`updateAvatarEmotion`** +「林小梦」+ **`#known-days`**（**`GET /api/relationship/detail` → `milestones.known_days`**）+ 右侧亲密度胶囊（星标 + **`#progress-fill` / `#progress-info`**，点击 **`/pages/settings.html`**）；**移除** **`#user-initial`**、独立 ⚙️、中部 **`.home-rel-card`**、三宫格 **`.home-feature-grid`**。Hero：**`index.png`** 夜景遮罩 + 大字号北京时间时钟（**`getBeijingDate`** / **`Asia/Shanghai`**）+ 月亮 icon + 时段词 + 大字号引号 **`#status-text`**（**`resolveStatusText`**，**`api.js`** 上收 **N4**）+ Good night 装饰 + 波形纯装饰；**不展示**「她此刻的心情」标签（C12）。快捷栏 **`.home-quick-actions-wrap`** 玻璃条内 **`.home-quick-actions`** 5 项（**2026-07-11** 起第三项为「记忆星云」→ **`/pages/memory.html`**，见文首「H5 首页快捷栏 · 记忆星云」；其余仍 Toast「敬请期待」）。**一屏布局**：**`body.h5-skin` + `.h5-home-page`** **`height`/`max-height:100vh`**、**`overflow:hidden`**；**`.home-hero`** 高约 **44vh**（小屏 **40vh**）；**`.h5-home-main`** **`margin-top:-30px`** 叠压 Hero；**`.home-cards-scroll`** **`overflow:hidden`**（**不**纵向滚动，废止 PRD §4.1 #19「卡片区可滚动」实现口径）。三张纵向预览卡：**记忆**（左图标+标题副标题；右 **`#memory-preview`**+缩略图；**`GET /api/memory/list?page=1&page_size=1`**，**`list[0].value||content`** 截断 ~40 字）、**日记**（左标题+NEW+副标题「记录她的心情和生活」；右 **`#diary-preview`** + **`.home-card-meta-row`**（**`#diary-time`** + Lv0 **`#diary-lock`**）+ 缩略图；固定句 +「刚刚写下 ·」+ **`formatTime`**）、**关系**（左标题+副标题；右 **`.home-card-right--rel`** 内 **`#relationship-level-name`** + **`.home-card-chevron`**；四级 **`level_name`**，无暧昧副文案 C15-C）。底部 CTA **`.home-cta-btn`**「**和她说说话吧**」+ 副文案「她在等你哦」+ **`.home-cta-arrow`**；**`#unread-badge`** / **`GET /api/agent/unread-count`** 不变。**`loadPage`** 五接口 **`Promise.allSettled`** 并行（加载页门闩亦等 API settle；见 **2026-06-14** 摘要）。静态 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`**；状态语 **`tests/test_h5_static_contract.py::test_settings_change_password_ids`** 断言 **`api.js`**。**废止**下文 **2026-05-23 首页摘要** 中横卡/三宫格/装饰球/隐藏头像等表述。
 >
 > **2026-06-05 摘要（P0–P4 主动消息 Step5 解析对齐）**：**`agent_service.generate_and_save_message`** 改走 **`llm_service.chat_with_step5_parse`** + **`merge_messages_if_exceed`**，从 **`messages[]`** 拼 **`agent_message.content`**；解析/HTTP 失败与人格风险兜底使用 **`AGENT_FALLBACK_REPLIES[trigger_type]`**，**不再**误用对话 **`DEFAULT_FALLBACK`（走神）** 或 **`admin_config.fallback_reply`**。FUTURE/Step8 链路不变。单测 **`tests/test_agent_generate_step5.py`**；本地验证脚本 **`scripts/verify_agent_p1_p4_docker.py`**。
 
@@ -30,15 +50,15 @@
 >
 > **2026-05-16 摘要**：AI 日记 Cron 改为 **`Asia/Shanghai`**（与 `diary_rules.generation_hour/minute` 一致）；对话统计窗为上海锚点日 **D** 的 **[D−1 00:00, D 00:00)**；表 **`ai_diary.covers_beijing_date`**（北京覆盖日）；`GET /api/diary/list` 的 **`items[]`** 含 **`covers_beijing_date`**；管理端 **`diary-history`** / **`users/{id}/diaries`** 的 **`list[]`** 含 **`covers_beijing_date`**（日期筛选仍按 **`created_at`**）；`PUT /diary-rules` 的 **`generation_hour`** 合法范围 **0–23**（北京时间）。
 >
-> **2026-05-23 摘要（H5 聊天居中时间戳）**：**`frontend/static/js/chat-time.js`** 提供 **`formatChatTime`** / **`shouldShowTimeStamp`** / **`getChatTimeOptions`** / **`setChatTimeOptions`**（自然日、**>5 分钟或跨日** 插戳、周一起算、**zh/en** + **hour12** 配置，默认 **zh** 24 小时）。**`chat.html`** 仅展示居中 **`.msg-time-divider`**（**不再**在气泡内显示时间）；消息行 **`data-created-at`**；**`insertTimelineBatch`** 处理首屏与上拉 prepend 边界；乐观发送用客户端 **`Date.now()`**。失败叹号 **`.msg-bang`** 仍在气泡左侧，**`align-items: center`** 垂直居中（**业务逻辑不变**）。**`api.js` 的 `formatTime`** 仍供记忆页等使用。**接口与发送/SSE/防抖不变**；单测 **`tests/test_chat_time.py`**。
+> **2026-05-23 摘要（H5 聊天居中时间戳）**：**`frontend/static/js/chat-time.js`** 提供 **`formatChatTime`** / **`shouldShowTimeStamp`** / **`getChatTimeOptions`** / **`setChatTimeOptions`**（自然日、**>5 分钟或跨日** 插戳、周一起算、**zh/en** + **hour12** 配置，默认 **zh** 24 小时）。**`chat.html`** 仅展示居中 **`.msg-time-divider`**（**不再**在气泡内显示时间）；消息行 **`data-created-at`**；**`insertTimelineBatch`** 处理首屏与上拉 prepend 边界；乐观发送用客户端 **`Date.now()`**。失败叹号 **`.msg-bang`** 仍在气泡左侧，**`align-items: center`** 垂直居中（**业务逻辑不变**）。**`api.js` 的 `formatTime`** 仍供记忆页等使用。**接口与发送/SSE/防抖不变**；单测 **`tests/test_chat_time.py`**。**时区补记（2026-07-11）**：展示与自然日改为 **`Asia/Shanghai`**；见文首「H5 聊天页顶栏/气泡对齐设计稿」摘要。
 >
-> **2026-05-23 摘要（H5 聊天页沉浸改版）**：**`frontend/pages/chat.html`** — **`body`** 增加 **`chat-immersive`**（**`h5-theme.css`** 中聊天 neo 规则仅作用于 **`body.h5-skin:not(.chat-immersive)`**，其它 H5 页不变）。全屏背景 **`.chat-bg`**（**`#chat-bg-image`** + 25% 黑遮罩（无背景模糊）；**`background-position: center 72%`**）；情绪联动改由页内 **`updateChatBackgroundEmotion(emotionLabel)`** 切换 **`AVATAR_MAP`** 同路径静态图（来源不变：**timeline 末条 AI `data-emotion` / SSE `done.emotion.label`**），**不再**调用 **`updateAvatarEmotion`**。顶栏 **66px** 毛玻璃黑底（约为初版 88px 的 3/4）；**`#chat-header-avatar`** 固定 **`default.png`**（44px 白描边）；右 **`.more-btn`**（**`aria-label="更多"`**）仅展示无 **`onclick`**。底栏深色条 + 白 pill **`#msg-input`**，placeholder **`想和我吐槽什么…`**（灰字 **`rgba(0,0,0,0.35)`**）；**`#send-btn`** 启用 **`#A6FF7B` / `#2D6A4B`**，禁用仍为 **`#D8D8DC` / `#8E8E93`**。Agent 未读条沉浸深色半透明样式。**接口与发送/SSE/防抖逻辑不变**。
+> **2026-05-23 摘要（H5 聊天页沉浸改版）**：**`frontend/pages/chat.html`** — **`body`** 增加 **`chat-immersive`**（**`h5-theme.css`** 中聊天 neo 规则仅作用于 **`body.h5-skin:not(.chat-immersive)`**，其它 H5 页不变）。全屏背景 **`.chat-bg`**（**`#chat-bg-image`** + 25% 黑遮罩（无背景模糊）；**`background-position: center 72%`**）；情绪联动改由页内 **`updateChatBackgroundEmotion(emotionLabel)`** 切换 **`AVATAR_MAP`** 同路径静态图（来源不变：**timeline 末条 AI `data-emotion` / SSE `done.emotion.label`**），**不再**调用 **`updateAvatarEmotion`**。Agent 未读条沉浸深色半透明样式。**接口与发送/SSE/防抖逻辑不变**。**顶栏 / 气泡 / 发送钮表现层以 2026-07-11「H5 聊天页顶栏/气泡对齐设计稿」为准**（废止本条中「整条毛玻璃顶栏 / `.more-btn` / 绿发送钮 `#A6FF7B`」表述）。
 >
 > **2026-05-23 摘要（H5 日记页改版）**：**`frontend/pages/diary.html`** — **`body`** 增加 **`diary-page`**（仍含 **`h5-skin`**）；去掉固定 **`top-bar`**，改为 **`.diary-hero`**（**`background-image: /static/images/diary/dary_ri.png`**，高约 **45vh**，底渐变接 **`#f3f0ff`**）；返回钮 **`.diary-hero-bar .back-btn`**：**位置/尺寸与 `chat-top-bar .back-btn` 一致**（**36px**、顶栏 **`padding: calc(safe-area + 8px) 12px 10px`**）；视觉为 **`#B8A8F0` 45%** 半透明 + 内描边 + **8px** 外发光 + SVG 左箭头（**`history.back()`**）。列表 **`.diary-main`** **`margin-top: calc(-17vh + 60px)`**（小屏 **`max-height:640px`** 时 **`-40px`**）与头图渐变叠压。列表 **`.diary-card`** 为白卡轻阴影（**不再**挂全局 **`.card`** neo 边）；左栏 **英文月 / 日 / 中文星期 / 装饰 SVG**（**`weekday % 4`** 轮换，无业务含义）；右栏仅 **正文 3 行截断 +「继续看 >」/「收起」**（**无**头像、昵称、时间、心情标签）；点击整卡就地展开，展开未读时 **`POST /api/diary/{id}/read`**。未读：**淡紫描边 + 左上细紫条 + 右上角点**（非橙色）。空态/错误态/主按钮在 **`body.diary-page`** 下换肤；**接口与分页/空态等级分支逻辑不变**。静态资源 **`tests/test_h5_static_contract.py`** 允许多类名 **`body`**。
 >
 > **2026-05-23 摘要（H5 首页改版）**：**`frontend/pages/index.html`** — 布局为 **`.home-hero`**（**`background-image: /static/images/Index/index.png`**）+ **`.home-rel-card`** 关系横卡 + **`.home-feature-grid`** 三功能卡 + 底部 **「进入聊天」** 渐变胶囊；顶栏叠在 Hero 上（左 **`#user-initial`** 半透明圆钮、右 **设置** **`/pages/settings.html`**）。**`#linxiaomeng-avatar`** 节点保留 **`display:none`**，首页不再调用 **`updateAvatarEmotion`**。未读角标 **`#unread-badge`**、**`#status-text`**、**`GET /api/relationship/status`** / **`GET /api/agent/unread-count`** 语义不变；进度条 **`#progress-fill`** 仍 **`transition: width 0.8s`** 动画，主题填充 **`linear-gradient(90deg, #3b82f6, #ec4899)`**（**`h5-theme.css`** **`.home-rel-card .progress-bar`**）。黄/粉装饰球 **`.home-hero .h5-home-decor::before/::after`** 保留 **`h5-wiggle` / `h5-float-y`**，坐标锚定 Hero。**`prefers-reduced-motion: reduce`** 下关闭装饰与未读呼吸。静态断言 **`tests/test_h5_static_contract.py::test_index_html_home_surface_contract`**。
 >
-> 最后更新：2026-06-14 — **H5 未闭环窗口本地态修复**（文首摘要：`getOpenWindowUserRows`、`done` 先于 `finalize` 标 `delivered`；单测 **`tests/test_h5_chat_open_window.py`**）。—— **H5 首页全屏加载页**（文首摘要：门闩 3s+500ms、Session 跳过、双头像、`loader_avatar.jpg`、A+ 入场；**`loadPage` 改为 `allSettled`**；静态测试锚点增补）。—— **2026-06-10** — **H5 首页一屏布局与预览卡 DOM 对齐**（文首摘要增补：Hero 44vh、主内容叠层、卡片区不滚动；日记/关系预览右栏化；静态测试增补 **`.home-card-meta-row`** 等锚点）。—— **H5 首页深色沉浸改版**（见文首 2026-06-10 摘要；废止 2026-05-23 首页摘要中横卡/三宫格/装饰球表述）。—— **2026-06-05** — **P0–P4 主动消息 Step5 解析对齐**：`agent_service` 生成链路改用 `chat_with_step5_parse`（见上条摘要）。—— **管理端历史对话与日期筛选（A/B/C）**：`backend/services/admin_date_filter.py` 统一 **conversations / emotion-rounds / diaries / diary-history / agent-messages** 的 `start_date`/`end_date`；**user-detail.html** 历史对话 Tab 默认近 7 天、末页首屏、「加载更早」；单测 **`tests/test_admin_user_conversations.py`**。—— 2026-05-31 — **长记忆第一套下线与 Step6 运营收敛（PRD v1.3 一次发布）**：H5 `GET /api/memory/list` 改只读 KV（删 `PUT/DELETE/POST` 写路由 + `schemas/memory.py`）；新增 Admin `user-memories`/`private-settings`（主键 `doc_id`，删旧 `/users/{id}/memories*`）；`memories/global` 改向量检索（可选 `user_id`、`truncated`、R-01 300 上限 / P9 500 cap）、`batch-delete` 改 `{doc_ids}`；新增 `GET/PUT /api/admin/step6-memory-prompt`（保存即发布，6 块 + 11 `task_fields`），删 `memory-rules` API（C-08）；`build_step6_prompt` 异步化 + Redis→DB→DEFAULT 三级回退（DEFAULT 逐字复刻，P6）；下线第一套写入（删 `extract_and_save` 调用 + 物理删危险函数，其余 `@deprecated`）；`memory_injected` 恒 null（仅历史字段，M11/P7）；召回侧（`multi_vector_retrieval_service`/`agent_service`）确认**不过滤 `mem_*`**（P1，靠 M2 人工清理）；前端 `memory.html` 只读、`settings.html`「记忆整理」只读说明、`user-detail.html` 用户记忆+私有状态 Tab、`memory-rules.html` 三 Tab（Step6 Prompt 默认/向量库/全局用户记忆）。详见各模块条目与 `docs/progress/长记忆第一套下线与Step6运营收敛_progress.md`。—— 2026-05-30 — **记忆检索与 Prompt 优化升级（PRD v6.1 一次发布）**：Step1.5 输出 13 字段 + `rewrite_input` + C1 校验、Step2 2.5 路融合 + `skipped_routes` + `build_filter` 双引号、Step6/Admin 写入 `key_l1`/`key_l2`、Prompt 新增 `user_nickname` 模块（relationship 删称呼），详见「2026-05-30 摘要」。—— **2026-05-29** — **H5 设置页 Profile 卡**对齐设计稿（状态语纯文字、在线浅底 pill、卡片柔阴影无描边，见「Profile 卡对齐设计稿」摘要）。—— **H5 设置页软 UI 改版** + **`GET /api/app/persona-background`**（见「H5 设置页软 UI 改版」摘要）。—— **H5 关系页**：拍立得 **-8deg** + 极窄底边（**84×108**）、今日成长 **横排四列** + **`.tc-done`** 状态样式 + 任务文案（见「2026-05-29 摘要」）。—— **2026-05-26** — **H5 关系页**三次微调：**`.rel-main` 上移 50px**、亲密进度手写左移、拍立得 **-8deg** + caption「想和你去看海。」（见摘要）。—— **2026-05-26** — 关系页设计稿二次对齐（四宫格/进度条/拍立得等）。—— **2026-05-24** — **Step6 / 角色知识库 doc_id 与三层 key 改造**：DashVector `doc_id` 统一为 `{type}_{sha256(key)[:12]}_{user_suffix}`（`user_suffix=0` 或 `user_id`）；KV **key 强制三层 `XXX-XXX-XXX`**；向量 `fields` 新增 **`stable_key`**；`dashvector_client.upsert` 解析响应体失败信息；公共工具 **`backend/utils/character_knowledge_validate.py`**；单测 **`tests/test_character_knowledge_validate.py`**、**`tests/test_dashvector_upsert_response.py`**；**旧记忆 `mem_*` 路径不变**。—— **STEP-027 角色知识库 CRUD**（`GET|POST|PUT|DELETE /api/admin/character-knowledge`，DashVector 直写；页面 **`admin/pages/knowledge.html`**；错误码 **20047–20052**；单测 **`tests/test_admin_character_knowledge.py`**）。—— **2026-05-23** — **H5 日记页表现对齐参考图**（见「2026-05-23 摘要（H5 日记页改版）」）。—— **H5 聊天居中时间戳（微信式分组 + 叹号垂直居中）**（见「2026-05-23 摘要（H5 聊天居中时间戳）」）。—— **H5 聊天页沉浸表现对齐参考图**（见上条摘要）。—— **H5 首页表现对齐参考图**（见「2026-05-23 摘要（H5 首页改版）」）。—— **2026-05-17** — **H5 全站表现层刷新**：新增 **`frontend/static/css/h5-theme.css`**（neo 粗线边、偏移阴影、粉紫渐变页背景、装饰微动效、气泡入场等），各用户端页面 **`body` 增加 `class="h5-skin"`** 并在 **`common.css` 之后** 引入 **`/static/css/h5-theme.css`**；**`frontend/static/css/common.css`** 中全局色板微调（如 **`--color-primary`**、**`--color-bg`**）与主题协调。**不修改接口与业务脚本逻辑**。**`chat.html`** 中 **`#send-btn`** 的 **禁用态** 仍为 **`#D8D8DC` / `#8E8E93`**（页面内联规则保留；主题层仅对 **`:not(:disabled):not(.disabled)`** 覆盖启用态渐变）。**`prefers-reduced-motion: reduce`** 下关闭装饰、气泡入场、**`h5-page-fade`**（**`.page-body`**、**`.h5-home-main`**）等动画。**`h5-theme.css` 补充**：**`html:has(> body.h5-skin)`** 与 **`body.h5-skin`** 同铺渐变底，避免 overscroll 露白；关系页 **`.progress-section` / `.today-section` / `.timeline-section` / `.log-section`**、记忆 **`.add-panel` / `.memory-edit`**、聊天 **`.msg-bang` / `.levelup-tip` / `.thinking-bubble`** 等 neo 线框与阴影增强。静态锚点单测 **`tests/test_h5_static_contract.py`**。—— **2026-05-11** — **H5 `chat.html` 输入与发送钮**：`#msg-input` **`enterkeyhint="send"`**（软键盘回车键语义贴近「发送」，**具体标签文案以系统/WebView 为准**）；**`updateSendBtn`** 按 **`trim`** 同步 **`#send-btn`** 的 **`disabled` 属性** 与 **`.disabled`**，禁用态背景 **`#D8D8DC`**、符号 **`#8E8E93`**（对齐系统键盘「发送」置灰态），有内容时 **`#send-btn`** 启用态由 **`h5-theme.css`** 表现为 **渐变主钮**（与原先 **`var(--color-primary)`** 填充圆钮等价：**可点**）。**——** **H5 `chat.html` 发送键焦点**：`#send-btn` 为 **`type="button"`**，**`mousedown`** 与 **`touchstart`（`{ passive: false }`）** 监听内 **`preventDefault`**，减轻点发送时 **`#msg-input`** 失焦导致的移动端键盘自动收起；**`handleSend`** 仍由 **`click`** 触发。**——** **H5 `chat.html` 发送（流控）**：移除全局 **`sending`**；**`send`** 与叹号 **`resend`** 共用 **`lastSendOrResendAt` + `CHAT_SEND_DEBOUNCE_MS`（300ms）** 静默防连点（通过内容非空与 **`countOpenPendingUsers`** 预判后再打时间戳）；**`oncompositionend`/`onkeyup`** 同步 **`updateSendBtn`**。细则见 **POST /api/chat/send**「H5 实现说明」。**——** **管理后台认证契约补全与自助改密**：拆分 **`POST /api/admin/auth/logout`** 与 **`POST /api/admin/auth/change-password`**；change-password Body **`AdminChangePasswordRequest`**（`old_password`、`new_password`、`confirm_password`，与 `schemas/admin_auth.py` 一致）；成功 **`code=0`**、**`message`**「密码修改成功」；失败 **20004**（旧密码不正确）、**20005**（新密码与旧密码相同）、**20006**（两次新密码不一致）、**20007**（密码强度不符，与 **`_validate_admin_password`** 一致）；**`admin/static/js/admin-api.js`** **`renderHeader`** 在「退出登录」左侧提供「修改密码」，**`showChangePasswordModal`** 经 **`adminRequest`** 提交改密，成功 Toast「密码已修改，请重新登录」后 **`clearAdminToken`** 并跳转 **`/admin/pages/login.html`**（与 **`accounts.html`** 对自身仅「修改备注」、对他人「重置密码」互补）。—— **2026-05-10** — **管理后台系统日志**：`GET /api/admin/system/logs` 的 `data.list` 按 `time` **降序**；`admin/pages/system-logs.html` 分页回调 **`window.systemLogsGoPage_system`** / **`window.systemLogsGoPage_error`** + **`renderPagination`**；单测 **`tests/test_system_monitor_logs.py`**。—— **H5 `chat.html`（续）**：与首段摘要一致，完整见 **POST /api/chat/send**「H5 实现说明」。**`LLM_TIMEOUT`（通用 LLM HTTP）默认 45s**：`get_llm_timeout_seconds()` 读取环境变量 **`LLM_TIMEOUT`**，未配置时默认 **45**（与 **`LLM_TIMEOUT_CHAT`** 默认一致）；适用于日记生成、记忆提取 LLM、Agent 主动消息、后台配置测试集（`chat_with_parse` 未传超时）、`chat_stream`、`chat_sync` 未显式传 `timeout_sec` 等——详见 **「部署与网关（对话 SSE）」** 下 **环境与通用 LLM HTTP 超时**。2026-05-08 — **SSE 等待上限语义（与代码一致）**：`_BUNDLE_WAIT_TIMEOUT_SEC`（默认 **120s**，`backend/routers/chat.py`）仅作用于 `_sse_chat_wait_bundle` 内 `asyncio.wait_for` 对本代 `generation` Future 的等待；**不**等价于 `_execute_llm_bundle` 整段服务端墙钟的数学上界。Step1.5、Step5 等经 `llm_client.chat_sync` 时内层至多 **3 次** HTTP（`LLM_MAX_RETRIES=2`），单次 `timeout_sec` 由调用方传入（Step1.5 **45s**、Step5 默认 **`LLM_TIMEOUT_CHAT` 45s**），叠加 **1s、2s** 退避后，**单段子调用**在极端全超时场景下即可 **超过 120s**；整链再串 Step2、Step5.5 等后，**可能出现 SSE 已结束等待而后台 `_execute_llm_bundle` 仍在执行**——属客户端等待与后台调度**解耦**，**120s 非产品硬指标**。详见 **「部署与网关（对话 SSE）」** 与 **POST /api/chat/send**。**Step1.5 查询重写（STEP-019）**：`query_rewrite_service._STEP1_5_TIMEOUT_SEC` **45s**；业务层整轮「LLM+解析」**仅 1 次**，失败即 R-L1L3-12 `_fallback_with_embedding`；`llm_client.chat_sync` 单次 HTTP 同 **45s**，内层仍最多 **3 次** POST + 1s/2s 退避。**Step6 记忆 LLM 超时**：`step6_orchestrator._STEP6_LLM_TIMEOUT_SEC` 由 **15s 调至 45s**（固定常量，非环境变量；异步不阻塞 SSE）。**STEP-026**：管理后台 Step5 / Step5.5 Prompt 与 **`step5_5_enabled`** 总开关——运行时 **`step5_system_prompt`**（JSON `{"content"}`）热加载模块1 System；**`step5_5_prompt_fragments`** 六段模板 + **`backend/services/step5_5_prompt_fragments.py`** 占位符与发布校验；**废弃**旧 **`prompt_modules`** 七模块接口；**`POST /api/admin/prompt/test`** 改为 **`PromptBuilder.build_chat_prompt`**（与主链一致，`use_draft` 覆盖 Step5 System）；页面 **`admin/pages/prompt.html`**、**`admin/pages/step5-5-switch.html`**；RBAC **`super_admin`+`ai_trainer`**；单测 **`tests/test_step026_prompt_config.py`**。**STEP-025**：管理后台 **`GET|PUT /api/admin/configs/vector_retrieval_config`** 与 **`GET|PUT /api/admin/configs/prompt_token_config`**（Body 为部分字段 PATCH，与库中生效值及代码默认合并后走 `admin_config_service.publish_config`；Redis `active_config:{key}`；RBAC `super_admin`+`ai_trainer`；错误码 **`20046`** `ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID`；页面 **`admin/pages/vector-token-config.html`**（双 Tab）；单测 **`tests/test_admin_vector_token_config.py`** 6 条）。**STEP-024 勘误**：Step8 子链路 Step1 装载方式为「同一 `AsyncSession` 内顺序查询」最近对话（库内至多取 20 条、下游使用末 10 轮）+ relationship + emotion，**禁止**对同一 session 使用 `asyncio.gather` 并行 IO（与 SQLAlchemy 异步会话约束一致）；对外接口、表结构、Future 消费语义不变。**同日**：Admin 用户详情 **GET /api/admin/users/{user_id}/conversations** 合并 `conversation_log` 与 `agent_message`（按 `sort_seq`、`id` 升序，与 H5 `GET /api/chat/timeline` 时间线一致；字段见「管理后台用户管理」）。2026-05-05 起 STEP 纪要：（**STEP-024**：Step8 子链路——新增 `backend/services/step8_subchain.py`：`execute_step8_subchain(user_id, future_action)` 实现 Future 槽到期后完整主动消息子链路（Step1 顺序装载 + Step1.5 变体（输入用 `future.action` 替代 `last_user_text`，降级路径用 `future.action` 生成单 Embedding）+ Step2 多路向量检索 + Step3 变体（`PromptBuilder.build_step8_prompt()` 将【用户消息】替换为【主动发起】模块含 `future.action` 摘要）+ Step5 LLM 调用（含内容安全检查与人格偏离检测）+ Step5.5 可配低概率触发（`STEP8_GATE_A_PROBABILITY=0.03`）→ 写入 `agent_message` 表（不走 SSE）→ Step6 异步记忆总结 → `proactive_times` +1 → 衰减门控 `0.15^(proactive_times+1)` 概率写入下一轮 Future 预约）；`prompt_builder.py` 新增 `_build_proactive_input()` 与 `build_step8_prompt()` 方法；`step5_5_service.py` `should_trigger_step5_5()` / `execute_step5_5()` 新增 `gate_a_override` 参数支持外部覆盖门闩 A 概率；`future_handler.py` `_consume_one()` 中占位调用 `generate_and_save_message(FUTURE)` 替换为 `execute_step8_subchain()`；`tests/test_step024_step8_subchain.py` 10 条、`tests/test_step023_future_handler.py` 修正为 14 条单测全部通过。**STEP-023**：Future 槽消费轮询 Handler。**STEP-022**：proactive_times 计数/清零 + 频控调整（R-FUT-03 / §2.2 变更 8.2）——`chat.py` `POST /api/chat/send` 入口新增 proactive_times 清零逻辑（用户发新消息时将 `relationship.proactive_times` 置 0）；`agent_service.py` 频控参数调整：每日上限 2→8（含 Future 槽消费计入）、两次间隔 6h→30min；`generate_and_save_message` 成功后 proactive_times +1（上限 3）；新增 `increment_agent_count_for_future()` 方法供 STEP-023 Future 槽消费后计入 `agent:count` 计数器；新增 `reset_inactive_proactive_times()` 方法实现 30 天无活动自动清零（清空 proactive_times + Future 槽）；`scheduler.py` Agent 扫描间隔 6h→30min、新增每日凌晨 1:00 UTC 30 天无活动清零定时任务；`tests/test_step022_proactive_times.py` 18 条单测全部通过。**STEP-021**：Step3 Prompt 新增模块 + Token 裁剪（R-L1L3-19）——`prompt_builder.py` 重构为 9 模块结构：新增模块 A「角色设定与知识」（`_build_character_knowledge_prompt()`，合并 `character_global`+`character_private`+`character_knowledge` 三路检索结果，超限按 DashVector score 从低到高逐条裁剪）插入 Persona 后 Relationship 前；模块 B「时间与活动」（原 `_build_time_prompt()` 重新定位）插入 Emotion 后 Recent Chat 前；`MAX_TOTAL_TOKENS` 5200→7373；`MODULE_TOKEN_LIMITS` 全部更新（system 720 / persona 1080 / character_knowledge 600 / relationship 360 / memory 900 / emotion 270 / time_activity 80 / recent_chat 1800 / user_input 900）；新增 `_load_token_limits()` 从 `admin_config:prompt_token_config` 热加载各模块上限（缺省回退默认值）；`_trim_to_budget()` 实现 5 级裁剪优先级（recent_chat→memory→character_knowledge→relationship 扩展→time_activity，System/Persona 绝不裁）；`_build_memory_prompt()` 兼容 Step2 dict 列表和 ORM 实例；`build_chat_prompt()` 新增 `retrieval_results` 参数接收 Step2 四路检索结果；`chat.py` `_execute_llm_bundle` 传递 `retrieval_result.format_for_prompt()` + `user_memory_results`（dict 列表替代旧 `_MemoryProxy`）；`tests/test_prompt_builder.py` 30 条（含新增 STEP-021 场景：全量注入无裁剪、超限裁剪优先级、模块 A score 裁剪、热配覆盖默认、9 模块顺序验证、空结果跳过等）。**STEP-020**：Step2 多路向量检索（R-L1L3-10 / R-L1L3-17 / R-L1L3-18 / R-L1L3-21）——新增 `backend/services/multi_vector_retrieval_service.py`：`MultiVectorRetrievalResult` dataclass（4 路检索结果 + `top_k`/`threshold`/`is_fallback` 元数据，提供 `all_results`/`user_memory_results`/`format_for_prompt` 属性）；`execute_multi_vector_retrieval()` 主入口：正常路径阶段① `asyncio.gather` 并行 3 Embedding（CharacterGlobal / CharacterKnowledge / UserProfile）→ 阶段② `asyncio.gather` 并行 4 DashVector 检索（`character_global` 无 user_id + `character_private` 有 user_id + `character_knowledge` 无 user_id + `user` 有 user_id），CharacterGlobal Embedding 复用于 `character_global`+`character_private` 两路；降级路径（Step1.5 失败）用 `fallback_embedding` 执行全部 4 路（R-L1L3-12）；热配置 `admin_config:vector_retrieval_config`（`{"top_k":3,"threshold":0.7}`）支持运行时调整 TopK/阈值（R-L1L3-17）；`chat.py` `_execute_llm_bundle` 集成 Step1.5（`execute_query_rewrite`）+ Step2（`execute_multi_vector_retrieval`），删除旧 `user_embedding = await _get_embedding(last_user_text)` 及关联 `_search_memories` 调用（R-L1L3-21），`_persona_text` 前提获取后复用至 Step6（消除重复 Redis 读取）；`tests/test_multi_vector_retrieval_service.py` 新增 6 条单测（正常 3+4 并行、降级 1+4、降级无 Embedding、部分路 0 命中、热配 TopK=5、无配置回退默认）。**STEP-019**：Step1.5 查询重写 LLM（R-L1L3-09 / R-L1L3-12 / R-L1L3-13 / R-L1L3-14）——新增 `backend/services/query_rewrite_service.py`：`QueryRewriteOutput` Pydantic 模型（7 字段：`InnerMonologue` + 3 组 `QueryQuestion`/`Keywords`）、`QueryRewriteResult` dataclass（`success` + `output` + `fallback_embedding`）；`_build_step1_5_prompt()` 拼装 7 模块（系统指令 + 时间活动 + 人格 + 关系 + 近期对话 + 用户消息 + 任务含输出 Schema）；`execute_query_rewrite()` 主入口（**timeout=45s**；业务层 **不重试**；`chat_sync` 内层仍最多 3 次 HTTP + 1s/2s 退避）；`_parse_query_rewrite_output()` 解析 JSON 并校验至少一组 QueryQuestion 非空；`_fallback_with_embedding()` 降级路径用 `last_user_text` 通过 `embedding_service.get_embedding` 生成单 Embedding 作为统一 fallback（R-L1L3-12：不触发叹号，用户无感）；结构化日志含 `user_id`、失败原因、链路来源（`source="main"/"step8"`）；`tests/test_query_rewrite_service.py` 新增 7 条单测（场景1 三组 Query 完整、场景2 超时即降级+日志、场景3 InnerMonologue 仅内存、边界非法 JSON 降级、解析与 Prompt）。**STEP-018**：Step1 并行装载扩展（R-L1L3-01 / R-L1L3-06）——`chat.py` 新增 `_build_round_context()` 辅助函数，在 `_execute_llm_bundle` 中 `_get_relationship` 读取后构建本轮内存上下文 dict（含 `time_description`、`activity_description`、`relation_description`、`user_real_name`、`user_hobby_name`、`user_description`、`character_purpose`、`character_attitude`、`level`、`level_name`、`silence_days`），扩展字段 NULL 时用占位文案（`relation_description` 默认 `"暂无，初次互动"`，其余默认空串）；`round_context` 在 Step5.5 和 Step6 调用处共用同一份（不重复 SELECT）；`POST /api/chat/send` 的 `asyncio.gather` 中移除 `_get_relationship`（无下游消费的重复 SELECT）；`prompt_builder.py` 的 `build_chat_prompt` 新增可选 `round_context` 参数，`_build_time_prompt` 优先使用预计算值（避免重复调 `_generate_time_description` / Redis 读 `activity_schedule`）；`tests/test_step018_round_context.py` 新增 10 条单测。**STEP-017**：`prompt_builder.py` 新增 `get_activity_description()` 异步函数（R-L1L3-11）：从 Redis `active_config:activity_schedule` 读取静态 JSON，按当前小时段匹配活动描述文案，未配置/未命中/解析失败返回空字符串；`_build_time_prompt()` 改为 async，条件性注入活动描述（空串时跳过该行）；`build_chat_prompt()` 对应 await 调用；`tests/test_prompt_builder.py` 新增 9 条单测（时间描述精确场景 + 活动描述匹配/未配置/未命中/非法JSON/Redis异常/条件注入）。**STEP-016**：`backend/services/step6_orchestrator.py` 新增 `Step6Snapshot` + `execute_step6`（§2.8.4 M2 半异步）：`chat.py` 在 Step5 解析成功、内容安全通过且 `_persist_bundle_success` 落库后 `asyncio.create_task(execute_step6(snapshot))` 入队，不阻塞 `_resolve_generation_future`/SSE；快照含 `merge_messages_if_exceed(step5_result.messages)`（≤5，CP1）、`round_id`、打包用户原文、`persona`（Redis `active_config:persona` 未命中则 `DEFAULT_PERSONA`）、关系等级名与 relationship 扩展列读快照、近期对话 `{role,content}` 列表、Step5 `future`；管线：`build_step6_prompt` → `llm_client.chat_sync`（**45s** 固定常量 `_STEP6_LLM_TIMEOUT_SEC`，非 `LLM_TIMEOUT_CHAT`）→ `parse_step6_output` → `upsert_step6_vectors`（STEP-014）→ 独立 session 加载 `relationship` 后 `RelationshipService.update_relationship_from_step6`（STEP-015）并 `commit`；失败 sleep **500ms** 再试，**共 2 次**仍失败则 ERROR 日志结束，不影响客户端；入队 try/except 失败仅日志；`tests/test_step016_step6_orchestrator.py` **6** 条通过；**未**实现管理后台 Step6 失败监控（STEP-028）。**STEP-015**：`relationship_service.py` 新增 `update_relationship_from_step6(relationship, step6_output, round_id, *, future_time_natural, future_action)` 方法（R-MEM-05 / §2.8.4）——6 个标量字段（`UserRealName`→`user_real_name`、`UserHobbyName`→`user_hobby_name`、`UserDescription`→`user_description`、`CharacterPurpose`→`character_purpose`、`CharacterAttitude`→`character_attitude`、`RelationDescription`→`relation_description`）：值非「无」→ UPDATE 覆盖 + 调用 `RelationshipHistoryService.append_history` 写入变更历史（含 old_value），值为「无」→ 跳过赋值保留旧值；Future 槽：action 为「无」→ 清空 `future_timestamp`+`future_action`，`time_natural` 非「无」→ 调用 `parse_future_time` 解析（成功→写入 `future_timestamp`+`future_action`，失败→清空槽位+保留 `proactive_times`+写 warning 日志）；所有历史记录 `trigger_source='step6'` 携带 `round_id`；`tests/test_step015_relationship_step6.py` 11 条单测全部通过；**已由 STEP-016 在 `chat.py` 主链异步入队调用。****STEP-014**：`memory_llm_service` 增补 Step6 四路 DashVector 写入（R-MEM-04）——`parse_kv_lines()` 按换行拆行、首处全角冒号拆 key-value，空 key/value 或无冒号行丢弃；`upsert_step6_vectors(output, user_id)` 对 `CharacterPublicSettings`/`CharacterPrivateSettings`/`CharacterKnowledges`/`UserSettings`：值为「无」整路跳过，否则逐行 `embedding_service.get_embedding(value)` + `dashvector_client.upsert`；`doc_id`=`{memory_type}:{stable_key}:{user_id或空}`；`character_global`/`character_knowledge` 不写 `user_id` 字段，`character_private`/`user` 写 `fields.user_id` 且 doc_id 含用户后缀；`content` 存「key：value」全文；`tests/test_step6_vector_upsert.py` 22 条通过；**已由 STEP-016 在 `chat.py` 主链异步入队调用。****STEP-013**：新增 `backend/services/memory_llm_service.py` 实现 Step6 记忆总结 LLM 的 Prompt 拼装与 JSON 解析（R-MEM-01 / R-MEM-06 / R-MEM-07 / §2.5）——`Step6MemoryOutput` Pydantic 模型（驼峰命名，11 字段：`InnerMonologue` + 4 类可检索记忆 `CharacterPublicSettings`/`CharacterPrivateSettings`/`CharacterKnowledges`/`UserSettings` + 6 类标量 `UserRealName`/`UserHobbyName`/`UserDescription`/`CharacterPurpose`/`CharacterAttitude`/`RelationDescription`）；`parse_step6_output()` 解析规则：JSON 不合法→抛 `Step6ParseError`，字段缺失→默认「无」（`InnerMonologue` 默认空串）；`build_step6_prompt()` 拼装 8 模块（系统指令 + 时间 + 人格 + 关系状态 + 近期历史 + 本轮对话 + 任务 + §2.5 完整 few-shot），本轮 AI 回复数据来源仅为 Step5 产出的 `messages`（非 Step5.5 润色后，§2.9.3）；`tests/test_memory_llm_service.py` 30 条单测全部通过。不含 relationship 标量更新（STEP-015）、异步入队（STEP-016）。**STEP-012**：内容安全兼容新结构化输出（§9.1 / §9.3）——`chat.py` 新增 `_check_messages_safety()` 逐条检测 `messages[].content`（任一违规→整轮失败，user 行标 `failed_blocked`，不进 Step5.5，不入队 Step6）、`_check_inner_monologue_safety()` 检测 `inner_monologue`（违规仅日志+替换空串，不拦截整轮，避免污染 Step6 记忆）；Step5.5 输出也经逐条安全检测（违规→回退 Step5 合并后 messages）；`constants.py` 新增 `DELIVERY_STATUS_FAILED_BLOCKED = "failed_blocked"`；`tests/test_step012_content_safety.py` 10 条单测覆盖全通过/第 N 条违规整轮失败/inner_monologue 违规替换/Step5.5 违规回退。**STEP-011**：`conversation_log` 多气泡落库（§2.8.1 / §2.8.3）——`_persist_bundle_success` 接收 `messages` 列表（原 `ai_reply` 单条拼接），按 `len(messages)` 一次性 `allocate_sort_seq(user_id, count=N)` 分配连续 `sort_seq`，写入 N 行 `role=assistant`（每行 `content` = `messages[i].content`，与本包 user 行共享同一 `round_id`）；后置任务仍用 `ai_reply="\n".join(...)"`；`GET /api/chat/timeline` 沿用 `sort_seq` 合并排序，升序展示与气泡顺序一致；`tests/test_chat.py` 新增 `TestStep011MultiBubblePersist` 4 条并修正 STEP-008 单测入参。**STEP-010**：SSE 协议扩展（多气泡流式）——`_sse_chat_wait_bundle` 重写：首包 `meta` 新增 `message_count`（§2.9.4 CP2），`delta` 事件按 `message_index` 分条推送，`done` 事件携带完整 `messages` 数组（真相源 §2.7.5）+ 整轮 `emotion`（§2.7.3）；H5 `appendAIThinkingBubble` 重构为多气泡渲染器（不预铺空气泡，`delta` 动态创建槽位，`done` 纠偏定稿）、`consumeChatSse` 适配新字段。**STEP-009**：新增 `backend/services/step5_5_service.py` 实现 Step5.5 响应润色完整链路——`should_trigger_step5_5()` 双门闩 OR 触发判定（总开关 `admin_config` key=`step5_5_enabled` + 门闩 A 12% + 门闩 B 仅 `knowledge_expand="是"` 时 50%）、`build_step5_5_prompt()` 按 `step5_5_prompt.md` 全文拼装、`parse_step5_5_output()` 校验 JSON 数组 + type="text" + content 非空、`execute_step5_5()` 含 30s 独立子超时（§2.7.4 D2）与失败回退；`chat.py` `_execute_llm_bundle` 接入 Step5.5（Step5 成功后调用，成功则覆盖 `final_messages`，失败/未触发则回退 Step5 合并后 messages；Step6 入参快照 `step6_messages` 始终取 Step5 原始 messages 合并结果，不受 Step5.5 影响（R-BND-05））；`tests/test_step5_5.py` 新增 32 个单测（总开关关闭、门闩 A 命中、门闩 B 命中、非法 JSON 回退、超时回退、7 条合并到 5 条等）。**STEP-008**：`chat.py` `round_id` 提前至 Step5 成功时生成（§2.9.3），`_persist_bundle_success` 改为接收外部 `round_id` 不再自行生成，SSE Future payload 新增 `round_id` + `step6_messages` 供 Step6 入队使用；`_BUNDLE_WAIT_TIMEOUT_SEC` 55→120（§2.11.2）；Nginx `proxy_read_timeout` 已为 300s 满足 ≥130s 要求；`tests/test_chat.py` 新增 `TestStep008RoundId` 3 条单测并修复 `test_chat_send_stream_response` 对 `chat_with_step5_parse` 的 mock。**STEP-007**：`backend/utils/future_time_parser.py` 实现 `parse_future_time()` / `is_future_slot_valid()`（§2.8.4，UTC 基准，3 种正则 +「无」→ None；失败 `logger.warning` 结构化日志）；`tests/test_future_time_parser.py` 单测 22 条。**STEP-006**：`constants.py` 新增 `MAX_MESSAGES_COUNT=5` / `MAX_SINGLE_MESSAGE_LENGTH=2000` 消息合并常量；`llm_service.py` 新增 `merge_messages_if_exceed()` 纯函数（§2.9.1，>5 条时将第 6 条起 content 半角空格拼入第 5 条，超长尾部截断+日志）；`chat.py` `_execute_llm_bundle` 接入消费点 1（纯 Step5 路径合并）与消费点 3（Step6 入参快照 CP1，变量 `step6_messages` 预留），SSE payload `step5.messages` 改为合并后版本。**STEP-005**：`llm_service.py` Step5 输出 JSON 解析器 + 校验规则（§2.7.7 / CP3 / U1 / U2 / R-BND-02），新增 `Step5Output` Pydantic 模型（6 字段扁平结构）+ `parse_step5_output()` 解析函数 + `chat_with_step5_parse()` 方法；`chat.py` `_execute_llm_bundle` 替换旧 `chat_with_parse_strict` 调用，不再读取 `reply` 字段，改为拼接 `messages[].content`；SSE payload 新增 `step5` 完整结构化数据。**STEP-004**：`prompt_builder.py` Step5 提示词改造（R-BND-13 / §2.7.9），`SYSTEM_PROMPT_TEXT` 替换为新 6 字段 JSON Schema（inner_monologue / messages / relation_change / future / emotion / knowledge_expand）+ few-shot 示例 + 【知识性话题回应原则】新增；`_build_relationship_prompt()` 尾部追加 4 行扩展字段（relation_description / user_description / user_hobby_name / user_real_name）；新增【当前时间】模块（`_generate_time_description()`）；hint 文字与主动消息 Schema 同步更新；`MODULE_TOKEN_LIMITS["system"]` 400→1200，`MAX_TOTAL_TOKENS` 4096→5200。**STEP-003**：DashVector type 常量 + search/upsert 签名扩展（R-L1L3-08 / R-L1L3-15 / R-VEC-01），`constants.py` 新增 4 类 `MEMORY_TYPE_*` 常量，`dashvector_client` 的 `upsert()` / `search()` 支持 `memory_type` 参数与 type 过滤。**STEP-002**：新增 `relationship_change_history` append-only 历史表（R-L1L3-05），Alembic 迁移 `v4b_step002_001`，`RelationshipHistoryService.append_history()` 仅 INSERT。**STEP-001**：`relationship` 表新增 9 个扩展字段——记忆写回 6 字段 + Future 槽 3 字段，Alembic 迁移 `v4a_step001_001`。2026-04-13 及更早：H5 对话 TD-015、SSE `meta.generation_id`、`resend`、timeline 等见历次说明。）
+> 最后更新：2026-07-12 — **已读感知用户级冷却**（`read_aware_user_cooldown_hours` 默认 6；按入队 `created_at` 滚动，窗口内最多 1 条 `READ_AWARE`；后台「生活流 Prompt · 互动」可配）。—— **生活流正式合并**（M1+M2+M3 草案并入本文「生活流」各节；草案目录保留快照）。—— **H5 朋友圈 · 话题着色 + 进页 boot**（单 `#` 着色、`#feed-boot-loading` 渐进透明度、哨兵延后 / TB-LF-010；见文首摘要）。—— **H5 记忆星云 · 表现层对齐实况**（顶栏标题「记忆星云」、副标题「N 颗记忆星体」、连接线层 + 详情卡只读文案；见文首摘要）。—— **H5 首页朋友圈卡 · 未读胶囊与正文间距**（`#feed-reply-pill` 绝对定位夹缝、正文下移/行距；见文首摘要）。—— **H5 记忆星云 · Three.js 3D**（中心记忆核 + 自动慢转 + 滑动环视；见文首摘要）。—— 2026-07-11 — **H5 记忆页 · 星云可视化**（Canvas 2D，已被上条覆盖）。—— **H5 首页快捷栏 · 记忆星云**（「一起听歌」→「记忆星云」+ 同源 icon → **`/pages/memory.html`**；见文首摘要）。—— **H5 聊天页顶栏/气泡对齐设计稿**（三块胶囊顶栏、朋友圈/记忆星云入口与 badge 求和角标、紫气泡/紫发送、北京时间戳；见文首摘要）。—— **H5 首页结构对齐设计稿**（头像→设置、右上等级→关系、删关系卡、朋友圈富预览；**`GET /api/feed/badge.new_post_count`**；见文首摘要）。—— 2026-06-14 — **H5 未闭环窗口本地态修复**（文首摘要：`getOpenWindowUserRows`、`done` 先于 `finalize` 标 `delivered`；单测 **`tests/test_h5_chat_open_window.py`**）。—— **H5 首页全屏加载页**（文首摘要：门闩 3s+500ms、Session 跳过、双头像、`loader_avatar.jpg`、A+ 入场；**`loadPage` 改为 `allSettled`**；静态测试锚点增补）。—— **2026-06-10** — **H5 首页一屏布局与预览卡 DOM 对齐**（文首摘要增补：Hero 44vh、主内容叠层、卡片区不滚动；日记/关系预览右栏化；静态测试增补 **`.home-card-meta-row`** 等锚点）。—— **H5 首页深色沉浸改版**（见文首 2026-06-10 摘要；废止 2026-05-23 首页摘要中横卡/三宫格/装饰球表述）。—— **2026-06-05** — **P0–P4 主动消息 Step5 解析对齐**：`agent_service` 生成链路改用 `chat_with_step5_parse`（见上条摘要）。—— **管理端历史对话与日期筛选（A/B/C）**：`backend/services/admin_date_filter.py` 统一 **conversations / emotion-rounds / diaries / diary-history / agent-messages** 的 `start_date`/`end_date`；**user-detail.html** 历史对话 Tab 默认近 7 天、末页首屏、「加载更早」；单测 **`tests/test_admin_user_conversations.py`**。—— 2026-05-31 — **长记忆第一套下线与 Step6 运营收敛（PRD v1.3 一次发布）**：H5 `GET /api/memory/list` 改只读 KV（删 `PUT/DELETE/POST` 写路由 + `schemas/memory.py`）；新增 Admin `user-memories`/`private-settings`（主键 `doc_id`，删旧 `/users/{id}/memories*`）；`memories/global` 改向量检索（可选 `user_id`、`truncated`、R-01 300 上限 / P9 500 cap）、`batch-delete` 改 `{doc_ids}`；新增 `GET/PUT /api/admin/step6-memory-prompt`（保存即发布，6 块 + 11 `task_fields`），删 `memory-rules` API（C-08）；`build_step6_prompt` 异步化 + Redis→DB→DEFAULT 三级回退（DEFAULT 逐字复刻，P6）；下线第一套写入（删 `extract_and_save` 调用 + 物理删危险函数，其余 `@deprecated`）；`memory_injected` 恒 null（仅历史字段，M11/P7）；召回侧（`multi_vector_retrieval_service`/`agent_service`）确认**不过滤 `mem_*`**（P1，靠 M2 人工清理）；前端 `memory.html` 只读、`settings.html`「记忆整理」只读说明、`user-detail.html` 用户记忆+私有状态 Tab、`memory-rules.html` 三 Tab（Step6 Prompt 默认/向量库/全局用户记忆）。详见各模块条目与 `docs/progress/长记忆第一套下线与Step6运营收敛_progress.md`。—— 2026-05-30 — **记忆检索与 Prompt 优化升级（PRD v6.1 一次发布）**：Step1.5 输出 13 字段 + `rewrite_input` + C1 校验、Step2 2.5 路融合 + `skipped_routes` + `build_filter` 双引号、Step6/Admin 写入 `key_l1`/`key_l2`、Prompt 新增 `user_nickname` 模块（relationship 删称呼），详见「2026-05-30 摘要」。—— **2026-05-29** — **H5 设置页 Profile 卡**对齐设计稿（状态语纯文字、在线浅底 pill、卡片柔阴影无描边，见「Profile 卡对齐设计稿」摘要）。—— **H5 设置页软 UI 改版** + **`GET /api/app/persona-background`**（见「H5 设置页软 UI 改版」摘要）。—— **H5 关系页**：拍立得 **-8deg** + 极窄底边（**84×108**）、今日成长 **横排四列** + **`.tc-done`** 状态样式 + 任务文案（见「2026-05-29 摘要」）。—— **2026-05-26** — **H5 关系页**三次微调：**`.rel-main` 上移 50px**、亲密进度手写左移、拍立得 **-8deg** + caption「想和你去看海。」（见摘要）。—— **2026-05-26** — 关系页设计稿二次对齐（四宫格/进度条/拍立得等）。—— **2026-05-24** — **Step6 / 角色知识库 doc_id 与三层 key 改造**：DashVector `doc_id` 统一为 `{type}_{sha256(key)[:12]}_{user_suffix}`（`user_suffix=0` 或 `user_id`）；KV **key 强制三层 `XXX-XXX-XXX`**；向量 `fields` 新增 **`stable_key`**；`dashvector_client.upsert` 解析响应体失败信息；公共工具 **`backend/utils/character_knowledge_validate.py`**；单测 **`tests/test_character_knowledge_validate.py`**、**`tests/test_dashvector_upsert_response.py`**；**旧记忆 `mem_*` 路径不变**。—— **STEP-027 角色知识库 CRUD**（`GET|POST|PUT|DELETE /api/admin/character-knowledge`，DashVector 直写；页面 **`admin/pages/knowledge.html`**；错误码 **20047–20052**；单测 **`tests/test_admin_character_knowledge.py`**）。—— **2026-05-23** — **H5 日记页表现对齐参考图**（见「2026-05-23 摘要（H5 日记页改版）」）。—— **H5 聊天居中时间戳（微信式分组 + 叹号垂直居中）**（见「2026-05-23 摘要（H5 聊天居中时间戳）」）。—— **H5 聊天页沉浸表现对齐参考图**（见上条摘要）。—— **H5 首页表现对齐参考图**（见「2026-05-23 摘要（H5 首页改版）」）。—— **2026-05-17** — **H5 全站表现层刷新**：新增 **`frontend/static/css/h5-theme.css`**（neo 粗线边、偏移阴影、粉紫渐变页背景、装饰微动效、气泡入场等），各用户端页面 **`body` 增加 `class="h5-skin"`** 并在 **`common.css` 之后** 引入 **`/static/css/h5-theme.css`**；**`frontend/static/css/common.css`** 中全局色板微调（如 **`--color-primary`**、**`--color-bg`**）与主题协调。**不修改接口与业务脚本逻辑**。**`chat.html`** 中 **`#send-btn`** 的 **禁用态** 仍为 **`#D8D8DC` / `#8E8E93`**（页面内联规则保留；主题层仅对 **`:not(:disabled):not(.disabled)`** 覆盖启用态渐变）。**`prefers-reduced-motion: reduce`** 下关闭装饰、气泡入场、**`h5-page-fade`**（**`.page-body`**、**`.h5-home-main`**）等动画。**`h5-theme.css` 补充**：**`html:has(> body.h5-skin)`** 与 **`body.h5-skin`** 同铺渐变底，避免 overscroll 露白；关系页 **`.progress-section` / `.today-section` / `.timeline-section` / `.log-section`**、记忆 **`.add-panel` / `.memory-edit`**、聊天 **`.msg-bang` / `.levelup-tip` / `.thinking-bubble`** 等 neo 线框与阴影增强。静态锚点单测 **`tests/test_h5_static_contract.py`**。—— **2026-05-11** — **H5 `chat.html` 输入与发送钮**：`#msg-input` **`enterkeyhint="send"`**（软键盘回车键语义贴近「发送」，**具体标签文案以系统/WebView 为准**）；**`updateSendBtn`** 按 **`trim`** 同步 **`#send-btn`** 的 **`disabled` 属性** 与 **`.disabled`**，禁用态背景 **`#D8D8DC`**、符号 **`#8E8E93`**（对齐系统键盘「发送」置灰态），有内容时 **`#send-btn`** 启用态由 **`h5-theme.css`** 表现为 **渐变主钮**（与原先 **`var(--color-primary)`** 填充圆钮等价：**可点**）。**——** **H5 `chat.html` 发送键焦点**：`#send-btn` 为 **`type="button"`**，**`mousedown`** 与 **`touchstart`（`{ passive: false }`）** 监听内 **`preventDefault`**，减轻点发送时 **`#msg-input`** 失焦导致的移动端键盘自动收起；**`handleSend`** 仍由 **`click`** 触发。**——** **H5 `chat.html` 发送（流控）**：移除全局 **`sending`**；**`send`** 与叹号 **`resend`** 共用 **`lastSendOrResendAt` + `CHAT_SEND_DEBOUNCE_MS`（300ms）** 静默防连点（通过内容非空与 **`countOpenPendingUsers`** 预判后再打时间戳）；**`oncompositionend`/`onkeyup`** 同步 **`updateSendBtn`**。细则见 **POST /api/chat/send**「H5 实现说明」。**——** **管理后台认证契约补全与自助改密**：拆分 **`POST /api/admin/auth/logout`** 与 **`POST /api/admin/auth/change-password`**；change-password Body **`AdminChangePasswordRequest`**（`old_password`、`new_password`、`confirm_password`，与 `schemas/admin_auth.py` 一致）；成功 **`code=0`**、**`message`**「密码修改成功」；失败 **20004**（旧密码不正确）、**20005**（新密码与旧密码相同）、**20006**（两次新密码不一致）、**20007**（密码强度不符，与 **`_validate_admin_password`** 一致）；**`admin/static/js/admin-api.js`** **`renderHeader`** 在「退出登录」左侧提供「修改密码」，**`showChangePasswordModal`** 经 **`adminRequest`** 提交改密，成功 Toast「密码已修改，请重新登录」后 **`clearAdminToken`** 并跳转 **`/admin/pages/login.html`**（与 **`accounts.html`** 对自身仅「修改备注」、对他人「重置密码」互补）。—— **2026-05-10** — **管理后台系统日志**：`GET /api/admin/system/logs` 的 `data.list` 按 `time` **降序**；`admin/pages/system-logs.html` 分页回调 **`window.systemLogsGoPage_system`** / **`window.systemLogsGoPage_error`** + **`renderPagination`**；单测 **`tests/test_system_monitor_logs.py`**。—— **H5 `chat.html`（续）**：与首段摘要一致，完整见 **POST /api/chat/send**「H5 实现说明」。**`LLM_TIMEOUT`（通用 LLM HTTP）默认 45s**：`get_llm_timeout_seconds()` 读取环境变量 **`LLM_TIMEOUT`**，未配置时默认 **45**（与 **`LLM_TIMEOUT_CHAT`** 默认一致）；适用于日记生成、记忆提取 LLM、Agent 主动消息、后台配置测试集（`chat_with_parse` 未传超时）、`chat_stream`、`chat_sync` 未显式传 `timeout_sec` 等——详见 **「部署与网关（对话 SSE）」** 下 **环境与通用 LLM HTTP 超时**。2026-05-08 — **SSE 等待上限语义（与代码一致）**：`_BUNDLE_WAIT_TIMEOUT_SEC`（默认 **120s**，`backend/routers/chat.py`）仅作用于 `_sse_chat_wait_bundle` 内 `asyncio.wait_for` 对本代 `generation` Future 的等待；**不**等价于 `_execute_llm_bundle` 整段服务端墙钟的数学上界。Step1.5、Step5 等经 `llm_client.chat_sync` 时内层至多 **3 次** HTTP（`LLM_MAX_RETRIES=2`），单次 `timeout_sec` 由调用方传入（Step1.5 **45s**、Step5 默认 **`LLM_TIMEOUT_CHAT` 45s**），叠加 **1s、2s** 退避后，**单段子调用**在极端全超时场景下即可 **超过 120s**；整链再串 Step2、Step5.5 等后，**可能出现 SSE 已结束等待而后台 `_execute_llm_bundle` 仍在执行**——属客户端等待与后台调度**解耦**，**120s 非产品硬指标**。详见 **「部署与网关（对话 SSE）」** 与 **POST /api/chat/send**。**Step1.5 查询重写（STEP-019）**：`query_rewrite_service._STEP1_5_TIMEOUT_SEC` **45s**；业务层整轮「LLM+解析」**仅 1 次**，失败即 R-L1L3-12 `_fallback_with_embedding`；`llm_client.chat_sync` 单次 HTTP 同 **45s**，内层仍最多 **3 次** POST + 1s/2s 退避。**Step6 记忆 LLM 超时**：`step6_orchestrator._STEP6_LLM_TIMEOUT_SEC` 由 **15s 调至 45s**（固定常量，非环境变量；异步不阻塞 SSE）。**STEP-026**：管理后台 Step5 / Step5.5 Prompt 与 **`step5_5_enabled`** 总开关——运行时 **`step5_system_prompt`**（JSON `{"content"}`）热加载模块1 System；**`step5_5_prompt_fragments`** 六段模板 + **`backend/services/step5_5_prompt_fragments.py`** 占位符与发布校验；**废弃**旧 **`prompt_modules`** 七模块接口；**`POST /api/admin/prompt/test`** 改为 **`PromptBuilder.build_chat_prompt`**（与主链一致，`use_draft` 覆盖 Step5 System）；页面 **`admin/pages/prompt.html`**、**`admin/pages/step5-5-switch.html`**；RBAC **`super_admin`+`ai_trainer`**；单测 **`tests/test_step026_prompt_config.py`**。**STEP-025**：管理后台 **`GET|PUT /api/admin/configs/vector_retrieval_config`** 与 **`GET|PUT /api/admin/configs/prompt_token_config`**（Body 为部分字段 PATCH，与库中生效值及代码默认合并后走 `admin_config_service.publish_config`；Redis `active_config:{key}`；RBAC `super_admin`+`ai_trainer`；错误码 **`20046`** `ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID`；页面 **`admin/pages/vector-token-config.html`**（双 Tab）；单测 **`tests/test_admin_vector_token_config.py`** 6 条）。**STEP-024 勘误**：Step8 子链路 Step1 装载方式为「同一 `AsyncSession` 内顺序查询」最近对话（库内至多取 20 条、下游使用末 10 轮）+ relationship + emotion，**禁止**对同一 session 使用 `asyncio.gather` 并行 IO（与 SQLAlchemy 异步会话约束一致）；对外接口、表结构、Future 消费语义不变。**同日**：Admin 用户详情 **GET /api/admin/users/{user_id}/conversations** 合并 `conversation_log` 与 `agent_message`（按 `sort_seq`、`id` 升序，与 H5 `GET /api/chat/timeline` 时间线一致；字段见「管理后台用户管理」）。2026-05-05 起 STEP 纪要：（**STEP-024**：Step8 子链路——新增 `backend/services/step8_subchain.py`：`execute_step8_subchain(user_id, future_action)` 实现 Future 槽到期后完整主动消息子链路（Step1 顺序装载 + Step1.5 变体（输入用 `future.action` 替代 `last_user_text`，降级路径用 `future.action` 生成单 Embedding）+ Step2 多路向量检索 + Step3 变体（`PromptBuilder.build_step8_prompt()` 将【用户消息】替换为【主动发起】模块含 `future.action` 摘要）+ Step5 LLM 调用（含内容安全检查与人格偏离检测）+ Step5.5 可配低概率触发（`STEP8_GATE_A_PROBABILITY=0.03`）→ 写入 `agent_message` 表（不走 SSE）→ Step6 异步记忆总结 → `proactive_times` +1 → 衰减门控 `0.15^(proactive_times+1)` 概率写入下一轮 Future 预约）；`prompt_builder.py` 新增 `_build_proactive_input()` 与 `build_step8_prompt()` 方法；`step5_5_service.py` `should_trigger_step5_5()` / `execute_step5_5()` 新增 `gate_a_override` 参数支持外部覆盖门闩 A 概率；`future_handler.py` `_consume_one()` 中占位调用 `generate_and_save_message(FUTURE)` 替换为 `execute_step8_subchain()`；`tests/test_step024_step8_subchain.py` 10 条、`tests/test_step023_future_handler.py` 修正为 14 条单测全部通过。**STEP-023**：Future 槽消费轮询 Handler。**STEP-022**：proactive_times 计数/清零 + 频控调整（R-FUT-03 / §2.2 变更 8.2）——`chat.py` `POST /api/chat/send` 入口新增 proactive_times 清零逻辑（用户发新消息时将 `relationship.proactive_times` 置 0）；`agent_service.py` 频控参数调整：每日上限 2→8（含 Future 槽消费计入）、两次间隔 6h→30min；`generate_and_save_message` 成功后 proactive_times +1（上限 3）；新增 `increment_agent_count_for_future()` 方法供 STEP-023 Future 槽消费后计入 `agent:count` 计数器；新增 `reset_inactive_proactive_times()` 方法实现 30 天无活动自动清零（清空 proactive_times + Future 槽）；`scheduler.py` Agent 扫描间隔 6h→30min、新增每日凌晨 1:00 UTC 30 天无活动清零定时任务；`tests/test_step022_proactive_times.py` 18 条单测全部通过。**STEP-021**：Step3 Prompt 新增模块 + Token 裁剪（R-L1L3-19）——`prompt_builder.py` 重构为 9 模块结构：新增模块 A「角色设定与知识」（`_build_character_knowledge_prompt()`，合并 `character_global`+`character_private`+`character_knowledge` 三路检索结果，超限按 DashVector score 从低到高逐条裁剪）插入 Persona 后 Relationship 前；模块 B「时间与活动」（原 `_build_time_prompt()` 重新定位）插入 Emotion 后 Recent Chat 前；`MAX_TOTAL_TOKENS` 5200→7373；`MODULE_TOKEN_LIMITS` 全部更新（system 720 / persona 1080 / character_knowledge 600 / relationship 360 / memory 900 / emotion 270 / time_activity 80 / recent_chat 1800 / user_input 900）；新增 `_load_token_limits()` 从 `admin_config:prompt_token_config` 热加载各模块上限（缺省回退默认值）；`_trim_to_budget()` 实现 5 级裁剪优先级（recent_chat→memory→character_knowledge→relationship 扩展→time_activity，System/Persona 绝不裁）；`_build_memory_prompt()` 兼容 Step2 dict 列表和 ORM 实例；`build_chat_prompt()` 新增 `retrieval_results` 参数接收 Step2 四路检索结果；`chat.py` `_execute_llm_bundle` 传递 `retrieval_result.format_for_prompt()` + `user_memory_results`（dict 列表替代旧 `_MemoryProxy`）；`tests/test_prompt_builder.py` 30 条（含新增 STEP-021 场景：全量注入无裁剪、超限裁剪优先级、模块 A score 裁剪、热配覆盖默认、9 模块顺序验证、空结果跳过等）。**STEP-020**：Step2 多路向量检索（R-L1L3-10 / R-L1L3-17 / R-L1L3-18 / R-L1L3-21）——新增 `backend/services/multi_vector_retrieval_service.py`：`MultiVectorRetrievalResult` dataclass（4 路检索结果 + `top_k`/`threshold`/`is_fallback` 元数据，提供 `all_results`/`user_memory_results`/`format_for_prompt` 属性）；`execute_multi_vector_retrieval()` 主入口：正常路径阶段① `asyncio.gather` 并行 3 Embedding（CharacterGlobal / CharacterKnowledge / UserProfile）→ 阶段② `asyncio.gather` 并行 4 DashVector 检索（`character_global` 无 user_id + `character_private` 有 user_id + `character_knowledge` 无 user_id + `user` 有 user_id），CharacterGlobal Embedding 复用于 `character_global`+`character_private` 两路；降级路径（Step1.5 失败）用 `fallback_embedding` 执行全部 4 路（R-L1L3-12）；热配置 `admin_config:vector_retrieval_config`（`{"top_k":3,"threshold":0.7}`）支持运行时调整 TopK/阈值（R-L1L3-17）；`chat.py` `_execute_llm_bundle` 集成 Step1.5（`execute_query_rewrite`）+ Step2（`execute_multi_vector_retrieval`），删除旧 `user_embedding = await _get_embedding(last_user_text)` 及关联 `_search_memories` 调用（R-L1L3-21），`_persona_text` 前提获取后复用至 Step6（消除重复 Redis 读取）；`tests/test_multi_vector_retrieval_service.py` 新增 6 条单测（正常 3+4 并行、降级 1+4、降级无 Embedding、部分路 0 命中、热配 TopK=5、无配置回退默认）。**STEP-019**：Step1.5 查询重写 LLM（R-L1L3-09 / R-L1L3-12 / R-L1L3-13 / R-L1L3-14）——新增 `backend/services/query_rewrite_service.py`：`QueryRewriteOutput` Pydantic 模型（7 字段：`InnerMonologue` + 3 组 `QueryQuestion`/`Keywords`）、`QueryRewriteResult` dataclass（`success` + `output` + `fallback_embedding`）；`_build_step1_5_prompt()` 拼装 7 模块（系统指令 + 时间活动 + 人格 + 关系 + 近期对话 + 用户消息 + 任务含输出 Schema）；`execute_query_rewrite()` 主入口（**timeout=45s**；业务层 **不重试**；`chat_sync` 内层仍最多 3 次 HTTP + 1s/2s 退避）；`_parse_query_rewrite_output()` 解析 JSON 并校验至少一组 QueryQuestion 非空；`_fallback_with_embedding()` 降级路径用 `last_user_text` 通过 `embedding_service.get_embedding` 生成单 Embedding 作为统一 fallback（R-L1L3-12：不触发叹号，用户无感）；结构化日志含 `user_id`、失败原因、链路来源（`source="main"/"step8"`）；`tests/test_query_rewrite_service.py` 新增 7 条单测（场景1 三组 Query 完整、场景2 超时即降级+日志、场景3 InnerMonologue 仅内存、边界非法 JSON 降级、解析与 Prompt）。**STEP-018**：Step1 并行装载扩展（R-L1L3-01 / R-L1L3-06）——`chat.py` 新增 `_build_round_context()` 辅助函数，在 `_execute_llm_bundle` 中 `_get_relationship` 读取后构建本轮内存上下文 dict（含 `time_description`、`activity_description`、`relation_description`、`user_real_name`、`user_hobby_name`、`user_description`、`character_purpose`、`character_attitude`、`level`、`level_name`、`silence_days`），扩展字段 NULL 时用占位文案（`relation_description` 默认 `"暂无，初次互动"`，其余默认空串）；`round_context` 在 Step5.5 和 Step6 调用处共用同一份（不重复 SELECT）；`POST /api/chat/send` 的 `asyncio.gather` 中移除 `_get_relationship`（无下游消费的重复 SELECT）；`prompt_builder.py` 的 `build_chat_prompt` 新增可选 `round_context` 参数，`_build_time_prompt` 优先使用预计算值（避免重复调 `_generate_time_description` / Redis 读 `activity_schedule`）；`tests/test_step018_round_context.py` 新增 10 条单测。**STEP-017**：`prompt_builder.py` 新增 `get_activity_description()` 异步函数（R-L1L3-11）：从 Redis `active_config:activity_schedule` 读取静态 JSON，按当前小时段匹配活动描述文案，未配置/未命中/解析失败返回空字符串；`_build_time_prompt()` 改为 async，条件性注入活动描述（空串时跳过该行）；`build_chat_prompt()` 对应 await 调用；`tests/test_prompt_builder.py` 新增 9 条单测（时间描述精确场景 + 活动描述匹配/未配置/未命中/非法JSON/Redis异常/条件注入）。**STEP-016**：`backend/services/step6_orchestrator.py` 新增 `Step6Snapshot` + `execute_step6`（§2.8.4 M2 半异步）：`chat.py` 在 Step5 解析成功、内容安全通过且 `_persist_bundle_success` 落库后 `asyncio.create_task(execute_step6(snapshot))` 入队，不阻塞 `_resolve_generation_future`/SSE；快照含 `merge_messages_if_exceed(step5_result.messages)`（≤5，CP1）、`round_id`、打包用户原文、`persona`（Redis `active_config:persona` 未命中则 `DEFAULT_PERSONA`）、关系等级名与 relationship 扩展列读快照、近期对话 `{role,content}` 列表、Step5 `future`；管线：`build_step6_prompt` → `llm_client.chat_sync`（**45s** 固定常量 `_STEP6_LLM_TIMEOUT_SEC`，非 `LLM_TIMEOUT_CHAT`）→ `parse_step6_output` → `upsert_step6_vectors`（STEP-014）→ 独立 session 加载 `relationship` 后 `RelationshipService.update_relationship_from_step6`（STEP-015）并 `commit`；失败 sleep **500ms** 再试，**共 2 次**仍失败则 ERROR 日志结束，不影响客户端；入队 try/except 失败仅日志；`tests/test_step016_step6_orchestrator.py` **6** 条通过；**未**实现管理后台 Step6 失败监控（STEP-028）。**STEP-015**：`relationship_service.py` 新增 `update_relationship_from_step6(relationship, step6_output, round_id, *, future_time_natural, future_action)` 方法（R-MEM-05 / §2.8.4）——6 个标量字段（`UserRealName`→`user_real_name`、`UserHobbyName`→`user_hobby_name`、`UserDescription`→`user_description`、`CharacterPurpose`→`character_purpose`、`CharacterAttitude`→`character_attitude`、`RelationDescription`→`relation_description`）：值非「无」→ UPDATE 覆盖 + 调用 `RelationshipHistoryService.append_history` 写入变更历史（含 old_value），值为「无」→ 跳过赋值保留旧值；Future 槽：action 为「无」→ 清空 `future_timestamp`+`future_action`，`time_natural` 非「无」→ 调用 `parse_future_time` 解析（成功→写入 `future_timestamp`+`future_action`，失败→清空槽位+保留 `proactive_times`+写 warning 日志）；所有历史记录 `trigger_source='step6'` 携带 `round_id`；`tests/test_step015_relationship_step6.py` 11 条单测全部通过；**已由 STEP-016 在 `chat.py` 主链异步入队调用。****STEP-014**：`memory_llm_service` 增补 Step6 四路 DashVector 写入（R-MEM-04）——`parse_kv_lines()` 按换行拆行、首处全角冒号拆 key-value，空 key/value 或无冒号行丢弃；`upsert_step6_vectors(output, user_id)` 对 `CharacterPublicSettings`/`CharacterPrivateSettings`/`CharacterKnowledges`/`UserSettings`：值为「无」整路跳过，否则逐行 `embedding_service.get_embedding(value)` + `dashvector_client.upsert`；`doc_id`=`{memory_type}:{stable_key}:{user_id或空}`；`character_global`/`character_knowledge` 不写 `user_id` 字段，`character_private`/`user` 写 `fields.user_id` 且 doc_id 含用户后缀；`content` 存「key：value」全文；`tests/test_step6_vector_upsert.py` 22 条通过；**已由 STEP-016 在 `chat.py` 主链异步入队调用。****STEP-013**：新增 `backend/services/memory_llm_service.py` 实现 Step6 记忆总结 LLM 的 Prompt 拼装与 JSON 解析（R-MEM-01 / R-MEM-06 / R-MEM-07 / §2.5）——`Step6MemoryOutput` Pydantic 模型（驼峰命名，11 字段：`InnerMonologue` + 4 类可检索记忆 `CharacterPublicSettings`/`CharacterPrivateSettings`/`CharacterKnowledges`/`UserSettings` + 6 类标量 `UserRealName`/`UserHobbyName`/`UserDescription`/`CharacterPurpose`/`CharacterAttitude`/`RelationDescription`）；`parse_step6_output()` 解析规则：JSON 不合法→抛 `Step6ParseError`，字段缺失→默认「无」（`InnerMonologue` 默认空串）；`build_step6_prompt()` 拼装 8 模块（系统指令 + 时间 + 人格 + 关系状态 + 近期历史 + 本轮对话 + 任务 + §2.5 完整 few-shot），本轮 AI 回复数据来源仅为 Step5 产出的 `messages`（非 Step5.5 润色后，§2.9.3）；`tests/test_memory_llm_service.py` 30 条单测全部通过。不含 relationship 标量更新（STEP-015）、异步入队（STEP-016）。**STEP-012**：内容安全兼容新结构化输出（§9.1 / §9.3）——`chat.py` 新增 `_check_messages_safety()` 逐条检测 `messages[].content`（任一违规→整轮失败，user 行标 `failed_blocked`，不进 Step5.5，不入队 Step6）、`_check_inner_monologue_safety()` 检测 `inner_monologue`（违规仅日志+替换空串，不拦截整轮，避免污染 Step6 记忆）；Step5.5 输出也经逐条安全检测（违规→回退 Step5 合并后 messages）；`constants.py` 新增 `DELIVERY_STATUS_FAILED_BLOCKED = "failed_blocked"`；`tests/test_step012_content_safety.py` 10 条单测覆盖全通过/第 N 条违规整轮失败/inner_monologue 违规替换/Step5.5 违规回退。**STEP-011**：`conversation_log` 多气泡落库（§2.8.1 / §2.8.3）——`_persist_bundle_success` 接收 `messages` 列表（原 `ai_reply` 单条拼接），按 `len(messages)` 一次性 `allocate_sort_seq(user_id, count=N)` 分配连续 `sort_seq`，写入 N 行 `role=assistant`（每行 `content` = `messages[i].content`，与本包 user 行共享同一 `round_id`）；后置任务仍用 `ai_reply="\n".join(...)"`；`GET /api/chat/timeline` 沿用 `sort_seq` 合并排序，升序展示与气泡顺序一致；`tests/test_chat.py` 新增 `TestStep011MultiBubblePersist` 4 条并修正 STEP-008 单测入参。**STEP-010**：SSE 协议扩展（多气泡流式）——`_sse_chat_wait_bundle` 重写：首包 `meta` 新增 `message_count`（§2.9.4 CP2），`delta` 事件按 `message_index` 分条推送，`done` 事件携带完整 `messages` 数组（真相源 §2.7.5）+ 整轮 `emotion`（§2.7.3）；H5 `appendAIThinkingBubble` 重构为多气泡渲染器（不预铺空气泡，`delta` 动态创建槽位，`done` 纠偏定稿）、`consumeChatSse` 适配新字段。**STEP-009**：新增 `backend/services/step5_5_service.py` 实现 Step5.5 响应润色完整链路——`should_trigger_step5_5()` 双门闩 OR 触发判定（总开关 `admin_config` key=`step5_5_enabled` + 门闩 A 12% + 门闩 B 仅 `knowledge_expand="是"` 时 50%）、`build_step5_5_prompt()` 按 `step5_5_prompt.md` 全文拼装、`parse_step5_5_output()` 校验 JSON 数组 + type="text" + content 非空、`execute_step5_5()` 含 30s 独立子超时（§2.7.4 D2）与失败回退；`chat.py` `_execute_llm_bundle` 接入 Step5.5（Step5 成功后调用，成功则覆盖 `final_messages`，失败/未触发则回退 Step5 合并后 messages；Step6 入参快照 `step6_messages` 始终取 Step5 原始 messages 合并结果，不受 Step5.5 影响（R-BND-05））；`tests/test_step5_5.py` 新增 32 个单测（总开关关闭、门闩 A 命中、门闩 B 命中、非法 JSON 回退、超时回退、7 条合并到 5 条等）。**STEP-008**：`chat.py` `round_id` 提前至 Step5 成功时生成（§2.9.3），`_persist_bundle_success` 改为接收外部 `round_id` 不再自行生成，SSE Future payload 新增 `round_id` + `step6_messages` 供 Step6 入队使用；`_BUNDLE_WAIT_TIMEOUT_SEC` 55→120（§2.11.2）；Nginx `proxy_read_timeout` 已为 300s 满足 ≥130s 要求；`tests/test_chat.py` 新增 `TestStep008RoundId` 3 条单测并修复 `test_chat_send_stream_response` 对 `chat_with_step5_parse` 的 mock。**STEP-007**：`backend/utils/future_time_parser.py` 实现 `parse_future_time()` / `is_future_slot_valid()`（§2.8.4，UTC 基准，3 种正则 +「无」→ None；失败 `logger.warning` 结构化日志）；`tests/test_future_time_parser.py` 单测 22 条。**STEP-006**：`constants.py` 新增 `MAX_MESSAGES_COUNT=5` / `MAX_SINGLE_MESSAGE_LENGTH=2000` 消息合并常量；`llm_service.py` 新增 `merge_messages_if_exceed()` 纯函数（§2.9.1，>5 条时将第 6 条起 content 半角空格拼入第 5 条，超长尾部截断+日志）；`chat.py` `_execute_llm_bundle` 接入消费点 1（纯 Step5 路径合并）与消费点 3（Step6 入参快照 CP1，变量 `step6_messages` 预留），SSE payload `step5.messages` 改为合并后版本。**STEP-005**：`llm_service.py` Step5 输出 JSON 解析器 + 校验规则（§2.7.7 / CP3 / U1 / U2 / R-BND-02），新增 `Step5Output` Pydantic 模型（6 字段扁平结构）+ `parse_step5_output()` 解析函数 + `chat_with_step5_parse()` 方法；`chat.py` `_execute_llm_bundle` 替换旧 `chat_with_parse_strict` 调用，不再读取 `reply` 字段，改为拼接 `messages[].content`；SSE payload 新增 `step5` 完整结构化数据。**STEP-004**：`prompt_builder.py` Step5 提示词改造（R-BND-13 / §2.7.9），`SYSTEM_PROMPT_TEXT` 替换为新 6 字段 JSON Schema（inner_monologue / messages / relation_change / future / emotion / knowledge_expand）+ few-shot 示例 + 【知识性话题回应原则】新增；`_build_relationship_prompt()` 尾部追加 4 行扩展字段（relation_description / user_description / user_hobby_name / user_real_name）；新增【当前时间】模块（`_generate_time_description()`）；hint 文字与主动消息 Schema 同步更新；`MODULE_TOKEN_LIMITS["system"]` 400→1200，`MAX_TOTAL_TOKENS` 4096→5200。**STEP-003**：DashVector type 常量 + search/upsert 签名扩展（R-L1L3-08 / R-L1L3-15 / R-VEC-01），`constants.py` 新增 4 类 `MEMORY_TYPE_*` 常量，`dashvector_client` 的 `upsert()` / `search()` 支持 `memory_type` 参数与 type 过滤。**STEP-002**：新增 `relationship_change_history` append-only 历史表（R-L1L3-05），Alembic 迁移 `v4b_step002_001`，`RelationshipHistoryService.append_history()` 仅 INSERT。**STEP-001**：`relationship` 表新增 9 个扩展字段——记忆写回 6 字段 + Future 槽 3 字段，Alembic 迁移 `v4a_step001_001`。2026-04-13 及更早：H5 对话 TD-015、SSE `meta.generation_id`、`resend`、timeline 等见历次说明。）
 
 本文档依据当前仓库内 FastAPI 路由、Pydantic Schema 与 SQLAlchemy Model 扫描生成；SSE/文件流接口的 HTTP 层不包在统一 JSON 信封内，已单独标注。
 
@@ -61,6 +81,7 @@
 | is_banned          | Boolean     | 是   | False  | 是否封禁                             |
 | login_fail_count   | Integer     | 是   | 0      | 连续登录失败次数                         |
 | locked_until       | DateTime    | 否   | NULL   | 锁定截止时间                           |
+| last_feed_entered_at | DateTime  | 否   | NULL   | 最近进入朋友圈时间（生活流；`POST /api/feed/enter` 写 **`feed_now()`** 北京墙钟；用于 `has_new`） |
 
 
 ### 表名：relationship
@@ -84,6 +105,9 @@
 | future_timestamp       | Integer              | 否   | NULL   | Future 预约时间戳（R-FUT-02） |
 | future_action          | String(200)          | 否   | NULL   | Future 预约意图摘要（R-FUT-02） |
 | proactive_times        | Integer              | 是   | 0      | 主动消息计数，上限 3（R-FUT-03，`server_default="0"`） |
+| like_aware_special_used_count | Integer       | 是   | 0      | 生活流·点赞感知 IM 特殊档已用次数（入队成功 +1；可后台重置） |
+| read_aware_special_used_count | Integer       | 是   | 0      | 生活流·已读感知 IM 特殊档已用次数（入队成功 +1；可后台重置） |
+| has_ever_commented_feed | Integer             | 是   | 0      | 生活流·是否已发生过全局首次评论（首次评论 `due_at` 强制 +30s；置 1 后不回退） |
 
 
 ### 表名：conversation_log
@@ -172,7 +196,7 @@
 | ------------ | ---------- | --- | ------ | ----- |
 | id           | Integer PK | 是   | 自增     |       |
 | user_id      | Integer FK(users.id, ON DELETE CASCADE) | 是   | -      | `index=True` |
-| trigger_type | String(10) | 是   | -      | P0–P4 / FUTURE（见 `TriggerType` 常量类） |
+| trigger_type | String(16) | 是   | -      | P0–P4 / FUTURE / **`LIKE_AWARE`** / **`READ_AWARE`**（生活流感知 IM；落库 `action_score=0`；与 P0–P4/Future **业务零耦合**，仅共用本表与 `sort_seq`） |
 | content      | Text       | 是   | -      |       |
 | action_score | Float      | 是   | -      |       |
 | is_read      | Boolean    | 是   | False  |       |
@@ -312,6 +336,124 @@
 | ip_address         | String(50)  | 否   | NULL   |           |
 | created_at         | DateTime    | 是   | utcnow |           |
 
+
+---
+
+### 生活流新增表（8）
+
+> 迁移：`v6a_step001_*`（建表+扩展）· `v6b_step019_026_*`（`agent_aware_queue.prompt_key/extra_context` + `feed_post.sse_broadcasted`）· `v6c_*`（`feed_comment.is_hidden`）· `v6d_*`（`reply_to_lxm`）· `v6e_*`（`base_comments`/`comment_multiplier`）。  
+> 时区：**帖子到点 / `last_feed_entered_at` / 计划发布时间** = **Asia/Shanghai 墙钟**（`feed_now()`）；**评论 `due_at`/`created_at`、感知队列 `due_at`** = **UTC**（刻意分离）。
+
+#### 表名：life_plan_outline
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| id | Integer PK | 是 | 自增 |
+| week_start_date | Date | 是 | 所属自然周周一 |
+| plan_date | Date | 是 | 自然日（unique） |
+| city | String(50) | 是 | 当天城市 |
+| categories | String(200) | 是 | 内容分类，多个用 `\\n` 分隔；取值∈`categories_vocab` |
+| gen_status | String(16) | 是 | `auto` / `manual` |
+| created_at / updated_at | DateTime | 是 | |
+
+#### 表名：life_plan
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| id | Integer PK | 是 | 自增 |
+| plan_date | Date | 是 | unique；关联大纲日 |
+| scenes | JSON | 是 | 场景数组（scene_id/time_range/city/category/venue_type/description） |
+| gen_status | String(16) | 是 | `generating` / `ready` / `failed` |
+| created_at | DateTime | 是 | |
+
+#### 表名：worldview_snapshot
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| id | Integer PK | 是 | 自增 |
+| plan_date | Date | 是 | |
+| scene_id | String(64) | 是 | `scene_{plan_date}_{seq:03d}` |
+| feeling_text | Text | 否 | 感受描述 |
+| emotion_value | String(50) | 否 | 情绪；词表优先，可自由词 |
+| focus_tag | String(100) | 否 | |
+| worldview_trigger | String(100) | 否 | 写入事件库的话题标签 |
+| gen_status | String(16) | 是 | `generating` / `ready` / `failed` |
+| created_at / updated_at | DateTime | 是 | |
+
+#### 表名：worldview_event
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| id | Integer PK | 是 | 自增 |
+| event_name | String(200) | 是 | unique 话题名 |
+| event_view | Text | 是 | 固定看法；核心态度以 `[核心态度：X] ` 前缀嵌入（无独立列；X∈喜欢/排斥/矛盾/无感） |
+| source_scene_id | String(64) | 否 | |
+| created_at / updated_at | DateTime | 是 | |
+
+#### 表名：feed_post
+
+| 字段名 | 类型 | 必填 | 默认 | 说明 |
+|--------|------|------|------|------|
+| id | Integer PK | 是 | 自增 | |
+| scene_id | String(64) | 否 | NULL | |
+| scheduled_publish_time | DateTime | 是 | - | **北京墙钟 naive**；可见条件：`<=feed_now() AND is_visible=1 AND generation_status='ready'` |
+| actual_publish_time | DateTime | 否 | NULL | STEP-013 落 NULL；列表首次命中懒惰写 `feed_now()` |
+| generation_status | String(16) | 是 | - | `generating` / `ready` / `failed` |
+| content_text | Text | 是 | - | |
+| hashtags | JSON | 否 | NULL | |
+| image_urls | JSON | 否 | NULL | CDN WebP 数组 |
+| image_reference_url | String(512) | 否 | NULL | 人物参考图说明用；基准图本地 `/static/images/avatar/character-ref/base.png` |
+| image_type | String(16) | 否 | NULL | `selfie` / `daily` / `scenery` / `emotion` |
+| emotion | String(20) | 是 | - | |
+| city | String(50) | 是 | - | 场景城市 |
+| season | String(20) | 是 | - | 春/夏/秋/冬 |
+| base_likes / like_multiplier / real_likes | Integer | 是 | - | 展示点赞 = base×倍率+real |
+| base_comments | Integer | 是 | 0 | 虚拟评论底；新帖随机；历史默认 0（不回填） |
+| comment_multiplier | Integer | 是 | 1 | 仅放大 base_comments；历史默认 1 |
+| is_visible | SmallInteger | 是 | 1 | 0=下架 / 1=展示 |
+| dedup_hash | String(64) | 是 | - | `md5(venue_type\|category\|city)` |
+| sse_broadcasted | SmallInteger | 是 | 0 | SSE 新帖广播去重 |
+| created_at / updated_at | DateTime | 是 | | |
+
+**计算字段（非 DB 列）**：`display_likes = base_likes × like_multiplier + real_likes`；`display_comments = base_comments × comment_multiplier + 当前用户可见评论条数`。
+
+#### 表名：feed_like
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | Integer PK | |
+| user_id / post_id | Integer FK | UNIQUE(user_id, post_id) |
+| created_at | DateTime | |
+
+#### 表名：feed_comment
+
+| 字段名 | 类型 | 默认 | 说明 |
+|--------|------|------|------|
+| id | Integer PK | | |
+| post_id / user_id | Integer FK | | |
+| content | Text | | 用户评论 |
+| reply_to_lxm | SmallInteger | 0 | 1=点小梦回复发出；仅 H5 落款；**无**父子树 |
+| lxm_reply / lxm_reply_at / lxm_reply_read_at | Text/DateTime | NULL | LXM 回复与已读 |
+| gen_status | String(16) | pending | `pending`→`generating`→`ready`/`failed`；后台软删后列表可筛 `hidden`（见 `is_hidden`） |
+| due_at | DateTime | NULL | **UTC**；LLM-05 轮询 `pending AND due_at<=utcnow()` |
+| is_hidden | SmallInteger | 0 | 后台软删；用户端不展示 |
+| created_at / updated_at | DateTime | | |
+
+#### 表名：agent_aware_queue
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | Integer PK | |
+| user_id / post_id | Integer FK | |
+| trigger_type | String(16) | `LIKE_AWARE` / `READ_AWARE` |
+| relationship_stage | String(20) | 入队快照：`stranger`/`friend`/`intimate`/`soulmate` |
+| due_at | DateTime | **UTC** |
+| status | String(16) | `pending`→`generating`→`sent`/`failed` |
+| prompt_key | String(32) | 入队确定；消费不重算档位 |
+| extra_context | JSON | 如 `is_special` |
+| agent_message_id | Integer | 成功后关联 |
+| fail_reason | String(255) | |
+| created_at / updated_at | DateTime | |
 
 ---
 
@@ -464,7 +606,7 @@
 - **请求 Body**：`ChatSendRequest` — `content` string 1–2000；**`client_message_id`** string 可选（≤64，建议 UUID，可与请求头 **`Idempotency-Key`** 一致，幂等语义以服务端实现为准）
 - **响应**：**非 JSON 信封**；成功为 `StreamingResponse`（`text/event-stream`）。SSE 事件（JSON 行）包括但不限于：
   - **`meta`**：`{"type":"meta","generation_id":"<uuid>","message_count":<N>}` — 首包（CP2）；客户端应丢弃与当前有效代不一致的流片段（与 TD-015 一致）；`message_count` 表示本轮回复包含 N 条独立消息气泡（§2.9.4）
-  - **H5 实现说明（`frontend/pages/chat.html`）**：**表现层（2026-05-23）**：**`body.h5-skin.chat-immersive`**；全屏背景 **`#chat-bg-image`** 由 **`updateChatBackgroundEmotion`** 按 **`done.emotion.label`** / timeline **`emotion_label`** 切换（**`AVATAR_MAP`**，与 **`api.js`** 头像资源同路径）；顶栏 **`#chat-header-avatar`** 固定默认图，**不**随情绪变；**`.more-btn`** 仅 UI。**时间展示**：引入 **`/static/js/chat-time.js`**；列表项前按 **`shouldShowTimeStamp(current, prev)`** 插入居中 **`.msg-time-divider`**（文案 **`formatChatTime`**：当天 **`HH:mm`**、昨天/前天/周几/更早 **`YYYY/M/D HH:mm`**；**>5 分钟或跨自然日** 或首条显示；周一起算）；消息行 **`data-created-at`**（timeline 用 **`created_at`**，发送用客户端时间）；**气泡内不显示时间**；流式槽位仅 **`.msg-content`**。**失败叹号** **`.msg-bang`** 在用户气泡左侧，flex 垂直居中（送达态业务不变）。**`#msg-input`** placeholder **`想和我吐槽什么…`**；**`#send-btn`** 启用 **`#A6FF7B`/`#2D6A4B`**，禁用 **`#D8D8DC`/`#8E8E93`**（**`h5-theme.css`** 对 **`.chat-immersive`** 不覆盖发送钮启用态）。**发送与 SSE（逻辑不变）**：每次发起 **`send` / `resend`** 前递增本地 **`chatSendSession`** 并 **`AbortController`** 打断上一请求；**不**再使用全局变量 **`sending`** 阻塞整段请求或 SSE 消费——**是否允许继续发**以服务端 **10104** 等为准，前端由 **`getOpenWindowUserRows()`** 界定未闭环窗口（与 **`chat_service.fetch_open_window_user_rows`** 一致：最后一条已落库 **非 agent** assistant 之后，**排除** **`data-ai-in-flight="1"`**），**`countOpenPendingUsers`** 仅计窗口内 **`pending_llm` / `failed_timeout` / `failed_error`（≥5 且无叹号）** 预判，外加 **`CHAT_CLIENT_ABORT_MS`（120s）** 客户端中止；**防连点**：`send` 与叹号 **`resend` 共用** 时间戳 **`lastSendOrResendAt`**，在通过内容非空、队列预判之后、**即将 `fetch` 之前**若距上次不足 **`CHAT_SEND_DEBOUNCE_MS`（300ms）** 则 **静默 `return`**。**输入法与回车键**：`#msg-input` 设 **`enterkeyhint="send"`**（软键盘回车键语义；**具体标签以系统为准**），并使用 **`oncompositionend` / `onkeyup`** 同步调用 **`updateSendBtn()`**（与 `oninput` 并列），避免系统中文输入法下发送钮长期 **`disabled`**。**发送键与键盘**：`#send-btn` 声明 **`type="button"`**；**`updateSendBtn()`** 按 **`trim`** 同步 **`disabled` 属性** 与 **`.disabled`** 类，禁用态样式背景 **`#D8D8DC`**、前景 **`#8E8E93`**，有内容时可点；**`setupSendBtnKeepKeyboard()`** 在 **`initChat`** 中注册 **`mousedown`** 与 **`touchstart`（`{ passive: false }`）** 监听，内 **`preventDefault`**，避免点击发送时焦点从 **`#msg-input`** 移到按钮导致移动端键盘自动收起；**`handleSend`** 仍仅由 **`click` / `onclick`** 触发（与 debounce、SSE 会话快照逻辑无冲突）。`consumeChatSse` 仅当传入的会话快照与 **`chatSendSession`** 一致时继续解析；收到 **`meta`** 后记录本连接 **`generation_id`** 与 **`message_count`**；若 **`delta`** 携带 **`generation_id`** 且与 **`meta`** 不一致则丢弃该条；收到 **`done`** 时**先** **`markOpenWindowUsersDelivered()`**（窗口内 user **`data-delivery`→`delivered`**，**resend** 成功亦同），**再** **`finalize(done.messages)`**（**不可**颠倒）；若有 **`emotion.label`** 调用 **`updateChatBackgroundEmotion`**。**10104** 或前端满队预判后仍 **`loadTimeline(true)`**（向列表底部追加 timeline，**不**清空 DOM、**不**回写已有行 **`data-delivery`**，**非**完整自愈）。服务端 DB / Redis 仍为权威真相，本段约束端上 **`data-delivery` 预判** 与 SSE 展示不串台。
+  - **H5 实现说明（`frontend/pages/chat.html`）**：**表现层（2026-07-11，在 2026-05-23 沉浸底上改版）**：**`body.h5-skin.chat-immersive`**；全屏背景 **`#chat-bg-image`** 由 **`updateChatBackgroundEmotion`** 按 **`done.emotion.label`** / timeline **`emotion_label`** 切换（**`AVATAR_MAP`**，与 **`api.js`** 头像资源同路径）。顶栏三块胶囊（无整条毛玻璃底）：返回 → **`/pages/index.html`**；**`.bar-profile`**（**`#chat-header-avatar`** 固定默认图 + 绿点 +「林小梦」+「在线」）；**`.bar-actions`**（朋友圈 **`icon-feed.png`** / 记忆星云 **`icon-memory-nebula.png`**，透明底、无文案）；**无** **`.more-btn`**。朋友圈：**`loadChatFeedBadge`** → **`GET /api/feed/badge`**，角标 = **`unread_reply_count + new_post_count`**；**`goChatFeed`** 跳转规则同首页（有未读回复带 **`?focus=unread_reply`**）。气泡：用户半透明紫白字、AI 白玻璃 + 左下紫菱形光点。底栏浮起玻璃 + handle（仅视觉）；**`#msg-input`** placeholder **`想和我吐槽什么…`**；**`#send-btn`** 启用 **`#7C5CFF`**（纸飞机图标），禁用 **`#D8D8DC`/`#8E8E93`**（**`h5-theme.css`** 对 **`.chat-immersive`** 不覆盖发送钮启用态）。**时间展示**：引入 **`/static/js/chat-time.js`**；**`parseMessageTimestamp`** 对无时区 ISO 按 UTC（补 **`Z`**）；**`formatChatTime` / `shouldShowTimeStamp`** 自然日与文案按 **`Asia/Shanghai`**（当天 **`HH:mm`**、昨天/前天/周几/更早 **`YYYY/M/D HH:mm`**；**>5 分钟或跨北京自然日** 或首条显示；周一起算）；消息行 **`data-created-at`**（timeline 用 **`created_at`**，发送用客户端时间）；**气泡内不显示时间**；流式槽位仅 **`.msg-content`**。**失败叹号** **`.msg-bang`** 在用户气泡左侧，flex 垂直居中（送达态业务不变）。**发送与 SSE（逻辑不变）**：每次发起 **`send` / `resend`** 前递增本地 **`chatSendSession`** 并 **`AbortController`** 打断上一请求；**不**再使用全局变量 **`sending`** 阻塞整段请求或 SSE 消费——**是否允许继续发**以服务端 **10104** 等为准，前端由 **`getOpenWindowUserRows()`** 界定未闭环窗口（与 **`chat_service.fetch_open_window_user_rows`** 一致：最后一条已落库 **非 agent** assistant 之后，**排除** **`data-ai-in-flight="1"`**），**`countOpenPendingUsers`** 仅计窗口内 **`pending_llm` / `failed_timeout` / `failed_error`（≥5 且无叹号）** 预判，外加 **`CHAT_CLIENT_ABORT_MS`（120s）** 客户端中止；**防连点**：`send` 与叹号 **`resend` 共用** 时间戳 **`lastSendOrResendAt`**，在通过内容非空、队列预判之后、**即将 `fetch` 之前**若距上次不足 **`CHAT_SEND_DEBOUNCE_MS`（300ms）** 则 **静默 `return`**。**输入法与回车键**：`#msg-input` 设 **`enterkeyhint="send"`**（软键盘回车键语义；**具体标签以系统为准**），并使用 **`oncompositionend` / `onkeyup`** 同步调用 **`updateSendBtn()`**（与 `oninput` 并列），避免系统中文输入法下发送钮长期 **`disabled`**。**发送键与键盘**：`#send-btn` 声明 **`type="button"`**；**`updateSendBtn()`** 按 **`trim`** 同步 **`disabled` 属性** 与 **`.disabled`** 类，禁用态样式背景 **`#D8D8DC`**、前景 **`#8E8E93`**，有内容时可点；**`setupSendBtnKeepKeyboard()`** 在 **`initChat`** 中注册 **`mousedown`** 与 **`touchstart`（`{ passive: false }`）** 监听，内 **`preventDefault`**，避免点击发送时焦点从 **`#msg-input`** 移到按钮导致移动端键盘自动收起；**`handleSend`** 仍仅由 **`click` / `onclick`** 触发（与 debounce、SSE 会话快照逻辑无冲突）。`consumeChatSse` 仅当传入的会话快照与 **`chatSendSession`** 一致时继续解析；收到 **`meta`** 后记录本连接 **`generation_id`** 与 **`message_count`**；若 **`delta`** 携带 **`generation_id`** 且与 **`meta`** 不一致则丢弃该条；收到 **`done`** 时**先** **`markOpenWindowUsersDelivered()`**（窗口内 user **`data-delivery`→`delivered`**，**resend** 成功亦同），**再** **`finalize(done.messages)`**（**不可**颠倒）；若有 **`emotion.label`** 调用 **`updateChatBackgroundEmotion`**。**10104** 或前端满队预判后仍 **`loadTimeline(true)`**（向列表底部追加 timeline，**不**清空 DOM、**不**回写已有行 **`data-delivery`**，**非**完整自愈）。服务端 DB / Redis 仍为权威真相，本段约束端上 **`data-delivery` 预判** 与 SSE 展示不串台。
   - **`delta`**：`{"type":"delta","content":"...","message_index":<0≤i<N>}` — 按条推送增量文本，`message_index` 标识目标气泡槽位（§2.9.4）
   - **`done`**：`{"type":"done","messages":[{"type":"text","content":"..."},...],"emotion":{"label":"...","confidence":0.0~1.0}}` — 完整 messages 数组为真相源（§2.7.5），整轮一个 emotion 对象（§2.7.3）；H5 收到后按 `done.messages` 渲染 N 个独立气泡，禁止预铺空气泡
   - **`failed`**：`{"type":"failed","code":<int>,"message":"..."}` — 超时/LLM 失败、**Step5 对外 `messages[].content` 任一条内容安全拦截**（`code`**10101**，见 **STEP-012** / §9.1）等，**不**写入 assistant 行
@@ -560,6 +702,19 @@
 
 > **长记忆第一套下线（PRD v1.3 一次发布）**：H5 记忆改为**只读**——`GET /api/memory/list` 改读 Step6 user 向量 KV；`PUT/DELETE/POST` 写路由**已删除**。记忆统一由对话 Step6 异步管线自动整理写入，H5 不再支持手动增删改（C-05/M9）。运行时**不过滤 `mem_*`**（P1，旧脏数据靠 M2 人工清理）。
 
+> **H5 展示（2026-07-12 · 以页面实况为准）**：**`frontend/pages/memory.html`**（`body.memory-nebula-page`）为 **Three.js 真 3D 记忆星云**，**不**改本模块 HTTP/库表。
+>
+> - **脚本**：`/static/js/api.js` → **`three.min.js`（r149）** → **`three-line2.js`** → **`memory-connection-layer.js`** → **`memory-nebula.js`**
+> - **顶栏**：返回（优先 `history.back` 当 referrer 为 index/chat，否则 → `/pages/chat.html`）；主标题 **「记忆星云」**；副标题 **`#nebula-count-subtitle`**「**N 颗记忆星体**」；右上 **`#nebula-tip`** 说明 Toast；**`#nebula-count-num`** 为 **hidden** 兼容锚点（可见计数以 subtitle 为准）
+> - **场景**：全屏背景图 **`/static/images/memory-nebula/nebula-bg.jpg`** + WebGL；中心恒星贴图 **`core-star.png`**（节点 id **`core-memory`**）；卫星贴图按 `key` 首段分桶（teal/green/purple/pink/gold）；装饰背景星点 + 轨道环；**`MemoryConnectionLayer`** 绘制默认/选中关系线（Line2）
+> - **交互**：自动慢转（`prefers-reduced-motion` 关闭）；单指环视；双指远近（半径 clamp **6～28**）；点选打开底部详情卡；**回到中心**；点选后选中高亮 + 关系线激活
+> - **详情卡**：分类「她记得 · …」；标题 **`titleFromValue(value)`**（**不展示 key**）；正文 `value||content`；来源「来自你们的对话」；角标「长期记忆」。点中心核 →「她记得 · 记忆总览」+ 记忆条数文案
+> - **空态**：浮层文案 +「去和她聊聊」→ `/pages/chat.html`（不遮挡可环视的中心核）
+> - **废止**：卡片列表 DOM、`#memory-list`、顶栏「对话自动整理 · 只读」、顶栏主标题「她记得的你」、详情卡 `#nebula-sheet-key`、中心屏上「林小梦」字标
+> - **静态锚点**：**`tests/test_h5_static_contract.py::test_memory_html_nebula_surface_contract`**
+
+> **H5 展示（2026-07-11，已被上条覆盖）**：曾为 Canvas 2D 星云；现以 2026-07-12 Three.js + 表现层实况为准。
+
 #### GET /api/memory/list
 
 - **所属端**：H5
@@ -568,6 +723,7 @@
 - **响应**：`ApiResponse`；`data`: `{ total, page, page_size, list: [{doc_id, key, value, content}] }`（**不再返回** `id`/`importance_score`/`source`）
 - **数据源**：DashVector `list_by_filter(build_filter("user", user_id, []), top_k=USER_LIST_TOPK=500)`；`total`=cap 内条数（P9，非库内真实总数）
 - **状态**：已实现（只读改造）
+- **H5 消费**：记忆星云页 **`fetchAllMemories`** 分页拉齐后布局星点；首页记忆预览卡仍取 `page=1&page_size=1`（`value||content` 截断）
 
 #### ~~PUT /api/memory/{memory_id}~~（已删除）
 
@@ -607,6 +763,7 @@
 - **所属端**：H5
 - **鉴权**：Bearer
 - **响应**：`ApiResponse`；`data`: `{ count: int }`
+- **说明**：计入全部未读 `agent_message`（含生活流感知 **`LIKE_AWARE` / `READ_AWARE`**，与 P0–P4/FUTURE 同表）
 - **状态**：已实现
 
 ---
@@ -645,6 +802,140 @@
 - **响应**：`ApiResponse`；`data`: `{ list, total, page, page_size }`（`list` 项：id, action_type, action_label, points, created_at）
 - **关联表**：relationship_growth_log
 - **状态**：已实现
+
+---
+
+
+### 模块：H5 朋友圈 / 生活流（`/api/feed`）
+
+> 全部 JWT；响应 `{"code":0,"data":{},"message":"success"}`。路由：`backend/routers/feed.py`。  
+> **与对话主链**：v1 **无** Feed/世界观注入 Prompt；感知 IM 与 P0–P4/Future **业务零耦合**，仅共用 `agent_message` + `sort_seq` + 未读角标 API。
+
+#### GET /api/feed/list
+
+- **Query**：`cursor`（可选，上一页最后一条 `scheduled_publish_time` ISO）、`size`（默认 20，上限 50）
+- **过滤**：`scheduled_publish_time<=feed_now()` · `is_visible=1` · `generation_status='ready'` · 历史窗 `feed_history_visible_range`（相对 `feed_now()`）
+- **响应 `data`**：`{ posts:[{ id, content_text, hashtags, image_urls, scheduled_publish_time, emotion, city, display_likes, user_liked, display_comments, comments:[{ id, content, reply_to_lxm, lxm_reply, lxm_reply_at, lxm_reply_read_at }] }], next_cursor }`
+- **约定**：评论**仅当前用户**私有；`scheduled_publish_time` 为北京墙钟 ISO（无 `Z`）；`city` 来自 `feed_post.city`（可空串）；`display_comments` 为计算字段；命中且 `actual_publish_time IS NULL` 懒惰写回
+- **状态**：已实现
+
+#### POST /api/feed/enter
+
+- **写** `users.last_feed_entered_at=feed_now()`；`data`: `{ anchor_comment_id }`（最近未读 LXM 回复评论 ID，可 null）
+- **状态**：已实现
+
+#### GET /api/feed/badge
+
+- **`data`**：`{ has_new, new_post_count, unread_reply_count }`
+- **`has_new`**：存在已到点可见帖且（`scheduled_publish_time > last_feed_entered_at` 或从未进入）
+- **`new_post_count`**：同上口径条数；**从未 enter** 时固定 `0`（此时若有可见帖仍可 `has_new=true`）
+- **`unread_reply_count`**：当前用户未读 LXM 回复数
+- **H5**：首页未读胶囊 / 底栏新动态；聊天角标 = `unread_reply_count + new_post_count`；有未读回复跳转 `?focus=unread_reply`
+- **状态**：已实现
+
+#### GET /api/feed/config/header
+
+- **`data`**：`{ header_bg_url, header_avatar_url, signature, display_nickname }`（缺省回落 `life_feed_config`）
+- **状态**：已实现
+
+#### POST /api/feed/{post_id}/like
+
+- 幂等点赞；真实新增时 `real_likes+1`；**先 commit 点赞事务再** `await like_aware_service.on_like_hook`（TB-LF-009）
+- **响应**：`{ user_liked: true, display_likes }`
+- **状态**：已实现
+
+#### DELETE /api/feed/{post_id}/like
+
+- 幂等取消；`real_likes-1`（`AND real_likes>0`）；**不撤回**已触发感知 IM
+- **状态**：已实现
+
+#### POST /api/feed/{post_id}/comments
+
+- **Body**：`{ content, reply_to_lxm? }`（content 1~200；同帖 30s 频控；内容安全）
+- **响应**：`{ comment_id, created_at, gen_status, reply_to_lxm }`
+- **首次评论**：原子抢占 `has_ever_commented_feed` → `due_at=utcnow()+30s`；否则按关系档延迟（`comment_reply_delay_{stage}_{min|max}`，stage∈stranger/friend/intimate/**soulmate**）
+- **`reply_to_lxm`**：仅展示标记；LLM-05 仍单条必回、无历史评论注入
+- **状态**：已实现
+
+#### GET /api/feed/events（SSE）
+
+- **鉴权**：Query **`token`**（EventSource 无法带 Header）；`text/event-stream`；15s heartbeat 注释行
+- **事件**：`{"type":"feed_new","delta":<本轮新帖数>}`；断线不补历史
+- **状态**：已实现
+
+#### POST /api/feed/comments/{comment_id}/read
+
+- 写 `lxm_reply_read_at`（幂等）；越权 **`code=10506`** `ERR_FEED_COMMENT_FORBIDDEN`
+- **状态**：已实现
+
+#### POST /api/feed/{post_id}/read
+
+- 校验可见+到点（`feed_now()`）后 `read_aware_service.on_feed_read`
+- **状态**：已实现
+
+#### 错误码（10500 段）
+
+| code | 常量 | 说明 |
+|------|------|------|
+| 10500 | `ERR_FEED_POST_NOT_FOUND` | 不存在 / 未到点 / 隐藏 |
+| 10501 | `ERR_FEED_POST_HIDDEN` | 管理员隐藏（预留） |
+| 10502 | `ERR_COMMENT_EMPTY` | 评论为空 |
+| 10503 | `ERR_COMMENT_TOO_LONG` | 超过 200 字 |
+| 10504 | `ERR_COMMENT_RATE_LIMIT` | 30s 内重复评论 |
+| 10506 | `ERR_FEED_COMMENT_FORBIDDEN` | 无权操作该评论 |
+| — | `ERR_CONTENT_SAFETY_VIOLATION` | 内容安全（全局码） |
+
+#### 感知 IM 服务约定（非独立 HTTP）
+
+| 服务 | 要点 |
+|------|------|
+| `agent_aware_service` | 独立表排队；60s 轮询；落 `agent_message`（`action_score=0`）+ `allocate_sort_seq`；**不**走日上限 8 次 / 30min / 黑名单 / action_score |
+| `like_aware_service.on_like_hook` | 同帖去重 → 特殊档（CAS 占位，入队失败回滚计数）→ 常规 30%；Prompt `prompt_p07`；节点 `llm_06` |
+| `read_aware_service` | 多帖取最近一条；点赞后抑制；**用户级冷却**（`read_aware_user_cooldown_hours`，默认 6h，按入队 `created_at` 滚动，窗口内最多 1 条 `READ_AWARE`）；特殊档 `prompt_p14` / 常规 `prompt_p08~p11`；节点 `llm_07`；特殊档计数同 CAS+回滚 |
+| `feed_sse_service` | 单进程内存注册表（v1 单实例） |
+
+#### 定时任务（APScheduler · Asia/Shanghai）
+
+| 触发 | 任务 | 说明 |
+|------|------|------|
+| 周日 23:00 / 23:30 | `weekly_outline_task` / `_retry` | LLM-01 |
+| 每日 00:20 / 00:30 | `daily_scenes_task` / `_retry` | LLM-02 |
+| 每日 00:45 | `daily_her_universe_task` | LLM-03 |
+| 每日 01:00 | `daily_feed_publish_task` | LIFE001 |
+| 每 30s | `comment_reply_poll_task` | LLM-05（`due_at` UTC） |
+| 每 60s | `agent_aware_poll_task` | 感知队列消费（`due_at` UTC） |
+| 每 30s | `feed_new_broadcast_task` | SSE：`ready+visible+scheduled<=feed_now()+sse_broadcasted=0` |
+
+手动：`python -m backend.tasks.life_feed_task <task_name>`
+
+#### DeepSeek / Liblib / OSS / Redis（生活流）
+
+| 项 | 约定 |
+|----|------|
+| DeepSeek 超时 | 单次默认 **45s**，retry=2，退避 2s/4s；与豆包超时互不影响 |
+| Liblib payload | `templateUuid` + `generateParams`；selfie 含 `sourceImage`/`strength`/`resizedWidth`/`resizedHeight`；键见 `liblib_*` admin_config |
+| 同帖多图 | `imgCount` 固定 1；`count≥2` 按 seq 构图变体 + 独立 seed；进行中任务并发 **1** |
+| OSS 路径 | `lxm/posts/{post_id}/{seq:02d}.webp` |
+| Redis | `liblib_stats:{YYYYMMDD}`；`active_config:{key}`；DeepSeek 复用 `llm_stats` / `llm_response_times` |
+
+#### 关系档映射（代码常量）
+
+`RELATIONSHIP_STAGE_MAP`：`0→stranger` · `1→friend` · `2→intimate` · `3→soulmate`（知己）。唯一来源：`backend/constants/life_feed_config.py`。
+
+#### H5 `feed.html` 展示口径（摘要）
+
+| 项 | 约定 |
+|----|------|
+| 路由 | `/pages/feed.html`；`?focus=unread_reply`；与 index/chat/memory 互通 |
+| 时间 | `scheduled_publish_time` 按北京墙钟字符串解析 |
+| 城市 | 左列弱化定位 + 城市名（无天气） |
+| 评论角标 | `display_comments`；发评本地 +1 |
+| 落款 | `reply_to_lxm=false`→「我：」；`true`→「我回复 林小梦：」；LXM「林小梦回复 我：」 |
+| 话题 | 正文单 `#` 着色（兼容 `#话题#`）；不单独渲染 `hashtags[]` 行 |
+| 进页 boot | `#feed-boot-loading`；渐进 alpha/blur；8s 硬超时；哨兵延后挂载（TB-LF-010） |
+| SSE 提示条 | 「林小梦更新了 N 条动态」= **新帖** delta，**不是**评论回复未读 |
+| 已读 | 回复曝光 0.6 上报；卡片停留 3s；观察器须 observe **自身** `.feed-item` |
+| 列表 UI | 同日左列合并、meta 行左时间右展开、单图 4:3、评论无「正在回复」占位等（详见草案快照 / 《朋友圈页面展示逻辑规范》v1.6） |
 
 ---
 
@@ -893,9 +1184,92 @@
   - **人格偏离率**（`persona_deviation_rate`）：当日 `persona_risk_flag=true` 条数 / 当日 **`role=assistant`** 的 `conversation_log` 条数 × 100%（与 `stats_service._get_ai_performance_data` 一致）
 - **GET** `/stats/trend` — Query `metric`, `days`；`data` 为 **`[{ date, value }, ...]`** 数组（非 `dates`/`values` 对象）；需 `super_admin` / `ops_admin`
 - **GET** `/stats/report` — Query report_type, start_date, end_date, page, page_size；`data`: `{ list, total, page, page_size, extra }`
+- **GET** `/stats/liblib` — Query `days`（1~30）；LiblibAI 日统计（见「管理后台 · 生活流」）
 - **POST** `/stats/report/export` — Query 同报表条件，Excel 流；`ai_performance` 导出列第三表头为 **「AI回复数」**（对应 `total_count`，assistant 条数）
 - **说明**：`report_type=user` 时 `extra.level_distribution` 按 `**relationship.level`** 统计（无行用户计入 level 0），与后台用户列表关系字段数据源一致；**该分布为当前全量用户快照，不随 `start_date`/`end_date` 过滤**（与 `list[]` 按日明细不同）。
 - **状态**：已实现
+
+---
+
+
+### 模块：管理后台 · 生活流（`/api/admin`）
+
+> 前缀 `/api/admin`；Admin JWT；写操作落 `operation_log`；配置类写操作走草稿三卡点。路由：`life_plan_mgmt` / `worldview_mgmt` / `feed_mgmt` / `feed_comment_mgmt` / `agent_aware_mgmt` / `life_config_mgmt`。
+
+#### 生活计划（`life_plan_mgmt`）
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/life-plan/outline` | 编辑 + ops 只读 | `week_start_date` 或 `plan_date` |
+| POST/PUT/DELETE | `/life-plan/outline...` | 编辑 | categories∈词汇表；同日已存在报错 |
+| POST | `/life-plan/outline/generate` | 编辑 | LLM-01 手动生成本周剩余日 |
+| GET/PUT | `/life-plan/settings` | GET 含 ops；PUT 编辑 | home_city + life_ratio_*；PUT **仅草稿**，发布走 `/life-config/publish` |
+| GET | `/life-plan/daily` | 编辑 + ops | 单日或 `start&end&page&size` |
+| POST | `/life-plan/daily/{plan_date}/generate` | 编辑 | LLM-02 |
+| POST/PUT/DELETE | `/life-plan/daily/{plan_date}/scenes...` | 编辑 | category 必须∈当日大纲；scenes&lt;2 不主动降级 gen_status |
+
+#### 她的宇宙（`worldview_mgmt`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/worldview/snapshots` | 仅 `plan_date`→数组；无参或 start/end→分页 `{total,page,size,list}`（默认近 14 天） |
+| GET/PUT/DELETE | `/worldview/snapshots/{id}` | 删被 feed 引用时 WARN，可含 `referenced_by_post` |
+| GET/POST/PUT/DELETE | `/worldview/events...` | `core_attitude` 四选项以前缀写入 `event_view` |
+
+#### 朋友圈内容（`feed_mgmt`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/feed/posts` | status∈all/visible/hidden/failed |
+| GET/PUT | `/feed/posts/{id}` | 详情含 image_urls/hashtags/dedup_hash；**另含** base_comments/comment_multiplier/虚拟评论底 |
+| DELETE | `/feed/posts/{id}` | **现状=下架**（`is_visible=0`）；真删未实现（TD-035）；UI 不提供删除钮 |
+| PATCH | `/feed/posts/{id}/visibility` | `{is_visible:0/1}` |
+| POST | `/feed/posts` | mode∈upload/ai_generate；管理员跳过 dedup/similarity；新帖随机写评论假数底 |
+| GET/PUT | `/feed/config/auto-publish` | **不含** ops_admin；写入口在系统参数页 |
+
+#### 评论管理（`feed_comment_mgmt`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/feed/comments` | 筛 post_id/user_id/gen_status（含 hidden） |
+| GET/PUT/DELETE | `/feed/comments/{id}` | DELETE=`is_hidden=1` |
+| POST | `/feed/comments/{id}/regenerate` | LLM-05 补发，立即 queued |
+
+#### 感知消息（`agent_aware_mgmt`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/agent-aware` | queue LEFT JOIN agent_message |
+| GET | `/agent-aware/{queue_id}` | 含 extra_context |
+| POST | `/agent-aware/{queue_id}/retry` | 重试 failed |
+| DELETE | `/agent-aware/{queue_id}` | 不撤回已送达 IM |
+| POST | `/users/{user_id}/aware/reset` | **仅 super_admin**；特殊档计数归零 |
+
+#### 生活流配置（`life_config_mgmt`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/life-config?keys=` | 生效值+草稿；白名单校验；ops/tech 只读 |
+| PUT | `/life-config/draft` | 保存草稿 |
+| DELETE | `/life-config/draft/{config_key}` | 丢弃草稿 |
+| POST | `/life-config/publish` | 发布 + Redis + 5min 监控 |
+
+**白名单**：`life_feed_config` 全部 `CONFIG_*` + life_ratio_* + 四档延迟键（`comment_reply_delay_*` / `like_regular_delay_*` / `read_regular_delay_*`，stage∈stranger/friend/intimate/**soulmate**）+ Prompt/图像映射 + DeepSeek 节点模型键。
+
+#### GET /api/admin/stats/liblib
+
+- Query `days`（1~30，默认 7）；读 Redis `liblib_stats:{YYYYMMDD}`
+- 权限：super_admin / ai_trainer / tech_ops
+- `data`：`{ days, daily:[{date,total,success,failed,points_used}], summary }`；Redis 异常可 `redis_error:true`
+
+#### RBAC（生活流）
+
+| 角色 | 权限 |
+|------|------|
+| super_admin | 全部读写；唯一可 reset 特殊档 |
+| ai_trainer | 全部读写 |
+| ops_admin | **只读**：朋友圈内容/评论/感知/生活计划/她的宇宙；可读 life-config；**不可** auto-publish |
+| tech_ops | **只读**：系统参数 + Liblib 看板 |
 
 ---
 
@@ -1085,6 +1459,27 @@
 - **图表**：ECharts；`chartInstances` + `getChart`；`window.resize` 时 `resize()`。
 - **Tab 切换与「查询」**：`initTabs` 切换后 **`setTimeout(0, onQuery)`**，且 **`onQuery()` 返回的 Promise 完成后再 `setTimeout(50ms, resizeAllCharts)`**，避免请求未完成时提前 `resize` 导致图表尺寸异常；「查询」按钮同样 **`onQuery().then` → 延迟 `resize`**。首屏加载同逻辑。
 - **用户报表饼图**：`extra.level_distribution` 为全量用户等级分布，**与日期筛选无关**；页面饼图标题下灰色说明与接口语义一致。
+
+
+### 生活流管理页（`admin/pages/` · 侧栏「🌿 生活宇宙」）
+
+| 页面 | 菜单 key | 内容摘要 |
+|------|----------|----------|
+| `life-feed-global.html` | life-feed-global | 人设扩展 + 词汇表 + Header 配置 |
+| `life-plan.html` | life-plan | 周大纲 / 日场景 CRUD；ops 只读 |
+| `worldview.html` | worldview | 快照近14天分页 + 事件库；ops 只读 |
+| `feed-posts.html` | feed-posts | 列表/详情/编辑/发帖/显隐；计划时间 `formatWallClock`；详情含虚拟评论底；**无**删除钮 |
+| `feed-comments.html` | feed-comments | 筛评/编辑/软删/补发 |
+| `agent-aware.html` | agent-aware | 队列视图/重试/删除；super 可重置特殊档 |
+| `life-feed-prompts.html` | life-feed-prompts / -i | P-01~14 + 图像映射 + 互动参数（模型/延迟/特殊档） |
+| `life-feed-system.html` | life-feed-system | 自动发布/窗口/可见范围/点赞倍率 + **Liblib 生图参数** + Liblib 看板 |
+
+**前端约定**：`LIFE_FEED_MENU` + `initLifeFeedPage`；列表统一 `admin-table`；只读角色隐藏 `[data-edit-only]`；侧栏滚动记忆 `admin_sidebar_scroll`。  
+**子项顺序（运营优先）**：朋友圈·内容 → 评论 → 感知 → 生活计划 → 她的宇宙 → 全局配置 → Prompt×2 → 发布&系统参数。
+
+**相关技术债**：TD-033 日计划 LLM 日志摘要未做；TD-035 真删帖未分离；TD-036 本地图片上传未实现。联调台账快照：`docs/contract/drafts/生活流/M1_临时缺陷台账.md`（TB-LF-001~010 均已闭合）。
+
+---
 
 ### 技术债记录（关系 / 日记管理页）
 
@@ -1882,6 +2277,8 @@
 | H5 **`GET/PUT /api/user/settings`** 未实现；设置页 Toggle 无法持久化，主链亦未读取 | `frontend/pages/settings.html`, `routers/user.py` | 实现用户偏好持久化 + 记忆/Agent 链路读取；见 **TD-024** | **待修复** |
 | H5 设置页改密码与 **`POST /api/auth/reset-password`** Body/安全语义不一致 | `frontend/pages/settings.html`, `routers/auth.py`, `schemas/auth.py` | 新增需登录 change-password 或对齐 Schema + 原密码校验；见 **TD-025** | **待修复** |
 | **`.env.example` 中 `OPEN_API_PEPPER` 重复定义**（约第 27 行与第 62 行各一处；契约文首 Open API 摘要与 §Open API 模块仅描述一次） | `.env.example` | 删除应用配置段重复项，保留 Open API 专节一处 | **待修复** |
+| H5 记忆星云资源目录存在未引用贴图 **`star-base.png`**（页面/脚本仅用 teal/green/purple/pink/gold + `core-star`） | `frontend/static/images/memory-nebula/star-base.png` | 删除闲置资源，或确认后续启用后补引用 | **待修复** |
+| H5 记忆星云 **`#nebula-count-num`** 永久 `hidden`，仅 JS 同步数字；可见文案已迁至 **`#nebula-count-subtitle`** | `frontend/pages/memory.html`, `memory-nebula.js`, `test_h5_static_contract.py` | 可选：移除 hidden 节点并同步静态锚点；或保留为兼容锚点并在契约中标明（当前契约已标明） | 已知残留（可选清） |
 
 
 ---

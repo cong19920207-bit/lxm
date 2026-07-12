@@ -27,3 +27,7 @@ class User(Base):
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
     login_fail_count: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # ── 生活流扩展字段（PRD v1.9.4 §11.4；M1 STEP-001 新增）──
+    # 用户最近一次进入朋友圈页的时间；用于首页 [New] 徽标判定（NULL=从未进入）
+    last_feed_entered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

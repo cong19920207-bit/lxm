@@ -6,12 +6,13 @@
 ## 锚点（优先阅读）
 
 
-| 文档                           | 说明                                |
-| ---------------------------- | --------------------------------- |
-| [contract.md](contract.md)   | 接口 / 库表 / H5·Admin 行为契约（变更功能时必同步） |
-| [tech-debt.md](tech-debt.md) | 技术债 TD-xxx 登记与清偿状态                |
-| [ops-diary.md](ops-diary.md) | AI 日记运维：时区、手动批跑、发布注意              |
-| [progress/](progress/)       | 专项迭代进度（记忆检索、长记忆下线等）               |
+| 文档                             | 说明                                |
+| ------------------------------ | --------------------------------- |
+| [VERSIONS.md](VERSIONS.md)     | 产品版本记录（发布切片 / 版本号 / 概述与运维备注）     |
+| [contract.md](contract.md)     | 接口 / 库表 / H5·Admin 行为契约（变更功能时必同步） |
+| [tech-debt.md](tech-debt.md)   | 技术债 TD-xxx 登记与清偿状态                |
+| [ops-diary.md](ops-diary.md)   | AI 日记运维：时区、手动批跑、发布注意              |
+| [progress/](progress/)         | 专项迭代进度（记忆检索、长记忆下线等）               |
 
 
 ## `docs/` — 工程协作文档

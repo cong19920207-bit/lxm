@@ -39,3 +39,17 @@ class Relationship(Base):
     future_timestamp: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     future_action: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     proactive_times: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+    # ── 生活流扩展字段（PRD v1.9.4 §11.4；v1.9.2 调整点赞 IM 计数；M1 STEP-001 新增）──
+    # 点赞 IM 特殊档已使用次数（入队成功 +1；与 like_aware_special_max_count 比较；可后台重置便于测试）
+    like_aware_special_used_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    # 已读 IM 特殊档已使用次数（入队成功 +1；与 read_aware_special_max_count 比较；可后台重置便于测试）
+    read_aware_special_used_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    # 是否已发生过全局首次评论（用于评论 30s override；置 1 后不回退，便于测试重置）
+    has_ever_commented_feed: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )

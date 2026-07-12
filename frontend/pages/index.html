@@ -187,10 +187,14 @@
       letter-spacing: 0.04em;
     }
 
-    .home-intimacy-star {
+    .home-intimacy-heart {
       flex-shrink: 0;
-      color: #fbbf24;
-      filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+      color: #f472b6;
+      filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.55));
+    }
+
+    #linxiaomeng-avatar {
+      cursor: pointer;
     }
 
     .home-intimacy-progress-row {
@@ -477,6 +481,13 @@
       filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.65));
     }
 
+    .home-quick-icon img {
+      display: block;
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
     /* 纵向预览卡 */
     .home-cards-scroll {
       flex: 0 0 auto;
@@ -516,25 +527,161 @@
       font-size: 16px;
     }
 
-    .home-card-icon--heart {
-      background: rgba(236, 72, 153, 0.18);
-      border: 1px solid rgba(236, 72, 153, 0.35);
-      color: #f472b6;
-      box-shadow: 0 0 12px rgba(236, 72, 153, 0.2);
-    }
-
+    .home-card-icon--feed,
     .home-card-icon--diary {
-      background: rgba(168, 85, 247, 0.18);
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(88, 28, 135, 0.35);
       border: 1px solid rgba(168, 85, 247, 0.35);
-      color: var(--home-accent-purple);
-      box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+      box-shadow: 0 0 14px rgba(124, 58, 237, 0.35);
+      overflow: hidden;
+      padding: 0;
     }
 
-    .home-card-icon--rel {
-      background: rgba(236, 72, 153, 0.15);
-      border: 1px solid rgba(236, 72, 153, 0.3);
-      color: #fb7185;
-      box-shadow: 0 0 12px rgba(236, 72, 153, 0.18);
+    .home-card-icon--feed img,
+    .home-card-icon--diary img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      mix-blend-mode: lighten;
+    }
+
+    /* 朋友圈富预览卡：左文案（含正文）+ 右双图，避免正文再占一行抬高卡片 */
+    .home-feed-card--rich {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 12px 12px 10px;
+      min-height: 0;
+    }
+
+    .home-feed-main {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+      min-height: 0;
+    }
+
+    .home-feed-left {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .home-feed-left-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .home-feed-head-text {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* NEW 胶囊：与「朋友圈」同行垂直居中，缩小避免压副标题 */
+    .home-feed-card--rich .home-card-title-row {
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+
+    .home-feed-reply-pill {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      padding: 1px 6px;
+      font-size: 8px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: #ede9fe;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(168, 85, 247, 0.9));
+      border: 1px solid rgba(196, 181, 253, 0.4);
+      border-radius: 999px;
+      box-shadow: 0 0 6px rgba(124, 58, 237, 0.35);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .home-feed-updated {
+      margin: 0;
+      font-size: 9px;
+      color: rgba(196, 181, 253, 0.85);
+      line-height: 1.3;
+    }
+
+    /* 右侧仅图片：与左侧整块（标题+正文）等高 */
+    .home-feed-thumbs {
+      flex: 0 0 46%;
+      max-width: 168px;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      align-self: stretch;
+    }
+
+    .home-feed-thumbs img {
+      width: 100%;
+      height: 100%;
+      min-height: 92px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+      background: rgba(0, 0, 0, 0.25);
+      display: block;
+    }
+
+    .home-feed-thumbs:empty {
+      display: none;
+    }
+
+    .home-feed-body {
+      margin: 6px 0 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: rgba(243, 244, 246, 0.9);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+    }
+
+    .home-feed-body:empty {
+      display: none;
+    }
+
+    .home-feed-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 2px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(168, 85, 247, 0.18);
+    }
+
+    .home-feed-footer-text {
+      margin: 0;
+      font-size: 10px;
+      color: rgba(216, 180, 254, 0.92);
+      line-height: 1.3;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .home-card-body {
@@ -625,48 +772,11 @@
       text-overflow: ellipsis;
     }
 
-    .home-card-level {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--home-accent-purple);
-      text-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
-      white-space: nowrap;
-      line-height: 1.2;
-    }
-
     .home-card-chevron {
       flex-shrink: 0;
       font-size: 18px;
       color: rgba(168, 85, 247, 0.55);
       line-height: 1;
-    }
-
-    .home-card-right--rel .home-card-right-text {
-      max-width: none;
-      flex: 0 1 auto;
-      align-items: flex-end;
-    }
-
-    .home-card-right--rel {
-      gap: 4px;
-    }
-
-    .home-card-hearts {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      color: #f472b6;
-      filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.45));
-    }
-
-    .home-card-hearts svg {
-      display: block;
-    }
-
-    .home-card-hearts svg:last-child {
-      opacity: 0.55;
-      transform: scale(0.88);
     }
 
     .home-card-thumb {
@@ -678,14 +788,6 @@
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-    }
-
-    .home-card-thumb--memory {
-      width: 64px;
-      height: 48px;
-      border-radius: 8px;
-      transform: none;
-      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .home-card-thumb img {
@@ -707,10 +809,6 @@
     .home-card-lock {
       font-size: 12px;
       opacity: 0.85;
-    }
-
-    .home-relationship-card .home-card-body {
-      flex: 1;
     }
 
     /* 底部 CTA */
@@ -1190,9 +1288,13 @@
         <div class="bar-left home-top-left">
           <img id="linxiaomeng-avatar"
                src="/static/images/avatar/default.png"
-               alt="林小梦"
+               alt="林小梦，点击进入设置"
                width="42"
                height="42"
+               role="button"
+               tabindex="0"
+               onclick="location.href='/pages/settings.html'"
+               onkeydown="if(event.key==='Enter'||event.key===' '){location.href='/pages/settings.html'}"
                onerror="handleAvatarError(this)">
           <div class="home-top-meta">
             <div class="home-top-identity">
@@ -1205,12 +1307,12 @@
           </div>
         </div>
         <div class="bar-right">
-          <button type="button" class="home-intimacy-pill" onclick="location.href='/pages/settings.html'" aria-label="亲密度，点击进入设置">
+          <button type="button" class="home-intimacy-pill" onclick="goToRelationship()" aria-label="关系状态，点击进入关系页">
             <span class="home-intimacy-label">
-              <svg class="home-intimacy-star" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              <svg class="home-intimacy-heart" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
-              亲密度
+              <span id="relationship-level-name">—</span>
             </span>
             <div class="home-intimacy-progress-row">
               <div class="progress-bar home-intimacy-bar">
@@ -1253,8 +1355,7 @@
       <div class="skeleton-wrap">
         <div class="skeleton skeleton-quick-bar"></div>
         <div class="skeleton-card-stack">
-          <div class="skeleton skeleton-preview-card"></div>
-          <div class="skeleton skeleton-preview-card"></div>
+          <div class="skeleton skeleton-preview-card" style="height:120px"></div>
           <div class="skeleton skeleton-preview-card"></div>
         </div>
       </div>
@@ -1274,11 +1375,11 @@
               </span>
               <span>视频通话</span>
             </button>
-            <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
+            <button type="button" class="home-quick-btn" onclick="location.href='/pages/memory.html'">
               <span class="home-quick-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <img src="/static/images/chat/icon-memory-nebula.png" alt="">
               </span>
-              <span>一起听歌</span>
+              <span>记忆星云</span>
             </button>
             <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
               <span class="home-quick-icon" aria-hidden="true">
@@ -1296,25 +1397,36 @@
         </div>
 
         <div class="home-cards-scroll">
-          <article class="home-preview-card home-glass-card home-memory-card home-enter-item" style="--enter-delay: 0.34s" role="button" tabindex="0" onclick="location.href='/pages/memory.html'">
-            <div class="home-card-icon home-card-icon--heart" aria-hidden="true">♥</div>
-            <div class="home-card-body">
-              <h3 class="home-card-title">我们的记忆</h3>
-              <p class="home-card-sub">她记得你们的点点滴滴</p>
+          <article class="home-preview-card home-glass-card home-feed-card home-feed-card--rich home-enter-item" style="--enter-delay: 0.34s" role="button" tabindex="0" id="feed-entry-card" onclick="goFeed()" onkeydown="if(event.key==='Enter'||event.key===' '){goFeed()}">
+            <div class="home-feed-main">
+              <div class="home-feed-left">
+                <div class="home-feed-left-head">
+                  <div class="home-card-icon home-card-icon--feed" aria-hidden="true">
+                    <img src="/static/images/Index/home-feed-icon.png" alt="" width="44" height="44">
+                  </div>
+                  <div class="home-feed-head-text">
+                    <div class="home-card-title-row">
+                      <h3 class="home-card-title">朋友圈</h3>
+                      <span class="home-feed-reply-pill" id="feed-reply-pill" style="display:none">NEW · 0条新回复</span>
+                    </div>
+                    <p class="home-card-sub">看看她的日常分享</p>
+                    <p class="home-feed-updated" id="feed-updated"></p>
+                  </div>
+                </div>
+                <p class="home-feed-body" id="feed-preview-text"></p>
+              </div>
+              <div class="home-feed-thumbs" id="feed-thumbs" aria-hidden="true"></div>
             </div>
-            <div class="home-card-right">
-              <div class="home-card-right-text">
-                <p class="home-card-preview" id="memory-preview">加载中...</p>
-              </div>
-              <div class="home-card-thumb home-card-thumb--memory">
-                <img src="/static/images/Index/in_memery/sunset.png" alt="" loading="lazy">
-              </div>
+            <div class="home-feed-footer">
+              <p class="home-feed-footer-text" id="feed-footer-text">快来看看她分享了什么吧</p>
               <span class="home-card-chevron" aria-hidden="true">›</span>
             </div>
           </article>
 
           <article class="home-preview-card home-glass-card home-diary-card home-enter-item" style="--enter-delay: 0.42s" role="button" tabindex="0" onclick="location.href='/pages/diary.html'">
-            <div class="home-card-icon home-card-icon--diary" aria-hidden="true">📔</div>
+            <div class="home-card-icon home-card-icon--diary" aria-hidden="true">
+              <img src="/static/images/Index/home-diary-icon.png" alt="" width="44" height="44">
+            </div>
             <div class="home-card-body">
               <div class="home-card-title-row">
                 <h3 class="home-card-title">她的日记</h3>
@@ -1332,24 +1444,6 @@
               </div>
               <div class="home-card-thumb">
                 <img src="/static/images/Index/in_diary/diary_1.png" alt="" loading="lazy">
-              </div>
-              <span class="home-card-chevron" aria-hidden="true">›</span>
-            </div>
-          </article>
-
-          <article class="home-preview-card home-glass-card home-relationship-card home-enter-item" style="--enter-delay: 0.5s" role="button" tabindex="0" onclick="goToRelationship()">
-            <div class="home-card-icon home-card-icon--rel" aria-hidden="true">♥</div>
-            <div class="home-card-body">
-              <h3 class="home-card-title">关系状态</h3>
-              <p class="home-card-sub">你们的关系在慢慢升温</p>
-            </div>
-            <div class="home-card-right home-card-right--rel">
-              <div class="home-card-right-text">
-                <p class="home-card-level" id="relationship-level-name">—</p>
-                <span class="home-card-hearts" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                </span>
               </div>
               <span class="home-card-chevron" aria-hidden="true">›</span>
             </div>
@@ -1382,7 +1476,6 @@
 
     const LEVEL_NAMES = ['陌生', '朋友', '亲密', '知己']
     const DIARY_PLACEHOLDER = '今天记录点什么好呢...'
-    const MEMORY_EMPTY_TEXT = '她还在了解你，暂无记忆'
     const HOME_LOADER_KEY = 'lxm_home_loader_done'
     const LOADER_MIN_MS = 3000
     const LOADER_HOLD_MS = 500
@@ -1395,7 +1488,8 @@
     const STATIC_ASSETS = [
       '/static/images/Index/index.png',
       '/static/images/Index/loader_avatar.jpg',
-      '/static/images/Index/in_memery/sunset.png',
+      '/static/images/Index/home-feed-icon.png',
+      '/static/images/Index/home-diary-icon.png',
       '/static/images/Index/in_diary/diary_1.png',
       '/static/images/avatar/default.png',
     ]
@@ -1774,23 +1868,6 @@
       setTimeout(() => { progressFill.style.width = percent + '%' }, 100)
     }
 
-    function truncateText(text, maxLen) {
-      if (!text) return ''
-      const s = String(text)
-      return s.length <= maxLen ? s : s.slice(0, maxLen) + '…'
-    }
-
-    function renderMemoryPreview(list) {
-      const el = document.getElementById('memory-preview')
-      if (!el) return
-      if (!list || list.length === 0) {
-        el.textContent = MEMORY_EMPTY_TEXT
-        return
-      }
-      const item = list[0]
-      el.textContent = truncateText(item.value || item.content || '', 40)
-    }
-
     function renderDiaryPreview(items, level) {
       const previewEl = document.getElementById('diary-preview')
       const timeEl = document.getElementById('diary-time')
@@ -1842,20 +1919,110 @@
       }
     }
 
+    /** 朋友圈更新时间：今天/昨天/更早（按北京墙钟字符串解析，避免浏览器时区偏移） */
+    function formatFeedUpdateLabel(iso) {
+      if (!iso) return ''
+      const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/)
+      if (!m) return ''
+      const y = Number(m[1])
+      const mo = Number(m[2])
+      const day = Number(m[3])
+      const hm = m[4] + ':' + m[5]
+      const now = getBeijingDate()
+      const sameYMD = (yy, mm, dd) =>
+        now.getFullYear() === yy && (now.getMonth() + 1) === mm && now.getDate() === dd
+      if (sameYMD(y, mo, day)) return '更新 · 今天 ' + hm
+      const yest = new Date(now)
+      yest.setDate(yest.getDate() - 1)
+      if (
+        yest.getFullYear() === y
+        && (yest.getMonth() + 1) === mo
+        && yest.getDate() === day
+      ) {
+        return '更新 · 昨天 ' + hm
+      }
+      return '更新 · ' + mo + '月' + day + '日 ' + hm
+    }
+
+    /** 从最近帖倒序抽出最多 2 张图 */
+    function collectFeedThumbUrls(posts) {
+      const urls = []
+      if (!posts) return urls
+      for (let i = 0; i < posts.length && urls.length < 2; i++) {
+        const imgs = posts[i].image_urls || []
+        for (let j = 0; j < imgs.length && urls.length < 2; j++) {
+          if (imgs[j]) urls.push(imgs[j])
+        }
+      }
+      return urls
+    }
+
+    function renderFeedPreview(posts) {
+      const textEl = document.getElementById('feed-preview-text')
+      const updatedEl = document.getElementById('feed-updated')
+      const thumbsEl = document.getElementById('feed-thumbs')
+      if (!textEl || !updatedEl || !thumbsEl) return
+
+      if (!posts || posts.length === 0) {
+        textEl.textContent = ''
+        updatedEl.textContent = ''
+        thumbsEl.innerHTML = ''
+        return
+      }
+
+      const latest = posts[0]
+      textEl.textContent = latest.content_text || ''
+      updatedEl.textContent = formatFeedUpdateLabel(latest.scheduled_publish_time)
+
+      const urls = collectFeedThumbUrls(posts)
+      thumbsEl.innerHTML = ''
+      urls.forEach((src) => {
+        const img = document.createElement('img')
+        img.src = src
+        img.alt = ''
+        img.loading = 'lazy'
+        img.onerror = function () { this.style.display = 'none' }
+        thumbsEl.appendChild(img)
+      })
+    }
+
+    function renderFeedFooter(newPostCount) {
+      const el = document.getElementById('feed-footer-text')
+      if (!el) return
+      const n = Number(newPostCount) || 0
+      if (n > 0) {
+        const shown = n > 99 ? '99+' : String(n)
+        el.textContent = shown + ' 条新动态 · 快来看看她分享了什么吧'
+      } else {
+        el.textContent = '快来看看她分享了什么吧'
+      }
+    }
+
+    function renderFeedReplyPill(unread) {
+      const pill = document.getElementById('feed-reply-pill')
+      if (!pill) return
+      const n = Number(unread) || 0
+      if (n > 0) {
+        const shown = n > 99 ? '99+' : String(n)
+        pill.textContent = 'NEW · ' + shown + '条新回复'
+        pill.style.display = ''
+      } else {
+        pill.style.display = 'none'
+      }
+    }
+
     async function loadPage(options) {
       const deferAvatar = options && options.deferAvatar === true
       try {
-        const [relSettled, detailSettled, memorySettled, diarySettled, unreadSettled] = await Promise.allSettled([
+        const [relSettled, detailSettled, diarySettled, unreadSettled] = await Promise.allSettled([
           request('GET', '/api/relationship/status'),
           request('GET', '/api/relationship/detail'),
-          request('GET', '/api/memory/list?page=1&page_size=1'),
           request('GET', '/api/diary/list?page=1&page_size=1'),
           request('GET', '/api/agent/unread-count'),
         ])
 
         const relRes = relSettled.status === 'fulfilled' ? relSettled.value : { code: -1, data: null }
         const detailRes = detailSettled.status === 'fulfilled' ? detailSettled.value : { code: -1, data: null }
-        const memoryRes = memorySettled.status === 'fulfilled' ? memorySettled.value : { code: -1, data: null }
         const diaryRes = diarySettled.status === 'fulfilled' ? diarySettled.value : { code: -1, data: null }
         const unreadRes = unreadSettled.status === 'fulfilled' ? unreadSettled.value : { code: -1, data: null }
 
@@ -1883,12 +2050,6 @@
           hideKnownDays()
         }
 
-        if (memoryRes.code === 0 && memoryRes.data) {
-          renderMemoryPreview(memoryRes.data.list || [])
-        } else {
-          renderMemoryPreview([])
-        }
-
         if (diaryRes.code === 0 && diaryRes.data) {
           renderDiaryPreview(diaryRes.data.items || [], level)
         } else {
@@ -1896,6 +2057,7 @@
         }
 
         renderUnreadBadge(unreadRes)
+        loadFeedHomeCard()
         document.getElementById('main-content').classList.add('content-loaded')
 
         return { emotion }
@@ -1907,6 +2069,59 @@
         return { emotion: null }
       }
     }
+
+    /**
+     * 首页朋友圈富预览：
+     * - badge.new_post_count → 底栏「N 条新动态」（相对 last_feed_entered_at，非 SSE）
+     * - badge.unread_reply_count → 顶胶囊「NEW · N条新回复」
+     * - list 最新帖 → 正文 / 更新时间 / 双图
+     */
+    async function loadFeedHomeCard() {
+      const [badgeSettled, listSettled] = await Promise.allSettled([
+        request('GET', '/api/feed/badge'),
+        request('GET', '/api/feed/list?size=8'),
+      ])
+      const badgeRes = badgeSettled.status === 'fulfilled' ? badgeSettled.value : null
+      const listRes = listSettled.status === 'fulfilled' ? listSettled.value : null
+
+      let unread = 0
+      let newCount = 0
+      if (badgeRes && badgeRes.code === 0 && badgeRes.data) {
+        unread = badgeRes.data.unread_reply_count || 0
+        newCount = badgeRes.data.new_post_count || 0
+        window.__feedBadge = {
+          unread: unread,
+          hasNew: !!badgeRes.data.has_new,
+          newCount: newCount,
+        }
+      } else {
+        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
+      }
+
+      renderFeedReplyPill(unread)
+      renderFeedFooter(newCount)
+
+      if (listRes && listRes.code === 0 && listRes.data) {
+        renderFeedPreview(listRes.data.posts || [])
+      } else {
+        renderFeedPreview([])
+      }
+    }
+
+    /** 点击朋友圈入口：有未读回复带 focus 定位，否则进列表顶部（PRD 5.6.3） */
+    function goFeed() {
+      const b = window.__feedBadge || {}
+      if (b.unread > 0) {
+        location.href = '/pages/feed.html?focus=unread_reply'
+      } else {
+        location.href = '/pages/feed.html'
+      }
+    }
+
+    /** 从其他页返回首页时刷新朋友圈预览（不做自动轮询） */
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') loadFeedHomeCard()
+    })
 
     initHomePage()
   </script>

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生活流 · 生活计划 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row .form-control { width: 180px; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 720px; }
+    .text-muted { font-size: 12px; color: #888; }
+    .table-wrap { overflow-x: auto; }
+    /* 操作按钮：对齐用户管理列表 */
+    .op-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: all 0.2s;
+      margin-right: 4px;
+    }
+    .op-btn-detail { color: var(--primary); }
+    .op-btn-detail:hover { background: #e6f7ff; }
+    .op-btn-danger { color: var(--danger); }
+    .op-btn-danger:hover { background: #fff2f0; }
+    .row-empty td { color: var(--text-disabled); }
+    .desc-cell { max-width: 320px; }
+    .desc-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; display: inline-block; vertical-align: middle; }
+    .desc-full { white-space: pre-wrap; word-break: break-word; margin-top: 6px; padding: 8px; background: #fafafa; border-radius: 4px; font-size: 12px; color: #555; }
+    .cat-check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px; }
+    .cat-check-grid label { display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; }
+    .draft-hint { font-size: 12px; color: #fa8c16; margin-left: 8px; }
+    .modal-wide { max-width: 560px; }
+    .empty-tip { text-align: center; padding: 48px 0; color: var(--text-disabled); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <div class="tabs" id="main-tabs">
+      <div class="tab-item active" data-target="tab-outline">周大纲</div>
+      <div class="tab-item" data-target="tab-daily">日场景</div>
+    </div>
+
+    <!-- Tab1: 周大纲 -->
+    <div class="tab-pane active" id="tab-outline">
+      <div class="filter-row">
+        <label>周起始（周一）</label>
+        <input type="date" class="form-control" id="week_start_date">
+        <button type="button" class="btn btn-default" id="btn-load-outline">查询</button>
+        <button type="button" class="btn btn-primary" data-edit-only id="btn-gen-outline">一键生成</button>
+        <button type="button" class="btn btn-default" data-edit-only id="btn-add-outline">新增单日</button>
+      </div>
+
+      <div class="page-card" style="margin-bottom:16px;padding:16px">
+        <h3 class="page-card-title">生活计划设置
+          <span class="draft-hint" id="settings-draft-hint" style="display:none">（有未发布草稿）</span>
+        </h3>
+        <div class="settings-grid">
+          <div class="form-item">
+            <label>主场城市（home_city）</label>
+            <input type="text" class="form-control" id="set-home_city">
+          </div>
+          <div class="form-item">
+            <label>本地比例 %（life_ratio_local）</label>
+            <input type="number" class="form-control" id="set-life_ratio_local" min="0" max="100">
+          </div>
+          <div class="form-item">
+            <label>短途比例 %（life_ratio_short_trip）</label>
+            <input type="number" class="form-control" id="set-life_ratio_short_trip" min="0" max="100">
+          </div>
+          <div class="form-item">
+            <label>长途比例 %（life_ratio_long_trip）</label>
+            <input type="number" class="form-control" id="set-life_ratio_long_trip" min="0" max="100">
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" data-edit-only>
+          <button type="button" class="btn btn-default" id="btn-save-settings">保存草稿</button>
+          <button type="button" class="btn btn-primary" id="btn-publish-settings">发布</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>计划日期（plan_date）</th>
+              <th>城市（city）</th>
+              <th>内容分类（categories）</th>
+              <th>生成状态（gen_status）</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="outline-tbody">
+            <tr><td colspan="5" class="empty-tip">请选择周起始日期后查询</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab2: 日场景 -->
+    <div class="tab-pane" id="tab-daily">
+      <div class="filter-row">
+        <label>计划日期（plan_date）</label>
+        <input type="date" class="form-control" id="plan_date">
+        <button type="button" class="btn btn-default" id="btn-load-daily">查询</button>
+        <button type="button" class="btn btn-primary" data-edit-only id="btn-gen-daily">触发生成</button>
+        <button type="button" class="btn btn-default" data-edit-only id="btn-add-scene">新增场景</button>
+      </div>
+      <p>生成状态（gen_status）：<span id="daily-gen-status-wrap"><span class="tag tag-default" id="daily-gen-status">-</span></span></p>
+
+      <div class="table-wrap" style="margin-top:12px">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>场景ID（scene_id）</th>
+              <th>时段（time_range）</th>
+              <th>城市（city）</th>
+              <th>分类（category）</th>
+              <th>场所（venue_type）</th>
+              <th>描述（description）</th>
+              <th data-edit-only>操作</th>
+            </tr>
+          </thead>
+          <tbody id="scenes-tbody">
+            <tr><td colspan="7" class="empty-tip">请选择日期后查询</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 周大纲新增/编辑弹窗 -->
+<div id="outline-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="outline-modal-title">新增单日大纲</h3>
+      <button type="button" class="btn btn-link" id="outline-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="required">计划日期（plan_date）</label>
+        <input type="date" class="form-control" id="ol-plan_date">
+      </div>
+      <div class="form-item">
+        <label class="required">城市（city）</label>
+        <input type="text" class="form-control" id="ol-city" placeholder="如：杭州">
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label class="required">内容分类（categories）</label>
+        <div class="cat-check-grid" id="ol-categories"></div>
+        <p class="text-muted" style="margin-top:6px">须从词汇表勾选，至少一项</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="outline-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="outline-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日场景新增/编辑弹窗 -->
+<div id="scene-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="scene-modal-title">新增场景</h3>
+      <button type="button" class="btn btn-link" id="scene-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" id="scene-modal-hint" style="margin-bottom:12px"></p>
+      <div class="form-item">
+        <label class="required">时段（time_range）</label>
+        <input type="text" class="form-control" id="sc-time_range" placeholder="09:00-11:00">
+      </div>
+      <div class="form-item">
+        <label class="required">城市（city）</label>
+        <input type="text" class="form-control" id="sc-city">
+      </div>
+      <div class="form-item">
+        <label class="required">分类（category）</label>
+        <select class="form-control" id="sc-category"></select>
+      </div>
+      <div class="form-item">
+        <label class="required">场所（venue_type）</label>
+        <input type="text" class="form-control" id="sc-venue_type" placeholder="如：咖啡厅">
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label class="required">描述（description）</label>
+        <textarea class="form-control" id="sc-description" rows="4"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="scene-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="scene-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PAGE_KEY = 'life-plan';
+  var categoriesVocab = [];
+  var outlineEditDate = null; // null=新增，有值=编辑该日
+  var sceneEditId = null;     // null=新增
+  var currentOutlineCats = [];
+  var currentOutlineCity = '';
+  var expandedDesc = {};
+  var settingsKeys = ['home_city', 'life_ratio_local', 'life_ratio_short_trip', 'life_ratio_long_trip'];
+
+  function mondayOfWeek(d) {
+    d = new Date(d);
+    var day = d.getDay();
+    var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  }
+  function ymd(d) {
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function addDays(ymdStr, n) {
+    var d = new Date(ymdStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return ymd(d);
+  }
+  function statusTag(st) {
+    // 对齐用户管理：统一用 admin-common 的 .tag / .tag-*
+    var cls = 'tag tag-default';
+    if (st === 'auto') cls = 'tag tag-blue';
+    else if (st === 'manual') cls = 'tag tag-warning';
+    else if (st === 'ready') cls = 'tag tag-success';
+    else if (st === 'failed') cls = 'tag tag-error';
+    return '<span class="' + cls + '">' + lfEscapeHtml(st || '-') + '</span>';
+  }
+  function isReadonly() { return isLifeFeedReadOnly(PAGE_KEY); }
+
+  function openModal(id) {
+    var el = document.getElementById(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  async function loadCategoriesVocab() {
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=categories_vocab', null, false, { silentErrorToast: true });
+    if (!res || res.code !== 0) return;
+    var item = (res.data || {}).categories_vocab;
+    var val = lfPickValue(item);
+    categoriesVocab = Array.isArray(val) ? val : [];
+  }
+
+  function renderCategoryChecks(selected) {
+    selected = selected || [];
+    var box = document.getElementById('ol-categories');
+    if (!categoriesVocab.length) {
+      box.innerHTML = '<span class="text-muted">词汇表为空，请先在全局配置维护 categories_vocab</span>';
+      return;
+    }
+    box.innerHTML = categoriesVocab.map(function (c) {
+      var checked = selected.indexOf(c) >= 0 ? ' checked' : '';
+      return '<label><input type="checkbox" value="' + lfEscapeHtml(c) + '"' + checked + '> ' + lfEscapeHtml(c) + '</label>';
+    }).join('');
+  }
+
+  function getCheckedCategories() {
+    var inputs = document.querySelectorAll('#ol-categories input[type=checkbox]:checked');
+    return Array.prototype.map.call(inputs, function (el) { return el.value; });
+  }
+
+  async function loadSettings() {
+    var keys = settingsKeys.join(',');
+    var res = await adminRequest('GET', '/api/admin/life-config?keys=' + encodeURIComponent(keys), null, false, { silentErrorToast: true });
+    var hasDraft = false;
+    if (res && res.code === 0 && res.data) {
+      var d = res.data;
+      var home = lfPickValue(d.home_city);
+      var local = lfPickValue(d.life_ratio_local);
+      var short = lfPickValue(d.life_ratio_short_trip);
+      var longv = lfPickValue(d.life_ratio_long_trip);
+      document.getElementById('set-home_city').value = home != null ? home : '';
+      document.getElementById('set-life_ratio_local').value = local != null ? local : '';
+      document.getElementById('set-life_ratio_short_trip').value = short != null ? short : '';
+      document.getElementById('set-life_ratio_long_trip').value = longv != null ? longv : '';
+      settingsKeys.forEach(function (k) {
+        if (d[k] && d[k].has_draft) hasDraft = true;
+      });
+    } else {
+      // 回落旧接口
+      var res2 = await adminRequest('GET', '/api/admin/life-plan/settings');
+      if (res2 && res2.code === 0) {
+        var s = res2.data || {};
+        document.getElementById('set-home_city').value = s.home_city || '';
+        document.getElementById('set-life_ratio_local').value = s.life_ratio_local != null ? s.life_ratio_local : '';
+        document.getElementById('set-life_ratio_short_trip').value = s.life_ratio_short_trip != null ? s.life_ratio_short_trip : '';
+        document.getElementById('set-life_ratio_long_trip').value = s.life_ratio_long_trip != null ? s.life_ratio_long_trip : '';
+      }
+    }
+    document.getElementById('settings-draft-hint').style.display = hasDraft ? 'inline' : 'none';
+  }
+
+  function collectSettingsBody() {
+    return {
+      home_city: document.getElementById('set-home_city').value.trim(),
+      life_ratio_local: parseInt(document.getElementById('set-life_ratio_local').value, 10),
+      life_ratio_short_trip: parseInt(document.getElementById('set-life_ratio_short_trip').value, 10),
+      life_ratio_long_trip: parseInt(document.getElementById('set-life_ratio_long_trip').value, 10)
+    };
+  }
+
+  async function loadOutline() {
+    var ws = document.getElementById('week_start_date').value;
+    if (!ws) { showToast('请选择周起始日期', 'warning'); return; }
+    var res = await adminRequest('GET', '/api/admin/life-plan/outline?week_start_date=' + encodeURIComponent(ws));
+    var tbody = document.getElementById('outline-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+    var rows = res.data || [];
+    var byDate = {};
+    rows.forEach(function (r) { byDate[r.plan_date] = r; });
+
+    var html = [];
+    for (var i = 0; i < 7; i++) {
+      var pd = addDays(ws, i);
+      var r = byDate[pd];
+      var ops = '';
+      if (r) {
+        if (!readonly) {
+          ops += '<button class="op-btn op-btn-detail" onclick="editOutline(\'' + pd + '\')">编辑</button>';
+          ops += '<button class="op-btn op-btn-danger" onclick="deleteOutline(\'' + pd + '\')">删除</button>';
+        }
+        ops += '<button class="op-btn op-btn-detail" onclick="gotoDaily(\'' + pd + '\')">进入日场景</button>';
+      } else if (!readonly) {
+        ops = '<button class="op-btn op-btn-detail" onclick="addOutline(\'' + pd + '\')">补录</button>';
+      }
+      if (!r) {
+        html.push('<tr class="row-empty"><td>' + pd + '</td><td colspan="3">未规划</td><td>' + ops + '</td></tr>');
+        continue;
+      }
+      var cats = Array.isArray(r.categories) ? r.categories.join('、') : (r.categories || '-');
+      html.push('<tr><td>' + lfEscapeHtml(r.plan_date) + '</td><td>' + lfEscapeHtml(r.city) +
+        '</td><td>' + lfEscapeHtml(cats) + '</td><td>' + statusTag(r.gen_status) +
+        '</td><td>' + ops + '</td></tr>');
+    }
+    tbody.innerHTML = html.join('');
+  }
+
+  window.gotoDaily = function (pd) {
+    document.getElementById('plan_date').value = pd;
+    // 切换到日场景 Tab
+    var tabs = document.querySelectorAll('#main-tabs .tab-item');
+    tabs.forEach(function (t) { t.classList.remove('active'); });
+    document.querySelector('#main-tabs [data-target="tab-daily"]').classList.add('active');
+    document.getElementById('tab-outline').classList.remove('active');
+    document.getElementById('tab-daily').classList.add('active');
+    loadDaily();
+  };
+
+  window.addOutline = function (pd) {
+    outlineEditDate = null;
+    document.getElementById('outline-modal-title').textContent = '新增单日大纲';
+    document.getElementById('ol-plan_date').value = pd || '';
+    document.getElementById('ol-plan_date').disabled = !!pd;
+    document.getElementById('ol-city').value = '';
+    renderCategoryChecks([]);
+    openModal('outline-modal');
+  };
+
+  window.editOutline = async function (pd) {
+    var res = await adminRequest('GET', '/api/admin/life-plan/outline?plan_date=' + encodeURIComponent(pd));
+    if (!res || res.code !== 0 || !res.data) {
+      showToast('加载大纲失败', 'error');
+      return;
+    }
+    var r = res.data;
+    outlineEditDate = pd;
+    document.getElementById('outline-modal-title').textContent = '编辑单日大纲';
+    document.getElementById('ol-plan_date').value = r.plan_date;
+    document.getElementById('ol-plan_date').disabled = true;
+    document.getElementById('ol-city').value = r.city || '';
+    renderCategoryChecks(Array.isArray(r.categories) ? r.categories : []);
+    openModal('outline-modal');
+  };
+
+  window.deleteOutline = function (pd) {
+    showConfirm('确认删除 ' + pd + ' 的周大纲？', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/life-plan/outline/' + encodeURIComponent(pd));
+      if (res && res.code === 0) { showToast('已删除', 'success'); loadOutline(); }
+    }, null, { danger: true });
+  };
+
+  async function submitOutline() {
+    var pd = document.getElementById('ol-plan_date').value;
+    var city = document.getElementById('ol-city').value.trim();
+    var cats = getCheckedCategories();
+    if (!pd || !city || !cats.length) {
+      showToast('请填写日期、城市并至少勾选一个分类', 'warning');
+      return;
+    }
+    var body = { plan_date: pd, city: city, categories: cats };
+    var res;
+    if (outlineEditDate) {
+      res = await adminRequest('PUT', '/api/admin/life-plan/outline/' + encodeURIComponent(outlineEditDate), {
+        city: city, categories: cats
+      });
+    } else {
+      res = await adminRequest('POST', '/api/admin/life-plan/outline', body);
+    }
+    if (res && res.code === 0) {
+      showToast('已保存', 'success');
+      closeModal('outline-modal');
+      loadOutline();
+    }
+  }
+
+  async function loadDailyOutlineMeta(pd) {
+    currentOutlineCats = [];
+    currentOutlineCity = '';
+    var res = await adminRequest('GET', '/api/admin/life-plan/outline?plan_date=' + encodeURIComponent(pd), null, false, { silentErrorToast: true });
+    if (res && res.code === 0 && res.data) {
+      currentOutlineCats = Array.isArray(res.data.categories) ? res.data.categories : [];
+      currentOutlineCity = res.data.city || '';
+    }
+  }
+
+  function fillCategorySelect(selected) {
+    var sel = document.getElementById('sc-category');
+    if (!currentOutlineCats.length) {
+      sel.innerHTML = '<option value="">（当日无大纲分类，请先补录周大纲）</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = currentOutlineCats.map(function (c) {
+      return '<option value="' + lfEscapeHtml(c) + '"' + (c === selected ? ' selected' : '') + '>' + lfEscapeHtml(c) + '</option>';
+    }).join('');
+  }
+
+  window.toggleDesc = function (sid) {
+    expandedDesc[sid] = !expandedDesc[sid];
+    loadDaily();
+  };
+
+  async function loadDaily() {
+    var pd = document.getElementById('plan_date').value;
+    if (!pd) { showToast('请选择计划日期', 'warning'); return; }
+    await loadDailyOutlineMeta(pd);
+    var res = await adminRequest('GET', '/api/admin/life-plan/daily?plan_date=' + encodeURIComponent(pd), null, false, { silentErrorToast: true });
+    var tbody = document.getElementById('scenes-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      document.getElementById('daily-gen-status-wrap').innerHTML = '<span class="tag tag-default">-</span>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-tip">暂无计划或加载失败</td></tr>';
+      if (res && res.message) showToast(res.message, 'warning');
+      return;
+    }
+    var plan = res.data || {};
+    var st = plan.gen_status || '-';
+    document.getElementById('daily-gen-status-wrap').innerHTML = statusTag(st);
+
+    var scenes = plan.scenes || [];
+    if (!scenes.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-tip">暂无场景</td></tr>';
+      return;
+    }
+    tbody.innerHTML = scenes.map(function (s) {
+      var sid = s.scene_id || '';
+      var desc = s.description || '';
+      var open = !!expandedDesc[sid];
+      var summary = desc.length > 40 ? desc.slice(0, 40) + '…' : desc;
+      var descHtml = '<div class="desc-cell">' +
+        '<span class="desc-summary" title="' + lfEscapeHtml(desc) + '">' + lfEscapeHtml(summary || '-') + '</span> ' +
+        (desc ? '<button type="button" class="op-btn op-btn-detail" onclick="toggleDesc(\'' + lfEscapeHtml(sid) + '\')">' + (open ? '收起' : '展开') + '</button>' : '') +
+        (open && desc ? '<div class="desc-full">' + lfEscapeHtml(desc) + '</div>' : '') +
+        '</div>';
+      var ops = '';
+      if (!readonly) {
+        ops = '<button class="op-btn op-btn-detail" onclick="editScene(\'' + lfEscapeHtml(sid) + '\')">编辑</button>' +
+          '<button class="op-btn op-btn-danger" onclick="deleteScene(\'' + lfEscapeHtml(sid) + '\')">删除</button>';
+      }
+      return '<tr><td>' + lfEscapeHtml(sid) + '</td><td>' + lfEscapeHtml(s.time_range) +
+        '</td><td>' + lfEscapeHtml(s.city) + '</td><td>' + lfEscapeHtml(s.category) +
+        '</td><td>' + lfEscapeHtml(s.venue_type) + '</td><td>' + descHtml + '</td>' +
+        (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+    }).join('');
+  }
+
+  window.openAddScene = async function () {
+    var pd = document.getElementById('plan_date').value;
+    if (!pd) { showToast('请先选择计划日期', 'warning'); return; }
+    await loadDailyOutlineMeta(pd);
+    if (!currentOutlineCats.length) {
+      showToast('当日无周大纲，请先补录大纲', 'warning');
+      return;
+    }
+    sceneEditId = null;
+    document.getElementById('scene-modal-title').textContent = '新增场景';
+    document.getElementById('scene-modal-hint').textContent = '计划日期：' + pd + '；分类须属于当日大纲';
+    document.getElementById('sc-time_range').value = '';
+    document.getElementById('sc-city').value = currentOutlineCity || '';
+    document.getElementById('sc-venue_type').value = '';
+    document.getElementById('sc-description').value = '';
+    fillCategorySelect(currentOutlineCats[0]);
+    openModal('scene-modal');
+  };
+
+  window.editScene = async function (sid) {
+    var pd = document.getElementById('plan_date').value;
+    await loadDailyOutlineMeta(pd);
+    var res = await adminRequest('GET', '/api/admin/life-plan/daily?plan_date=' + encodeURIComponent(pd));
+    if (!res || res.code !== 0) return;
+    var scenes = (res.data || {}).scenes || [];
+    var s = scenes.find(function (x) { return x.scene_id === sid; });
+    if (!s) { showToast('场景不存在', 'warning'); return; }
+    sceneEditId = sid;
+    document.getElementById('scene-modal-title').textContent = '编辑场景';
+    document.getElementById('scene-modal-hint').textContent = 'scene_id：' + sid;
+    document.getElementById('sc-time_range').value = s.time_range || '';
+    document.getElementById('sc-city').value = s.city || '';
+    document.getElementById('sc-venue_type').value = s.venue_type || '';
+    document.getElementById('sc-description').value = s.description || '';
+    fillCategorySelect(s.category || '');
+    openModal('scene-modal');
+  };
+
+  window.deleteScene = function (sid) {
+    var pd = document.getElementById('plan_date').value;
+    showConfirm('确认删除场景 ' + sid + '？', async function () {
+      var res = await adminRequest('DELETE',
+        '/api/admin/life-plan/daily/' + encodeURIComponent(pd) + '/scenes/' + encodeURIComponent(sid));
+      if (res && res.code === 0) { showToast('已删除', 'success'); loadDaily(); }
+    }, null, { danger: true });
+  };
+
+  async function submitScene() {
+    var pd = document.getElementById('plan_date').value;
+    var body = {
+      time_range: document.getElementById('sc-time_range').value.trim(),
+      city: document.getElementById('sc-city').value.trim(),
+      category: document.getElementById('sc-category').value,
+      venue_type: document.getElementById('sc-venue_type').value.trim(),
+      description: document.getElementById('sc-description').value.trim()
+    };
+    if (!body.time_range || !body.city || !body.category || !body.venue_type || !body.description) {
+      showToast('请填写全部必填字段', 'warning');
+      return;
+    }
+    var res;
+    if (sceneEditId) {
+      res = await adminRequest('PUT',
+        '/api/admin/life-plan/daily/' + encodeURIComponent(pd) + '/scenes/' + encodeURIComponent(sceneEditId), body);
+    } else {
+      res = await adminRequest('POST',
+        '/api/admin/life-plan/daily/' + encodeURIComponent(pd) + '/scenes', body);
+    }
+    if (res && res.code === 0) {
+      showToast('已保存', 'success');
+      closeModal('scene-modal');
+      loadDaily();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 生活计划', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    initTabs('main-tabs');
+
+    var today = new Date();
+    document.getElementById('week_start_date').value = ymd(mondayOfWeek(today));
+    document.getElementById('plan_date').value = ymd(today);
+
+    document.getElementById('btn-load-outline').onclick = loadOutline;
+    document.getElementById('btn-load-daily').onclick = loadDaily;
+    document.getElementById('btn-add-outline').onclick = function () { addOutline(''); };
+    document.getElementById('btn-add-scene').onclick = openAddScene;
+
+    document.getElementById('btn-gen-outline').onclick = function () {
+      var ws = document.getElementById('week_start_date').value;
+      if (!ws) return;
+      var btn = this;
+      showConfirm('确认为本周剩余自然日一键生成周大纲？', async function () {
+        btn.disabled = true;
+        var res = await adminRequest('POST', '/api/admin/life-plan/outline/generate', { week_start_date: ws });
+        btn.disabled = false;
+        if (res && res.code === 0) { showToast('生成成功', 'success'); loadOutline(); }
+      });
+    };
+
+    document.getElementById('btn-gen-daily').onclick = function () {
+      var pd = document.getElementById('plan_date').value;
+      if (!pd) return;
+      var btn = this;
+      showConfirm('确认触发生成日场景？', async function () {
+        btn.disabled = true;
+        var res = await adminRequest('POST', '/api/admin/life-plan/daily/' + encodeURIComponent(pd) + '/generate');
+        btn.disabled = false;
+        if (res && res.code === 0) { showToast('生成成功', 'success'); loadDaily(); }
+      });
+    };
+
+    document.getElementById('btn-save-settings').onclick = async function () {
+      var body = collectSettingsBody();
+      if (!body.home_city) { showToast('主场城市不能为空', 'warning'); return; }
+      var res = await adminRequest('PUT', '/api/admin/life-plan/settings', body);
+      if (res && res.code === 0) {
+        showToast('草稿已保存', 'success');
+        loadSettings();
+      }
+    };
+
+    document.getElementById('btn-publish-settings').onclick = async function () {
+      var body = collectSettingsBody();
+      if (!body.home_city) { showToast('主场城市不能为空', 'warning'); return; }
+      // 先确保草稿最新，再逐项发布
+      var saveRes = await adminRequest('PUT', '/api/admin/life-plan/settings', body);
+      if (!saveRes || saveRes.code !== 0) return;
+      var pairs = [
+        ['home_city', body.home_city],
+        ['life_ratio_local', body.life_ratio_local],
+        ['life_ratio_short_trip', body.life_ratio_short_trip],
+        ['life_ratio_long_trip', body.life_ratio_long_trip]
+      ];
+      showConfirmInput(
+        '发布生活计划设置',
+        '将发布主场城市与三项生活比例，发布后立即生效并开启 5 分钟监控窗口。',
+        '确认发布',
+        async function () {
+          for (var i = 0; i < pairs.length; i++) {
+            var res = await adminRequest('POST', '/api/admin/life-config/publish', {
+              config_key: pairs[i][0],
+              config_value: pairs[i][1]
+            });
+            if (!res || res.code !== 0) {
+              showToast('发布失败：' + pairs[i][0], 'error');
+              return;
+            }
+          }
+          showToast('已全部发布，5 分钟监控窗口已开启', 'success');
+          loadSettings();
+        }
+      );
+    };
+
+    document.getElementById('outline-modal-close').onclick = function () { closeModal('outline-modal'); };
+    document.getElementById('outline-modal-cancel').onclick = function () { closeModal('outline-modal'); };
+    document.getElementById('outline-modal').onclick = function (e) {
+      if (e.target === this) closeModal('outline-modal');
+    };
+    document.getElementById('outline-modal-submit').onclick = submitOutline;
+
+    document.getElementById('scene-modal-close').onclick = function () { closeModal('scene-modal'); };
+    document.getElementById('scene-modal-cancel').onclick = function () { closeModal('scene-modal'); };
+    document.getElementById('scene-modal').onclick = function (e) {
+      if (e.target === this) closeModal('scene-modal');
+    };
+    document.getElementById('scene-modal-submit').onclick = submitScene;
+
+    loadCategoriesVocab().then(function () {
+      loadSettings();
+      loadOutline();
+    });
+  });
+</script>
+</body>
+</html>

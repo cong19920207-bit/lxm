@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>朋友圈 · 内容 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row .form-control { width: 160px; }
+    .filter-row .spacer { flex: 1; }
+    .text-muted { font-size: 12px; color: #888; }
+    .text-truncate { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
+    .op-btn {
+      background: transparent; border: none; cursor: pointer; font-size: 13px;
+      padding: 2px 6px; border-radius: 3px; transition: all 0.2s; margin-right: 4px;
+    }
+    .op-btn-detail { color: var(--primary); }
+    .op-btn-detail:hover { background: #e6f7ff; }
+    .op-btn-danger { color: var(--danger); }
+    .op-btn-danger:hover { background: #fff2f0; }
+    .empty-tip { text-align: center; padding: 48px 0; color: var(--text-disabled); font-size: 14px; }
+    .modal-wide { max-width: 640px; }
+    .banner-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 14px; margin-bottom: 16px; background: #f6ffed;
+      border: 1px solid #b7eb8f; border-radius: 4px; font-size: 13px; color: #333;
+    }
+    .banner-row.off { background: #fff7e6; border-color: #ffd591; }
+    .banner-row a { color: var(--primary); }
+    .detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; font-size: 13px; }
+    .detail-grid .k { color: #888; }
+    .detail-grid .v { word-break: break-all; white-space: pre-wrap; }
+    .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f5f5f5; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <!-- 自动发布状态（只读 + 跳转系统参数页） -->
+    <div class="banner-row" id="auto-publish-banner">
+      <span>自动发布：<strong id="auto-publish-status">加载中…</strong></span>
+      <a href="life-feed-system.html" id="auto-publish-link">去「发布 &amp; 系统参数」修改 →</a>
+    </div>
+
+    <div class="filter-row">
+      <label>状态</label>
+      <select class="form-control" id="filter-status">
+        <option value="all">全部</option>
+        <option value="visible">可见</option>
+        <option value="hidden">隐藏</option>
+        <option value="failed">生成失败</option>
+      </select>
+      <button type="button" class="btn btn-default" id="btn-search">查询</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-default" data-edit-only id="btn-add-text">+ 文字发帖</button>
+      <button type="button" class="btn btn-primary" data-edit-only id="btn-add-ai">+ AI 生成</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>文案</th>
+            <th>话题</th>
+            <th>计划发布时间</th>
+            <th>可见</th>
+            <th>生成状态</th>
+            <th>情绪</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="posts-tbody">
+          <tr><td colspan="8" class="empty-tip">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="posts-pagination"></div>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div id="detail-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>帖子详情</h3>
+      <button type="button" class="btn btn-link" id="detail-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="detail-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="detail-modal-cancel">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div id="edit-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>编辑帖子</h3>
+      <button type="button" class="btn btn-link" id="edit-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-item">
+        <label class="required">文案（content_text）</label>
+        <textarea class="form-control" id="edit-content" rows="4"></textarea>
+      </div>
+      <div class="form-item">
+        <label>话题（逗号分隔）</label>
+        <input type="text" class="form-control" id="edit-hashtags" placeholder="如 日常,咖啡">
+      </div>
+      <div class="form-item">
+        <label>计划发布时间</label>
+        <input type="datetime-local" class="form-control" id="edit-sched">
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label>情绪（emotion）</label>
+        <input type="text" class="form-control" id="edit-emotion">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="edit-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="edit-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文字发帖弹窗 -->
+<div id="upload-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>文字发帖</h3>
+      <button type="button" class="btn btn-link" id="upload-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:12px">本版仅支持纯文字；本地图片上传见技术债，后续补齐。</p>
+      <div class="form-item">
+        <label class="required">文案</label>
+        <textarea class="form-control" id="up-content" rows="4"></textarea>
+      </div>
+      <div class="form-item">
+        <label>话题（逗号分隔）</label>
+        <input type="text" class="form-control" id="up-hashtags" placeholder="如 日常,咖啡">
+      </div>
+      <div class="form-item">
+        <label>计划发布时间（可空=立即）</label>
+        <input type="datetime-local" class="form-control" id="up-sched">
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label>情绪</label>
+        <input type="text" class="form-control" id="up-emotion" placeholder="默认 平静">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="upload-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="upload-modal-submit">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI 生成弹窗 -->
+<div id="ai-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>AI 生成朋友圈</h3>
+      <button type="button" class="btn btn-link" id="ai-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="required">内容描述（description）</label>
+        <textarea class="form-control" id="ai-description" rows="4" placeholder="描述想发的内容，将注入 LLM-04"></textarea>
+      </div>
+      <div class="form-item">
+        <label>计划发布时间（可空=立即）</label>
+        <input type="datetime-local" class="form-control" id="ai-sched">
+      </div>
+      <div class="form-item">
+        <label>城市 / 场所 / 分类（可选）</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" class="form-control" id="ai-city" placeholder="城市" style="width:120px">
+          <input type="text" class="form-control" id="ai-venue" placeholder="场所 venue_type" style="width:140px">
+          <input type="text" class="form-control" id="ai-category" placeholder="分类 category" style="width:140px">
+        </div>
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label><input type="checkbox" id="ai-need-image"> 同时生成图片</label>
+        <select class="form-control" id="ai-image-type" style="margin-top:8px;width:200px" disabled>
+          <option value="daily">daily 日常</option>
+          <option value="selfie">selfie 自拍</option>
+          <option value="scenery">scenery 风景</option>
+          <option value="emotion">emotion 情绪</option>
+        </select>
+        <p class="text-muted" style="margin-top:6px">不勾选则仅生成文案；勾选后按类型调用图片服务（可能较慢）。</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="ai-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="ai-modal-submit">生成</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PAGE_KEY = 'feed-posts';
+  var currentPage = 1;
+  var pageSize = 20;
+
+  function isReadonly() { return isLifeFeedReadOnly(PAGE_KEY); }
+
+  function openModal(id) {
+    var el = document.getElementById(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  function truncate(text, n) {
+    text = text || '';
+    if (text.length <= n) return text;
+    return text.slice(0, n) + '…';
+  }
+
+  function parseHashtags(str) {
+    return String(str || '').split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  /* scheduled_publish_time / actual_publish_time 为北京墙钟，按字符串展示，不经 Date 本地时区转换 */
+  function formatWallClock(iso) {
+    if (!iso) return '-';
+    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (!m) return formatDateTime(iso);
+    return m[1] + '-' + m[2] + '-' + m[3] + ' ' + m[4] + ':' + m[5];
+  }
+
+  function toDatetimeLocal(iso) {
+    if (!iso) return '';
+    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (!m) return '';
+    return m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5];
+  }
+
+  function fromDatetimeLocal(val) {
+    if (!val) return null;
+    // datetime-local → "YYYY-MM-DDTHH:mm"，后端 _parse_dt 支持
+    return val.length === 16 ? val + ':00' : val;
+  }
+
+  function statusTag(st) {
+    var cls = 'tag tag-default';
+    if (st === 'ready') cls = 'tag tag-success';
+    else if (st === 'failed') cls = 'tag tag-error';
+    else if (st === 'generating') cls = 'tag tag-blue';
+    return '<span class="' + cls + '">' + lfEscapeHtml(st || '-') + '</span>';
+  }
+
+  function visTag(v) {
+    return v
+      ? '<span class="tag tag-success">可见</span>'
+      : '<span class="tag tag-default">隐藏</span>';
+  }
+
+  async function loadAutoPublishBanner() {
+    var banner = document.getElementById('auto-publish-banner');
+    var statusEl = document.getElementById('auto-publish-status');
+    var res = await adminRequest('GET', '/api/admin/feed/config/auto-publish', null, false, { silentErrorToast: true });
+    var link = document.getElementById('auto-publish-link');
+    // ops_admin 菜单无「发布 & 系统参数」，隐藏跳转避免 403
+    if (getAdminRole() === 'ops_admin' && link) link.style.display = 'none';
+    if (!res || res.code !== 0) {
+      // GET auto-publish 仅 super_admin/ai_trainer；ops 只读角色无权限属预期
+      statusEl.textContent = (getAdminRole() === 'ops_admin') ? '无查看权限（只读账号）' : '读取失败';
+      banner.classList.add('off');
+      return;
+    }
+    var on = !!(res.data && res.data.feed_auto_publish_enabled);
+    statusEl.textContent = on ? '已开启' : '已关闭';
+    if (on) banner.classList.remove('off');
+    else banner.classList.add('off');
+  }
+
+  window.goPostPage = function (p) {
+    currentPage = p;
+    loadPosts();
+  };
+
+  window.toggleVisibility = function (id, visible) {
+    var action = visible ? '展示' : '隐藏（下架）';
+    showConfirm('确认' + action + '帖子 #' + id + '？', async function () {
+      var res = await adminRequest('PATCH', '/api/admin/feed/posts/' + id + '/visibility', {
+        is_visible: visible ? 1 : 0
+      });
+      if (res && res.code === 0) {
+        showToast('已更新可见性', 'success');
+        loadPosts();
+      }
+    });
+  };
+
+  window.showDetail = async function (id) {
+    var res = await adminRequest('GET', '/api/admin/feed/posts/' + id);
+    if (!res || res.code !== 0) return;
+    var r = res.data || {};
+    var tags = Array.isArray(r.hashtags) ? r.hashtags.join(', ') : '-';
+    var imgs = Array.isArray(r.image_urls) ? r.image_urls : [];
+    var imgHtml = imgs.length
+      ? imgs.map(function (u) {
+          return '<div><a href="' + lfEscapeHtml(u) + '" target="_blank" rel="noopener">' +
+            lfEscapeHtml(u) + '</a></div>';
+        }).join('')
+      : '-';
+    var rows = [
+      ['ID', r.id],
+      ['文案', r.content_text || '-'],
+      ['话题', tags || '-'],
+      ['情绪', r.emotion || '-'],
+      ['城市 / 季节', (r.city || '-') + ' / ' + (r.season || '-')],
+      ['生成状态', r.generation_status || '-'],
+      ['可见', r.is_visible ? '可见' : '隐藏'],
+      ['计划发布时间', formatWallClock(r.scheduled_publish_time)],
+      ['实际发布时间', formatWallClock(r.actual_publish_time)],
+      ['展示点赞', r.display_likes != null ? r.display_likes : '-'],
+      ['展示评论底', (r.base_comments != null ? r.base_comments : '-') + '×' + (r.comment_multiplier != null ? r.comment_multiplier : '-')],
+      ['展示评论(虚拟)', r.display_comments != null ? r.display_comments : '-'],
+      ['图片', imgHtml],
+      ['dedup_hash', r.dedup_hash || '-'],
+      ['image_type', r.image_type || '-'],
+      ['scene_id', r.scene_id || '-'],
+      ['创建 / 更新', formatDateTime(r.created_at) + ' / ' + formatDateTime(r.updated_at)]
+    ];
+    document.getElementById('detail-body').innerHTML = rows.map(function (pair) {
+      var v = pair[1];
+      var isHtml = pair[0] === '图片';
+      return '<div class="k">' + lfEscapeHtml(pair[0]) + '</div>' +
+        '<div class="v">' + (isHtml ? v : lfEscapeHtml(String(v))) + '</div>';
+    }).join('');
+    openModal('detail-modal');
+  };
+
+  window.openEdit = async function (id) {
+    var res = await adminRequest('GET', '/api/admin/feed/posts/' + id);
+    if (!res || res.code !== 0) return;
+    var r = res.data || {};
+    document.getElementById('edit-id').value = r.id;
+    document.getElementById('edit-content').value = r.content_text || '';
+    document.getElementById('edit-hashtags').value = (r.hashtags || []).join(',');
+    document.getElementById('edit-sched').value = toDatetimeLocal(r.scheduled_publish_time);
+    document.getElementById('edit-emotion').value = r.emotion || '';
+    openModal('edit-modal');
+  };
+
+  async function loadPosts() {
+    var status = document.getElementById('filter-status').value;
+    var q = '?status=' + encodeURIComponent(status) + '&page=' + currentPage + '&size=' + pageSize;
+    var res = await adminRequest('GET', '/api/admin/feed/posts' + q);
+    var tbody = document.getElementById('posts-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+    var data = res.data || {};
+    var rows = data.list || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-tip">暂无朋友圈内容</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        var tags = Array.isArray(r.hashtags) ? r.hashtags.join(', ') : '';
+        var ops = '<button class="op-btn op-btn-detail" onclick="showDetail(' + r.id + ')">详情</button>';
+        if (!readonly) {
+          ops += '<button class="op-btn op-btn-detail" onclick="openEdit(' + r.id + ')">编辑</button>';
+          if (r.is_visible) {
+            ops += '<button class="op-btn op-btn-danger" onclick="toggleVisibility(' + r.id + ',false)">隐藏</button>';
+          } else {
+            ops += '<button class="op-btn op-btn-detail" onclick="toggleVisibility(' + r.id + ',true)">展示</button>';
+          }
+        }
+        return '<tr>' +
+          '<td>' + r.id + '</td>' +
+          '<td class="text-truncate" title="' + lfEscapeHtml(r.content_text) + '">' +
+            lfEscapeHtml(truncate(r.content_text, 40)) + '</td>' +
+          '<td class="text-truncate" title="' + lfEscapeHtml(tags) + '">' +
+            lfEscapeHtml(truncate(tags, 20) || '-') + '</td>' +
+          '<td>' + formatWallClock(r.scheduled_publish_time) + '</td>' +
+          '<td>' + visTag(r.is_visible) + '</td>' +
+          '<td>' + statusTag(r.generation_status) + '</td>' +
+          '<td>' + lfEscapeHtml(r.emotion || '-') + '</td>' +
+          '<td>' + ops + '</td></tr>';
+      }).join('');
+    }
+    renderPagination('posts-pagination', data.page || currentPage, data.total || 0, data.size || pageSize, 'goPostPage');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 内容', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+
+    document.getElementById('btn-search').onclick = function () { currentPage = 1; loadPosts(); };
+    document.getElementById('btn-add-text').onclick = function () {
+      document.getElementById('up-content').value = '';
+      document.getElementById('up-hashtags').value = '';
+      document.getElementById('up-sched').value = '';
+      document.getElementById('up-emotion').value = '';
+      openModal('upload-modal');
+    };
+    document.getElementById('btn-add-ai').onclick = function () {
+      document.getElementById('ai-description').value = '';
+      document.getElementById('ai-sched').value = '';
+      document.getElementById('ai-city').value = '';
+      document.getElementById('ai-venue').value = '';
+      document.getElementById('ai-category').value = '';
+      document.getElementById('ai-need-image').checked = false;
+      document.getElementById('ai-image-type').disabled = true;
+      openModal('ai-modal');
+    };
+
+    document.getElementById('ai-need-image').onchange = function () {
+      document.getElementById('ai-image-type').disabled = !this.checked;
+    };
+
+    ['detail', 'edit', 'upload', 'ai'].forEach(function (name) {
+      var close = function () { closeModal(name + '-modal'); };
+      document.getElementById(name + '-modal-close').onclick = close;
+      document.getElementById(name + '-modal-cancel').onclick = close;
+      document.getElementById(name + '-modal').onclick = close;
+    });
+
+    document.getElementById('edit-modal-submit').onclick = async function () {
+      var id = document.getElementById('edit-id').value;
+      var content = document.getElementById('edit-content').value.trim();
+      if (!content) { showToast('文案不能为空', 'error'); return; }
+      var body = {
+        content_text: content,
+        hashtags: parseHashtags(document.getElementById('edit-hashtags').value),
+        emotion: document.getElementById('edit-emotion').value.trim() || null
+      };
+      var sched = fromDatetimeLocal(document.getElementById('edit-sched').value);
+      if (sched) body.scheduled_publish_time = sched;
+      var res = await adminRequest('PUT', '/api/admin/feed/posts/' + id, body);
+      if (res && res.code === 0) {
+        showToast('已保存', 'success');
+        closeModal('edit-modal');
+        loadPosts();
+      }
+    };
+
+    document.getElementById('upload-modal-submit').onclick = async function () {
+      var content = document.getElementById('up-content').value.trim();
+      if (!content) { showToast('文案不能为空', 'error'); return; }
+      var body = {
+        mode: 'upload',
+        content_text: content,
+        hashtags: parseHashtags(document.getElementById('up-hashtags').value)
+      };
+      var emotion = document.getElementById('up-emotion').value.trim();
+      if (emotion) body.emotion = emotion;
+      var sched = fromDatetimeLocal(document.getElementById('up-sched').value);
+      if (sched) body.scheduled_publish_time = sched;
+      var res = await adminRequest('POST', '/api/admin/feed/posts', body);
+      if (res && res.code === 0) {
+        showToast('已发布', 'success');
+        closeModal('upload-modal');
+        currentPage = 1;
+        loadPosts();
+      }
+    };
+
+    document.getElementById('ai-modal-submit').onclick = async function () {
+      var desc = document.getElementById('ai-description').value.trim();
+      if (!desc) { showToast('请填写内容描述', 'error'); return; }
+      var btn = document.getElementById('ai-modal-submit');
+      btn.disabled = true;
+      btn.textContent = '生成中…';
+      var body = { mode: 'ai_generate', description: desc };
+      var sched = fromDatetimeLocal(document.getElementById('ai-sched').value);
+      if (sched) body.scheduled_publish_time = sched;
+      var city = document.getElementById('ai-city').value.trim();
+      var venue = document.getElementById('ai-venue').value.trim();
+      var category = document.getElementById('ai-category').value.trim();
+      if (city) body.city = city;
+      if (venue) body.venue_type = venue;
+      if (category) body.category = category;
+      if (document.getElementById('ai-need-image').checked) {
+        body.image_type = document.getElementById('ai-image-type').value;
+      }
+      try {
+        var res = await adminRequest('POST', '/api/admin/feed/posts', body);
+        if (res && res.code === 0) {
+          showToast('生成成功', 'success');
+          closeModal('ai-modal');
+          currentPage = 1;
+          loadPosts();
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '生成';
+      }
+    };
+
+    loadAutoPublishBanner();
+    loadPosts();
+  });
+</script>
+</body>
+</html>

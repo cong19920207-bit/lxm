@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>朋友圈 · 评论 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <style>
+    .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-row .form-control { width: 140px; }
+    .text-muted { font-size: 12px; color: #888; }
+    .text-truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
+    .op-btn {
+      background: transparent; border: none; cursor: pointer; font-size: 13px;
+      padding: 2px 6px; border-radius: 3px; transition: all 0.2s; margin-right: 4px;
+    }
+    .op-btn-detail { color: var(--primary); }
+    .op-btn-detail:hover { background: #e6f7ff; }
+    .op-btn-danger { color: var(--danger); }
+    .op-btn-danger:hover { background: #fff2f0; }
+    .empty-tip { text-align: center; padding: 48px 0; color: var(--text-disabled); font-size: 14px; }
+    .modal-wide { max-width: 560px; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+
+  <div class="page-card">
+    <div class="filter-row">
+      <label>帖子 ID</label>
+      <input type="number" class="form-control" id="filter-post-id" placeholder="可选">
+      <label>用户 ID</label>
+      <input type="number" class="form-control" id="filter-user-id" placeholder="可选">
+      <label>状态</label>
+      <select class="form-control" id="filter-gen-status">
+        <option value="">全部</option>
+        <option value="pending">待回复</option>
+        <option value="generating">生成中</option>
+        <option value="ready">已回复</option>
+        <option value="failed">回复失败</option>
+        <option value="hidden">已隐藏</option>
+      </select>
+      <button type="button" class="btn btn-default" id="btn-search">查询</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>帖子 ID</th>
+            <th>用户</th>
+            <th>用户评论</th>
+            <th>状态</th>
+            <th>小梦回复</th>
+            <th>已读</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="comments-tbody">
+          <tr><td colspan="9" class="empty-tip">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="comments-pagination"></div>
+  </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div id="edit-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>编辑评论</h3>
+      <button type="button" class="btn btn-link" id="edit-modal-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <p class="text-muted" id="edit-meta" style="margin-bottom:12px"></p>
+      <div class="form-item">
+        <label>用户评论（content）</label>
+        <textarea class="form-control" id="edit-content" rows="3"></textarea>
+      </div>
+      <div class="form-item" style="margin-bottom:0">
+        <label>小梦回复（lxm_reply）</label>
+        <textarea class="form-control" id="edit-lxm-reply" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="edit-modal-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="edit-modal-submit">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/life-feed-admin.js"></script>
+<script>
+  var PAGE_KEY = 'feed-comments';
+  var currentPage = 1;
+  var pageSize = 20;
+
+  function isReadonly() { return isLifeFeedReadOnly(PAGE_KEY); }
+
+  function openModal(id) {
+    var el = document.getElementById(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  function truncate(text, n) {
+    text = text || '';
+    if (text.length <= n) return text;
+    return text.slice(0, n) + '…';
+  }
+
+  function statusTag(st) {
+    var map = {
+      pending: ['tag tag-warning', '待回复'],
+      generating: ['tag tag-blue', '生成中'],
+      ready: ['tag tag-success', '已回复'],
+      failed: ['tag tag-error', '回复失败'],
+      hidden: ['tag tag-default', '已隐藏']
+    };
+    var m = map[st] || ['tag tag-default', st || '-'];
+    return '<span class="' + m[0] + '">' + lfEscapeHtml(m[1]) + '</span>';
+  }
+
+  function readLabel(at) {
+    return at
+      ? '<span class="tag tag-success">已读</span>'
+      : '<span class="tag tag-default">未读</span>';
+  }
+
+  window.goCommentPage = function (p) {
+    currentPage = p;
+    loadComments();
+  };
+
+  window.openEditComment = async function (id) {
+    var res = await adminRequest('GET', '/api/admin/feed/comments/' + id);
+    if (!res || res.code !== 0) return;
+    var r = res.data || {};
+    document.getElementById('edit-id').value = r.id;
+    document.getElementById('edit-meta').textContent =
+      '评论 #' + r.id + ' · 帖子 #' + r.post_id + ' · 用户 ' + (r.user_nickname || r.user_id);
+    document.getElementById('edit-content').value = r.user_content || '';
+    document.getElementById('edit-lxm-reply').value = r.lxm_reply || '';
+    openModal('edit-modal');
+  };
+
+  window.deleteComment = function (id) {
+    showConfirm('确认隐藏评论 #' + id + '？（软删，用户端不再展示）', async function () {
+      var res = await adminRequest('DELETE', '/api/admin/feed/comments/' + id);
+      if (res && res.code === 0) {
+        showToast('已隐藏', 'success');
+        loadComments();
+      }
+    }, null, { danger: true });
+  };
+
+  window.regenerateComment = function (id) {
+    showConfirm('确认补发评论 #' + id + ' 的小梦回复？', async function () {
+      var res = await adminRequest('POST', '/api/admin/feed/comments/' + id + '/regenerate');
+      if (res && res.code === 0) {
+        showToast('已提交补发，稍后刷新查看', 'success');
+        loadComments();
+      }
+    });
+  };
+
+  async function loadComments() {
+    var postId = document.getElementById('filter-post-id').value.trim();
+    var userId = document.getElementById('filter-user-id').value.trim();
+    var gs = document.getElementById('filter-gen-status').value;
+    var q = '?page=' + currentPage + '&size=' + pageSize;
+    if (postId) q += '&post_id=' + encodeURIComponent(postId);
+    if (userId) q += '&user_id=' + encodeURIComponent(userId);
+    if (gs) q += '&gen_status=' + encodeURIComponent(gs);
+
+    var res = await adminRequest('GET', '/api/admin/feed/comments' + q);
+    var tbody = document.getElementById('comments-tbody');
+    var readonly = isReadonly();
+    if (!res || res.code !== 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">加载失败</td></tr>';
+      return;
+    }
+    var data = res.data || {};
+    var rows = data.list || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-tip">暂无评论</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        var userLabel = r.user_nickname
+          ? lfEscapeHtml(r.user_nickname) + ' <span class="text-muted">#' + r.user_id + '</span>'
+          : String(r.user_id);
+        var ops = '';
+        if (!readonly) {
+          ops += '<button class="op-btn op-btn-detail" onclick="openEditComment(' + r.id + ')">编辑</button>';
+          if (r.gen_status === 'failed' || r.gen_status === 'ready' || r.gen_status === 'pending') {
+            ops += '<button class="op-btn op-btn-detail" onclick="regenerateComment(' + r.id + ')">补发</button>';
+          }
+          if (!r.is_hidden && r.gen_status !== 'hidden') {
+            ops += '<button class="op-btn op-btn-danger" onclick="deleteComment(' + r.id + ')">隐藏</button>';
+          }
+        } else {
+          ops = '<span class="text-muted">—</span>';
+        }
+        return '<tr>' +
+          '<td>' + r.id + '</td>' +
+          '<td>' + r.post_id + '</td>' +
+          '<td>' + userLabel + '</td>' +
+          '<td class="text-truncate" title="' + lfEscapeHtml(r.user_content) + '">' +
+            lfEscapeHtml(truncate(r.user_content, 30)) + '</td>' +
+          '<td>' + statusTag(r.gen_status) + '</td>' +
+          '<td class="text-truncate" title="' + lfEscapeHtml(r.lxm_reply || '') + '">' +
+            lfEscapeHtml(truncate(r.lxm_reply || '-', 30)) + '</td>' +
+          '<td>' + readLabel(r.lxm_reply_read_at) + '</td>' +
+          '<td>' + formatDateTime(r.created_at) + '</td>' +
+          '<td>' + ops + '</td></tr>';
+      }).join('');
+    }
+    renderPagination('comments-pagination', data.page || currentPage, data.total || 0, data.size || pageSize, 'goCommentPage');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 评论', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+
+    document.getElementById('btn-search').onclick = function () { currentPage = 1; loadComments(); };
+
+    var closeEdit = function () { closeModal('edit-modal'); };
+    document.getElementById('edit-modal-close').onclick = closeEdit;
+    document.getElementById('edit-modal-cancel').onclick = closeEdit;
+    document.getElementById('edit-modal').onclick = closeEdit;
+
+    document.getElementById('edit-modal-submit').onclick = async function () {
+      var id = document.getElementById('edit-id').value;
+      var body = {
+        content: document.getElementById('edit-content').value,
+        lxm_reply: document.getElementById('edit-lxm-reply').value
+      };
+      var res = await adminRequest('PUT', '/api/admin/feed/comments/' + id, body);
+      if (res && res.code === 0) {
+        showToast('已保存', 'success');
+        closeModal('edit-modal');
+        loadComments();
+      }
+    };
+
+    loadComments();
+  });
+</script>
+</body>
+</html>
