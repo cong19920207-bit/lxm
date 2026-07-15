@@ -533,7 +533,8 @@
       return;
     }
 
-    document.getElementById('sidebar-mount').innerHTML = renderSidebar('memory');
+    // 顶栏「记忆规则」已隐藏，统一归入对话流 Prompt · Step6
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('cp-step6');
     document.getElementById('header-mount').innerHTML = renderHeader('记忆规则配置');
 
     initTabs('memory-tabs');

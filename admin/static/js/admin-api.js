@@ -211,8 +211,8 @@ function showConfirmInput(title, warningMessage, confirmBtnText, onConfirm) {
 
 // ─── 侧边栏菜单配置（按角色）───
 
-// 一级菜单顺序：运营总览 → AI 对话配置 → 生活宇宙（占位 group:'life_feed'）→ 系统与账号
-// 占位项仅控制「生活宇宙」插入位置，不渲染为普通菜单项
+// 一级菜单顺序：运营总览 → AI 对话配置 → 对话流 Prompt → 生活流 Prompt → 系统与账号
+// 占位项仅控制分组插入位置，不渲染为普通菜单项
 var MENU_CONFIG = {
   super_admin: [
     { key: 'dashboard',       label: '📊 数据看板',   href: 'dashboard.html' },
@@ -220,17 +220,15 @@ var MENU_CONFIG = {
     { key: 'report',          label: '📈 数据报表',   href: 'data-report.html' },
     { key: 'diary-history',   label: '📜 AI 日记历史', href: 'diary-history.html' },
     { key: 'persona',         label: '🎭 人格管理',   href: 'persona.html' },
-    { key: 'prompt',          label: '📝 Prompt管理', href: 'prompt.html' },
-    { key: 'memory',          label: '🧠 记忆规则',   href: 'memory-rules.html' },
+    { key: 'chat-prompt-group', group: 'chat_prompt' },
+    { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
     { key: 'vector-token',    label: '🔎 召回与 Token', href: 'vector-token-config.html' },
     { key: 'agent',           label: '🤖 Agent配置',  href: 'agent-rules.html' },
     { key: 'relationship',    label: '💞 关系成长',   href: 'relationship-rules.html' },
     { key: 'diary',           label: '📔 日记规则',   href: 'diary-rules.html' },
     { key: 'safety',          label: '🛡️ 内容安全',  href: 'safety-rules.html' },
-    { key: 'step55switch',    label: '⚡ Step5.5开关', href: 'step5-5-switch.html' },
     { key: 'test',            label: '🧪 AI测试工具', href: 'test-tool.html' },
-    { key: 'life-feed-group', group: 'life_feed' },
     { key: 'system',          label: '⚙️ 系统监控',  href: 'system-monitor.html' },
     { key: 'third-party',     label: '🔌 第三方服务', href: 'third-party.html' },
     { key: 'system-logs',     label: '📋 系统日志',   href: 'system-logs.html' },
@@ -248,17 +246,15 @@ var MENU_CONFIG = {
   ai_trainer: [
     { key: 'dashboard',       label: '📊 数据看板',   href: 'dashboard.html' },
     { key: 'persona',         label: '🎭 人格管理',   href: 'persona.html' },
-    { key: 'prompt',          label: '📝 Prompt管理', href: 'prompt.html' },
-    { key: 'memory',          label: '🧠 记忆规则',   href: 'memory-rules.html' },
+    { key: 'chat-prompt-group', group: 'chat_prompt' },
+    { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
     { key: 'vector-token',    label: '🔎 召回与 Token', href: 'vector-token-config.html' },
     { key: 'agent',           label: '🤖 Agent配置',  href: 'agent-rules.html' },
     { key: 'relationship',    label: '💞 关系成长',   href: 'relationship-rules.html' },
     { key: 'diary',           label: '📔 日记规则',   href: 'diary-rules.html' },
     { key: 'safety',          label: '🛡️ 内容安全',  href: 'safety-rules.html' },
-    { key: 'step55switch',    label: '⚡ Step5.5开关', href: 'step5-5-switch.html' },
-    { key: 'test',            label: '🧪 AI测试工具', href: 'test-tool.html' },
-    { key: 'life-feed-group', group: 'life_feed' }
+    { key: 'test',            label: '🧪 AI测试工具', href: 'test-tool.html' }
   ],
   tech_ops: [
     { key: 'dashboard',       label: '📊 数据看板',   href: 'dashboard.html' },
@@ -270,36 +266,60 @@ var MENU_CONFIG = {
   ]
 };
 
-// ─── 生活宇宙子菜单（STEP-038，侧栏展示名「生活宇宙」）───
+// ─── 生活流 Prompt 子菜单（原「生活宇宙」）───
 // super_admin / ai_trainer：全部；ops_admin：只读内容/评论/感知；tech_ops：仅系统参数
-// 子项顺序：运营优先（内容→评论→感知→计划→宇宙→全局→Prompt→系统）
+// 子项顺序：生活计划 → 生活流人格拓展 → 内容/评论/感知 → 宇宙 → Prompt → 系统
+
+// ─── 对话流 Prompt 子菜单（只读页 + 链到现有可编辑页）───
+var CHAT_PROMPT_MENU = {
+  super_admin: [
+    { key: 'cp-step15', label: '🔍 Step1.5 查询重写', href: 'chat-prompt-step15.html' },
+    { key: 'cp-step3',  label: '🧩 Step3 Prompt拼装', href: 'chat-prompt-step3.html' },
+    { key: 'cp-step5',  label: '💬 Step5 主对话', href: 'prompt.html?tab=step5' },
+    { key: 'cp-step55', label: '✨ Step5.5 润色', href: 'prompt.html?tab=step55' },
+    { key: 'cp-step55-switch', label: '⚡ Step5.5 开关', href: 'step5-5-switch.html' },
+    { key: 'cp-step6',  label: '🧠 Step6 记忆拆解', href: 'memory-rules.html?nav=cp-step6' },
+    { key: 'cp-step8',  label: '⏰ Step8 Future主动', href: 'chat-prompt-step8.html' },
+    { key: 'cp-agent',  label: '📣 Agent主动 P0～P4', href: 'chat-prompt-agent.html' }
+  ],
+  ai_trainer: [
+    { key: 'cp-step15', label: '🔍 Step1.5 查询重写', href: 'chat-prompt-step15.html' },
+    { key: 'cp-step3',  label: '🧩 Step3 Prompt拼装', href: 'chat-prompt-step3.html' },
+    { key: 'cp-step5',  label: '💬 Step5 主对话', href: 'prompt.html?tab=step5' },
+    { key: 'cp-step55', label: '✨ Step5.5 润色', href: 'prompt.html?tab=step55' },
+    { key: 'cp-step55-switch', label: '⚡ Step5.5 开关', href: 'step5-5-switch.html' },
+    { key: 'cp-step6',  label: '🧠 Step6 记忆拆解', href: 'memory-rules.html?nav=cp-step6' },
+    { key: 'cp-step8',  label: '⏰ Step8 Future主动', href: 'chat-prompt-step8.html' },
+    { key: 'cp-agent',  label: '📣 Agent主动 P0～P4', href: 'chat-prompt-agent.html' }
+  ]
+};
 
 var LIFE_FEED_MENU = {
   super_admin: [
+    { key: 'life-plan',           label: '📅 生活计划',           href: 'life-plan.html' },
+    { key: 'life-feed-global',    label: '🧬 生活流人格拓展',     href: 'life-feed-global.html' },
     { key: 'feed-posts',          label: '📷 朋友圈 · 内容',      href: 'feed-posts.html' },
     { key: 'feed-comments',       label: '💬 朋友圈 · 评论',      href: 'feed-comments.html' },
     { key: 'agent-aware',         label: '🔔 感知消息',           href: 'agent-aware.html' },
-    { key: 'life-plan',           label: '📅 生活计划',           href: 'life-plan.html' },
     { key: 'worldview',           label: '🌌 她的宇宙',           href: 'worldview.html' },
-    { key: 'life-feed-global',    label: '⚙️ 全局配置',           href: 'life-feed-global.html' },
     { key: 'life-feed-prompts',   label: '✍️ Prompt · 生活流',    href: 'life-feed-prompts.html' },
     { key: 'life-feed-system',    label: '🚀 发布 & 系统参数',    href: 'life-feed-system.html' }
   ],
   ai_trainer: [
+    { key: 'life-plan',           label: '📅 生活计划',           href: 'life-plan.html' },
+    { key: 'life-feed-global',    label: '🧬 生活流人格拓展',     href: 'life-feed-global.html' },
     { key: 'feed-posts',          label: '📷 朋友圈 · 内容',      href: 'feed-posts.html' },
     { key: 'feed-comments',       label: '💬 朋友圈 · 评论',      href: 'feed-comments.html' },
     { key: 'agent-aware',         label: '🔔 感知消息',           href: 'agent-aware.html' },
-    { key: 'life-plan',           label: '📅 生活计划',           href: 'life-plan.html' },
     { key: 'worldview',           label: '🌌 她的宇宙',           href: 'worldview.html' },
-    { key: 'life-feed-global',    label: '⚙️ 全局配置',           href: 'life-feed-global.html' },
     { key: 'life-feed-prompts',   label: '✍️ Prompt · 生活流',    href: 'life-feed-prompts.html' },
     { key: 'life-feed-system',    label: '🚀 发布 & 系统参数',    href: 'life-feed-system.html' }
   ],
   ops_admin: [
+    { key: 'life-plan',     label: '📅 生活计划',     href: 'life-plan.html', readonly: true },
     { key: 'feed-posts',    label: '📷 朋友圈 · 内容', href: 'feed-posts.html', readonly: true },
     { key: 'feed-comments', label: '💬 朋友圈 · 评论', href: 'feed-comments.html', readonly: true },
     { key: 'agent-aware',   label: '🔔 感知消息',     href: 'agent-aware.html', readonly: true },
-    { key: 'life-plan',     label: '📅 生活计划',     href: 'life-plan.html', readonly: true },
     { key: 'worldview',     label: '🌌 她的宇宙',     href: 'worldview.html', readonly: true }
   ],
   tech_ops: [
@@ -333,8 +353,15 @@ function restoreSidebarScroll() {
   } catch (e) { /* ignore */ }
 }
 
-/** 生活宇宙分组标题：仅展开/收起，不跳转 */
+/** 生活流 Prompt 分组标题：仅展开/收起，不跳转 */
 function toggleLifeFeedMenu(titleEl) {
+  var group = titleEl && titleEl.parentElement;
+  if (!group || !group.classList.contains('menu-group')) return;
+  group.classList.toggle('expanded');
+}
+
+/** 对话流 Prompt 分组标题：仅展开/收起 */
+function toggleChatPromptMenu(titleEl) {
   var group = titleEl && titleEl.parentElement;
   if (!group || !group.classList.contains('menu-group')) return;
   group.classList.toggle('expanded');
@@ -350,23 +377,34 @@ function isLifeFeedReadOnly(activeKey) {
   return role === 'ops_admin' || role === 'tech_ops';
 }
 
-/** 当前 key 是否属于生活宇宙分组（用于侧栏默认展开） */
+/** 当前 key 是否属于生活流 Prompt 分组（用于侧栏默认展开） */
 function isLifeFeedKey(activeKey) {
   var all = ['life-feed-global', 'life-plan', 'worldview', 'feed-posts', 'feed-comments',
     'agent-aware', 'life-feed-prompts', 'life-feed-system'];
   return all.indexOf(activeKey) >= 0;
 }
 
-/** 渲染「生活宇宙」可折叠分组 HTML */
+/** 当前 key 是否属于对话流 Prompt 分组 */
+function isChatPromptKey(activeKey) {
+  var all = [
+    'cp-step15', 'cp-step3', 'cp-step5', 'cp-step55', 'cp-step55-switch',
+    'cp-step6', 'cp-step8', 'cp-agent',
+    // 兼容旧书签：仍可能直接打开 prompt / step55switch
+    'prompt', 'step55switch'
+  ];
+  return all.indexOf(activeKey) >= 0;
+}
+
+/** 渲染「生活流 Prompt」可折叠分组 HTML */
 function renderLifeFeedGroupHtml(activeKey, lfMenus) {
   if (!lfMenus || lfMenus.length === 0) return '';
-  // 当前页属生活宇宙 → 强制展开；否则默认收起
+  // 当前页属本分组 → 强制展开；否则默认收起
   var lfExpanded = isLifeFeedKey(activeKey) ? ' expanded' : '';
   var html = '<div class="menu-group' + lfExpanded + '">';
-  // 标题仅展开/收起，不跳转；侧栏展示名「生活宇宙」
+  // 标题仅展开/收起，不跳转
   html +=
     '<div class="menu-group-title" onclick="toggleLifeFeedMenu(this)">' +
-      '<span class="menu-group-label">🌿 生活宇宙</span>' +
+      '<span class="menu-group-label">🌿 生活流 Prompt</span>' +
       '<span class="menu-group-arrow"></span>' +
     '</div>';
   html += '<div class="menu-group-body">';
@@ -383,21 +421,54 @@ function renderLifeFeedGroupHtml(activeKey, lfMenus) {
   return html;
 }
 
+/** 渲染「对话流 Prompt」可折叠分组 HTML */
+function renderChatPromptGroupHtml(activeKey, cpMenus) {
+  if (!cpMenus || cpMenus.length === 0) return '';
+  var expanded = isChatPromptKey(activeKey) ? ' expanded' : '';
+  var html = '<div class="menu-group' + expanded + '">';
+  html +=
+    '<div class="menu-group-title" onclick="toggleChatPromptMenu(this)">' +
+      '<span class="menu-group-label">🗣️ 对话流 Prompt</span>' +
+      '<span class="menu-group-arrow"></span>' +
+    '</div>';
+  html += '<div class="menu-group-body">';
+  for (var j = 0; j < cpMenus.length; j++) {
+    var cm = cpMenus[j];
+    var isActive = activeKey === cm.key;
+    // 兼容：旧 activeKey=prompt 时高亮 Step5
+    if (!isActive && activeKey === 'prompt' && cm.key === 'cp-step5') isActive = true;
+    if (!isActive && activeKey === 'step55switch' && cm.key === 'cp-step55-switch') isActive = true;
+    html +=
+      '<div class="menu-item menu-sub' + (isActive ? ' active' : '') + '"' +
+      ' onclick="navigateAdminPage(\'' + cm.href + '\')">' +
+      cm.label +
+      '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
 // ─── 侧边栏渲染 ───
 
 function renderSidebar(activeKey) {
   var role = getAdminRole();
   var menus = MENU_CONFIG[role] || [];
   var lfMenus = LIFE_FEED_MENU[role] || [];
+  var cpMenus = CHAT_PROMPT_MENU[role] || [];
   var items = '';
   var lifeFeedInserted = false;
+  var chatPromptInserted = false;
 
   for (var i = 0; i < menus.length; i++) {
     var m = menus[i];
-    // 占位项：在此位置插入「生活宇宙」分组
     if (m.group === 'life_feed') {
       items += renderLifeFeedGroupHtml(activeKey, lfMenus);
       lifeFeedInserted = true;
+      continue;
+    }
+    if (m.group === 'chat_prompt') {
+      items += renderChatPromptGroupHtml(activeKey, cpMenus);
+      chatPromptInserted = true;
       continue;
     }
     items +=
@@ -407,9 +478,11 @@ function renderSidebar(activeKey) {
       '</div>';
   }
 
-  // 兜底：若某角色未配置占位但仍有子菜单，仍挂到末尾（避免漏显）
   if (!lifeFeedInserted && lfMenus.length > 0) {
     items += renderLifeFeedGroupHtml(activeKey, lfMenus);
+  }
+  if (!chatPromptInserted && cpMenus.length > 0) {
+    items += renderChatPromptGroupHtml(activeKey, cpMenus);
   }
 
   // 注入完成后恢复侧栏滚动（不改各业务页调用方）

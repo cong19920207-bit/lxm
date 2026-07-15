@@ -545,13 +545,22 @@
       window.location.href = '/admin/pages/error.html?type=403';
       return;
     }
-    document.getElementById('sidebar-mount').innerHTML = renderSidebar('prompt');
-    document.getElementById('header-mount').innerHTML = renderHeader('Prompt管理');
+    var params = new URLSearchParams(window.location.search || '');
+    var tab = (params.get('tab') || 'step5').toLowerCase();
+    var sideKey = tab === 'step55' || tab === 'step5.5' ? 'cp-step55' : 'cp-step5';
+    var headerTitle = sideKey === 'cp-step55' ? 'Step5.5 润色' : 'Step5 主对话';
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar(sideKey);
+    document.getElementById('header-mount').innerHTML = renderHeader(headerTitle);
     setTestPassed(false);
     await loadStep5();
     await loadStep55();
     await loadHist5();
     await loadHist55();
+    // URL ?tab=step55 时默认展示 Step5.5 片段 Tab
+    if (sideKey === 'cp-step55') {
+      var tab55 = document.querySelector('#prompt-main-tabs .tab-item[data-target="pane-main-step55"]');
+      if (tab55) tab55.click();
+    }
   });
 })();
 </script>

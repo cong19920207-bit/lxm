@@ -232,6 +232,33 @@ ACTIVE_TRIGGER_INSTRUCTIONS = {
     ),
 }
 
+# Agent 主动消息任务段末尾输出约束（与 _build_active_task_instruction 同源）
+AGENT_TASK_OUTPUT_SUFFIX = (
+    "\n\n你必须按照【结构化输出指令】中的 JSON 格式返回，"
+    "包含 inner_monologue、messages、relation_change、future、emotion、knowledge_expand。"
+)
+
+# 沉默语气修正（写入 Relationship 模块；与后台只读展示同源）
+SILENCE_CORRECTION_8_14 = (
+    "用户最近有些沉默，语气带一点担心和想念，比平时更温柔一些"
+)
+SILENCE_CORRECTION_15_PLUS = (
+    "用户久未联系，以久别重逢的温柔感切入，"
+    "先关心用户近况，不急于恢复亲密感"
+)
+
+# Step8 模块9 模板骨架（{{future_action}} 运行时替换为 Future 槽摘要）
+STEP8_PROACTIVE_INPUT_TEMPLATE = (
+    "【主动发起】\n"
+    "你正在主动联系用户，不是回复用户消息。\n"
+    "上次对话中你与用户有过约定：{{future_action}}\n"
+    "现在是约定的时间到了，请基于这个约定自然地发起对话。\n"
+    "像想起了这件事一样自然地提起，不要生硬地说「我们之前约好了」。\n"
+    "\n"
+    "输出仍为单一 JSON 对象，包含 inner_monologue、messages、"
+    "relation_change、future、emotion、knowledge_expand。"
+)
+
 
 # ============ Token 工具函数 ============
 
@@ -770,14 +797,9 @@ class PromptBuilder:
 
         # 沉默修正指令
         if 8 <= silence_days <= 14:
-            parts.append(
-                "用户最近有些沉默，语气带一点担心和想念，比平时更温柔一些"
-            )
+            parts.append(SILENCE_CORRECTION_8_14)
         elif silence_days >= 15:
-            parts.append(
-                "用户久未联系，以久别重逢的温柔感切入，"
-                "先关心用户近况，不急于恢复亲密感"
-            )
+            parts.append(SILENCE_CORRECTION_15_PLUS)
 
         # 关系扩展字段（R-MEM-05 / STEP-004）
         # C3：称呼行（亲密称呼/用户真名）已移除，统一由 user_nickname 独立模块承担
@@ -813,14 +835,9 @@ class PromptBuilder:
             f"语气与行为边界：{level_def['behavior']}",
         ]
         if 8 <= silence_days <= 14:
-            parts.append(
-                "用户最近有些沉默，语气带一点担心和想念，比平时更温柔一些"
-            )
+            parts.append(SILENCE_CORRECTION_8_14)
         elif silence_days >= 15:
-            parts.append(
-                "用户久未联系，以久别重逢的温柔感切入，"
-                "先关心用户近况，不急于恢复亲密感"
-            )
+            parts.append(SILENCE_CORRECTION_15_PLUS)
         return "\n".join(parts)
 
     def _build_memory_prompt(
@@ -986,15 +1003,8 @@ class PromptBuilder:
     ) -> str:
         """Step8 子链路模块9：替换【用户消息】为【主动发起】，含 future.action 摘要"""
         lim = (limits or MODULE_TOKEN_LIMITS)["user_input"]
-        text = (
-            "【主动发起】\n"
-            "你正在主动联系用户，不是回复用户消息。\n"
-            f"上次对话中你与用户有过约定：{future_action}\n"
-            "现在是约定的时间到了，请基于这个约定自然地发起对话。\n"
-            "像想起了这件事一样自然地提起，不要生硬地说「我们之前约好了」。\n"
-            "\n"
-            "输出仍为单一 JSON 对象，包含 inner_monologue、messages、"
-            "relation_change、future、emotion、knowledge_expand。"
+        text = STEP8_PROACTIVE_INPUT_TEMPLATE.replace(
+            "{{future_action}}", future_action or "",
         )
         return truncate_to_tokens(text, lim)
 
@@ -1007,11 +1017,7 @@ class PromptBuilder:
             trigger_type,
             "【任务】请主动向用户发送一条温暖的消息。",
         )
-        output_instruction = (
-            "\n\n你必须按照【结构化输出指令】中的 JSON 格式返回，"
-            "包含 inner_monologue、messages、relation_change、future、emotion、knowledge_expand。"
-        )
-        return truncate_to_tokens(instruction + output_instruction, lim)
+        return truncate_to_tokens(instruction + AGENT_TASK_OUTPUT_SUFFIX, lim)
 
     # ==================== Token 裁剪（5 级优先级）====================
 

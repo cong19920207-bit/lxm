@@ -116,6 +116,7 @@ from backend.routers.admin import persona as admin_persona  # noqa: E402
 from backend.routers.admin import emotion_config as admin_emotion  # noqa: E402
 from backend.routers.admin import world_state_mgmt as admin_world  # noqa: E402
 from backend.routers.admin import prompt_mgmt as admin_prompt  # noqa: E402
+from backend.routers.admin import chat_prompt_view as admin_chat_prompt_view  # noqa: E402
 from backend.routers.admin import safety_rules as admin_safety  # noqa: E402
 from backend.routers.admin import test_cases as admin_test_cases  # noqa: E402
 from backend.routers.admin import memory_mgmt as admin_memory  # noqa: E402
@@ -148,6 +149,8 @@ app.include_router(admin_world.router,
     prefix="/api/admin", tags=["admin-world"])
 app.include_router(admin_prompt.router,
     prefix="/api/admin", tags=["admin-prompt"])
+app.include_router(admin_chat_prompt_view.router,
+    prefix="/api/admin", tags=["admin-chat-prompt-view"])
 app.include_router(admin_safety.router,
     prefix="/api/admin", tags=["admin-safety"])
 app.include_router(admin_test_cases.router,
