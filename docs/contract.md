@@ -910,7 +910,7 @@
 | 触发 | 任务 | 说明 |
 |------|------|------|
 | 周日 23:00 / 23:30 | `weekly_outline_task` / `_retry` | LLM-01 |
-| 每日 00:20 / 00:30 | `daily_scenes_task` / `_retry` | LLM-02 |
+| 每日 00:20 / 00:30 | `daily_scenes_task` / `_retry` | LLM-02 当日场景 |
 | 每日 00:45 | `daily_her_universe_task` | LLM-03 |
 | 每日 01:00 | `daily_feed_publish_task` | LIFE001 |
 | 每 30s | `comment_reply_poll_task` | LLM-05（`due_at` UTC） |

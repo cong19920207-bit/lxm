@@ -77,11 +77,11 @@ async def weekly_outline_retry_task() -> None:
     await _generate_next_week(is_retry=True)
 
 
-async def _generate_next_day_scenes(is_retry: bool) -> None:
-    """为「次日」生成日场景（LLM-02，PRD 2.3.1：00:20 生成次日）。"""
+async def _generate_current_day_scenes(is_retry: bool) -> None:
+    """为「当日」生成日场景（LLM-02，PRD 2.3.1：00:20 生成当日）。"""
     from backend.services.life_planner_service import life_planner_service
 
-    plan_date = date.today() + timedelta(days=1)
+    plan_date = date.today()
     stage = "重试(00:30)" if is_retry else "首次(00:20)"
     logger.info("[定时任务][LLM-02] %s 日场景生成 plan_date=%s", stage, plan_date)
     try:
@@ -114,13 +114,13 @@ async def _generate_next_day_scenes(is_retry: bool) -> None:
 
 
 async def daily_scenes_task() -> None:
-    """每日 00:20 生成次日场景。"""
-    await _generate_next_day_scenes(is_retry=False)
+    """每日 00:20 生成当日场景。"""
+    await _generate_current_day_scenes(is_retry=False)
 
 
 async def daily_scenes_retry_task() -> None:
     """每日 00:30 重试：generate_daily_scenes 内部对 ready 自动跳过，仅 failed 时重跑。"""
-    await _generate_next_day_scenes(is_retry=True)
+    await _generate_current_day_scenes(is_retry=True)
 
 
 async def daily_her_universe_task() -> None:

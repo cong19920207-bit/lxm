@@ -74,7 +74,7 @@ async def _run_weekly_outline_retry() -> None:
 
 
 async def _run_daily_scenes() -> None:
-    """LLM-02 日场景首次生成（每日 00:20，为次日生成）"""
+    """LLM-02 日场景首次生成（每日 00:20，为当日生成）"""
     try:
         from backend.tasks.life_feed_task import daily_scenes_task
         await daily_scenes_task()
@@ -208,7 +208,7 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
         replace_existing=True,
     )
 
-    # LLM-02 日场景：每日 00:20 首次 + 00:30 重试（Asia/Shanghai），为次日生成
+    # LLM-02 日场景：每日 00:20 首次 + 00:30 重试（Asia/Shanghai），为当日生成
     scheduler.add_job(
         _run_daily_scenes,
         trigger=CronTrigger(hour=0, minute=20, timezone=ZoneInfo("Asia/Shanghai")),
