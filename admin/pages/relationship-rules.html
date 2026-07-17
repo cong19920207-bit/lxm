@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>关系成长配置 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .rel-tab-header-card {
       padding-bottom: 0;
@@ -68,12 +68,12 @@
     </div>
   </div>
 
-  <div id="tab-levels" class="tab-pane active">
+  <div id="tab-levels" class="tab-pane active" data-write-action>
     <div id="level-cards-wrap" class="grid-4"></div>
     <button type="button" class="btn btn-primary btn-block" id="btn-level-check-save" style="margin-top:16px">检查影响并保存</button>
   </div>
 
-  <div id="tab-growth" class="tab-pane">
+  <div id="tab-growth" class="tab-pane" data-write-action>
     <div class="page-card">
       <table class="admin-table">
         <thead>
@@ -129,14 +129,14 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="modal-impact-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="modal-impact-confirm">确认保存</button>
+      <button type="button" class="btn btn-primary" id="modal-impact-confirm" data-write-action>确认保存</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
 
   var DEFAULT_LEVELS = [
     { level: 0, name: '陌生', threshold: 0, description: '初次相识，一切都是新鲜的开始' },
@@ -221,6 +221,7 @@
       html += '</div></div>';
     }
     document.getElementById('level-cards-wrap').innerHTML = html;
+    applyObserverReadOnly(document.getElementById('tab-levels'));
   }
 
   function readLevelsFromForm() {

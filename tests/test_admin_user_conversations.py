@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # 管理端用户历史对话 / 情绪日志日期筛选 API 测试
 
+import importlib
 import sys
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock
@@ -15,7 +16,7 @@ import backend.models  # noqa: F401
 
 from backend.database import Base, get_db
 
-import backend.tasks.scheduler as _sched_mod
+_sched_mod = importlib.import_module("backend.tasks.scheduler")
 
 _sched_mod.start_scheduler = lambda *a, **k: None
 _sched_mod.shutdown_scheduler = lambda *a, **k: None
@@ -52,9 +53,6 @@ async def override_get_db():
             await session.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
 @pytest.fixture(autouse=True)
 def _patch_redis(monkeypatch):
     monkeypatch.setattr("backend.main.create_all_tables", AsyncMock())
@@ -83,9 +81,17 @@ async def setup_db():
 
 @pytest_asyncio.fixture
 async def client():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    previous_override = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        if previous_override is None:
+            app.dependency_overrides.pop(get_db, None)
+        else:
+            app.dependency_overrides[get_db] = previous_override
 
 
 def _hash_admin_password(password: str) -> str:

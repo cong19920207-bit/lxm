@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>朋友圈 · 评论 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 140px; }
@@ -78,7 +78,7 @@
       <h3>编辑评论</h3>
       <button type="button" class="btn btn-link" id="edit-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <input type="hidden" id="edit-id">
       <p class="text-muted" id="edit-meta" style="margin-bottom:12px"></p>
       <div class="form-item">
@@ -92,13 +92,13 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="edit-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="edit-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="edit-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var PAGE_KEY = 'feed-comments';
   var currentPage = 1;
@@ -205,12 +205,12 @@
           : String(r.user_id);
         var ops = '';
         if (!readonly) {
-          ops += '<button class="op-btn op-btn-detail" onclick="openEditComment(' + r.id + ')">编辑</button>';
+          ops += '<button class="op-btn op-btn-detail" data-write-action onclick="openEditComment(' + r.id + ')">编辑</button>';
           if (r.gen_status === 'failed' || r.gen_status === 'ready' || r.gen_status === 'pending') {
-            ops += '<button class="op-btn op-btn-detail" onclick="regenerateComment(' + r.id + ')">补发</button>';
+            ops += '<button class="op-btn op-btn-detail" data-write-action onclick="regenerateComment(' + r.id + ')">补发</button>';
           }
           if (!r.is_hidden && r.gen_status !== 'hidden') {
-            ops += '<button class="op-btn op-btn-danger" onclick="deleteComment(' + r.id + ')">隐藏</button>';
+            ops += '<button class="op-btn op-btn-danger" data-write-action onclick="deleteComment(' + r.id + ')">隐藏</button>';
           }
         } else {
           ops = '<span class="text-muted">—</span>';
@@ -233,7 +233,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 评论', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 评论', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
 
     document.getElementById('btn-search').onclick = function () { currentPage = 1; loadComments(); };
 

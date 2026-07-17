@@ -19,7 +19,8 @@ from backend.utils.admin_auth import get_current_admin, log_operation, require_r
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 
 class CharacterKnowledgeCreateRequest(BaseModel):
@@ -40,7 +41,7 @@ def _fail_from_service(result: dict):
 
 @router.get(
     "/character-knowledge",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def list_character_knowledge(
     type: Optional[str] = Query(None, alias="type", description="类型筛选"),
@@ -63,7 +64,7 @@ async def list_character_knowledge(
 
 @router.post(
     "/character-knowledge",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def create_character_knowledge(
     body: CharacterKnowledgeCreateRequest,
@@ -94,7 +95,7 @@ async def create_character_knowledge(
 
 @router.put(
     "/character-knowledge/{doc_id:path}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_character_knowledge(
     doc_id: str,
@@ -126,7 +127,7 @@ async def update_character_knowledge(
 
 @router.delete(
     "/character-knowledge/{doc_id:path}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def delete_character_knowledge(
     doc_id: str,

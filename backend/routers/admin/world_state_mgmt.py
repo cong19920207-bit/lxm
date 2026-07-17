@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _CONFIG_KEY = "world_state_config"
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 
 class WorldStateConfigRequest(BaseModel):
@@ -33,7 +34,7 @@ class WorldStateConfigRequest(BaseModel):
 
 @router.get(
     "/world-state/config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_world_state_config(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -45,7 +46,7 @@ async def get_world_state_config(
 
 @router.put(
     "/world-state/config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_world_state_config(
     body: WorldStateConfigRequest,
@@ -80,7 +81,7 @@ async def update_world_state_config(
 
 @router.get(
     "/world-state/history",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_world_state_history(
     user_id: int | None = Query(None, description="用户 ID（可选筛选）"),

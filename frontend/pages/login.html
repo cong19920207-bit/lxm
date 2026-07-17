@@ -92,9 +92,55 @@
       cursor: pointer;
       margin: 0 6px;
     }
+
+    /* 登录页专用桌面外壳：移动端保持现有 H5 页面不变。 */
+    .desktop-login-header,
+    .desktop-login-footer {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      body.h5-skin {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .desktop-login-header {
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        padding: 0 clamp(32px, 6vw, 96px);
+        background: rgba(255, 255, 255, 0.82);
+        border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+        color: var(--color-text);
+        font-size: 19px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+      }
+
+      .h5-auth-wrap {
+        min-height: 0;
+        flex: 1;
+        padding: 48px 32px;
+      }
+
+      .desktop-login-footer {
+        display: flex;
+        justify-content: center;
+        padding: 18px 32px 24px;
+        color: #8b8b96;
+        font-size: 12px;
+      }
+
+      .desktop-login-footer a:hover {
+        color: var(--color-text);
+      }
+    }
   </style>
 </head>
 <body class="h5-skin">
+  <header class="desktop-login-header">个人虚拟人模拟</header>
   <div class="h5-auth-wrap">
     <div class="h5-auth-decor" aria-hidden="true"><div class="h5-auth-spark"></div></div>
     <div class="h5-auth-inner">
@@ -191,6 +237,9 @@
       </div>
     </div>
   </div>
+  <footer class="desktop-login-footer">
+    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">浙ICP备2026035072号-1</a>
+  </footer>
 
   <script src="/static/js/api.js"></script>
   <script>

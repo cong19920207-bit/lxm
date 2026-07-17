@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>第三方服务监控 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     #service-grid {
       display: grid;
@@ -84,12 +84,12 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
   if (!checkAdminLogin()) return;
 
-  var ALLOWED_ROLES = ['super_admin', 'tech_ops'];
+  var ALLOWED_ROLES = ['super_admin', 'tech_ops', 'observer'];
   if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
     window.location.href = '/admin/pages/error.html?type=403';
     return;
@@ -106,6 +106,7 @@
   var currentSvcKey = '';
   var configTestPassed = {};
   var refreshTimer = null;
+  var observerView = getAdminRole() === 'observer';
 
   function escapeHtml(s) {
     if (s == null) return '';
@@ -142,7 +143,12 @@
     var pctStyle = rate < 90 ? ' style="white-space:nowrap;color:var(--danger)"' : ' style="white-space:nowrap"';
     h += '<span' + pctStyle + '>' + rate + '%</span></div></div>';
     h += '<div class="tp-row"><span>平均响应</span><span' + avgStyle + '>' + (s.avg_response_ms != null ? s.avg_response_ms : '—') + ' ms</span></div>';
-    h += '<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-display-name="' + escapeHtml(s.name) + '" data-svc-key="' + escapeHtml(svcKey) + '">配置</button></div>';
+    if (s.credential_configured !== undefined) {
+      h += '<div class="tp-row"><span>凭据状态</span><span>' + (s.credential_configured ? '已配置' : '未配置') + '</span></div>';
+    }
+    if (!observerView) {
+      h += '<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-write-action data-display-name="' + escapeHtml(s.name) + '" data-svc-key="' + escapeHtml(svcKey) + '">配置</button></div>';
+    }
     h += '</div>';
     return h;
   }
@@ -157,7 +163,9 @@
     h += '<div class="tp-row"><span>今日拦截次数</span><span>' + (s.today_blocked != null ? s.today_blocked : '—') + ' 次</span></div>';
     h += '<div class="tp-row"><span>成功率</span><span style="color:#bbb">—</span></div>';
     h += '<div class="tp-row"><span>平均响应</span><span style="color:#bbb">—</span></div>';
-    h += '<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-display-name="' + escapeHtml(s.name) + '" data-svc-key="' + escapeHtml(svcKey) + '">配置</button></div>';
+    if (!observerView) {
+      h += '<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-write-action data-display-name="' + escapeHtml(s.name) + '" data-svc-key="' + escapeHtml(svcKey) + '">配置</button></div>';
+    }
     h += '</div>';
     return h;
   }
@@ -212,18 +220,18 @@
         '无需单独配置 Endpoint 或 API Key。</div>' +
         '<div id="content-safety-test-result" style="display:none"></div>';
       footEl.innerHTML =
-        '<button type="button" class="btn btn-default" id="modal-test-redis-btn">测试 Redis 连通性</button>' +
+        '<button type="button" class="btn btn-default" id="modal-test-redis-btn" data-write-action>测试 Redis 连通性</button>' +
         '<button type="button" class="btn btn-default" id="modal-close-only-btn">关闭</button>';
     } else {
       bodyEl.innerHTML =
         '<div class="form-item"><label>Endpoint</label>' +
-        '<input type="url" id="modal-endpoint" class="form-control" placeholder="https://..." autocomplete="off"></div>' +
+        '<input type="url" id="modal-endpoint" data-write-action class="form-control" placeholder="https://..." autocomplete="off"></div>' +
         '<div class="form-item"><label>API Key</label>' +
-        '<input type="password" id="modal-apikey" class="form-control" placeholder="留空则保留原值" autocomplete="off"></div>' +
+        '<input type="password" id="modal-apikey" data-write-action class="form-control" placeholder="留空则保留原值" autocomplete="off"></div>' +
         '<div id="modal-test-result" style="display:none"></div>';
       footEl.innerHTML =
-        '<button type="button" class="btn btn-default" id="modal-test-btn">测试连接</button>' +
-        '<button type="button" class="btn btn-primary" id="modal-save-btn" disabled>保存</button>' +
+        '<button type="button" class="btn btn-default" id="modal-test-btn" data-write-action>测试连接</button>' +
+        '<button type="button" class="btn btn-primary" id="modal-save-btn" data-write-action disabled>保存</button>' +
         '<button type="button" class="btn btn-default" id="modal-cancel-btn">取消</button>';
 
       var ep = document.getElementById('modal-endpoint');

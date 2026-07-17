@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>用户详情 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     /* ─── 面包屑 ─── */
     .breadcrumb {
@@ -460,7 +460,7 @@
       <div class="mem-filter">
         <input type="text" id="mem-keyword" placeholder="输入关键词搜索用户记忆...">
         <button class="btn btn-primary" onclick="searchUserMemories()">搜索</button>
-        <button class="btn btn-primary" onclick="addUserMemory()">+ 新增</button>
+        <button class="btn btn-primary" data-write-action onclick="addUserMemory()">+ 新增</button>
       </div>
       <!-- 用户记忆列表 -->
       <div class="mem-list" id="memories-list">
@@ -474,7 +474,7 @@
       <div class="mem-filter">
         <input type="text" id="priv-keyword" placeholder="输入关键词搜索私有状态...">
         <button class="btn btn-primary" onclick="searchPrivateSettings()">搜索</button>
-        <button class="btn btn-primary" onclick="addPrivateSetting()">+ 新增</button>
+        <button class="btn btn-primary" data-write-action onclick="addPrivateSetting()">+ 新增</button>
       </div>
       <!-- 私有状态列表 -->
       <div class="mem-list" id="private-list">
@@ -545,7 +545,7 @@
 
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 checkAdminLogin();
 
@@ -566,8 +566,8 @@ document.getElementById('breadcrumb').innerHTML =
 
 /* ─── 右上角操作按钮 ─── */
 document.getElementById('action-buttons').innerHTML =
-  '<button class="btn btn-danger" id="btnToggleStatus">禁用账号</button>' +
-  '<button class="btn btn-default" id="btnResetPassword">重置密码</button>';
+  '<button class="btn btn-danger" id="btnToggleStatus" data-write-action>禁用账号</button>' +
+  '<button class="btn btn-default" id="btnResetPassword" data-write-action>重置密码</button>';
 
 /* ─── Tab 切换初始化 ─── */
 initTabs('detail-tabs');
@@ -971,8 +971,8 @@ async function loadKvEntries(cfg) {
     html += '    <div class="mem-content">' + esc(item.value || '') + '</div>';
     html += '  </div>';
     html += '  <div class="mem-actions">';
-    html += '    <button class="btn btn-default" onclick="editKvEntry(this)">编辑</button>';
-    html += '    <button class="btn btn-danger" onclick="deleteKvEntry(this)">删除</button>';
+    html += '    <button class="btn btn-default" data-write-action onclick="editKvEntry(this)">编辑</button>';
+    html += '    <button class="btn btn-danger" data-write-action onclick="deleteKvEntry(this)">删除</button>';
     html += '  </div>';
     html += '</div>';
   }
@@ -991,11 +991,11 @@ function editKvEntry(btn) {
   var originalText = contentEl.textContent;
 
   contentEl.setAttribute('data-original', originalText);
-  contentEl.innerHTML = '<input type="text" value="' + esc(originalText) + '">';
+  contentEl.innerHTML = '<input type="text" data-write-action value="' + esc(originalText) + '">';
   contentEl.querySelector('input').focus();
 
   actionsEl.innerHTML =
-    '<button class="btn btn-primary" onclick="saveKvEntry(this)">保存</button>' +
+    '<button class="btn btn-primary" data-write-action onclick="saveKvEntry(this)">保存</button>' +
     '<button class="btn btn-default" onclick="cancelKvEntry(this)">取消</button>';
 }
 
@@ -1063,16 +1063,16 @@ function showKvAddModal(cfg) {
       '<div class="modal-body">' +
         '<div class="form-item" style="margin-bottom:14px">' +
           '<label>Key（三层结构，如 偏好-饮食-口味）</label>' +
-          '<input type="text" id="__kv_key" class="form-control" placeholder="XXX-XXX-XXX" autocomplete="off">' +
+          '<input type="text" id="__kv_key" data-write-action class="form-control" placeholder="XXX-XXX-XXX" autocomplete="off">' +
         '</div>' +
         '<div class="form-item" style="margin-bottom:0">' +
           '<label>Value</label>' +
-          '<input type="text" id="__kv_value" class="form-control" placeholder="请输入内容" autocomplete="off">' +
+          '<input type="text" id="__kv_value" data-write-action class="form-control" placeholder="请输入内容" autocomplete="off">' +
         '</div>' +
       '</div>' +
       '<div class="modal-footer">' +
         '<button class="btn btn-default" id="__kv_cancel">取消</button>' +
-        '<button class="btn btn-primary" id="__kv_ok">保存</button>' +
+        '<button class="btn btn-primary" id="__kv_ok" data-write-action>保存</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(overlay);
@@ -1437,8 +1437,8 @@ function renderAccountTab() {
       statusTag +
     '</div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">' +
-      '<button type="button" class="' + actionBtnClass + '" onclick="toggleUserStatus()">' + esc(actionBtnLabel) + '</button>' +
-      '<button type="button" class="btn btn-default" onclick="resetUserPassword()">重置密码</button>' +
+      '<button type="button" class="' + actionBtnClass + '" data-write-action onclick="toggleUserStatus()">' + esc(actionBtnLabel) + '</button>' +
+      '<button type="button" class="btn btn-default" data-write-action onclick="resetUserPassword()">重置密码</button>' +
     '</div>' +
     '<div class="info-card-title" style="margin-top:8px">Open API Key</div>' +
     '<div id="open-api-key-area" style="font-size:14px;color:var(--text-secondary)">加载中...</div>';
@@ -1468,21 +1468,24 @@ async function loadOpenApiKeyBlock() {
   }
   var d = res.data || {};
   var enabled = !!d.enabled;
+  var observerView = getAdminRole() === 'observer';
   var statusHtml = enabled
-    ? '<span class="tag tag-success">已开通</span>'
-    : '<span class="tag">未开通</span>';
-  var metaHtml = enabled
-    ? '<div class="info-row" style="margin-top:12px"><span class="info-label">Key 脱敏</span><span class="info-value" style="font-family:monospace">' + esc(d.key_prefix || '') + '</span></div>' +
-      '<div class="info-row"><span class="info-label">首次签发</span><span class="info-value">' + esc(formatOpenApiMinute(d.created_at)) + '</span></div>' +
-      '<div class="info-row"><span class="info-label">最后使用</span><span class="info-value">' + esc(formatOpenApiMinute(d.last_used_at)) + '</span></div>'
-    : '<p style="margin:12px 0 0">尚未生成 API Key，第三方无法调用 Open API。</p>';
+    ? '<span class="tag tag-success">' + (observerView ? '已配置' : '已开通') + '</span>'
+    : '<span class="tag">' + (observerView ? '未配置' : '未开通') + '</span>';
+  var metaHtml = observerView
+    ? '<p style="margin:12px 0 0">观察者仅显示配置状态，不展示 Key 片段。</p>'
+    : enabled
+      ? '<div class="info-row" style="margin-top:12px"><span class="info-label">Key 脱敏</span><span class="info-value" style="font-family:monospace">' + esc(d.key_prefix || '') + '</span></div>' +
+        '<div class="info-row"><span class="info-label">首次签发</span><span class="info-value">' + esc(formatOpenApiMinute(d.created_at)) + '</span></div>' +
+        '<div class="info-row"><span class="info-label">最后使用</span><span class="info-value">' + esc(formatOpenApiMinute(d.last_used_at)) + '</span></div>'
+      : '<p style="margin:12px 0 0">尚未生成 API Key，第三方无法调用 Open API。</p>';
   var btnLabel = enabled ? '重新生成 Key' : '生成 API Key';
   area.innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">' + statusHtml + '</div>' +
     metaHtml +
-    '<div style="margin-top:16px">' +
-      '<button type="button" class="btn btn-primary" onclick="generateOpenApiKey(' + (enabled ? 'true' : 'false') + ')">' + esc(btnLabel) + '</button>' +
-    '</div>';
+    (observerView ? '' : '<div style="margin-top:16px">' +
+      '<button type="button" class="btn btn-primary" data-write-action onclick="generateOpenApiKey(' + (enabled ? 'true' : 'false') + ')">' + esc(btnLabel) + '</button>' +
+    '</div>');
 }
 
 function showOpenApiKeyOnceModal(apiKey, keyPrefix) {

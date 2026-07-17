@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prompt管理 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .prompt-tools { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .sub-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
@@ -33,7 +33,7 @@
   <div class="page-card">
     <div class="prompt-tools">
       <a class="btn btn-default btn-sm" href="/admin/pages/step5-5-switch.html">Step5.5 总开关</a>
-      <button type="button" class="btn btn-default" id="btn-test-open">在线测试（主链 Prompt）</button>
+      <button type="button" class="btn btn-default" id="btn-test-open" data-write-action>在线测试（主链 Prompt）</button>
     </div>
     <p class="hint-mini">
       Step5 System 对应 <code>step5_system_prompt</code>；Step5.5 六段对应 <code>step5_5_prompt_fragments</code>。
@@ -54,11 +54,11 @@
         <span id="st5-left">加载中…</span>
         <span id="st5-right"></span>
       </div>
-      <textarea id="ta-step5" class="form-control" rows="22" style="font-family:monospace;font-size:13px"></textarea>
+      <textarea id="ta-step5" data-write-action class="form-control" rows="22" style="font-family:monospace;font-size:13px"></textarea>
       <div class="form-actions" style="margin-top:12px">
-        <button type="button" class="btn btn-default" id="btn-save-step5">保存 Step5 草稿</button>
-        <button type="button" class="btn btn-default" id="btn-discard-step5">丢弃 Step5 草稿</button>
-        <button type="button" class="btn btn-primary btn-publish-green" id="btn-pub-step5" disabled>发布 Step5</button>
+        <button type="button" class="btn btn-default" id="btn-save-step5" data-write-action>保存 Step5 草稿</button>
+        <button type="button" class="btn btn-default" id="btn-discard-step5" data-write-action>丢弃 Step5 草稿</button>
+        <button type="button" class="btn btn-primary btn-publish-green" id="btn-pub-step5" data-write-action disabled>发布 Step5</button>
       </div>
     </div>
 
@@ -70,9 +70,9 @@
       <div class="sub-tabs" id="f55-tabs"></div>
       <div id="f55-pane-mount"></div>
       <div class="form-actions" style="margin-top:12px">
-        <button type="button" class="btn btn-default" id="btn-save-f55">保存当前片段草稿</button>
-        <button type="button" class="btn btn-default" id="btn-discard-f55">丢弃 Step5.5 草稿</button>
-        <button type="button" class="btn btn-primary btn-publish-green" id="btn-pub-f55" disabled>发布 Step5.5</button>
+        <button type="button" class="btn btn-default" id="btn-save-f55" data-write-action>保存当前片段草稿</button>
+        <button type="button" class="btn btn-default" id="btn-discard-f55" data-write-action>丢弃 Step5.5 草稿</button>
+        <button type="button" class="btn btn-primary btn-publish-green" id="btn-pub-f55" data-write-action disabled>发布 Step5.5</button>
       </div>
     </div>
   </div>
@@ -112,13 +112,13 @@
         <div class="prompt-test-col">
           <div class="form-item">
             <label>使用草稿中的 Step5 System</label>
-            <label><input type="radio" name="prompt-use-draft" value="1"> 是</label>
+            <label><input type="radio" name="prompt-use-draft" data-write-action value="1"> 是</label>
             &nbsp;
-            <label><input type="radio" name="prompt-use-draft" value="0" checked> 否（当前生效）</label>
+            <label><input type="radio" name="prompt-use-draft" data-write-action value="0" checked> 否（当前生效）</label>
           </div>
           <div class="form-item">
             <label>关系等级</label>
-            <select id="prompt-test-level" class="form-control">
+            <select id="prompt-test-level" data-write-action class="form-control">
               <option value="0">0级陌生</option>
               <option value="1" selected>1级朋友</option>
               <option value="2">2级亲密</option>
@@ -127,7 +127,7 @@
           </div>
           <div class="form-item">
             <label>用户情绪</label>
-            <select id="prompt-test-emotion" class="form-control">
+            <select id="prompt-test-emotion" data-write-action class="form-control">
               <option value="开心">开心</option>
               <option value="悲伤">悲伤</option>
               <option value="焦虑">焦虑</option>
@@ -139,13 +139,13 @@
           </div>
           <div class="form-item">
             <label>模拟记忆（每行一条，最多5条）</label>
-            <textarea id="prompt-test-memories" class="form-control" rows="4"></textarea>
+            <textarea id="prompt-test-memories" data-write-action class="form-control" rows="4"></textarea>
           </div>
           <div class="form-item">
             <label>测试输入</label>
-            <textarea id="prompt-test-input" class="form-control" rows="4" placeholder="必填"></textarea>
+            <textarea id="prompt-test-input" data-write-action class="form-control" rows="4" placeholder="必填"></textarea>
           </div>
-          <button type="button" class="btn btn-primary" id="btn-run-test" style="width:100%">开始测试</button>
+          <button type="button" class="btn btn-primary" id="btn-run-test" data-write-action style="width:100%">开始测试</button>
         </div>
         <div class="prompt-test-col prompt-test-col-right">
           <div id="prompt-test-placeholder">等待测试…</div>
@@ -168,10 +168,10 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ROLES = ['super_admin', 'ai_trainer'];
+  var ROLES = ['super_admin', 'ai_trainer', 'observer'];
   var F55_KEYS = ['system', 'style_rules', 'ctx_readonly', 'relation_brief', 'history_brief', 'messages_input'];
   var F55_LABELS = {
     system: '① SYSTEM',
@@ -231,6 +231,7 @@
       ta.style.fontFamily = 'monospace';
       ta.style.fontSize = '13px';
       ta.id = 'ta-f55-' + k;
+      ta.setAttribute('data-write-action', '');
       ta.value = frag55[k] != null ? String(frag55[k]) : '';
       ta.addEventListener('input', function () { setTestPassed(false); });
       m.appendChild(wrap);
@@ -250,6 +251,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn btn-default btn-sm';
+      b.setAttribute('data-write-action', '');
       b.textContent = '丢弃';
       b.onclick = function () {
         showConfirm('丢弃 Step5 草稿？', function () {
@@ -275,6 +277,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn btn-default btn-sm';
+      b.setAttribute('data-write-action', '');
       b.textContent = '丢弃';
       b.onclick = function () {
         showConfirm('丢弃 Step5.5 草稿？', function () {
@@ -395,7 +398,7 @@
       html += '<div style="font-weight:bold">V' + row.version + (row.is_active ? ' <span class="tag tag-blue">生效</span>' : '') + '</div>';
       html += '<div style="font-size:13px;color:#888">' + escapeHtml(row.updated_by || '-') + ' · ' + formatDateTime(row.updated_at) + '</div>';
       html += '<button type="button" class="btn btn-link btn-sm" data-view="' + row.version + '">查看</button> ';
-      html += '<button type="button" class="btn btn-link btn-sm" data-rollback="' + row.version + '">回滚</button>';
+      html += '<button type="button" class="btn btn-link btn-sm" data-write-action data-rollback="' + row.version + '">回滚</button>';
       html += '</div></div>';
     });
     html += '</div>';

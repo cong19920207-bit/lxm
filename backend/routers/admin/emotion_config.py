@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _CONFIG_KEY = "emotion_config"
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 VALID_EMOTIONS = ("平静", "开心", "好奇", "想念", "担心", "害羞", "困倦")
 
@@ -35,7 +36,7 @@ class EmotionUpdateRequest(BaseModel):
 
 @router.get(
     "/emotion-config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_emotion_config(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -47,7 +48,7 @@ async def get_emotion_config(
 
 @router.put(
     "/emotion-config/{emotion_name}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_emotion_config(
     emotion_name: str,

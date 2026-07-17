@@ -14,7 +14,11 @@ from backend.database import get_db
 from backend.models.admin_user import AdminUser
 from backend.schemas.common import ApiResponse
 from backend.services.stats_service import stats_service
-from backend.utils.admin_auth import get_current_admin, require_role
+from backend.utils.admin_auth import (
+    deny_observer_export,
+    get_current_admin,
+    require_role,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +27,8 @@ router = APIRouter()
 _VALID_METRICS = {"new_users", "active_users", "conversation_rounds"}
 _VALID_DAYS = {7, 30}
 _VALID_REPORT_TYPES = {"user", "conversation", "feature", "ai_performance"}
+_REPORT_READ_ROLES = ("super_admin", "ops_admin", "observer")
+_LIBLIB_READ_ROLES = ("super_admin", "ai_trainer", "tech_ops", "observer")
 
 # 报表类型 → Excel 表头映射
 _REPORT_HEADERS = {
@@ -53,7 +59,7 @@ async def get_dashboard(
 
 @router.get(
     "/stats/trend",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_REPORT_READ_ROLES)],
 )
 async def get_trend(
     metric: str = Query(..., description="指标类型"),
@@ -78,7 +84,7 @@ async def get_trend(
 
 @router.get(
     "/stats/report",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_REPORT_READ_ROLES)],
 )
 async def get_report(
     report_type: str = Query(..., description="报表类型"),
@@ -120,7 +126,10 @@ async def get_report(
 
 @router.post(
     "/stats/report/export",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[
+        Depends(deny_observer_export),
+        require_role("super_admin", "ops_admin"),
+    ],
 )
 async def export_report(
     report_type: str = Query(..., description="报表类型"),
@@ -203,7 +212,7 @@ async def export_report(
 
 @router.get(
     "/stats/liblib",
-    dependencies=[require_role("super_admin", "ai_trainer", "tech_ops")],
+    dependencies=[require_role(*_LIBLIB_READ_ROLES)],
 )
 async def get_liblib_stats(
     days: int = Query(7, ge=1, le=30, description="统计近 N 天"),

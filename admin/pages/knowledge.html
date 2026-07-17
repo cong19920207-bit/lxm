@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>角色知识库 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .ck-demo-card {
       background: #f6ffed;
@@ -108,7 +108,7 @@
         <input type="text" id="ck-filter-keyword" class="form-control" placeholder="匹配 key 或 value" autocomplete="off">
       </div>
       <button type="button" class="btn btn-default" id="btn-ck-search">查询</button>
-      <button type="button" class="btn btn-primary" id="btn-ck-add">＋ 新增条目</button>
+      <button type="button" class="btn btn-primary" id="btn-ck-add" data-write-action>＋ 新增条目</button>
     </div>
 
     <table class="admin-table">
@@ -143,32 +143,32 @@
     <div class="modal-body">
       <div class="form-item" id="ck-field-type-wrap">
         <label>类型 <span class="text-secondary">*</span></label>
-        <select id="ck-modal-type" class="form-control">
+        <select id="ck-modal-type" data-write-action class="form-control">
           <option value="character_global">character_global（公开设定）</option>
           <option value="character_knowledge">character_knowledge（知识技能）</option>
         </select>
       </div>
       <div class="form-item mt-16">
         <label>key <span class="text-secondary">*</span></label>
-        <input type="text" id="ck-modal-key" class="form-control" maxlength="64" placeholder="如 外貌-体态-细节" autocomplete="off">
+        <input type="text" id="ck-modal-key" data-write-action class="form-control" maxlength="64" placeholder="如 外貌-体态-细节" autocomplete="off">
         <p class="ck-cjk-hint">须三层段式（两段 - 连接）；≤20 个汉字；允许字母、数字、-、_</p>
       </div>
       <div class="form-item mt-16">
         <label>value <span class="text-secondary">*</span></label>
-        <textarea id="ck-modal-value" class="form-control" rows="4" placeholder="单条描述，≤100 个汉字"></textarea>
+        <textarea id="ck-modal-value" data-write-action class="form-control" rows="4" placeholder="单条描述，≤100 个汉字"></textarea>
         <p class="ck-cjk-hint">≤100 个汉字</p>
       </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="ck-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="ck-modal-save">保存</button>
+      <button type="button" class="btn btn-primary" id="ck-modal-save" data-write-action>保存</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
   var _ckPage = 1;
   var _ckPageSize = 20;
   var _ckTotal = 0;
@@ -233,8 +233,8 @@
         '<td>' + escapeHtml(row.key) + '</td>' +
         '<td class="ck-value-cell" title="' + escapeHtml(row.value) + '">' + escapeHtml(row.value) + '</td>' +
         '<td>' +
-          '<button type="button" class="btn btn-link btn-sm" data-action="edit" data-id="' + escapeHtml(row.doc_id) + '">编辑</button>' +
-          '<button type="button" class="btn btn-link btn-sm" style="color:#ff4d4f" data-action="del" data-id="' + escapeHtml(row.doc_id) + '">删除</button>' +
+          '<button type="button" class="btn btn-link btn-sm" data-write-action data-action="edit" data-id="' + escapeHtml(row.doc_id) + '">编辑</button>' +
+          '<button type="button" class="btn btn-link btn-sm" style="color:#ff4d4f" data-write-action data-action="del" data-id="' + escapeHtml(row.doc_id) + '">删除</button>' +
         '</td></tr>';
     }
     tbody.innerHTML = html;

@@ -219,18 +219,15 @@ class TestNewUserNoRelationship:
 
 
 class TestChatSendGatherNoRelationship:
-    """验证 chat_send 的 gather 中已不包含 _get_relationship"""
+    """验证 chat_send 已不再预取 relationship。"""
 
     def test_get_relationship_not_in_gather(self):
-        """静态检查：chat_send 源码 gather 调用中不含 _get_relationship"""
+        """静态检查：chat_send 源码不含已移除的 _get_relationship 调用。"""
         import inspect
         from backend.routers.chat import chat_send
 
         source = inspect.getsource(chat_send)
-        gather_start = source.index("asyncio.gather")
-        gather_end = source.index(")", gather_start)
-        gather_block = source[gather_start:gather_end]
-        assert "_get_relationship" not in gather_block
+        assert "_get_relationship" not in source
 
 
 # ============ R-L1L3-06：Step5.5 / Step6 共用同一份 round_context ============

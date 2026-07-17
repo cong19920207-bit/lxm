@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prompt · 生活流 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .lf-block { margin-bottom: 20px; }
     .lf-block h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #333; }
@@ -39,7 +39,7 @@
 
     <!-- Tab1: 内容 Prompt -->
     <div class="tab-pane active" id="tab-content">
-      <div class="tab-actions" data-edit-only>
+      <div class="tab-actions" data-edit-only data-write-action>
         <button type="button" class="btn btn-default" id="btn-save-content">保存全部草稿</button>
         <button type="button" class="btn btn-primary" id="btn-publish-content">发布全部</button>
       </div>
@@ -52,14 +52,14 @@
       <div class="page-card" style="padding:16px;margin-bottom:16px">
         <h3 style="margin-top:0">互动参数（评论回复 / 点赞感知 / 已读感知）</h3>
         <p class="lf-desc">关系四档命名沿用 IM：陌生 / 朋友 / 亲密 / 知己；延迟单位为秒。</p>
-        <div class="tab-actions" data-edit-only>
+        <div class="tab-actions" data-edit-only data-write-action>
           <button type="button" class="btn btn-default" id="btn-save-params">保存参数草稿</button>
           <button type="button" class="btn btn-primary" id="btn-publish-params">发布参数</button>
         </div>
         <div id="interact-params"></div>
       </div>
 
-      <div class="tab-actions" data-edit-only>
+      <div class="tab-actions" data-edit-only data-write-action>
         <button type="button" class="btn btn-default" id="btn-save-interact">保存全部 Prompt 草稿</button>
         <button type="button" class="btn btn-primary" id="btn-publish-interact">发布全部 Prompt</button>
       </div>
@@ -69,7 +69,7 @@
     <!-- Tab3: 图像映射 -->
     <div class="tab-pane" id="tab-image">
       <p class="lf-desc">6 张图像关键词映射表，JSON 格式编辑。</p>
-      <div class="tab-actions" data-edit-only>
+      <div class="tab-actions" data-edit-only data-write-action>
         <button type="button" class="btn btn-default" id="btn-save-image">保存全部草稿</button>
         <button type="button" class="btn btn-primary" id="btn-publish-image">发布全部</button>
       </div>
@@ -78,8 +78,8 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var CONTENT_KEYS = [
     { key: 'prompt_p01_system', label: 'P-01 System · 周大纲生成' },
@@ -178,7 +178,7 @@
     keys.forEach(function (it) {
       h += '<div class="form-item"><label>' + lfEscapeHtml(it.label) +
         ' <code>' + it.key + '</code></label>' +
-        '<input type="' + type + '" class="form-control" id="cfg-' + it.key + '"></div>';
+        '<input data-write-action type="' + type + '" class="form-control" id="cfg-' + it.key + '"></div>';
     });
     h += '</div></div>';
     return h;
@@ -203,8 +203,8 @@
         '<h3>' + lfEscapeHtml(it.label) +
         ' <code style="font-size:12px;color:#888">' + it.key + '</code>' +
         '<span class="lf-draft-flag" id="flag-' + it.key + '" style="display:none">（有未发布草稿）</span></h3>' +
-        '<textarea class="form-control' + (isJson ? ' json-area' : '') + '" id="cfg-' + it.key + '" rows="6"></textarea>' +
-        '<div class="lf-block-actions" data-edit-only>' +
+        '<textarea data-write-action class="form-control' + (isJson ? ' json-area' : '') + '" id="cfg-' + it.key + '" rows="6"></textarea>' +
+        '<div class="lf-block-actions" data-edit-only data-write-action>' +
           '<button type="button" class="btn btn-default btn-sm" data-save-key="' + it.key + '">保存草稿</button>' +
           '<button type="button" class="btn btn-primary btn-sm" data-publish-key="' + it.key + '">发布</button>' +
         '</div></div>';
@@ -286,7 +286,8 @@
           if (v === null) return;
           await adminRequest('POST', '/api/admin/life-config/publish', {
             config_key: keys[i],
-            config_value: v
+            config_value: v,
+            confirm_text: 'CONFIRM'
           });
         }
         showToast('已全部发布', 'success');
@@ -305,7 +306,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage('life-feed-prompts', 'Prompt · 生活流', ['super_admin', 'ai_trainer'])) return;
+    if (!initLifeFeedPage('life-feed-prompts', 'Prompt · 生活流', ['super_admin', 'ai_trainer', 'observer'])) return;
 
     renderPromptList('content-prompts', CONTENT_KEYS, false);
     renderPromptList('interact-prompts', INTERACT_KEYS, false);

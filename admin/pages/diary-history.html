@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 日记历史 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .dh-filter-row {
       display: flex;
@@ -37,12 +37,12 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>checkAdminLogin();</script>
 
 <script>
 (function () {
-  var ALLOWED_ROLES = ['super_admin', 'ops_admin'];
+  var ALLOWED_ROLES = ['super_admin', 'ops_admin', 'observer'];
   if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
     window.location.href = '/admin/pages/error.html?type=403';
     return;

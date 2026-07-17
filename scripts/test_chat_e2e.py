@@ -334,12 +334,14 @@ async def test_sse_failed_marks_user_row(monkeypatch: pytest.MonkeyPatch):
 
     from backend.database import Base, get_db
     from backend.main import app
+    from backend.services.multi_vector_retrieval_service import MultiVectorRetrievalResult
+    from backend.services.query_rewrite_service import QueryRewriteResult
     import backend.routers.chat as chat_router
 
     async def _fake_llm_strict(*_a, **_k):
         raise RuntimeError("e2e 强制 LLM 失败")
 
-    monkeypatch.setattr(chat_router.llm_service, "chat_with_parse_strict", _fake_llm_strict)
+    monkeypatch.setattr(chat_router.llm_service, "chat_with_step5_parse", _fake_llm_strict)
 
     TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
     engine_test = create_async_engine(TEST_DB_URL, echo=False)
@@ -384,14 +386,31 @@ async def test_sse_failed_marks_user_row(monkeypatch: pytest.MonkeyPatch):
 
         with (
             patch("backend.utils.auth_middleware.get_redis", return_value=mock_redis),
-            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 1536),
-            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "backend.routers.chat.execute_query_rewrite",
+                new_callable=AsyncMock,
+                return_value=QueryRewriteResult(success=False, fallback_embedding=[]),
+            ),
+            patch(
+                "backend.routers.chat.execute_multi_vector_retrieval",
+                new_callable=AsyncMock,
+                return_value=MultiVectorRetrievalResult(),
+            ),
+            patch(
+                "backend.routers.chat.PromptBuilder.build_chat_prompt",
+                new_callable=AsyncMock,
+                return_value="test prompt",
+            ),
+            patch("backend.routers.chat.execute_step6", new_callable=AsyncMock),
             patch("backend.routers.chat.check_content", new_callable=AsyncMock, return_value={"is_safe": True, "reason": ""}),
+            patch("backend.services.chat_service.check_content", new_callable=AsyncMock, return_value={"is_safe": True, "reason": ""}),
             patch("backend.services.prompt_builder.get_redis", return_value=mock_redis),
             patch("backend.routers.chat.get_redis", return_value=mock_redis),
+            patch("backend.services.chat_service.get_redis", return_value=mock_redis),
             patch("backend.services.chat_queue_service.get_redis", return_value=mock_redis),
-            patch("backend.routers.chat.schedule_debounced", side_effect=instant_debounce),
+            patch("backend.services.chat_service.schedule_debounced", side_effect=instant_debounce),
             patch("backend.routers.chat.async_session_maker", async_session_test),
+            patch("backend.services.chat_service.async_session_maker", async_session_test),
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test", timeout=120.0) as client:

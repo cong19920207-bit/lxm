@@ -13,7 +13,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.constants import ADMIN_ERR_LIFE_PARAM_INVALID, DEEPSEEK_NODE_MODEL_CONFIG_KEYS
+from backend.constants import (
+    ADMIN_ERR_CONFIG_CONFIRM_TEXT_INVALID,
+    ADMIN_ERR_LIFE_PARAM_INVALID,
+    DEEPSEEK_NODE_MODEL_CONFIG_KEYS,
+)
 from backend.constants import life_feed_config as lfc
 from backend.constants.life_feed_config import RELATIONSHIP_STAGES
 from backend.constants.life_feed_prompts import IMAGE_MAP_SEED, PROMPT_SEED
@@ -28,7 +32,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "tech_ops", "ops_admin")  # ops 只读生活计划/宇宙页需读词汇表
+_READ_ROLES = ("super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer")  # ops/observer 只读
 
 
 def _build_whitelist() -> set[str]:
@@ -132,6 +136,7 @@ async def discard_life_config_draft(
 class PublishBody(BaseModel):
     config_key: str
     config_value: object
+    confirm_text: str | None = None
 
 
 @router.post("/life-config/publish", dependencies=[require_role(*_ALLOWED_ROLES)])
@@ -142,6 +147,8 @@ async def publish_life_config(
     admin_user: AdminUser = Depends(get_current_admin),
 ):
     """发布配置（旧版本失活→新活跃版本→删草稿→更新 Redis→5min 监控标记；含 operation_log）。"""
+    if body.confirm_text != "CONFIRM":
+        return ApiResponse.fail(ADMIN_ERR_CONFIG_CONFIRM_TEXT_INVALID)
     if body.config_key not in _WHITELIST:
         return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID, message="非法 config_key")
     stored = _serialize(body.config_value)

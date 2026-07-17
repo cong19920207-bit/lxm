@@ -102,9 +102,12 @@ async def client():
 
 def _patch_redis():
     """统一 patch Redis，返回 FakeRedis 实例"""
+    async def _get_fake_redis():
+        return fake_redis
+
     return patch(
         "backend.services.relationship_service.get_redis",
-        new_callable=lambda: lambda: AsyncMock(return_value=fake_redis),
+        new=_get_fake_redis,
     )
 
 

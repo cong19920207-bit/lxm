@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 _MIN_CASES_COUNT = 5
 
@@ -44,7 +45,7 @@ def _make_config_key(config_key: str) -> str:
 
 @router.get(
     "/test-cases/{config_key}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_test_cases(
     config_key: str,
@@ -71,7 +72,7 @@ async def get_test_cases(
 
 @router.post(
     "/test-cases/{config_key}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def create_test_case(
     config_key: str,
@@ -131,7 +132,7 @@ async def create_test_case(
 
 @router.delete(
     "/test-cases/{config_key}/{case_id}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def delete_test_case(
     config_key: str,

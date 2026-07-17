@@ -46,7 +46,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 _CONFIG_STEP5 = "step5_system_prompt"
 _CONFIG_STEP5_5 = "step5_5_prompt_fragments"
@@ -133,7 +134,7 @@ def _empty_retrieval_for_test(mem_rows: list[dict]) -> dict:
 # ═══════════════════ Step5 System ═══════════════════
 
 
-@router.get("/prompt/step5", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_prompt(admin_user: AdminUser = Depends(get_current_admin)):
     """Step5 System 模板：生效正文 + 草稿状态。"""
     detail = await admin_config_service.get_active_config_detail(_CONFIG_STEP5)
@@ -156,12 +157,12 @@ async def get_step5_prompt(admin_user: AdminUser = Depends(get_current_admin)):
     })
 
 
-@router.get("/prompt/step5/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5/draft", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_draft(admin_user: AdminUser = Depends(get_current_admin)):
     return ApiResponse.ok(data=await admin_config_service.get_draft(_CONFIG_STEP5))
 
 
-@router.put("/prompt/step5/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.put("/prompt/step5/draft", dependencies=[require_role(*_WRITE_ROLES)])
 async def put_step5_draft(
     body: Step5DraftBody,
     db: AsyncSession = Depends(get_db),
@@ -174,7 +175,7 @@ async def put_step5_draft(
     return ApiResponse.ok(data=result)
 
 
-@router.delete("/prompt/step5/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.delete("/prompt/step5/draft", dependencies=[require_role(*_WRITE_ROLES)])
 async def delete_step5_draft(
     db: AsyncSession = Depends(get_db),
     admin_user: AdminUser = Depends(get_current_admin),
@@ -185,7 +186,7 @@ async def delete_step5_draft(
     return ApiResponse.ok(message="草稿已丢弃")
 
 
-@router.post("/prompt/step5/publish", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5/publish", dependencies=[require_role(*_WRITE_ROLES)])
 async def publish_step5(
     body: PromptPublishRequest,
     request: Request,
@@ -230,7 +231,7 @@ async def publish_step5(
     return ApiResponse.ok(data=result)
 
 
-@router.get("/prompt/step5/history", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5/history", dependencies=[require_role(*_READ_ROLES)])
 async def step5_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -241,7 +242,7 @@ async def step5_history(
     return ApiResponse.ok(data=result)
 
 
-@router.get("/prompt/step5/history/{version}", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5/history/{version}", dependencies=[require_role(*_READ_ROLES)])
 async def step5_history_detail(
     version: int,
     db: AsyncSession = Depends(get_db),
@@ -269,7 +270,7 @@ async def step5_history_detail(
     })
 
 
-@router.post("/prompt/step5/rollback", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5/rollback", dependencies=[require_role(*_WRITE_ROLES)])
 async def step5_rollback(
     body: PromptRollbackRequest,
     request: Request,
@@ -294,7 +295,7 @@ async def step5_rollback(
 # ═══════════════════ Step5.5 六段 ═══════════════════
 
 
-@router.get("/prompt/step5-5/fragments", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5/fragments", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_5_fragments(admin_user: AdminUser = Depends(get_current_admin)):
     detail = await admin_config_service.get_active_config_detail(_CONFIG_STEP5_5)
     draft = await admin_config_service.get_draft(_CONFIG_STEP5_5)
@@ -317,12 +318,12 @@ async def get_step5_5_fragments(admin_user: AdminUser = Depends(get_current_admi
     })
 
 
-@router.get("/prompt/step5-5/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5/draft", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_5_draft(admin_user: AdminUser = Depends(get_current_admin)):
     return ApiResponse.ok(data=await admin_config_service.get_draft(_CONFIG_STEP5_5))
 
 
-@router.put("/prompt/step5-5/draft/{fragment_key}", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.put("/prompt/step5-5/draft/{fragment_key}", dependencies=[require_role(*_WRITE_ROLES)])
 async def put_step5_5_fragment_draft(
     fragment_key: str,
     body: Step55FragmentDraftBody,
@@ -359,7 +360,7 @@ async def put_step5_5_fragment_draft(
     return ApiResponse.ok(data=result)
 
 
-@router.delete("/prompt/step5-5/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.delete("/prompt/step5-5/draft", dependencies=[require_role(*_WRITE_ROLES)])
 async def delete_step5_5_draft(
     db: AsyncSession = Depends(get_db),
     admin_user: AdminUser = Depends(get_current_admin),
@@ -370,7 +371,7 @@ async def delete_step5_5_draft(
     return ApiResponse.ok(message="草稿已丢弃")
 
 
-@router.post("/prompt/step5-5/publish", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5-5/publish", dependencies=[require_role(*_WRITE_ROLES)])
 async def publish_step5_5(
     body: PromptPublishRequest,
     request: Request,
@@ -417,7 +418,7 @@ async def publish_step5_5(
     return ApiResponse.ok(data=result)
 
 
-@router.get("/prompt/step5-5/history", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5/history", dependencies=[require_role(*_READ_ROLES)])
 async def step5_5_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -428,7 +429,7 @@ async def step5_5_history(
     return ApiResponse.ok(data=result)
 
 
-@router.get("/prompt/step5-5/history/{version}", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5/history/{version}", dependencies=[require_role(*_READ_ROLES)])
 async def step5_5_history_detail(
     version: int,
     db: AsyncSession = Depends(get_db),
@@ -456,7 +457,7 @@ async def step5_5_history_detail(
     })
 
 
-@router.post("/prompt/step5-5/rollback", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5-5/rollback", dependencies=[require_role(*_WRITE_ROLES)])
 async def step5_5_rollback(
     body: PromptRollbackRequest,
     request: Request,
@@ -481,7 +482,7 @@ async def step5_5_rollback(
 # ═══════════════════ Step5.5 总开关 ═══════════════════
 
 
-@router.get("/prompt/step5-5-switch", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5-switch", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_5_switch(admin_user: AdminUser = Depends(get_current_admin)):
     detail = await admin_config_service.get_active_config_detail(_CONFIG_SWITCH)
     draft = await admin_config_service.get_draft(_CONFIG_SWITCH)
@@ -504,12 +505,12 @@ async def get_step5_5_switch(admin_user: AdminUser = Depends(get_current_admin))
     })
 
 
-@router.get("/prompt/step5-5-switch/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5-switch/draft", dependencies=[require_role(*_READ_ROLES)])
 async def get_step5_5_switch_draft(admin_user: AdminUser = Depends(get_current_admin)):
     return ApiResponse.ok(data=await admin_config_service.get_draft(_CONFIG_SWITCH))
 
 
-@router.put("/prompt/step5-5-switch/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.put("/prompt/step5-5-switch/draft", dependencies=[require_role(*_WRITE_ROLES)])
 async def put_step5_5_switch_draft(
     body: Step55SwitchDraftBody,
     db: AsyncSession = Depends(get_db),
@@ -522,7 +523,7 @@ async def put_step5_5_switch_draft(
     return ApiResponse.ok(data=result)
 
 
-@router.delete("/prompt/step5-5-switch/draft", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.delete("/prompt/step5-5-switch/draft", dependencies=[require_role(*_WRITE_ROLES)])
 async def delete_step5_5_switch_draft(
     db: AsyncSession = Depends(get_db),
     admin_user: AdminUser = Depends(get_current_admin),
@@ -533,7 +534,7 @@ async def delete_step5_5_switch_draft(
     return ApiResponse.ok(message="草稿已丢弃")
 
 
-@router.post("/prompt/step5-5-switch/publish", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5-5-switch/publish", dependencies=[require_role(*_WRITE_ROLES)])
 async def publish_step5_5_switch(
     body: PromptPublishRequest,
     request: Request,
@@ -576,7 +577,7 @@ async def publish_step5_5_switch(
     return ApiResponse.ok(data=result)
 
 
-@router.get("/prompt/step5-5-switch/history", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/prompt/step5-5-switch/history", dependencies=[require_role(*_READ_ROLES)])
 async def step5_5_switch_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -587,7 +588,7 @@ async def step5_5_switch_history(
     return ApiResponse.ok(data=result)
 
 
-@router.post("/prompt/step5-5-switch/rollback", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/step5-5-switch/rollback", dependencies=[require_role(*_WRITE_ROLES)])
 async def step5_5_switch_rollback(
     body: PromptRollbackRequest,
     request: Request,
@@ -612,7 +613,7 @@ async def step5_5_switch_rollback(
 # ═══════════════════ 在线测试：主链 Prompt ═══════════════════
 
 
-@router.post("/prompt/test", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.post("/prompt/test", dependencies=[require_role(*_WRITE_ROLES)])
 async def test_prompt(
     body: PromptTestRequest,
     db: AsyncSession = Depends(get_db),

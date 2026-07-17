@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _CONFIG_KEY = "persona"
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 _PERSONA_FIELDS = ("background", "personality", "emotion_preference",
                     "language_style", "behavior_pattern")
@@ -91,7 +92,7 @@ def _format_persona_prompt(content: dict) -> str:
 
 @router.get(
     "/persona/current",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_persona_current(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -116,7 +117,7 @@ async def get_persona_current(
 
 @router.get(
     "/persona/draft",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_persona_draft(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -128,7 +129,7 @@ async def get_persona_draft(
 
 @router.put(
     "/persona/draft",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def save_persona_draft(
     body: PersonaDraftRequest,
@@ -152,7 +153,7 @@ async def save_persona_draft(
 
 @router.delete(
     "/persona/draft",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def discard_persona_draft(
     db: AsyncSession = Depends(get_db),
@@ -167,7 +168,7 @@ async def discard_persona_draft(
 
 @router.post(
     "/persona/test",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def test_persona(
     body: PersonaTestRequest,
@@ -190,7 +191,7 @@ async def test_persona(
 
 @router.post(
     "/persona/publish",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def publish_persona(
     body: PersonaPublishRequest,
@@ -237,7 +238,7 @@ async def publish_persona(
 
 @router.get(
     "/persona/history",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_persona_history(
     page: int = Query(1, ge=1),
@@ -254,7 +255,7 @@ async def get_persona_history(
 
 @router.get(
     "/persona/history/{version}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_persona_history_detail(
     version: int,
@@ -291,7 +292,7 @@ async def get_persona_history_detail(
 
 @router.post(
     "/persona/rollback",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def rollback_persona(
     body: PersonaRollbackRequest,

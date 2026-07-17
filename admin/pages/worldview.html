@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生活流 · 她的宇宙 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 180px; }
@@ -81,7 +81,7 @@
         <label>关键词（event_name）</label>
         <input type="text" class="form-control" id="event-keyword" placeholder="模糊搜索，可空">
         <button type="button" class="btn btn-default" id="btn-search-events">搜索</button>
-        <button type="button" class="btn btn-primary" data-edit-only id="btn-add-event">+ 新增事件</button>
+        <button type="button" class="btn btn-primary" data-edit-only data-write-action id="btn-add-event">+ 新增事件</button>
       </div>
       <div class="table-wrap">
         <table class="admin-table">
@@ -113,7 +113,7 @@
       <h3>编辑快照</h3>
       <button type="button" class="btn btn-link" id="snapshot-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <p class="text-muted" id="snapshot-modal-meta" style="margin-bottom:12px"></p>
       <div class="form-item">
         <label>感受描述（feeling_text）</label>
@@ -135,7 +135,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="snapshot-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="snapshot-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="snapshot-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
@@ -147,7 +147,7 @@
       <h3 id="event-modal-title">新增事件</h3>
       <button type="button" class="btn btn-link" id="event-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <div class="form-item">
         <label class="required">事件名（event_name）</label>
         <input type="text" class="form-control" id="ev-event_name">
@@ -172,13 +172,13 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="event-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="event-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="event-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var PAGE_KEY = 'worldview';
   var snapshotPage = 1;
@@ -282,8 +282,8 @@
     tbody.innerHTML = rows.map(function (r) {
       var ops = '';
       if (!readonly) {
-        ops = '<button class="op-btn op-btn-detail" onclick="editSnapshot(' + r.id + ')">编辑</button>' +
-          '<button class="op-btn op-btn-danger" onclick="deleteSnapshot(' + r.id + ')">删除</button>';
+        ops = '<button class="op-btn op-btn-detail" data-write-action onclick="editSnapshot(' + r.id + ')">编辑</button>' +
+          '<button class="op-btn op-btn-danger" data-write-action onclick="deleteSnapshot(' + r.id + ')">删除</button>';
       }
       return '<tr><td>' + r.id + '</td><td>' + lfEscapeHtml(r.plan_date) +
         '</td><td>' + lfEscapeHtml(r.scene_id) +
@@ -292,7 +292,7 @@
         '</td><td>' + lfEscapeHtml(r.focus_tag || '-') +
         '</td><td class="text-truncate" title="' + lfEscapeHtml(r.worldview_trigger) + '">' + lfEscapeHtml(truncate(r.worldview_trigger, 24)) +
         '</td><td>' + statusTag(r.gen_status) + '</td>' +
-        (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+        (readonly ? '<td></td>' : '<td data-edit-only data-write-action>' + ops + '</td>') + '</tr>';
     }).join('');
   }
 
@@ -366,8 +366,8 @@
       tbody.innerHTML = rows.map(function (r) {
         var ops = '';
         if (!readonly) {
-          ops = '<button class="op-btn op-btn-detail" onclick="editEvent(' + r.id + ')">编辑</button>' +
-            '<button class="op-btn op-btn-danger" onclick="deleteEvent(' + r.id + ')">删除</button>';
+          ops = '<button class="op-btn op-btn-detail" data-write-action onclick="editEvent(' + r.id + ')">编辑</button>' +
+            '<button class="op-btn op-btn-danger" data-write-action onclick="deleteEvent(' + r.id + ')">删除</button>';
         }
         var attitude = r.core_attitude
           ? '<span class="tag tag-blue">' + lfEscapeHtml(r.core_attitude) + '</span>'
@@ -377,7 +377,7 @@
           '</td><td class="text-truncate" title="' + lfEscapeHtml(r.event_view) + '">' + lfEscapeHtml(truncate(r.event_view, 40)) +
           '</td><td>' + lfEscapeHtml(r.source_scene_id || '-') +
           '</td><td>' + formatDateTime(r.created_at) + '</td>' +
-          (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+          (readonly ? '<td></td>' : '<td data-edit-only data-write-action>' + ops + '</td>') + '</tr>';
       }).join('');
     }
     renderPagination('events-pagination', data.page || eventPage, data.total || 0, data.size || eventSize, 'goEventPage');
@@ -437,7 +437,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 她的宇宙', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 她的宇宙', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
     initTabs('main-tabs');
 
     // 默认近 14 天：日期框留空

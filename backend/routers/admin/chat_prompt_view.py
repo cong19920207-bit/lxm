@@ -15,12 +15,13 @@ from backend.utils.admin_auth import get_current_admin, require_role
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 
 @router.get(
     "/chat-prompt-view/step15",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def view_step15_prompt(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -31,7 +32,7 @@ async def view_step15_prompt(
 
 @router.get(
     "/chat-prompt-view/step3",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def view_step3_prompt(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -42,7 +43,7 @@ async def view_step3_prompt(
 
 @router.get(
     "/chat-prompt-view/step8",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def view_step8_prompt(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -53,7 +54,7 @@ async def view_step8_prompt(
 
 @router.get(
     "/chat-prompt-view/agent",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def view_agent_prompt(
     admin_user: AdminUser = Depends(get_current_admin),

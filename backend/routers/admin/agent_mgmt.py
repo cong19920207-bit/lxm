@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
+_HISTORY_READ_ROLES = ("super_admin", "ops_admin", "ai_trainer", "observer")
 _VALID_TRIGGER_TYPES = ("P0", "P1", "P2", "P3", "P4")
 
 
@@ -54,7 +56,7 @@ class NightKeywordsRequest(BaseModel):
 
 @router.get(
     "/agent-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_agent_rules(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -66,7 +68,7 @@ async def get_agent_rules(
 
 @router.put(
     "/agent-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_agent_rules(
     body: AgentRulesRequest,
@@ -137,7 +139,7 @@ async def update_agent_rules(
 
 @router.get(
     "/agent-message-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_agent_message_rules(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -149,7 +151,7 @@ async def get_agent_message_rules(
 
 @router.put(
     "/agent-message-rules/{trigger_type}",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_agent_message_rule(
     trigger_type: str,
@@ -197,7 +199,7 @@ async def update_agent_message_rule(
 
 @router.get(
     "/agent-night-keywords",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_night_keywords(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -219,7 +221,7 @@ async def get_night_keywords(
 
 @router.put(
     "/agent-night-keywords",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_night_keywords(
     body: NightKeywordsRequest,
@@ -256,7 +258,7 @@ async def update_night_keywords(
 
 @router.get(
     "/agent-messages",
-    dependencies=[require_role("super_admin", "ops_admin", "ai_trainer")],
+    dependencies=[require_role(*_HISTORY_READ_ROLES)],
 )
 async def get_agent_messages(
     user_id: Optional[int] = Query(None),

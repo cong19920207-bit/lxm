@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Step5.5 总开关 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
 </head>
 <body>
 <div id="sidebar-mount"></div>
@@ -20,13 +20,13 @@
     </div>
     <div class="form-item">
       <label>
-        <input type="checkbox" id="sw-enabled"> 启用 Step5.5 润色
+        <input type="checkbox" id="sw-enabled" data-write-action> 启用 Step5.5 润色
       </label>
     </div>
     <div class="form-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-default" id="btn-save">保存草稿</button>
-      <button type="button" class="btn btn-default" id="btn-discard">丢弃草稿</button>
-      <button type="button" class="btn btn-primary" id="btn-pub">发布</button>
+      <button type="button" class="btn btn-default" id="btn-save" data-write-action>保存草稿</button>
+      <button type="button" class="btn btn-default" id="btn-discard" data-write-action>丢弃草稿</button>
+      <button type="button" class="btn btn-primary" id="btn-pub" data-write-action>发布</button>
     </div>
   </div>
   <div class="page-card" style="margin-top:16px">
@@ -34,10 +34,10 @@
     <div id="hist-list">加载中…</div>
   </div>
 </div>
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ROLES = ['super_admin', 'ai_trainer'];
+  var ROLES = ['super_admin', 'ai_trainer', 'observer'];
   function bar(meta) {
     document.getElementById('st-left').textContent = meta.version > 0 ? ('当前生效 V' + meta.version) : '尚未单独发布（运行时按默认关闭处理）';
     var right = document.getElementById('st-right');
@@ -50,6 +50,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn btn-default btn-sm';
+      b.setAttribute('data-write-action', '');
       b.textContent = '丢弃草稿';
       b.onclick = function () {
         showConfirm('丢弃草稿？', function () {

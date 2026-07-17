@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生活流人格拓展 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     /* 配置块通用样式 */
     .lf-block {
@@ -136,10 +136,10 @@
       </h3>
       <div class="lf-tags" id="tags-categories_vocab"></div>
       <div class="lf-tag-input-row">
-        <input type="text" class="form-control" id="input-categories_vocab" placeholder="输入后点击添加" autocomplete="off">
-        <button type="button" class="btn btn-default" data-add-tag="categories_vocab">添加</button>
+        <input type="text" class="form-control" id="input-categories_vocab" data-write-action placeholder="输入后点击添加" autocomplete="off">
+        <button type="button" class="btn btn-default" data-add-tag="categories_vocab" data-write-action>添加</button>
       </div>
-      <div class="lf-block-actions" data-edit-only>
+      <div class="lf-block-actions" data-edit-only data-write-action>
         <button type="button" class="btn btn-default" data-save-tag="categories_vocab">保存草稿</button>
         <button type="button" class="btn btn-primary" data-publish-tag="categories_vocab">发布</button>
       </div>
@@ -153,10 +153,10 @@
       <p class="lf-desc">增删情绪词后保存 / 发布前，会提示同步更新图像映射表。</p>
       <div class="lf-tags" id="tags-emotion_vocab"></div>
       <div class="lf-tag-input-row">
-        <input type="text" class="form-control" id="input-emotion_vocab" placeholder="输入后点击添加" autocomplete="off">
-        <button type="button" class="btn btn-default" data-add-tag="emotion_vocab">添加</button>
+        <input type="text" class="form-control" id="input-emotion_vocab" data-write-action placeholder="输入后点击添加" autocomplete="off">
+        <button type="button" class="btn btn-default" data-add-tag="emotion_vocab" data-write-action>添加</button>
       </div>
-      <div class="lf-block-actions" data-edit-only>
+      <div class="lf-block-actions" data-edit-only data-write-action>
         <button type="button" class="btn btn-default" data-save-tag="emotion_vocab">保存草稿</button>
         <button type="button" class="btn btn-primary" data-publish-tag="emotion_vocab">发布</button>
       </div>
@@ -171,20 +171,20 @@
 
     <div class="form-item" style="margin-top:12px">
       <label>Header 背景图 URL（feed_page_header_bg_url）</label>
-      <input type="text" class="form-control" id="cfg-feed_page_header_bg_url" placeholder="https://..." autocomplete="off">
+      <input type="text" class="form-control" id="cfg-feed_page_header_bg_url" data-write-action placeholder="https://..." autocomplete="off">
       <img class="lf-img-preview is-empty" id="preview-feed_page_header_bg_url" alt="背景图预览">
     </div>
 
     <div class="form-item mt-16">
       <label>Header 头像 URL（feed_page_header_avatar_url）</label>
-      <input type="text" class="form-control" id="cfg-feed_page_header_avatar_url" placeholder="https://..." autocomplete="off">
+      <input type="text" class="form-control" id="cfg-feed_page_header_avatar_url" data-write-action placeholder="https://..." autocomplete="off">
       <p class="lf-desc">默认使用 persona 头像。</p>
       <img class="lf-img-preview is-empty" id="preview-feed_page_header_avatar_url" alt="头像预览">
     </div>
 
     <div class="form-item mt-16">
       <label>个性签名（feed_page_signature）</label>
-      <input type="text" class="form-control" id="cfg-feed_page_signature" maxlength="30" placeholder="最多 30 字" autocomplete="off">
+      <input type="text" class="form-control" id="cfg-feed_page_signature" data-write-action maxlength="30" placeholder="最多 30 字" autocomplete="off">
       <p class="lf-desc">单行文本，最多 30 个字。</p>
     </div>
 
@@ -193,7 +193,7 @@
       <input type="text" class="form-control" value="林小梦" disabled>
     </div>
 
-    <div class="lf-block-actions" data-edit-only>
+    <div class="lf-block-actions" data-edit-only data-write-action>
       <button type="button" class="btn btn-default" id="btn-save-feed-header">保存草稿</button>
       <button type="button" class="btn btn-primary" id="btn-publish-feed-header">发布</button>
     </div>
@@ -206,20 +206,20 @@
     </h3>
     <div class="form-item" style="margin-top:12px;max-width:420px">
       <label>home_city</label>
-      <input type="text" class="form-control" id="cfg-home_city" autocomplete="off">
+      <input type="text" class="form-control" id="cfg-home_city" data-write-action autocomplete="off">
       <p class="lf-desc">主场城市，影响文案生成城市序列。</p>
     </div>
-    <div class="lf-block-actions" data-edit-only>
+    <div class="lf-block-actions" data-edit-only data-write-action>
       <button type="button" class="btn btn-default" id="btn-save-home_city">保存草稿</button>
       <button type="button" class="btn btn-primary" id="btn-publish-home_city">发布</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
   // 可进入本页的角色：编辑角色 + ops_admin（只读）
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'ops_admin'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'ops_admin', 'observer'];
   // 可编辑（可见保存 / 发布按钮）的角色
   var EDIT_ROLES = ['super_admin', 'ai_trainer'];
 
@@ -280,7 +280,8 @@
       async function () {
         var res = await adminRequest('POST', '/api/admin/life-config/publish', {
           config_key: configKey,
-          config_value: configValue
+          config_value: configValue,
+          confirm_text: 'CONFIRM'
         });
         if (res && res.code === 0) {
           showToast('已发布，5 分钟监控窗口已开启', 'success');
@@ -301,8 +302,8 @@
           '<label>' + escapeHtml(it.label) +
             ' <span class="lf-draft-flag" id="flag-' + it.key + '" style="display:none">（有未发布草稿）</span>' +
           '</label>' +
-          '<textarea class="form-control" id="cfg-' + it.key + '" rows="3"></textarea>' +
-          '<div class="lf-block-actions" data-edit-only>' +
+          '<textarea data-write-action class="form-control" id="cfg-' + it.key + '" rows="3"></textarea>' +
+          '<div class="lf-block-actions" data-edit-only data-write-action>' +
             '<button type="button" class="btn btn-default" data-save-text="' + it.key + '">保存草稿</button>' +
             '<button type="button" class="btn btn-primary" data-publish-text="' + it.key + '">发布</button>' +
           '</div>' +
@@ -323,7 +324,7 @@
     var html = '';
     for (var i = 0; i < arr.length; i++) {
       html += '<span class="lf-tag">' + escapeHtml(arr[i]) +
-        '<span class="lf-tag-del" data-del-tag="' + configKey + '" data-idx="' + i + '">✕</span></span>';
+        '<span class="lf-tag-del" data-del-tag="' + configKey + '" data-write-action data-idx="' + i + '">✕</span></span>';
     }
     box.innerHTML = html;
   }
@@ -515,7 +516,8 @@
             var k = HEADER_KEYS[i];
             await adminRequest('POST', '/api/admin/life-config/publish', {
               config_key: k,
-              config_value: document.getElementById('cfg-' + k).value
+              config_value: document.getElementById('cfg-' + k).value,
+              confirm_text: 'CONFIRM'
             });
           }
           showToast('已发布，5 分钟监控窗口已开启', 'success');

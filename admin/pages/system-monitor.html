@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>系统监控 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     /* 状态卡片容器：与规范一致，底部间距 */
     #status-cards {
@@ -92,13 +92,13 @@
 <body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
   /* 无 Token 时仅走登录跳转 */
   if (!checkAdminLogin()) return;
 
-  var ALLOWED_ROLES = ['super_admin', 'tech_ops'];
+  var ALLOWED_ROLES = ['super_admin', 'tech_ops', 'observer'];
   if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
     window.location.href = '/admin/pages/error.html?type=403';
     return;

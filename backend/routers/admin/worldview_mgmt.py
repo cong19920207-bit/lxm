@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin")  # ops_admin 只读
+_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin", "observer")
 _VALID_ATTITUDES = ("喜欢", "排斥", "矛盾", "无感")
 _ATTITUDE_PREFIX_RE = re.compile(r"^\[核心态度：(喜欢|排斥|矛盾|无感)\]\s*")
 # 快照默认窗口：近 14 天（含今天）

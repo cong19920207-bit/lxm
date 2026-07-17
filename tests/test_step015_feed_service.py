@@ -57,7 +57,7 @@ async def db(monkeypatch):
 def _post(pid, minutes_ago=10, visible=1, status="ready", base=5, mul=2, real=0,
           base_comments=0, comment_multiplier=1):
     """构造测试帖。评论假数默认 0×1（历史帖口径）；新帖场景显式传 base_comments/comment_multiplier。"""
-    now = datetime.utcnow()
+    now = fs_mod.feed_now()
     return FeedPost(
         id=pid, scene_id=f"s{pid}",
         scheduled_publish_time=now - timedelta(minutes=minutes_ago),

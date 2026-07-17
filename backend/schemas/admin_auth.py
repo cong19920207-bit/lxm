@@ -29,11 +29,11 @@ class AdminCreateAccountRequest(BaseModel):
     """创建管理员账号请求"""
     username: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=1, max_length=100)
-    role: str = Field(..., pattern=r"^(super_admin|ops_admin|ai_trainer|tech_ops)$")
+    role: str = Field(..., pattern=r"^(super_admin|ops_admin|ai_trainer|tech_ops|observer)$")
     remark: str | None = Field(None, max_length=200)
 
 
 class AdminUpdateAccountRequest(BaseModel):
     """编辑管理员账号请求"""
-    role: str | None = Field(None, pattern=r"^(super_admin|ops_admin|ai_trainer|tech_ops)$")
+    role: str | None = Field(None, pattern=r"^(super_admin|ops_admin|ai_trainer|tech_ops|observer)$")
     remark: str | None = Field(None, max_length=200)

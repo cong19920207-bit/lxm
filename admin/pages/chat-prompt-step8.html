@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Step8 Future 主动 - 对话流 Prompt</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .hint-ro { font-size: 13px; color: #876800; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 4px; padding: 10px 12px; margin-bottom: 16px; line-height: 1.6; }
     .prompt-pre { white-space: pre-wrap; word-break: break-word; font-family: monospace, Consolas, Menlo, monospace; font-size: 12px; line-height: 1.5; max-height: 70vh; overflow: auto; margin: 0; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 4px; padding: 12px; }
@@ -24,10 +24,10 @@
     <ul class="note-list" id="note-list"></ul>
   </div>
 </div>
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ROLES = ['super_admin', 'ai_trainer'];
+  var ROLES = ['super_admin', 'ai_trainer', 'observer'];
   document.addEventListener('DOMContentLoaded', async function () {
     if (!checkAdminLogin()) return;
     if (ROLES.indexOf(getAdminRole()) < 0) {

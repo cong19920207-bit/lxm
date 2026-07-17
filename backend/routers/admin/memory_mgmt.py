@@ -46,7 +46,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 
 # ──────────────────── 请求模型 ────────────────────
@@ -109,7 +110,7 @@ class BatchDeleteRequest(BaseModel):
 
 @router.get(
     "/step6-memory-prompt",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_step6_memory_prompt(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -123,7 +124,7 @@ async def get_step6_memory_prompt(
 
 @router.put(
     "/step6-memory-prompt",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_step6_memory_prompt(
     body: Step6MemoryPromptRequest,
@@ -159,7 +160,7 @@ def _mask_api_key(api_key: str) -> str:
 
 @router.get(
     "/vector-db-config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_vector_db_config(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -173,19 +174,25 @@ async def get_vector_db_config(
             "endpoint": get_dashvector_endpoint(),
             "collection_name": get_dashvector_collection(),
             "top_k": 5,
-            "api_key_masked": _mask_api_key(get_dashvector_api_key()),
         }
+        raw_key = get_dashvector_api_key()
     else:
+        config = dict(config)
         raw_key = config.get("api_key", "")
-        config["api_key_masked"] = _mask_api_key(raw_key)
         config.pop("api_key", None)
+
+    if admin_user.role == "observer":
+        config.pop("api_key_masked", None)
+        config["credential_configured"] = bool(raw_key)
+    else:
+        config["api_key_masked"] = _mask_api_key(raw_key)
 
     return ApiResponse.ok(data=config)
 
 
 @router.put(
     "/vector-db-config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_vector_db_config(
     body: VectorDbConfigRequest,
@@ -293,7 +300,7 @@ async def _do_test_connection(
 
 @router.post(
     "/vector-db-config/test-connection",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def test_vector_db_connection(
     body: VectorDbTestRequest = None,
@@ -352,7 +359,7 @@ def _global_entry_from_row(row: dict) -> Optional[dict]:
 
 @router.get(
     "/memories/global",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def search_memories_global(
     keyword: str = Query("", description="关键词搜索"),
@@ -418,7 +425,7 @@ async def search_memories_global(
 
 @router.delete(
     "/memories/batch-delete",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def batch_delete_memories(
     body: BatchDeleteRequest,

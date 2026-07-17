@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin")  # STEP-038 ops_admin 只读
+_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin", "observer")
 _VALID_STATUS = ("all", "visible", "hidden", "failed")
 _VALID_IMAGE_TYPES = ("selfie", "daily", "scenery", "emotion")
 
@@ -417,7 +417,7 @@ async def create_post(
 
 # ─────────────────────────── 自动发布开关 ───────────────────────────
 
-@router.get("/feed/config/auto-publish", dependencies=[require_role(*_ALLOWED_ROLES)])
+@router.get("/feed/config/auto-publish", dependencies=[require_role(*_READ_ROLES)])
 async def get_auto_publish(
     admin_user: AdminUser = Depends(get_current_admin),
 ):

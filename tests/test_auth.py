@@ -3,6 +3,7 @@
 
 import sys
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
@@ -54,6 +55,19 @@ app.dependency_overrides[get_db] = override_get_db
 # 默认用户名/密码（不含敏感词）
 _DEFAULT_USER = "player0001"
 _DEFAULT_PASS = "pass1234"
+
+
+@pytest.fixture(autouse=True)
+def _patch_auth_redis(monkeypatch):
+    async def _fake_get_redis():
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value=None)
+        redis.set = AsyncMock(return_value=True)
+        redis.setex = AsyncMock(return_value=True)
+        redis.delete = AsyncMock(return_value=1)
+        return redis
+
+    monkeypatch.setattr("backend.utils.auth_middleware.get_redis", _fake_get_redis)
 
 
 @pytest_asyncio.fixture(autouse=True)

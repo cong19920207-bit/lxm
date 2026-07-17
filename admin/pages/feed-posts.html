@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>朋友圈 · 内容 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 160px; }
@@ -58,8 +58,8 @@
       </select>
       <button type="button" class="btn btn-default" id="btn-search">查询</button>
       <span class="spacer"></span>
-      <button type="button" class="btn btn-default" data-edit-only id="btn-add-text">+ 文字发帖</button>
-      <button type="button" class="btn btn-primary" data-edit-only id="btn-add-ai">+ AI 生成</button>
+      <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-text">+ 文字发帖</button>
+      <button type="button" class="btn btn-primary" data-edit-only data-write-action id="btn-add-ai">+ AI 生成</button>
     </div>
 
     <div class="table-wrap">
@@ -108,7 +108,7 @@
       <h3>编辑帖子</h3>
       <button type="button" class="btn btn-link" id="edit-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <input type="hidden" id="edit-id">
       <div class="form-item">
         <label class="required">文案（content_text）</label>
@@ -129,7 +129,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="edit-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="edit-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="edit-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
@@ -141,7 +141,7 @@
       <h3>文字发帖</h3>
       <button type="button" class="btn btn-link" id="upload-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <p class="text-muted" style="margin-bottom:12px">本版仅支持纯文字；本地图片上传见技术债，后续补齐。</p>
       <div class="form-item">
         <label class="required">文案</label>
@@ -162,7 +162,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="upload-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="upload-modal-submit">发布</button>
+      <button type="button" class="btn btn-primary" id="upload-modal-submit" data-write-action>发布</button>
     </div>
   </div>
 </div>
@@ -174,7 +174,7 @@
       <h3>AI 生成朋友圈</h3>
       <button type="button" class="btn btn-link" id="ai-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <div class="form-item">
         <label class="required">内容描述（description）</label>
         <textarea class="form-control" id="ai-description" rows="4" placeholder="描述想发的内容，将注入 LLM-04"></textarea>
@@ -204,13 +204,13 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="ai-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="ai-modal-submit">生成</button>
+      <button type="button" class="btn btn-primary" id="ai-modal-submit" data-write-action>生成</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var PAGE_KEY = 'feed-posts';
   var currentPage = 1;
@@ -382,11 +382,11 @@
         var tags = Array.isArray(r.hashtags) ? r.hashtags.join(', ') : '';
         var ops = '<button class="op-btn op-btn-detail" onclick="showDetail(' + r.id + ')">详情</button>';
         if (!readonly) {
-          ops += '<button class="op-btn op-btn-detail" onclick="openEdit(' + r.id + ')">编辑</button>';
+          ops += '<button class="op-btn op-btn-detail" data-write-action onclick="openEdit(' + r.id + ')">编辑</button>';
           if (r.is_visible) {
-            ops += '<button class="op-btn op-btn-danger" onclick="toggleVisibility(' + r.id + ',false)">隐藏</button>';
+            ops += '<button class="op-btn op-btn-danger" data-write-action onclick="toggleVisibility(' + r.id + ',false)">隐藏</button>';
           } else {
-            ops += '<button class="op-btn op-btn-detail" onclick="toggleVisibility(' + r.id + ',true)">展示</button>';
+            ops += '<button class="op-btn op-btn-detail" data-write-action onclick="toggleVisibility(' + r.id + ',true)">展示</button>';
           }
         }
         return '<tr>' +
@@ -406,7 +406,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 内容', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 内容', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
 
     document.getElementById('btn-search').onclick = function () { currentPage = 1; loadPosts(); };
     document.getElementById('btn-add-text').onclick = function () {

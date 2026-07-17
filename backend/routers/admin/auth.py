@@ -11,13 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.constants import (
-    ADMIN_ERR_AUTH_ACCOUNT_LOCKED,
     ADMIN_ERR_AUTH_LOGIN_FAILED,
     ADMIN_ERR_AUTH_NEW_PASSWORD_CONFIRM_MISMATCH,
     ADMIN_ERR_AUTH_NEW_PASSWORD_SAME_AS_OLD,
     ADMIN_ERR_AUTH_OLD_PASSWORD_WRONG,
     ADMIN_ERR_AUTH_PASSWORD_POLICY,
-    ADMIN_ERR_AUTH_PASSWORD_WRONG_WITH_REMAINING,
 )
 from backend.database import get_db
 from backend.models.admin_user import AdminUser
@@ -34,6 +32,7 @@ from backend.utils.admin_auth import (
 )
 
 logger = logging.getLogger(__name__)
+security_logger = logging.getLogger("security.admin_auth")
 
 router = APIRouter()
 
@@ -42,6 +41,9 @@ _HAS_UPPER = re.compile(r"[A-Z]")
 _HAS_LOWER = re.compile(r"[a-z]")
 _HAS_DIGIT = re.compile(r"[0-9]")
 _HAS_SPECIAL = re.compile(r"[^a-zA-Z0-9]")
+
+# 固定 bcrypt 哈希仅用于不存在账号的耗时保护，不对应任何真实凭据。
+_DUMMY_PASSWORD_HASH = "$2b$12$e1EFjtEvP6EXN6LXYW.qAe23jhukXBxWQxoAfLD67WMXj1lJOGLiO"
 
 
 def _validate_admin_password(password: str) -> str | None:
@@ -70,6 +72,25 @@ def _hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
+def _build_admin_login_query(username: str):
+    """构造管理员登录行锁查询；锁持续到请求事务提交或回滚。"""
+    return (
+        select(AdminUser)
+        .where(AdminUser.username == username)
+        .with_for_update()
+    )
+
+
+def _login_failure(reason: str, username: str) -> ApiResponse:
+    """记录内部失败原因，对外只返回统一且不泄露账号状态的响应。"""
+    security_logger.warning(
+        "admin_login_failed reason=%s username=%r",
+        reason,
+        username,
+    )
+    return ApiResponse.fail(ADMIN_ERR_AUTH_LOGIN_FAILED)
+
+
 @router.post("/login")
 async def admin_login(
     req: AdminLoginRequest,
@@ -78,16 +99,20 @@ async def admin_login(
 ):
     """后台管理员登录"""
     # a. 查询管理员账号
-    stmt = select(AdminUser).where(AdminUser.username == req.username)
+    stmt = _build_admin_login_query(req.username)
     result = await db.execute(stmt)
     admin_user = result.scalars().first()
 
     if admin_user is None:
-        return ApiResponse.fail(ADMIN_ERR_AUTH_LOGIN_FAILED)
+        _verify_password(req.password, _DUMMY_PASSWORD_HASH)
+        return _login_failure("account_not_found", req.username)
+
+    if not admin_user.is_active:
+        return _login_failure("account_inactive", req.username)
 
     # b. 检查锁定状态（锁定时不验证密码，不更新login_fail_count）
     if admin_user.is_locked:
-        return ApiResponse.fail(ADMIN_ERR_AUTH_ACCOUNT_LOCKED)
+        return _login_failure("account_locked", req.username)
 
     # c+d. 验证密码
     if not _verify_password(req.password, admin_user.password_hash):
@@ -95,15 +120,12 @@ async def admin_login(
         if admin_user.login_fail_count >= 5:
             # 锁定账号
             admin_user.is_locked = True
-            admin_user.login_fail_count = 0
+            admin_user.login_fail_count = 5
+            admin_user.token_version += 1
             await db.flush()
-            return ApiResponse.fail(ADMIN_ERR_AUTH_ACCOUNT_LOCKED)
+            return _login_failure("password_wrong", req.username)
         await db.flush()
-        remaining = 5 - admin_user.login_fail_count
-        return ApiResponse.fail(
-            ADMIN_ERR_AUTH_PASSWORD_WRONG_WITH_REMAINING,
-            message=f"账号或密码错误，还可尝试{remaining}次",
-        )
+        return _login_failure("password_wrong", req.username)
 
     # e. 密码正确
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -121,7 +143,11 @@ async def admin_login(
         need_change_password = True
 
     # 生成Token
-    token = create_admin_token(admin_user.id, admin_user.role)
+    token = create_admin_token(
+        admin_user.id,
+        admin_user.role,
+        admin_user.token_version,
+    )
 
     # 写入登录日志
     await log_operation(
@@ -151,6 +177,7 @@ async def admin_logout(
     admin_user: AdminUser = Depends(get_current_admin),
 ):
     """后台管理员登出"""
+    admin_user.token_version += 1
     await log_operation(
         db=db,
         admin_user=admin_user,
@@ -190,6 +217,7 @@ async def admin_change_password(
     # 更新密码
     admin_user.password_hash = _hash_password(req.new_password)
     admin_user.last_password_change_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    admin_user.token_version += 1
 
     await log_operation(
         db=db,

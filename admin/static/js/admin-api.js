@@ -20,6 +20,108 @@ function getAdminRole() {
   return sessionStorage.getItem('admin_role') || '';
 }
 
+function isObserver() {
+  return getAdminRole() === 'observer';
+}
+
+/**
+ * observer 前端请求兜底。后端统一鉴权仍是最终权限边界。
+ * 只允许 GET/HEAD，以及两个精确的账号自助 POST。
+ */
+function isObserverRequestAllowed(method, path) {
+  if (!isObserver()) return true;
+  method = String(method || 'GET').toUpperCase();
+  var exactPath = String(path || '').split('?')[0].split('#')[0];
+  if (method === 'GET' || method === 'HEAD') return true;
+  if (method !== 'POST') return false;
+  return exactPath === '/api/admin/auth/logout' ||
+    exactPath === '/api/admin/auth/change-password';
+}
+
+/**
+ * 对带 data-write-action 的静态或动态节点应用 observer 只读策略。
+ * 不扫描无标记的普通按钮/表单，避免破坏搜索、筛选、分页、Tab、详情、复制和 GET 刷新。
+ */
+function applyObserverReadOnly(root) {
+  if (!isObserver()) return;
+  root = root || document;
+
+  var markers = [];
+  if (root.nodeType === 1 && root.matches && root.matches('[data-write-action]')) {
+    markers.push(root);
+  }
+  if (root.querySelectorAll) {
+    root.querySelectorAll('[data-write-action]').forEach(function (node) {
+      markers.push(node);
+    });
+  }
+
+  var controlSelector = 'button, a, input, textarea, select, [role="button"], [role="switch"]';
+  markers.forEach(function (marker) {
+    var controls = [];
+    if (marker.matches && marker.matches(controlSelector)) controls.push(marker);
+    marker.querySelectorAll(controlSelector).forEach(function (control) {
+      controls.push(control);
+    });
+
+    controls.forEach(function (control) {
+      var tagName = String(control.tagName || '').toLowerCase();
+      var inputType = String(control.type || '').toLowerCase();
+      var role = control.getAttribute('role');
+      var isHiddenWriteTrigger = tagName === 'button' || tagName === 'a' ||
+        role === 'button' || ['button', 'submit', 'reset', 'image'].indexOf(inputType) >= 0;
+
+      if (isHiddenWriteTrigger) {
+        control.classList.add('observer-write-hidden');
+        control.setAttribute('aria-hidden', 'true');
+        control.setAttribute('tabindex', '-1');
+        return;
+      }
+
+      var isDisabledControl = tagName === 'select' || role === 'switch' ||
+        ['checkbox', 'radio', 'file', 'range'].indexOf(inputType) >= 0;
+      if (isDisabledControl) {
+        control.disabled = true;
+        control.setAttribute('aria-disabled', 'true');
+        control.classList.add('observer-control-disabled');
+        return;
+      }
+
+      if (tagName === 'input' || tagName === 'textarea') {
+        control.readOnly = true;
+        control.setAttribute('aria-readonly', 'true');
+        control.classList.add('observer-control-readonly');
+      }
+    });
+  });
+}
+
+var observerReadOnlyMutationObserver = null;
+
+function initObserverReadOnly() {
+  if (!isObserver()) return;
+  applyObserverReadOnly(document);
+  if (observerReadOnlyMutationObserver || typeof MutationObserver === 'undefined') return;
+
+  observerReadOnlyMutationObserver = new MutationObserver(function (records) {
+    records.forEach(function (record) {
+      record.addedNodes.forEach(function (node) {
+        if (node.nodeType === 1) applyObserverReadOnly(node);
+      });
+    });
+  });
+  observerReadOnlyMutationObserver.observe(document.documentElement || document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initObserverReadOnly);
+} else {
+  initObserverReadOnly();
+}
+
 function clearAdminToken() {
   sessionStorage.clear();
 }
@@ -36,6 +138,11 @@ function checkAdminLogin() {
 // requestExtra：可选；{ silentErrorToast: true } 时不在此函数内对 code≠0 弹 Toast，由调用方处理（如按 20012/20013 定制文案）。
 
 async function adminRequest(method, path, data = null, isFile = false, requestExtra = null) {
+  method = String(method || 'GET').toUpperCase();
+  if (!isObserverRequestAllowed(method, path)) {
+    showToast('观察者仅允许执行只读操作', 'warning');
+    return null;
+  }
   const silentErrorToast = requestExtra && requestExtra.silentErrorToast;
   const fetchOpts = {
     method,
@@ -327,6 +434,17 @@ var LIFE_FEED_MENU = {
   ]
 };
 
+// observer 复用 super_admin 的业务读取导航，但不暴露账号管理。
+MENU_CONFIG.observer = MENU_CONFIG.super_admin.filter(function (item) {
+  return item.key !== 'accounts';
+});
+CHAT_PROMPT_MENU.observer = CHAT_PROMPT_MENU.super_admin.slice();
+LIFE_FEED_MENU.observer = LIFE_FEED_MENU.super_admin.map(function (item) {
+  var observerItem = Object.assign({}, item);
+  observerItem.readonly = true;
+  return observerItem;
+});
+
 /** 侧栏滚动位置记忆 key（仅左侧，不记右侧内容区） */
 var ADMIN_SIDEBAR_SCROLL_KEY = 'admin_sidebar_scroll';
 
@@ -367,14 +485,14 @@ function toggleChatPromptMenu(titleEl) {
   group.classList.toggle('expanded');
 }
 
-/** 生活流页面是否只读（ops_admin / tech_ops 部分页） */
+/** 生活流页面是否只读（observer 全部；ops_admin / tech_ops 部分页） */
 function isLifeFeedReadOnly(activeKey) {
   var role = getAdminRole();
   var items = LIFE_FEED_MENU[role] || [];
   for (var i = 0; i < items.length; i++) {
     if (items[i].key === activeKey) return !!items[i].readonly;
   }
-  return role === 'ops_admin' || role === 'tech_ops';
+  return role === 'observer' || role === 'ops_admin' || role === 'tech_ops';
 }
 
 /** 当前 key 是否属于生活流 Prompt 分组（用于侧栏默认展开） */
@@ -503,7 +621,8 @@ function renderHeader(pageTitle) {
     super_admin: '超级管理员',
     ops_admin: '运营管理员',
     ai_trainer: 'AI训练师',
-    tech_ops: '技术运维'
+    tech_ops: '技术运维',
+    observer: '观察者'
   };
   var roleText = roleLabels[getAdminRole()] || getAdminRole();
 

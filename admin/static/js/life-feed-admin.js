@@ -31,7 +31,8 @@ function lfPublishConfig(configKey, configValue, onDone) {
     async function () {
       var res = await adminRequest('POST', '/api/admin/life-config/publish', {
         config_key: configKey,
-        config_value: configValue
+        config_value: configValue,
+        confirm_text: 'CONFIRM'
       });
       if (res && res.code === 0) {
         showToast('已发布，5 分钟监控窗口已开启', 'success');

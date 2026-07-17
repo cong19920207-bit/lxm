@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI人格管理 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .persona-layout {
       display: grid;
@@ -222,28 +222,28 @@
         <div id="persona-form-fields">
           <div class="form-item">
             <label for="persona-background">角色背景</label>
-            <textarea id="persona-background" class="form-control" rows="6" placeholder="林小梦的身份、来历、核心世界观"></textarea>
+            <textarea id="persona-background" data-write-action class="form-control" rows="6" placeholder="林小梦的身份、来历、核心世界观"></textarea>
           </div>
           <div class="form-item">
             <label for="persona-personality">性格特征</label>
-            <textarea id="persona-personality" class="form-control" rows="4" placeholder="核心性格特质，3-5个"></textarea>
+            <textarea id="persona-personality" data-write-action class="form-control" rows="4" placeholder="核心性格特质，3-5个"></textarea>
           </div>
           <div class="form-item">
             <label for="persona-emotion">情感偏好</label>
-            <textarea id="persona-emotion" class="form-control" rows="4" placeholder="林小梦的喜好、价值观"></textarea>
+            <textarea id="persona-emotion" data-write-action class="form-control" rows="4" placeholder="林小梦的喜好、价值观"></textarea>
           </div>
           <div class="form-item">
             <label for="persona-language">语言风格</label>
-            <textarea id="persona-language" class="form-control" rows="4" placeholder="说话方式、语气、句式"></textarea>
+            <textarea id="persona-language" data-write-action class="form-control" rows="4" placeholder="说话方式、语气、句式"></textarea>
           </div>
           <div class="form-item" style="margin-bottom:0">
             <label for="persona-behavior">行为模式</label>
-            <textarea id="persona-behavior" class="form-control" rows="4" placeholder="固定行为习惯、互动规则"></textarea>
+            <textarea id="persona-behavior" data-write-action class="form-control" rows="4" placeholder="固定行为习惯、互动规则"></textarea>
           </div>
           <div class="persona-edit-actions">
-            <button type="button" class="btn btn-default" id="btn-save-draft">保存草稿</button>
-            <button type="button" class="btn btn-primary" id="btn-test">测试效果</button>
-            <button type="button" class="btn btn-publish-green" id="btn-publish" disabled>发布生效</button>
+            <button type="button" class="btn btn-default" id="btn-save-draft" data-write-action>保存草稿</button>
+            <button type="button" class="btn btn-primary" id="btn-test" data-write-action>测试效果</button>
+            <button type="button" class="btn btn-publish-green" id="btn-publish" data-write-action disabled>发布生效</button>
           </div>
         </div>
       </div>
@@ -293,10 +293,10 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
   var FIELD_IDS = {
     background: 'persona-background',
     personality: 'persona-personality',
@@ -408,6 +408,7 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn btn-default btn-sm';
+      btn.setAttribute('data-write-action', '');
       btn.textContent = '丢弃草稿';
       btn.onclick = function () {
         showConfirm('确定丢弃当前人格草稿？丢弃后不可恢复。', function () {
@@ -462,7 +463,7 @@
       html += '<div class="timeline-meta">' + escapeHtml(row.updated_by || '-') + ' · ' + formatDateTime(row.updated_at) + '</div>';
       html += '<div class="timeline-actions">';
       html += '<button type="button" class="btn btn-link btn-sm" data-view-v="' + ver + '">查看</button>';
-      html += '<button type="button" class="btn btn-link btn-sm" data-rollback-v="' + ver + '">回滚</button>';
+      html += '<button type="button" class="btn btn-link btn-sm" data-write-action data-rollback-v="' + ver + '">回滚</button>';
       html += '</div></div></div>';
     });
     html += '</div>';

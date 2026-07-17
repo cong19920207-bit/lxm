@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生活流 · 生活计划 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 180px; }
@@ -55,15 +55,15 @@
         <label>周起始（周一）</label>
         <input type="date" class="form-control" id="week_start_date">
         <button type="button" class="btn btn-default" id="btn-load-outline">查询</button>
-        <button type="button" class="btn btn-primary" data-edit-only id="btn-gen-outline">一键生成</button>
-        <button type="button" class="btn btn-default" data-edit-only id="btn-add-outline">新增单日</button>
+        <button type="button" class="btn btn-primary" data-edit-only data-write-action id="btn-gen-outline">一键生成</button>
+        <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-outline">新增单日</button>
       </div>
 
       <div class="page-card" style="margin-bottom:16px;padding:16px">
         <h3 class="page-card-title">生活计划设置
           <span class="draft-hint" id="settings-draft-hint" style="display:none">（有未发布草稿）</span>
         </h3>
-        <div class="settings-grid">
+        <div class="settings-grid" data-write-action>
           <div class="form-item">
             <label>主场城市（home_city）</label>
             <input type="text" class="form-control" id="set-home_city">
@@ -81,7 +81,7 @@
             <input type="number" class="form-control" id="set-life_ratio_long_trip" min="0" max="100">
           </div>
         </div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" data-edit-only>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" data-edit-only data-write-action>
           <button type="button" class="btn btn-default" id="btn-save-settings">保存草稿</button>
           <button type="button" class="btn btn-primary" id="btn-publish-settings">发布</button>
         </div>
@@ -111,8 +111,8 @@
         <label>计划日期（plan_date）</label>
         <input type="date" class="form-control" id="plan_date">
         <button type="button" class="btn btn-default" id="btn-load-daily">查询</button>
-        <button type="button" class="btn btn-primary" data-edit-only id="btn-gen-daily">触发生成</button>
-        <button type="button" class="btn btn-default" data-edit-only id="btn-add-scene">新增场景</button>
+        <button type="button" class="btn btn-primary" data-edit-only data-write-action id="btn-gen-daily">触发生成</button>
+        <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-scene">新增场景</button>
       </div>
       <p>生成状态（gen_status）：<span id="daily-gen-status-wrap"><span class="tag tag-default" id="daily-gen-status">-</span></span></p>
 
@@ -145,7 +145,7 @@
       <h3 id="outline-modal-title">新增单日大纲</h3>
       <button type="button" class="btn btn-link" id="outline-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <div class="form-item">
         <label class="required">计划日期（plan_date）</label>
         <input type="date" class="form-control" id="ol-plan_date">
@@ -162,7 +162,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="outline-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="outline-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="outline-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
@@ -174,7 +174,7 @@
       <h3 id="scene-modal-title">新增场景</h3>
       <button type="button" class="btn btn-link" id="scene-modal-close" aria-label="关闭">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-write-action>
       <p class="text-muted" id="scene-modal-hint" style="margin-bottom:12px"></p>
       <div class="form-item">
         <label class="required">时段（time_range）</label>
@@ -199,13 +199,13 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" id="scene-modal-cancel">取消</button>
-      <button type="button" class="btn btn-primary" id="scene-modal-submit">保存</button>
+      <button type="button" class="btn btn-primary" id="scene-modal-submit" data-write-action>保存</button>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var PAGE_KEY = 'life-plan';
   var categoriesVocab = [];
@@ -340,12 +340,12 @@
       var ops = '';
       if (r) {
         if (!readonly) {
-          ops += '<button class="op-btn op-btn-detail" onclick="editOutline(\'' + pd + '\')">编辑</button>';
-          ops += '<button class="op-btn op-btn-danger" onclick="deleteOutline(\'' + pd + '\')">删除</button>';
+          ops += '<button class="op-btn op-btn-detail" data-write-action onclick="editOutline(\'' + pd + '\')">编辑</button>';
+          ops += '<button class="op-btn op-btn-danger" data-write-action onclick="deleteOutline(\'' + pd + '\')">删除</button>';
         }
         ops += '<button class="op-btn op-btn-detail" onclick="gotoDaily(\'' + pd + '\')">进入日场景</button>';
       } else if (!readonly) {
-        ops = '<button class="op-btn op-btn-detail" onclick="addOutline(\'' + pd + '\')">补录</button>';
+        ops = '<button class="op-btn op-btn-detail" data-write-action onclick="addOutline(\'' + pd + '\')">补录</button>';
       }
       if (!r) {
         html.push('<tr class="row-empty"><td>' + pd + '</td><td colspan="3">未规划</td><td>' + ops + '</td></tr>');
@@ -489,13 +489,13 @@
         '</div>';
       var ops = '';
       if (!readonly) {
-        ops = '<button class="op-btn op-btn-detail" onclick="editScene(\'' + lfEscapeHtml(sid) + '\')">编辑</button>' +
-          '<button class="op-btn op-btn-danger" onclick="deleteScene(\'' + lfEscapeHtml(sid) + '\')">删除</button>';
+        ops = '<button class="op-btn op-btn-detail" data-write-action onclick="editScene(\'' + lfEscapeHtml(sid) + '\')">编辑</button>' +
+          '<button class="op-btn op-btn-danger" data-write-action onclick="deleteScene(\'' + lfEscapeHtml(sid) + '\')">删除</button>';
       }
       return '<tr><td>' + lfEscapeHtml(sid) + '</td><td>' + lfEscapeHtml(s.time_range) +
         '</td><td>' + lfEscapeHtml(s.city) + '</td><td>' + lfEscapeHtml(s.category) +
         '</td><td>' + lfEscapeHtml(s.venue_type) + '</td><td>' + descHtml + '</td>' +
-        (readonly ? '<td></td>' : '<td data-edit-only>' + ops + '</td>') + '</tr>';
+        (readonly ? '<td></td>' : '<td data-edit-only data-write-action>' + ops + '</td>') + '</tr>';
     }).join('');
   }
 
@@ -575,7 +575,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 生活计划', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    if (!initLifeFeedPage(PAGE_KEY, '生活流 · 生活计划', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
     initTabs('main-tabs');
 
     var today = new Date();
@@ -641,7 +641,8 @@
           for (var i = 0; i < pairs.length; i++) {
             var res = await adminRequest('POST', '/api/admin/life-config/publish', {
               config_key: pairs[i][0],
-              config_value: pairs[i][1]
+              config_value: pairs[i][1],
+              confirm_text: 'CONFIRM'
             });
             if (!res || res.code !== 0) {
               showToast('发布失败：' + pairs[i][0], 'error');

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>日记规则配置 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .td-banner-diary {
       background: #fff7e6;
@@ -67,12 +67,12 @@
   <div class="page-card">
     <div class="form-item">
       <label>有互动时 · 日记生成 Prompt</label>
-      <textarea id="gen-prompt-with" class="form-control" rows="7" placeholder="统计窗内有用户对话时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+      <textarea id="gen-prompt-with" data-write-action class="form-control" rows="7" placeholder="统计窗内有用户对话时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
     </div>
 
     <div class="form-item mt-16">
       <label>无互动时 · 日记生成 Prompt（≥2 级想念向）</label>
-      <textarea id="gen-prompt-without" class="form-control" rows="7" placeholder="统计窗内无对话且等级≥2时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
+      <textarea id="gen-prompt-without" data-write-action class="form-control" rows="7" placeholder="统计窗内无对话且等级≥2时使用" style="font-family:monospace,Consolas,Menlo,monospace;font-size:13px"></textarea>
       <div class="alert alert-info" style="font-size:12px;margin-top:8px;margin-bottom:0">
         可用占位符：<br>
         {{relationship_level_name}} - 关系等级名称<br>
@@ -86,26 +86,26 @@
 
     <div class="form-item mt-16">
       <label>字数限制 <span id="max-length-val" class="text-secondary">当前设置：最多 150 字</span></label>
-      <input type="range" id="max-length" min="50" max="300" step="10" value="150">
+      <input type="range" id="max-length" data-write-action min="50" max="300" step="10" value="150">
     </div>
 
     <div class="form-item mt-16">
       <label>生成时间（Asia/Shanghai 北京时间，与统计日界一致；默认建议 0:15）</label>
       <div class="gen-time-row">
-        <select id="gen-hour" class="form-control" aria-label="生成时刻小时"></select>
-        <input type="number" id="gen-minute" class="form-control" min="0" max="59" step="1" value="15" title="分钟 0–59">
+        <select id="gen-hour" data-write-action class="form-control" aria-label="生成时刻小时"></select>
+        <input type="number" id="gen-minute" data-write-action class="form-control" min="0" max="59" step="1" value="15" title="分钟 0–59">
         <span class="text-secondary" style="font-size:13px">分</span>
       </div>
       <p class="text-secondary" style="font-size:12px;margin-top:6px;margin-bottom:0">建议选择凌晨低峰期；修改后须重启 backend 进程后生效。</p>
     </div>
 
-    <button type="button" class="btn btn-primary btn-block mt-16" id="btn-save-diary-rules">保存配置</button>
+    <button type="button" class="btn btn-primary btn-block mt-16" id="btn-save-diary-rules" data-write-action>保存配置</button>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
 
   function syncMaxLengthLabel() {
     var el = document.getElementById('max-length');

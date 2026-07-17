@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
+_HISTORY_READ_ROLES = ("super_admin", "ops_admin", "observer")
 
 
 # ──────────────────── 请求模型 ────────────────────
@@ -54,7 +56,7 @@ class DiaryRulesRequest(BaseModel):
 
 @router.get(
     "/relationship-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_relationship_rules(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -66,7 +68,7 @@ async def get_relationship_rules(
 
 @router.put(
     "/relationship-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_relationship_rules(
     body: RelationshipRulesRequest,
@@ -195,7 +197,7 @@ async def update_relationship_rules(
 
 @router.get(
     "/diary-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_diary_rules(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -207,7 +209,7 @@ async def get_diary_rules(
 
 @router.put(
     "/diary-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_diary_rules(
     body: DiaryRulesRequest,
@@ -278,7 +280,7 @@ async def update_diary_rules(
 
 @router.get(
     "/diary-history",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_HISTORY_READ_ROLES)],
 )
 async def get_diary_history(
     user_id: Optional[int] = Query(None),

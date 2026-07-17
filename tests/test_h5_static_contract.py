@@ -248,6 +248,21 @@ def test_login_html_auth_ids():
         assert fragment in html, fragment
 
 
+def test_login_html_desktop_only_site_shell():
+    """登录页仅在桌面端展示品牌页头和 ICP 页脚。"""
+    html = _read("login.html")
+    for fragment in (
+        'class="desktop-login-header"',
+        "个人虚拟人模拟",
+        'class="desktop-login-footer"',
+        "浙ICP备2026035072号-1",
+        'href="https://beian.miit.gov.cn/"',
+        ".desktop-login-header,\n    .desktop-login-footer",
+        "@media (min-width: 768px)",
+    ):
+        assert fragment in html, fragment
+
+
 def test_settings_change_password_ids():
     html = _read("settings.html")
     api_js = _read_js("api.js")

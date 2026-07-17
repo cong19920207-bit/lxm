@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI测试工具 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     /* 主区：左 40% + 右 60% */
     .test-tool-layout {
@@ -247,13 +247,13 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
   /* 无 Token 时仅走登录跳转，避免继续执行后被误判为无权限 403 */
   if (!checkAdminLogin()) return;
 
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
   if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
     window.location.href = '/admin/pages/error.html?type=403';
     return;
@@ -275,13 +275,13 @@
             '<div class="page-card-title">测试参数配置</div>' +
             '<div class="test-config-radio-group">' +
               '<span style="display:block;margin-bottom:8px;font-size:14px;color:var(--text)">使用配置</span>' +
-              '<label><input type="radio" name="tt-use-draft" value="0" checked> 当前生效配置</label>' +
-              '<label><input type="radio" name="tt-use-draft" value="1"> 草稿配置</label>' +
+              '<label><input type="radio" name="tt-use-draft" data-write-action value="0" checked> 当前生效配置</label>' +
+              '<label><input type="radio" name="tt-use-draft" data-write-action value="1"> 草稿配置</label>' +
             '</div>' +
             '<div class="test-param-grid">' +
               '<div class="form-item" style="margin-bottom:0">' +
                 '<label>关系等级</label>' +
-                '<select id="tt-level" class="form-control">' +
+                '<select id="tt-level" data-write-action class="form-control">' +
                   '<option value="0">0级陌生</option>' +
                   '<option value="1" selected>1级朋友</option>' +
                   '<option value="2">2级亲密</option>' +
@@ -290,7 +290,7 @@
               '</div>' +
               '<div class="form-item" style="margin-bottom:0">' +
                 '<label>用户情绪</label>' +
-                '<select id="tt-emotion" class="form-control">' +
+                '<select id="tt-emotion" data-write-action class="form-control">' +
                   '<option value="开心">开心</option>' +
                   '<option value="悲伤">悲伤</option>' +
                   '<option value="焦虑">焦虑</option>' +
@@ -303,20 +303,20 @@
             '</div>' +
             '<div class="form-item" style="margin-top:12px;margin-bottom:0">' +
               '<label>模拟记忆</label>' +
-              '<textarea id="tt-memories" class="form-control" rows="4" placeholder="每行输入一条模拟记忆，如：喜欢喝燕麦拿铁"></textarea>' +
+              '<textarea id="tt-memories" data-write-action class="form-control" rows="4" placeholder="每行输入一条模拟记忆，如：喜欢喝燕麦拿铁"></textarea>' +
               '<div class="mem-count-row" id="tt-mem-count">已输入 0/5 条</div>' +
               '<div id="tt-mem-warn" class="alert alert-warning" style="display:none;margin-top:8px;margin-bottom:0">最多输入5条，超出部分将被忽略</div>' +
             '</div>' +
             '<div class="form-item" style="margin-top:12px;margin-bottom:0">' +
               '<label class="required">测试输入</label>' +
-              '<textarea id="tt-input" class="form-control" rows="4" placeholder="输入要测试的对话内容，如：今天工作好累"></textarea>' +
+              '<textarea id="tt-input" data-write-action class="form-control" rows="4" placeholder="输入要测试的对话内容，如：今天工作好累"></textarea>' +
             '</div>' +
-            '<button type="button" class="btn btn-primary btn-block" id="tt-run" style="margin-top:16px">开始测试</button>' +
+            '<button type="button" class="btn btn-primary btn-block" id="tt-run" data-write-action style="margin-top:16px">开始测试</button>' +
           '</div>' +
           '<div class="page-card test-tool-history-card">' +
             '<div class="test-history-head">' +
               '<h2>最近测试记录</h2>' +
-              '<button type="button" class="btn btn-link" id="tt-history-clear">清空</button>' +
+              '<button type="button" class="btn btn-link" id="tt-history-clear" data-write-action>清空</button>' +
             '</div>' +
             '<div class="test-history-list" id="tt-history-list"></div>' +
           '</div>' +
@@ -326,7 +326,7 @@
             '<div class="page-card-title">测试结果</div>' +
             '<div id="tt-result-placeholder" class="test-result-placeholder">点击「开始测试」查看结果</div>' +
             '<div id="tt-result-body" style="display:none"></div>' +
-            '<button type="button" class="btn btn-default" id="tt-save-case" style="display:none;margin-top:16px;width:100%;justify-content:center">保存为测试用例</button>' +
+            '<button type="button" class="btn btn-default" id="tt-save-case" data-write-action style="display:none;margin-top:16px;width:100%;justify-content:center">保存为测试用例</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -579,12 +579,12 @@
           '<p class="modal-hint">将使用<strong>最近一次成功测试</strong>时的测试输入、关系等级与用户情绪（与当时请求体一致），连同下方填写的期望标准，写入人格测试用例库（config_key=persona）。若你改动了左侧表单，请先再次「开始测试」再保存。</p>' +
           '<div class="form-item" style="margin-bottom:0">' +
             '<label class="required">期望通过标准</label>' +
-            '<textarea id="tt-sc-criteria" class="form-control" rows="3" placeholder="描述这条测试用例的期望通过标准"></textarea>' +
+            '<textarea id="tt-sc-criteria" data-write-action class="form-control" rows="3" placeholder="描述这条测试用例的期望通过标准"></textarea>' +
           '</div>' +
         '</div>' +
         '<div class="modal-footer">' +
           '<button type="button" class="btn btn-default" id="tt-sc-cancel">取消</button>' +
-          '<button type="button" class="btn btn-primary" id="tt-sc-ok">确认保存</button>' +
+          '<button type="button" class="btn btn-primary" id="tt-sc-ok" data-write-action>确认保存</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(overlay);

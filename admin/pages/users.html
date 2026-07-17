@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>用户管理 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row {
       display: flex;
@@ -89,7 +89,7 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>checkAdminLogin();</script>
 
 <script>
@@ -244,7 +244,7 @@
           '<td>' + statusTag + '</td>' +
           '<td>' +
             '<button class="op-btn op-btn-detail" onclick="goDetail(' + u.id + ')">详情</button>' +
-            '<button class="op-btn ' + toggleClass + '" onclick="toggleStatus(' + u.id + ',\'' + u.username + '\',' + isBanned + ')">' + toggleLabel + '</button>' +
+            '<button class="op-btn ' + toggleClass + '" data-write-action onclick="toggleStatus(' + u.id + ',\'' + u.username + '\',' + isBanned + ')">' + toggleLabel + '</button>' +
           '</td>' +
         '</tr>';
     }

@@ -41,6 +41,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+_USER_BUSINESS_READ_ROLES = ("super_admin", "ops_admin", "observer")
+
 # 关系等级映射
 _LEVEL_NAMES = {0: "陌生", 1: "朋友", 2: "亲密", 3: "知己"}
 _LEVEL_THRESHOLDS = {0: 200, 1: 800, 2: 2000, 3: None}
@@ -51,7 +53,7 @@ _LEVEL_THRESHOLDS = {0: 200, 1: 800, 2: 2000, 3: None}
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_USER_BUSINESS_READ_ROLES)],
 )
 async def list_users(
     username: str | None = Query(None, max_length=20),
@@ -158,7 +160,7 @@ async def list_users(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users/{user_id}",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_USER_BUSINESS_READ_ROLES)],
 )
 async def get_user_detail(
     user_id: int,
@@ -255,7 +257,7 @@ async def get_user_detail(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users/{user_id}/conversations",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_USER_BUSINESS_READ_ROLES)],
 )
 async def get_user_conversations(
     user_id: int,
@@ -395,7 +397,7 @@ async def get_user_conversations(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users/{user_id}/emotion-rounds",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_USER_BUSINESS_READ_ROLES)],
 )
 async def get_user_emotion_rounds(
     user_id: int,
@@ -495,7 +497,13 @@ async def get_user_emotion_rounds(
 # 旧 MySQL `/users/{id}/memories*`（接口四/五/六）已删除，统一改为 Step6 向量读写。
 # 权限：super_admin + ops_admin + ai_trainer（P5）
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-_USER_MEMORY_ROLES = ("super_admin", "ops_admin", "ai_trainer")
+_USER_MEMORY_READ_ROLES = (
+    "super_admin",
+    "ops_admin",
+    "ai_trainer",
+    "observer",
+)
+_USER_MEMORY_WRITE_ROLES = ("super_admin", "ops_admin", "ai_trainer")
 
 
 class UserMemoryCreateRequest(BaseModel):
@@ -635,7 +643,7 @@ async def _delete_user_vector(
 # ---------- user-memories（type=user）----------
 @router.get(
     "/users/{user_id}/user-memories",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_READ_ROLES)],
 )
 async def list_user_memories(
     user_id: int,
@@ -652,7 +660,7 @@ async def list_user_memories(
 
 @router.post(
     "/users/{user_id}/user-memories",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def create_user_memory(
     user_id: int,
@@ -669,7 +677,7 @@ async def create_user_memory(
 
 @router.put(
     "/users/{user_id}/user-memories/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def update_user_memory(
     user_id: int,
@@ -687,7 +695,7 @@ async def update_user_memory(
 
 @router.delete(
     "/users/{user_id}/user-memories/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def delete_user_memory(
     user_id: int,
@@ -705,7 +713,7 @@ async def delete_user_memory(
 # ---------- private-settings（type=character_private）----------
 @router.get(
     "/users/{user_id}/private-settings",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_READ_ROLES)],
 )
 async def list_private_settings(
     user_id: int,
@@ -722,7 +730,7 @@ async def list_private_settings(
 
 @router.post(
     "/users/{user_id}/private-settings",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def create_private_setting(
     user_id: int,
@@ -739,7 +747,7 @@ async def create_private_setting(
 
 @router.put(
     "/users/{user_id}/private-settings/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def update_private_setting(
     user_id: int,
@@ -757,7 +765,7 @@ async def update_private_setting(
 
 @router.delete(
     "/users/{user_id}/private-settings/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
 )
 async def delete_private_setting(
     user_id: int,
@@ -777,7 +785,7 @@ async def delete_private_setting(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users/{user_id}/diaries",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role(*_USER_BUSINESS_READ_ROLES)],
 )
 async def list_user_diaries(
     user_id: int,
@@ -811,11 +819,12 @@ async def list_user_diaries(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @router.get(
     "/users/{user_id}/open-api-key",
-    dependencies=[require_role("super_admin", "ops_admin")],
+    dependencies=[require_role("super_admin", "ops_admin", "observer")],
 )
 async def get_user_open_api_key(
     user_id: int,
     db: AsyncSession = Depends(get_db),
+    admin_user: AdminUser = Depends(get_current_admin),
 ):
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
@@ -823,6 +832,8 @@ async def get_user_open_api_key(
     status = await get_key_status(db, user_id)
     if status is None:
         return ApiResponse.ok(data={"enabled": False})
+    if admin_user.role == "observer":
+        return ApiResponse.ok(data={"enabled": True})
     return ApiResponse.ok(data=status)
 
 

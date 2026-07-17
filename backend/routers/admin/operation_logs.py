@@ -15,19 +15,35 @@ from backend.database import get_db
 from backend.models.admin_operation_log import AdminOperationLog
 from backend.models.admin_user import AdminUser
 from backend.schemas.common import ApiResponse
-from backend.utils.admin_auth import get_current_admin, require_role
+from backend.utils.admin_auth import (
+    deny_observer_export,
+    get_current_admin,
+    require_role,
+)
+from backend.utils.credential_redaction import REDACTED, redact_credentials
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# ai_trainer 无操作日志查看权限
-_LOG_VIEW_ROLES = ("super_admin", "ops_admin", "tech_ops")
+# ai_trainer 无操作日志查看权限；observer 只读且禁止导出。
+_LOG_READ_ROLES = ("super_admin", "ops_admin", "tech_ops", "observer")
+_LOG_EXPORT_ROLES = ("super_admin", "ops_admin", "tech_ops")
+
+
+def _redact_log_value(value):
+    if value is None:
+        return None
+    try:
+        return redact_credentials(value)
+    except Exception:
+        logger.exception("操作日志读取脱敏失败，已按失败关闭处理")
+        return REDACTED
 
 
 @router.get(
     "/operation-logs",
-    dependencies=[require_role(*_LOG_VIEW_ROLES)],
+    dependencies=[require_role(*_LOG_READ_ROLES)],
 )
 async def list_operation_logs(
     admin_username: str | None = Query(None, description="管理员用户名（模糊搜索）"),
@@ -94,7 +110,7 @@ async def list_operation_logs(
                 "admin_username": log.admin_username,
                 "module": log.module,
                 "action": log.action,
-                "target_description": log.target_description,
+                "target_description": _redact_log_value(log.target_description),
                 "ip_address": log.ip_address,
                 "created_at": log.created_at.isoformat() if log.created_at else None,
             }
@@ -106,7 +122,7 @@ async def list_operation_logs(
 
 @router.get(
     "/operation-logs/{log_id}",
-    dependencies=[require_role(*_LOG_VIEW_ROLES)],
+    dependencies=[require_role(*_LOG_READ_ROLES)],
 )
 async def get_operation_log_detail(
     log_id: int,
@@ -127,9 +143,9 @@ async def get_operation_log_detail(
         "admin_username": log.admin_username,
         "module": log.module,
         "action": log.action,
-        "target_description": log.target_description,
-        "before_value": log.before_value,
-        "after_value": log.after_value,
+        "target_description": _redact_log_value(log.target_description),
+        "before_value": _redact_log_value(log.before_value),
+        "after_value": _redact_log_value(log.after_value),
         "ip_address": log.ip_address,
         "created_at": log.created_at.isoformat() if log.created_at else None,
     }
@@ -138,7 +154,10 @@ async def get_operation_log_detail(
 
 @router.post(
     "/operation-logs/export",
-    dependencies=[require_role(*_LOG_VIEW_ROLES)],
+    dependencies=[
+        Depends(deny_observer_export),
+        require_role(*_LOG_EXPORT_ROLES),
+    ],
 )
 async def export_operation_logs(
     admin_username: str | None = Query(None),
@@ -196,9 +215,9 @@ async def export_operation_logs(
             log.admin_username,
             log.module,
             log.action,
-            log.target_description,
-            log.before_value or "",
-            log.after_value or "",
+            _redact_log_value(log.target_description),
+            _redact_log_value(log.before_value) or "",
+            _redact_log_value(log.after_value) or "",
             log.ip_address or "",
             log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else "",
         ])

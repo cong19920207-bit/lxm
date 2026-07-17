@@ -55,9 +55,26 @@ def get_jwt_algorithm() -> str:
     return os.getenv("JWT_ALGORITHM", "HS256")
 
 
+_INVALID_ADMIN_JWT_SECRETS = {
+    "admin_secret_change_me",
+    "your_admin_jwt_secret_here",
+}
+
+
+def validate_admin_jwt_secret(secret: str | None = None) -> str:
+    """校验后台 JWT 密钥，拒绝缺失、空白和公开占位值。"""
+    value = os.getenv("ADMIN_JWT_SECRET") if secret is None else secret
+    normalized = value.strip() if value is not None else ""
+    if not normalized or normalized in _INVALID_ADMIN_JWT_SECRETS:
+        raise ValueError(
+            "ADMIN_JWT_SECRET 必须显式配置为非空且非公开占位值的自定义密钥"
+        )
+    return value
+
+
 def get_admin_jwt_secret() -> str:
     """获取后台管理员 JWT 签名密钥（与用户端独立）"""
-    return os.getenv("ADMIN_JWT_SECRET", "admin_secret_change_me")
+    return validate_admin_jwt_secret()
 
 
 # ============ 火山引擎（豆包 LLM） ============

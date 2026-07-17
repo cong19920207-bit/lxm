@@ -56,8 +56,13 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时建表、启动定时任务，关闭时优雅停止"""
-    from backend.config import validate_open_api_pepper_on_startup, warn_deepseek_config_on_startup
+    from backend.config import (
+        validate_admin_jwt_secret,
+        validate_open_api_pepper_on_startup,
+        warn_deepseek_config_on_startup,
+    )
 
+    validate_admin_jwt_secret()
     validate_open_api_pepper_on_startup()
     warn_deepseek_config_on_startup()
     await create_all_tables()

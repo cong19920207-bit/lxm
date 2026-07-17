@@ -21,6 +21,12 @@ from backend.services.embedding_service import embedding_service
 from backend.utils.dashvector_client import dashvector_client
 
 
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_EXTERNAL_INTEGRATION") != "1",
+    reason="requires live Aliyun Embedding and DashVector credentials/network",
+)
+
+
 # 测试用虚拟 user_id，避免与真实数据冲突
 _TEST_USER_ID = 999998
 # 测试文档 ID 前缀，便于识别和清理

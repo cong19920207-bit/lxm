@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent配置 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .agent-tab-header-card {
       padding-bottom: 0;
@@ -198,7 +198,7 @@
     </div>
 
     <!-- Tab 1：触发条件 -->
-    <div id="tab-triggers" class="tab-pane active agent-disable-while-load">
+    <div id="tab-triggers" class="tab-pane active agent-disable-while-load" data-write-action>
       <div class="agent-trigger-card">
         <div class="agent-card-head">
           <div class="agent-card-head-left">
@@ -312,7 +312,7 @@
     </div>
 
     <!-- Tab 2：决策引擎 & 消息规则 -->
-    <div id="tab-decision" class="tab-pane agent-disable-while-load">
+    <div id="tab-decision" class="tab-pane agent-disable-while-load" data-write-action>
       <div class="page-card" style="margin-bottom:16px">
         <div class="page-card-title" style="border:none;padding-bottom:8px;margin-bottom:8px">决策引擎配置</div>
         <div class="agent-de-row">
@@ -339,10 +339,10 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
 
   // 独立内存：切 Tab 不丢未保存修改（与 agent-message-rules 响应对应）
   var gTriggersData = {};
@@ -519,6 +519,7 @@
       span.appendChild(btn);
       el.appendChild(span);
     });
+    applyObserverReadOnly(document.getElementById('tab-triggers'));
   }
 
   function tryAddP3Keyword() {
@@ -646,6 +647,7 @@
       sub.appendChild(fe);
       wrap.appendChild(sub);
     });
+    applyObserverReadOnly(document.getElementById('tab-decision'));
   }
 
   function refreshExampleRemoveVisibility(exWrap) {

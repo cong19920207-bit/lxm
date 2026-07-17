@@ -3,6 +3,7 @@
 
 import json
 import uuid
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from backend.database import Base, get_db
 from backend.main import app
+from backend.services.multi_vector_retrieval_service import MultiVectorRetrievalResult
+from backend.services.query_rewrite_service import QueryRewriteResult
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -35,6 +38,29 @@ async def override_get_db():
 
 
 app.dependency_overrides[get_db] = override_get_db
+
+
+@contextmanager
+def _patch_retrieval_pipeline():
+    with (
+        patch(
+            "backend.routers.chat.execute_query_rewrite",
+            new_callable=AsyncMock,
+            return_value=QueryRewriteResult(success=False, fallback_embedding=[]),
+        ),
+        patch(
+            "backend.routers.chat.execute_multi_vector_retrieval",
+            new_callable=AsyncMock,
+            return_value=MultiVectorRetrievalResult(),
+        ),
+        patch(
+            "backend.routers.chat.PromptBuilder.build_chat_prompt",
+            new_callable=AsyncMock,
+            return_value="test prompt",
+        ),
+        patch("backend.routers.chat.execute_step6", new_callable=AsyncMock),
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -135,11 +161,9 @@ class TestStep012AllPass:
 
         with (
             patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
-            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
-            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            _patch_retrieval_pipeline(),
             patch("backend.routers.chat.llm_service.chat_with_step5_parse", new_callable=AsyncMock, return_value=step5_out),
             patch("backend.routers.chat.check_content", new_callable=AsyncMock, return_value={"is_safe": True, "reason": ""}),
-            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
             patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
             patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None),
             patch("backend.routers.chat.get_redis", return_value=mock_redis),
@@ -197,11 +221,9 @@ class TestStep012MessageBlocked:
 
         with (
             patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
-            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
-            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            _patch_retrieval_pipeline(),
             patch("backend.routers.chat.llm_service.chat_with_step5_parse", new_callable=AsyncMock, return_value=step5_out),
             patch("backend.routers.chat.check_content", side_effect=mock_check_content),
-            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
             patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
             patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=None) as mock_step5_5,
             patch("backend.routers.chat.get_redis", return_value=mock_redis),
@@ -264,11 +286,9 @@ class TestStep012InnerMonologueBlocked:
 
         with (
             patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
-            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
-            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            _patch_retrieval_pipeline(),
             patch("backend.routers.chat.llm_service.chat_with_step5_parse", new_callable=AsyncMock, return_value=step5_out),
             patch("backend.routers.chat.check_content", side_effect=mock_check_content),
-            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
             patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
             patch("backend.routers.chat.execute_step5_5", side_effect=capture_step5_5),
             patch("backend.routers.chat.get_redis", return_value=mock_redis),
@@ -335,11 +355,9 @@ class TestStep012Step55BlockedFallback:
 
         with (
             patch("backend.routers.chat.redis_get_generation", new_callable=AsyncMock, return_value=gen_fixed),
-            patch("backend.routers.chat.embedding_service.get_embedding", new_callable=AsyncMock, return_value=[0.1] * 8),
-            patch("backend.routers.chat.dashvector_client.search", new_callable=AsyncMock, return_value=[]),
+            _patch_retrieval_pipeline(),
             patch("backend.routers.chat.llm_service.chat_with_step5_parse", new_callable=AsyncMock, return_value=step5_out),
             patch("backend.routers.chat.check_content", side_effect=mock_check_content),
-            patch("backend.routers.chat.memory_service.extract_and_save", new_callable=AsyncMock),
             patch("backend.routers.chat._post_bundle_success_tasks", new_callable=AsyncMock),
             patch("backend.routers.chat.execute_step5_5", new_callable=AsyncMock, return_value=step5_5_messages),
             patch("backend.routers.chat.get_redis", return_value=mock_redis),

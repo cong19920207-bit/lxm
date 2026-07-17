@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>账号管理 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
 </head>
 <body>
 
@@ -44,6 +44,7 @@
           <option value="ops_admin">运营管理员</option>
           <option value="ai_trainer">AI训练师</option>
           <option value="tech_ops">技术运维</option>
+          <option value="observer">观察者</option>
         </select>
       </div>
       <div class="form-item" style="margin-bottom:0">
@@ -74,6 +75,7 @@
           <option value="ops_admin">运营管理员</option>
           <option value="ai_trainer">AI训练师</option>
           <option value="tech_ops">技术运维</option>
+          <option value="observer">观察者</option>
         </select>
       </div>
       <div class="form-item" style="margin-bottom:0">
@@ -127,7 +129,7 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 // 后续所有函数通过此变量判断「自身账号」
 let currentUsername = ''
@@ -158,7 +160,8 @@ function roleTagHtml(role) {
     super_admin: { cls: 'tag tag-error', text: '超级管理员' },
     ops_admin: { cls: 'tag tag-blue', text: '运营管理员' },
     ai_trainer: { cls: 'tag tag-success', text: 'AI训练师' },
-    tech_ops: { cls: 'tag tag-warning', text: '技术运维' }
+    tech_ops: { cls: 'tag tag-warning', text: '技术运维' },
+    observer: { cls: 'tag tag-default', text: '观察者' }
   }
   var item = map[role] || { cls: 'tag tag-default', text: role || '-' }
   return '<span class="' + item.cls + '">' + escapeHtml(item.text) + '</span>'

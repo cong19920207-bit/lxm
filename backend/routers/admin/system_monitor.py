@@ -20,11 +20,21 @@ from backend.models.admin_config import AdminConfig
 from backend.models.admin_user import AdminUser
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
-from backend.utils.admin_auth import get_current_admin, log_operation, require_role
+from backend.utils.admin_auth import (
+    deny_observer_export,
+    get_current_admin,
+    log_operation,
+    require_role,
+)
+from backend.utils.credential_redaction import REDACTED, redact_credentials
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+_SYSTEM_READ_ROLES = ("super_admin", "tech_ops", "observer")
+_SYSTEM_WRITE_ROLES = ("super_admin", "tech_ops")
+_SYSTEM_EXPORT_ROLES = ("super_admin", "tech_ops")
 
 
 async def _get_cached(redis_client, cache_key: str):
@@ -43,9 +53,28 @@ async def _set_cached(redis_client, cache_key: str, data: dict, ttl: int):
     await redis_client.set(cache_key, json.dumps(data, ensure_ascii=False), ex=ttl)
 
 
+async def _observer_credential_status(data: dict, db: AsyncSession) -> dict:
+    """为 observer 复制第三方状态并仅附加凭据是否已配置。"""
+    service_names = {
+        "LLM（豆包）": "doubao",
+        "Embedding（阿里云）": "embedding",
+        "DashVector（向量检索）": "dashvector",
+    }
+    result = {**data, "services": [dict(item) for item in data.get("services", [])]}
+    for item in result["services"]:
+        service_name = service_names.get(item.get("name"))
+        if service_name is None:
+            continue
+        _, config = await _get_active_third_party_record(db, service_name)
+        item["credential_configured"] = any(
+            bool(config.get(field)) for field in _SENSITIVE_FIELDS
+        )
+    return result
+
+
 @router.get(
     "/system/status",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[require_role(*_SYSTEM_READ_ROLES)],
 )
 async def get_system_status():
     """
@@ -133,9 +162,12 @@ async def get_system_status():
 
 @router.get(
     "/third-party/status",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[require_role(*_SYSTEM_READ_ROLES)],
 )
-async def get_third_party_status():
+async def get_third_party_status(
+    admin_user: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
     """
     第三方服务状态：LLM / Embedding / DashVector / 内容安全。
     从 Redis 统计 key 汇总，结果缓存60秒（key=cache:third_party_status）。
@@ -145,6 +177,8 @@ async def get_third_party_status():
 
     cached = await _get_cached(r, cache_key)
     if cached:
+        if admin_user.role == "observer":
+            cached = await _observer_credential_status(cached, db)
         return ApiResponse.ok(data=cached)
 
     today_str = datetime.date.today().strftime("%Y%m%d")
@@ -280,6 +314,8 @@ async def get_third_party_status():
     }
 
     await _set_cached(r, cache_key, data, ttl=60)
+    if admin_user.role == "observer":
+        data = await _observer_credential_status(data, db)
     return ApiResponse.ok(data=data)
 
 
@@ -339,7 +375,7 @@ async def _get_active_third_party_record(
 
 @router.put(
     "/third-party/{service_name}/config",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[require_role(*_SYSTEM_WRITE_ROLES)],
 )
 async def update_third_party_config(
     service_name: str,
@@ -427,7 +463,7 @@ async def update_third_party_config(
 
 @router.post(
     "/third-party/{service_name}/test-connection",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[require_role(*_SYSTEM_WRITE_ROLES)],
 )
 async def test_third_party_connection(
     service_name: str,
@@ -589,6 +625,16 @@ _LOG_TYPE_FILE_MAP = {
 _VALID_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 
+def _redact_system_log_entry(entry: dict) -> dict:
+    try:
+        redacted = redact_credentials(entry)
+        if isinstance(redacted, dict):
+            return redacted
+    except Exception:
+        logger.exception("系统日志读取脱敏失败，消息已按失败关闭处理")
+    return {**entry, "message": REDACTED}
+
+
 def _parse_log_line(line: str) -> dict | None:
     """
     解析单行日志，格式: 2026-04-01 12:00:00 | INFO | module | message
@@ -676,7 +722,7 @@ def _read_and_filter_logs(
 
 @router.get(
     "/system/logs",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[require_role(*_SYSTEM_READ_ROLES)],
 )
 async def get_system_logs(
     log_type: str = Query("system", description="日志类型: system / error"),
@@ -732,7 +778,10 @@ async def get_system_logs(
 
     total = len(entries)
     offset = (page - 1) * page_size
-    paged = entries[offset: offset + page_size]
+    paged = [
+        _redact_system_log_entry(entry)
+        for entry in entries[offset: offset + page_size]
+    ]
 
     return ApiResponse.ok(data={
         "total": total,
@@ -744,7 +793,10 @@ async def get_system_logs(
 
 @router.post(
     "/system/logs/export",
-    dependencies=[require_role("super_admin", "tech_ops")],
+    dependencies=[
+        Depends(deny_observer_export),
+        require_role(*_SYSTEM_EXPORT_ROLES),
+    ],
 )
 async def export_system_logs(
     log_type: str = Query("system", description="日志类型: system / error"),
@@ -788,7 +840,10 @@ async def export_system_logs(
 
     base_filename = _LOG_TYPE_FILE_MAP[log_type]
     file_paths = _collect_log_files(base_filename, start_date, end_date)
-    entries = _read_and_filter_logs(file_paths, level, start_date, end_date)
+    entries = [
+        _redact_system_log_entry(entry)
+        for entry in _read_and_filter_logs(file_paths, level, start_date, end_date)
+    ]
 
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill

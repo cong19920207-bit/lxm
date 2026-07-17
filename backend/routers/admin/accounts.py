@@ -185,8 +185,9 @@ async def update_account(
         "remark": target.remark,
     }, ensure_ascii=False)
 
-    if req.role is not None:
+    if req.role is not None and req.role != target.role:
         target.role = req.role
+        target.token_version += 1
     if req.remark is not None:
         target.remark = req.remark
 
@@ -268,6 +269,7 @@ async def reset_password(
     new_password = _generate_random_password(16)
     target.password_hash = _hash_password(new_password)
     target.last_password_change_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    target.token_version += 1
 
     await log_operation(
         db=db,

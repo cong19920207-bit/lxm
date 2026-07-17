@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>感知消息 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 150px; }
@@ -53,7 +53,7 @@
       </select>
       <button type="button" class="btn btn-default" id="btn-search">查询</button>
       <span class="spacer"></span>
-      <button type="button" class="btn btn-default" id="btn-reset-counters" style="display:none">重置特殊档计数</button>
+      <button type="button" class="btn btn-default" id="btn-reset-counters" data-write-action style="display:none">重置特殊档计数</button>
     </div>
 
     <div class="table-wrap">
@@ -96,8 +96,8 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
-<script src="/admin/static/js/life-feed-admin.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/life-feed-admin.js?v=observer-v1-20260716"></script>
 <script>
   var PAGE_KEY = 'agent-aware';
   var currentPage = 1;
@@ -224,9 +224,9 @@
         var ops = '<button class="op-btn op-btn-detail" onclick="showAwareDetail(' + r.queue_id + ')">详情</button>';
         if (!readonly) {
           if (r.status === 'failed') {
-            ops += '<button class="op-btn op-btn-detail" onclick="retryAware(' + r.queue_id + ')">重试</button>';
+            ops += '<button class="op-btn op-btn-detail" data-write-action onclick="retryAware(' + r.queue_id + ')">重试</button>';
           }
-          ops += '<button class="op-btn op-btn-danger" onclick="deleteAware(' + r.queue_id + ')">删除</button>';
+          ops += '<button class="op-btn op-btn-danger" data-write-action onclick="deleteAware(' + r.queue_id + ')">删除</button>';
         }
         return '<tr>' +
           '<td>' + r.queue_id + '</td>' +
@@ -245,7 +245,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!initLifeFeedPage(PAGE_KEY, '感知消息', ['super_admin', 'ai_trainer', 'ops_admin'])) return;
+    if (!initLifeFeedPage(PAGE_KEY, '感知消息', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
 
     // 重置特殊档：仅 super_admin
     var resetBtn = document.getElementById('btn-reset-counters');

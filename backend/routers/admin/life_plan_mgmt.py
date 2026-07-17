@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin")  # ops_admin 只读
+_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin", "observer")  # ops/observer 只读
 
 # 生活节奏比例 config_key（10.1#4）
 _CFG_RATIO_LOCAL = "life_ratio_local"

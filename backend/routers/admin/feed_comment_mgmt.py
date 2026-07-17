@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin")
+_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin", "observer")
 # 5 状态筛选（PRD 10.4#1）：pending/generating/ready/failed 走 gen_status；hidden 走 is_hidden=1
 _VALID_GEN_STATUS = ("pending", "generating", "ready", "failed", "hidden")
 

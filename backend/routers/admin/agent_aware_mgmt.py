@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ALLOWED_ROLES = ("super_admin", "ai_trainer")
-_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin")
+_READ_ROLES = ("super_admin", "ai_trainer", "ops_admin", "observer")
 _VALID_TRIGGER = ("LIKE_AWARE", "READ_AWARE")
 _VALID_STATUS = ("pending", "generating", "sent", "failed")
 

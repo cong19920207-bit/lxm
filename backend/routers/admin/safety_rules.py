@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 # 三类关键词的 config_key
 _BANNED_KEY = "banned_keywords"
@@ -71,7 +72,7 @@ async def _update_keywords(
 
 @router.get(
     "/safety-rules",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_safety_rules(
     admin_user: AdminUser = Depends(get_current_admin),
@@ -90,7 +91,7 @@ async def get_safety_rules(
 
 @router.put(
     "/safety-rules/banned-keywords",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_banned_keywords(
     body: KeywordsUpdateRequest,
@@ -105,7 +106,7 @@ async def update_banned_keywords(
 
 @router.put(
     "/safety-rules/persona-keywords",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_persona_keywords(
     body: KeywordsUpdateRequest,
@@ -120,7 +121,7 @@ async def update_persona_keywords(
 
 @router.put(
     "/safety-rules/style-keywords",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def update_style_keywords(
     body: KeywordsUpdateRequest,
@@ -135,7 +136,7 @@ async def update_style_keywords(
 
 @router.post(
     "/safety-rules/banned-keywords/import",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def import_banned_keywords(
     request: Request,

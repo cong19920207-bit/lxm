@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>记忆规则配置 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .memory-api-key-row {
       display: flex;
@@ -131,15 +131,15 @@
       <div class="page-card memory-disable-while-load">
         <div class="form-item">
           <div class="step6-block-title">系统指令 system_instruction</div>
-          <textarea id="s6-system_instruction" class="form-control step6-prompt-textarea" rows="3"></textarea>
+          <textarea id="s6-system_instruction" data-write-action class="form-control step6-prompt-textarea" rows="3"></textarea>
         </div>
         <div class="form-item mt-16">
           <div class="step6-block-title">输出格式要求 output_format_rules</div>
-          <textarea id="s6-output_format_rules" class="form-control step6-prompt-textarea" rows="5"></textarea>
+          <textarea id="s6-output_format_rules" data-write-action class="form-control step6-prompt-textarea" rows="5"></textarea>
         </div>
         <div class="form-item mt-16">
           <div class="step6-block-title">KV 字段规则 kv_field_rules</div>
-          <textarea id="s6-kv_field_rules" class="form-control step6-prompt-textarea" rows="6"></textarea>
+          <textarea id="s6-kv_field_rules" data-write-action class="form-control step6-prompt-textarea" rows="6"></textarea>
         </div>
         <div class="form-item mt-16">
           <div class="step6-block-title">任务字段 task_fields（11 项，顺序固定）</div>
@@ -147,14 +147,14 @@
         </div>
         <div class="form-item mt-16">
           <div class="step6-block-title">合并规则 merge_rules</div>
-          <textarea id="s6-merge_rules" class="form-control step6-prompt-textarea" rows="4"></textarea>
+          <textarea id="s6-merge_rules" data-write-action class="form-control step6-prompt-textarea" rows="4"></textarea>
         </div>
         <div class="form-item mt-16">
           <div class="step6-block-title">少样本示例 few_shot_example</div>
-          <textarea id="s6-few_shot_example" class="form-control step6-prompt-textarea" rows="6"></textarea>
+          <textarea id="s6-few_shot_example" data-write-action class="form-control step6-prompt-textarea" rows="6"></textarea>
         </div>
         <div class="mt-24">
-          <button type="button" class="btn btn-primary btn-block" id="btn-save-step6-prompt">保存并发布</button>
+          <button type="button" class="btn btn-primary btn-block" id="btn-save-step6-prompt" data-write-action>保存并发布</button>
         </div>
       </div>
     </div>
@@ -164,33 +164,33 @@
       <div class="page-card memory-disable-while-load">
         <div class="form-item">
           <label>Endpoint</label>
-          <input type="url" id="vector-endpoint" class="form-control" placeholder="https://..." autocomplete="off">
+          <input type="url" id="vector-endpoint" data-write-action class="form-control" placeholder="https://..." autocomplete="off">
         </div>
         <div class="form-item mt-16">
           <label>Collection 名称</label>
-          <input type="text" id="vector-collection" class="form-control" placeholder="集合名称" autocomplete="off">
+          <input type="text" id="vector-collection" data-write-action class="form-control" placeholder="集合名称" autocomplete="off">
         </div>
         <div class="form-item mt-16">
           <label>检索 TopK</label>
-          <input type="number" id="vector-top-k" class="form-control memory-input-w100" min="1" step="1" title="保存与测连须在 1–20 范围内">
+          <input type="number" id="vector-top-k" data-write-action class="form-control memory-input-w100" min="1" step="1" title="保存与测连须在 1–20 范围内">
           <p class="text-secondary mt-8" style="font-size:13px;margin-bottom:0">测连与保存时须在 1–20；若配置中曾大于 20，请改回范围内再保存，避免误覆盖</p>
         </div>
         <div class="form-item mt-16">
           <label>API Key</label>
           <div class="memory-api-key-row">
             <input type="password" id="vector-api-key-masked" class="form-control" readonly autocomplete="off" placeholder="加载后显示脱敏值">
-            <button type="button" class="btn btn-default" id="btn-toggle-api-key">修改</button>
+            <button type="button" class="btn btn-default" id="btn-toggle-api-key" data-write-action>修改</button>
           </div>
           <div id="vector-api-key-plain-wrap" class="mt-8" style="display:none">
-            <input type="password" id="vector-api-key-plain" class="form-control" style="max-width:480px;box-sizing:border-box;font-family:monospace" placeholder="输入新 API Key" autocomplete="off">
+            <input type="password" id="vector-api-key-plain" data-write-action class="form-control" style="max-width:480px;box-sizing:border-box;font-family:monospace" placeholder="输入新 API Key" autocomplete="off">
           </div>
         </div>
 
         <div id="vector-test-result" class="memory-vdb-test-result" style="display:none;margin-top:16px"></div>
 
         <div class="memory-vector-actions">
-          <button type="button" class="btn btn-default" id="btn-vector-test">测试连接</button>
-          <button type="button" class="btn btn-primary" id="btn-vector-save" disabled title="请先测试连接">保存</button>
+          <button type="button" class="btn btn-default" id="btn-vector-test" data-write-action>测试连接</button>
+          <button type="button" class="btn btn-primary" id="btn-vector-save" data-write-action disabled title="请先测试连接">保存</button>
         </div>
       </div>
     </div>
@@ -202,7 +202,7 @@
           <input type="number" id="global-user-id" min="1" step="1" placeholder="用户 ID（选填）">
           <input type="text" id="global-keyword" placeholder="关键词（选填）">
           <button type="button" class="btn btn-primary" id="btn-global-search">搜索</button>
-          <button type="button" class="btn btn-danger" id="btn-global-batch-delete">批量删除选中</button>
+          <button type="button" class="btn btn-danger" id="btn-global-batch-delete" data-write-action>批量删除选中</button>
         </div>
         <div class="global-tip">未指定用户时仅在最多 300 条用户记忆中检索，结果可能不完整，建议填写用户 ID</div>
         <div id="global-truncated" class="alert alert-warning" style="display:none;margin-bottom:12px"></div>
@@ -210,7 +210,7 @@
           <table class="admin-table" id="global-table" style="display:none">
             <thead>
               <tr>
-                <th style="width:44px"><input type="checkbox" id="global-check-all"></th>
+                <th style="width:44px"><input type="checkbox" id="global-check-all" data-write-action></th>
                 <th style="width:90px">用户ID</th>
                 <th style="min-width:160px">Key</th>
                 <th style="min-width:200px">Value</th>
@@ -231,10 +231,10 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
 
   /* HTML 转义（防止 key/value 中的特殊字符破坏结构） */
   function esc(str) {
@@ -283,7 +283,7 @@
       wrap.className = 'step6-task-field';
       wrap.innerHTML =
         '<label>' + name + '</label>' +
-        '<textarea id="tf-' + name + '" class="form-control step6-prompt-textarea" rows="2"></textarea>';
+        '<textarea id="tf-' + name + '" data-write-action class="form-control step6-prompt-textarea" rows="2"></textarea>';
       box.appendChild(wrap);
     });
   }
@@ -412,7 +412,9 @@
     document.getElementById('vector-collection').value = d.collection_name != null ? String(d.collection_name) : '';
     var tk = parseInt(d.top_k, 10);
     document.getElementById('vector-top-k').value = (!isNaN(tk) && tk >= 1) ? tk : 5;
-    var masked = d.api_key_masked != null ? String(d.api_key_masked) : '';
+    var masked = getAdminRole() === 'observer'
+      ? (d.credential_configured ? '已配置' : '未配置')
+      : (d.api_key_masked != null ? String(d.api_key_masked) : '');
     document.getElementById('vector-api-key-masked').value = masked;
   }
 
@@ -448,12 +450,12 @@
       var item = list[i];
       var docId = item.doc_id != null ? String(item.doc_id) : '';
       html += '<tr>';
-      html += '  <td><input type="checkbox" class="global-row-check" data-doc-id="' + esc(docId) + '"></td>';
+      html += '  <td><input type="checkbox" data-write-action class="global-row-check" data-doc-id="' + esc(docId) + '"></td>';
       html += '  <td>' + esc(item.user_id != null ? String(item.user_id) : '-') + '</td>';
       html += '  <td>' + esc(item.key || '') + '</td>';
       html += '  <td>' + esc(item.value || '') + '</td>';
       html += '  <td><button class="btn btn-danger" style="padding:2px 10px;height:26px;font-size:12px" ' +
-              'onclick="globalDeleteOne(this)" data-doc-id="' + esc(docId) + '">删除</button></td>';
+              'data-write-action onclick="globalDeleteOne(this)" data-doc-id="' + esc(docId) + '">删除</button></td>';
       html += '</tr>';
     }
     tbody.innerHTML = html;

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.models.feed_post import FeedPost
+from backend.services.feed_service import feed_now
 from backend.services.feed_sse_service import FeedSSEService
 
 
@@ -56,7 +57,7 @@ async def _add_post(maker, pid, offset_min, status="ready", visible=1, broadcast
     async with maker() as db:
         db.add(FeedPost(
             id=pid, scene_id="s%d" % pid,
-            scheduled_publish_time=datetime.utcnow() + timedelta(minutes=offset_min),
+            scheduled_publish_time=feed_now() + timedelta(minutes=offset_min),
             generation_status=status, content_text="帖子", hashtags=[],
             image_reference_url="r", emotion="平静", city="杭州", season="夏",
             base_likes=1, like_multiplier=1, real_likes=0, is_visible=visible,

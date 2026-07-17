@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>内容安全规则 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .safety-tag-cloud {
       min-height: 120px;
@@ -69,12 +69,12 @@
       <div id="cloud-banned" class="safety-tag-cloud"></div>
       <div class="flex-between safety-actions-row">
         <div class="safety-input-group">
-          <input type="text" id="input-banned" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
-          <button type="button" class="btn btn-primary" id="btn-save-banned">保存更新</button>
+          <input type="text" id="input-banned" data-write-action class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-banned" data-write-action>保存更新</button>
         </div>
         <div>
-          <button type="button" class="btn btn-default" id="btn-import-excel">批量导入 Excel</button>
-          <input type="file" id="file-import-excel" accept=".xlsx,.xls" style="display:none" aria-hidden="true">
+          <button type="button" class="btn btn-default" id="btn-import-excel" data-write-action>批量导入 Excel</button>
+          <input type="file" id="file-import-excel" data-write-action accept=".xlsx,.xls" style="display:none" aria-hidden="true">
         </div>
       </div>
     </div>
@@ -84,8 +84,8 @@
       <div id="cloud-persona" class="safety-tag-cloud"></div>
       <div class="flex-between safety-actions-row">
         <div class="safety-input-group">
-          <input type="text" id="input-persona" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
-          <button type="button" class="btn btn-primary" id="btn-save-persona">保存更新</button>
+          <input type="text" id="input-persona" data-write-action class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-persona" data-write-action>保存更新</button>
         </div>
         <div></div>
       </div>
@@ -96,8 +96,8 @@
       <div id="cloud-style" class="safety-tag-cloud"></div>
       <div class="flex-between safety-actions-row">
         <div class="safety-input-group">
-          <input type="text" id="input-style" class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
-          <button type="button" class="btn btn-primary" id="btn-save-style">保存更新</button>
+          <input type="text" id="input-style" data-write-action class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-style" data-write-action>保存更新</button>
         </div>
         <div></div>
       </div>
@@ -105,10 +105,10 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
 (function () {
-  var ALLOWED_ROLES = ['super_admin', 'ai_trainer'];
+  var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
 
   // 与 GET /api/admin/safety-rules 字段对应
   var bannedKeywords = [];
@@ -172,6 +172,7 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'safety-kw-remove';
+      btn.setAttribute('data-write-action', '');
       btn.setAttribute('aria-label', '删除「' + kw + '」');
       btn.textContent = '×';
       btn.onclick = function () {

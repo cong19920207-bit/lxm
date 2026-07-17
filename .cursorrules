@@ -138,22 +138,37 @@ fetch('/api/auth/login') 不写 http://localhost:8000
 后台页面跳转：window.location.href = '/admin/pages/xxx.html'
 静态资源：src="/static/..." 或 src="/admin/static/..."
 
-### 后台权限体系（4个角色）
+### 后台权限体系（5个角色）
 super_admin：所有权限
 ops_admin：用户管理、数据统计、操作日志查看
 ai_trainer：AI人格/Prompt/记忆/Agent/关系日记管理、AI测试工具
 tech_ops：系统监控、第三方服务管理、系统日志、操作日志查看
+observer（观察者）：除账号管理和系统内建导出外的已批准业务数据只读；不得写入、测试、生成、发布、回滚、导入、导出或管理账号
+
+observer的POST/PUT/PATCH/DELETE在完整身份校验后默认返回403；仅精确放行POST /api/admin/auth/logout与POST /api/admin/auth/change-password
+observer的GET/HEAD仍须通过各端点require_role；匿名OPTIONS仅作为CORS预检，不返回业务数据
+GET/HEAD不得修改业务、权限、账号或配置状态；仅允许权威读结果派生的有限TTL幂等缓存回填
+操作日志、数据报表、系统日志三个内建导出必须显式拒绝observer；未来export/download路由也必须纳入门禁
+observer读取第三方凭据、用户Open API Key和DashVector凭据时仅返回已/未配置状态，禁止原文、首尾、掩码、哈希或可推断元数据
+前端使用isObserver()、applyObserverReadOnly()、data-write-action、MutationObserver和adminRequest()非读兜底；后端始终是最终权限边界
 
 ### 后台安全规则
+ADMIN_JWT_SECRET必须显式配置；缺失、空白、admin_secret_change_me、your_admin_jwt_secret_here均禁止启动
+Admin JWT必须携带整数token_version；鉴权实时校验账号存在、启用、未锁定及数据库版本，无版本/错版本Token返回401
 连续5次密码错误 → is_locked=True（永久锁定，不自动解除）
+已存在账号的登录失败计数必须使用SELECT ... FOR UPDATE在同一事务处理；第5次保持计数5并仅递增一次token_version
+不存在账号、密码错误、锁定、停用统一返回HTTP 200 + 业务码20001 + data:null +「账号或密码错误」
 无图形验证码，锁定后必须超级管理员手动解锁
 密码复杂度：≥12位，含字母+数字+特殊字符
-每90天强制修改密码（检查last_password_change_at）
+锁定、自助改密、登出、管理员重置密码、实际角色变化必须递增token_version撤销旧会话；备注、相同角色、解锁不递增
+每90天修改密码当前仅前端提醒（检查last_password_change_at），后端强制门禁尚未实现
+操作日志target_description/before_value/after_value写入及列表/详情/导出读取、系统日志列表/导出读取均使用共享凭据脱敏；异常失败关闭
 
 ### 发布流程（三道卡点）
 卡点一：强制测试集验证（全部通过才能发布）
-卡点二：确认弹窗需手动输入CONFIRM
+卡点二：确认弹窗需手动输入CONFIRM；life-config后端必须精确校验confirm_text == "CONFIRM"，失败返回20021
 卡点三：发布后5分钟监控窗口
+当前发布测试可信状态仍依赖客户端参数，后端可信测试状态机尚未实现；不得把该已知风险标为已修
 
 ### 人格偏离率计算口径（与 stats_service 实现一致）
 来源：conversation_log.persona_risk_flag 字段

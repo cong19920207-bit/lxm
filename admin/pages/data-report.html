@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数据报表 - 林小梦管理后台</title>
-  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
     .report-filter-row {
       display: flex;
@@ -57,12 +57,12 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js"></script>
+<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
 <script>
   checkAdminLogin();
   (function () {
     var role = getAdminRole();
-    if (role !== 'super_admin' && role !== 'ops_admin') {
+    if (role !== 'super_admin' && role !== 'ops_admin' && role !== 'observer') {
       window.location.href = '/admin/pages/error.html?type=403';
       return;
     }
@@ -427,7 +427,7 @@
           '<label style="color:#666;font-size:13px">结束日期</label>' +
           '<input type="date" class="form-control date-input" id="end-date">' +
           '<button type="button" class="btn btn-primary" id="btn-query">查询</button>' +
-          '<button type="button" class="btn btn-default" id="btn-export">导出 Excel</button>' +
+          '<button type="button" class="btn btn-default" id="btn-export" data-write-action>导出 Excel</button>' +
         '</div>' +
       '</div>' +
 

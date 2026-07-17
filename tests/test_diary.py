@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # AI 日记：diary_rules_loader 单元测试 + H5/管理端 API 测试（SQLite 内存库 + 启动期打桩）
 
+import importlib
 import sys
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock
@@ -17,7 +18,7 @@ import backend.models  # noqa: F401 — 注册 ORM 表到 Base.metadata
 from backend.database import Base, get_db
 
 # 与 main.lifespan 中 start_scheduler(diary_hour=..., diary_minute=...) 兼容
-import backend.tasks.scheduler as _sched_mod
+_sched_mod = importlib.import_module("backend.tasks.scheduler")
 
 _sched_mod.start_scheduler = lambda *a, **k: None
 _sched_mod.shutdown_scheduler = lambda *a, **k: None
@@ -54,9 +55,6 @@ async def override_get_db():
             raise
         finally:
             await session.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture(autouse=True)
@@ -101,9 +99,17 @@ async def setup_db():
 
 @pytest_asyncio.fixture
 async def client():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    previous_override = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        if previous_override is None:
+            app.dependency_overrides.pop(get_db, None)
+        else:
+            app.dependency_overrides[get_db] = previous_override
 
 
 def _hash_admin_password(password: str) -> str:

@@ -20,7 +20,8 @@ from backend.utils.admin_auth import get_current_admin, require_role
 
 router = APIRouter()
 
-_ALLOWED_ROLES = ("super_admin", "ai_trainer")
+_READ_ROLES = ("super_admin", "ai_trainer", "observer")
+_WRITE_ROLES = ("super_admin", "ai_trainer")
 
 _KEY_VECTOR = "vector_retrieval_config"
 _KEY_PROMPT_TOKEN = "prompt_token_config"
@@ -141,7 +142,7 @@ def _patch_dict_exclude_none(model: BaseModel) -> dict[str, Any]:
 
 @router.get(
     "/vector_retrieval_config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_vector_retrieval_config():
     """返回当前生效的向量召回配置（无库记录时与默认值合并后返回）"""
@@ -154,7 +155,7 @@ async def get_vector_retrieval_config():
 
 @router.put(
     "/vector_retrieval_config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def put_vector_retrieval_config(
     body: VectorRetrievalPatch,
@@ -209,7 +210,7 @@ async def put_vector_retrieval_config(
 
 @router.get(
     "/prompt_token_config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_READ_ROLES)],
 )
 async def get_prompt_token_config():
     """返回当前生效的 Prompt Token 上限（无库记录时与代码默认合并）"""
@@ -222,7 +223,7 @@ async def get_prompt_token_config():
 
 @router.put(
     "/prompt_token_config",
-    dependencies=[require_role(*_ALLOWED_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES)],
 )
 async def put_prompt_token_config(
     body: PromptTokenPatch,
