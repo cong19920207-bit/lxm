@@ -459,6 +459,14 @@
     .logout-card-btn:active {
       background: rgba(239, 68, 68, 0.04);
     }
+
+    .logout-card-btn.is-login {
+      color: #7c3aed;
+    }
+
+    .logout-card-btn.is-login:active {
+      background: rgba(124, 58, 237, 0.06);
+    }
   </style>
 </head>
 <body class="h5-skin settings-soft-page">
@@ -505,9 +513,10 @@
       </div>
     </div>
 
-    <!-- 账号与安全 -->
-    <p class="settings-section-label">账号与安全</p>
-    <div class="settings-soft-card">
+    <div id="settings-private-sections">
+      <!-- 账号与安全 -->
+      <p class="settings-section-label">账号与安全</p>
+      <div class="settings-soft-card">
       <div class="settings-item clickable" id="pwd-row" onclick="togglePasswordForm()">
         <div class="settings-item-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -562,11 +571,11 @@
         </div>
         <button type="button" class="save-pwd-btn" onclick="handleChangePassword()">保存</button>
       </div>
-    </div>
+      </div>
 
-    <!-- 陪伴与偏好 -->
-    <p class="settings-section-label">陪伴与偏好</p>
-    <div class="settings-soft-card">
+      <!-- 陪伴与偏好 -->
+      <p class="settings-section-label">陪伴与偏好</p>
+      <div class="settings-soft-card">
       <div class="settings-item">
         <div class="settings-item-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -591,6 +600,7 @@
         <div class="settings-item-action">
           <div class="toggle-switch active" id="toggle-agent" onclick="toggleSetting('agent_message_enabled', this)"></div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -619,35 +629,96 @@
 
     <!-- 退出登录 -->
     <div class="logout-card">
-      <button type="button" class="logout-card-btn" onclick="handleLogout()">
+      <button type="button" class="logout-card-btn" id="settings-auth-action" onclick="handleLogout()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>退出登录</span>
+        <span id="settings-auth-action-text">退出登录</span>
       </button>
     </div>
   </div>
 
   <script src="/static/js/api.js"></script>
   <script>
-    checkLogin()
-
     let aboutLoaded = false
+    let settingsAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    let settingsRestorePromise = null
+
+    function isSettingsAuthenticated() {
+      return settingsAuthMode === 'authenticated' && Boolean(localStorage.getItem('token'))
+    }
+
+    function settingsSilentAuthOptions() {
+      return {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: renderVisitorSettings,
+      }
+    }
+
+    function renderVisitorSettings() {
+      settingsAuthMode = 'visitor'
+      const privateSections = document.getElementById('settings-private-sections')
+      const authAction = document.getElementById('settings-auth-action')
+      const authActionText = document.getElementById('settings-auth-action-text')
+      const passwordForm = document.getElementById('password-form')
+      const passwordRow = document.getElementById('pwd-row')
+
+      privateSections.hidden = true
+      authAction.classList.add('is-login')
+      authActionText.textContent = '点击登录'
+      passwordForm.classList.remove('visible')
+      passwordRow.classList.remove('expanded')
+      updateAvatarEmotion(null)
+      document.getElementById('profile-status').textContent = DEFAULT_STATUS_TEXT
+    }
+
+    function renderAuthenticatedSettings() {
+      settingsAuthMode = 'authenticated'
+      document.getElementById('settings-private-sections').hidden = false
+      document.getElementById('settings-auth-action').classList.remove('is-login')
+      document.getElementById('settings-auth-action-text').textContent = '退出登录'
+      document.getElementById('toggle-agent').classList.add('active')
+    }
+
+    function openSettingsLoginModal() {
+      openLoginModal({ onSuccess: restoreAuthenticatedSettings })
+    }
+
+    async function restoreAuthenticatedSettings() {
+      if (!localStorage.getItem('token')) {
+        renderVisitorSettings()
+        return
+      }
+      if (settingsRestorePromise) return settingsRestorePromise
+
+      settingsRestorePromise = (async () => {
+        renderAuthenticatedSettings()
+        await Promise.all([loadProfile(), loadSettings()])
+      })()
+
+      try {
+        await settingsRestorePromise
+      } finally {
+        settingsRestorePromise = null
+      }
+    }
 
     async function loadProfile() {
+      if (!isSettingsAuthenticated()) return
       const statusEl = document.getElementById('profile-status')
-      try {
-        const res = await request('GET', '/api/relationship/status')
-        if (res.code === 0 && res.data) {
-          if (res.data.ai_current_emotion) {
-            updateAvatarEmotion(res.data.ai_current_emotion)
-          }
-          statusEl.textContent = resolveStatusText(res.data)
-        } else {
-          statusEl.textContent = DEFAULT_STATUS_TEXT
+      const res = await request(
+        'GET',
+        '/api/relationship/status',
+        undefined,
+        settingsSilentAuthOptions()
+      )
+      if (!isSettingsAuthenticated()) return
+      if (res.code === 0 && res.data) {
+        if (res.data.ai_current_emotion) {
+          updateAvatarEmotion(res.data.ai_current_emotion)
         }
-      } catch (err) {
-        console.error('加载 Profile 失败:', err)
+        statusEl.textContent = resolveStatusText(res.data)
+      } else {
         statusEl.textContent = DEFAULT_STATUS_TEXT
       }
     }
@@ -662,6 +733,10 @@
 
     /* ====== 修改密码（逻辑不变） ====== */
     function togglePasswordForm() {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
       const form = document.getElementById('password-form')
       const row = document.getElementById('pwd-row')
       form.classList.toggle('visible')
@@ -669,6 +744,10 @@
     }
 
     async function handleChangePassword() {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
       const oldPwd = document.getElementById('old-password').value
       const newPwd = document.getElementById('new-password').value
       const confirmPwd = document.getElementById('confirm-password').value
@@ -693,8 +772,9 @@
         username: localStorage.getItem('username') || '',
         old_password: oldPwd,
         new_password: newPwd
-      })
+      }, settingsSilentAuthOptions())
 
+      if (!isSettingsAuthenticated()) return
       if (res.code === 0) {
         showToast('密码修改成功', 'success')
         document.getElementById('old-password').value = ''
@@ -708,6 +788,10 @@
 
     /* ====== Toggle 开关（逻辑不变） ====== */
     async function toggleSetting(key, el) {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
       const isActive = el.classList.contains('active')
       const newValue = !isActive
 
@@ -715,9 +799,9 @@
 
       const body = {}
       body[key] = newValue
-      const res = await request('PUT', '/api/user/settings', body)
+      const res = await request('PUT', '/api/user/settings', body, settingsSilentAuthOptions())
 
-      if (res.code !== 0) {
+      if (res.code !== 0 && isSettingsAuthenticated()) {
         el.classList.toggle('active')
         showToast(res.message || '设置失败', 'error')
       }
@@ -739,7 +823,20 @@
       textEl.textContent = '加载中...'
       textEl.classList.add('loading')
 
-      const res = await request('GET', '/api/app/persona-background')
+      let res = await request(
+        'GET',
+        '/api/app/persona-background',
+        undefined,
+        settingsSilentAuthOptions()
+      )
+      if (res.code === 401 && !localStorage.getItem('token')) {
+        res = await request(
+          'GET',
+          '/api/app/persona-background',
+          undefined,
+          settingsSilentAuthOptions()
+        )
+      }
       textEl.classList.remove('loading')
 
       if (res.code === 0 && res.data && res.data.background) {
@@ -749,8 +846,13 @@
       }
     }
 
-    /* ====== 退出登录（逻辑不变） ====== */
+    /* ====== 登录/退出双态入口 ====== */
     async function handleLogout() {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
+
       const ok = await showConfirm(
         '退出登录',
         '确定要退出登录吗？退出后需重新登录',
@@ -759,17 +861,23 @@
       )
       if (!ok) return
 
-      await request('POST', '/api/auth/logout')
+      await request('POST', '/api/auth/logout', undefined, settingsSilentAuthOptions())
       clearToken()
       localStorage.removeItem('username')
       localStorage.removeItem('relationship_level')
-      window.location.href = '/pages/login.html'
+      renderVisitorSettings()
     }
 
     /* ====== 加载用户设置（逻辑不变） ====== */
     async function loadSettings() {
-      const res = await request('GET', '/api/user/settings')
-      if (res.code === 0 && res.data) {
+      if (!isSettingsAuthenticated()) return
+      const res = await request(
+        'GET',
+        '/api/user/settings',
+        undefined,
+        settingsSilentAuthOptions()
+      )
+      if (res.code === 0 && res.data && isSettingsAuthenticated()) {
         // 记忆整理改为只读说明（C-07），不再读取/回显 memory_auto_extract
         const agentToggle = document.getElementById('toggle-agent')
 
@@ -779,8 +887,11 @@
       }
     }
 
-    loadProfile()
-    loadSettings()
+    if (settingsAuthMode === 'authenticated') {
+      restoreAuthenticatedSettings()
+    } else {
+      renderVisitorSettings()
+    }
   </script>
 </body>
 </html>

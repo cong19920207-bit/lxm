@@ -2,8 +2,8 @@
 
 > 文档路径：`docs/progress/林小梦主页改版-v1_progress.md`
 > 创建时间：2026-06-10
-> PRD 来源：`docs/design/PRD-林小梦主页改版-v1.md`（v1.8）
-> 拆解文档：`docs/design/林小梦主页改版-v1_steps.md`（2026-06-10 修订）
+> PRD 来源：`docs/design/home-redesign/PRD-林小梦主页改版-v1.md`（v1.8）
+> 拆解文档：`docs/design/home-redesign/林小梦主页改版-v1_steps.md`（2026-06-10 修订）
 > 契约文档：`docs/contract.md`
 
 ---

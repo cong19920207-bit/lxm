@@ -620,4 +620,4 @@ curl -sS -X POST "${BASE}/api/open/v1/chat/resend" \
 | v1.1 | 2026-06-04 | 对照代码复核：修正 timeline 无 `round_id`、内容安全双路径、Open timeline 不触发队列恢复、10104 后台补跑、验收用例与 `FUTURE` 触发类型 |
 | v1.0 | 2026-06-04 | 首版：宠物端接入说明 |
 
-内部技术摘要见：`docs/design/open-api-v1.md`；服务端契约见：`docs/contract.md`（Open API v1 章节）。
+内部技术摘要见：`docs/design/openapi/open-api-v1.md`；服务端契约见：`docs/contract.md`（Open API v1 章节）。

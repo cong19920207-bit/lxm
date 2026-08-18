@@ -50,12 +50,13 @@
   var toastEl = document.getElementById('nebula-toast')
   var goChatBtn = document.getElementById('nebula-go-chat')
 
-  if (!canvas || typeof checkLogin !== 'function') return
+  if (!canvas || typeof requireProtectedPage !== 'function') return
+  var memoryPageAuthorized = requireProtectedPage()
+  if (!memoryPageAuthorized) return
   if (typeof THREE === 'undefined') {
     console.error('[memory-nebula] THREE 未加载')
     return
   }
-  checkLogin()
 
   var CATEGORY_DEFS = [
     { id: 'prefer', label: '用户偏好', color: '#6F9EB7', file: 'star-teal.png', keys: ['偏好', '习惯', '兴趣'] },
@@ -120,6 +121,34 @@
   var viewH = 0
   var toastTimer = null
   var memoryCount = 0
+  var memoryPageActive = memoryPageAuthorized
+  var animationFrameId = null
+
+  function stopMemoryPrivateResources() {
+    if (!memoryPageActive) return
+    memoryPageActive = false
+    if (animationFrameId != null) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
+    }
+    if (toastTimer) {
+      clearTimeout(toastTimer)
+      toastTimer = null
+    }
+    if (gesture && gesture.idleTimer) {
+      clearTimeout(gesture.idleTimer)
+      gesture.idleTimer = null
+    }
+    if (connectionLayer) {
+      connectionLayer.dispose()
+      connectionLayer = null
+    }
+    if (renderer) renderer.dispose()
+  }
+
+  function memoryProtectedAuthOptions() {
+    return protectedPageAuthOptions(stopMemoryPrivateResources)
+  }
 
   function hashStr(s) {
     var h = 2166136261
@@ -245,9 +274,15 @@
     var all = []
     var total = null
     var guard = 0
-    while (guard < 20) {
+    while (memoryPageActive && guard < 20) {
       guard++
-      var res = await request('GET', '/api/memory/list?page=' + page + '&page_size=' + pageSize)
+      var res = await request(
+        'GET',
+        '/api/memory/list?page=' + page + '&page_size=' + pageSize,
+        undefined,
+        memoryProtectedAuthOptions()
+      )
+      if (!memoryPageActive || (res && res.code === 401)) break
       if (!res || res.code !== 0 || !res.data) break
       var d = res.data
       var list = Array.isArray(d.list) ? d.list : []
@@ -971,7 +1006,8 @@
   }
 
   function animate() {
-    requestAnimationFrame(animate)
+    if (!memoryPageActive || !renderer) return
+    animationFrameId = requestAnimationFrame(animate)
     var dt = Math.min(clock.getDelta(), 0.05)
     liftY += (liftTarget - liftY) * Math.min(1, dt * 4.2)
     if (rootGroup) rootGroup.position.y = liftY
@@ -1016,6 +1052,7 @@
   }
 
   async function init() {
+    if (!memoryPageActive) return
     setVisible(loadingEl, true)
     setVisible(emptyEl, false)
     initRenderer()
@@ -1033,14 +1070,10 @@
       })
     }
     window.addEventListener('resize', resize)
-    window.addEventListener('pagehide', function () {
-      if (connectionLayer) {
-        connectionLayer.dispose()
-        connectionLayer = null
-      }
-    })
+    window.addEventListener('pagehide', stopMemoryPrivateResources)
 
     await addCenterStar()
+    if (!memoryPageActive) return
 
     var raw = []
     try {
@@ -1049,8 +1082,10 @@
       console.warn('[memory-nebula] 加载失败', err)
       raw = []
     }
+    if (!memoryPageActive) return
 
     await buildMemoryNodes(raw)
+    if (!memoryPageActive) return
     updateMemoryCount(raw.length)
     setVisible(loadingEl, false)
     if (!raw.length) setVisible(emptyEl, true)

@@ -263,10 +263,7 @@
     }
 
     /* ====== 校验规则 ====== */
-    const RULES = {
-      username: { pattern: /^[a-zA-Z0-9]{6,20}$/, msg: '账号需要6-20位字母或数字' },
-      password: { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9!@#$%^&*]{8,20}$/, msg: '密码需要8-20位，同时包含字母和数字' }
-    }
+    const RULES = AUTH_FORM_RULES
 
     function validateField(inputId, ruleName, errorId) {
       const input = document.getElementById(inputId)

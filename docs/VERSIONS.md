@@ -125,7 +125,7 @@
 | 状态 | 已发布 |
 | 主题 | Open API v1 + API Key；管理端日期筛选与主动消息生成对齐 |
 | 范围 | OpenAPI、Admin、Agent |
-| 关联 | `docs/design/PRD-OpenAPI-APIKey-v1.md` · contract 同期摘要 |
+| 关联 | `docs/design/openapi/PRD-OpenAPI-APIKey-v1.md` · contract 同期摘要 |
 
 ### 概述
 

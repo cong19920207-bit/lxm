@@ -554,14 +554,71 @@
 
   <script src="/static/js/api.js"></script>
   <script>
-    checkLogin()
-
     var loading = false
     var noMore = false
     var nextCursor = null
     var lastLoadAt = 0
     var commentingPostId = null
     var commentingReplyToLxm = false
+    var feedAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    var feedResumePromise = null
+    var feedVisitorRefreshPromise = null
+
+    function isFeedAuthenticated() {
+      return feedAuthMode === 'authenticated' && !!localStorage.getItem('token')
+    }
+
+    function feedSilentAuthOptions() {
+      return {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: switchFeedToVisitor,
+      }
+    }
+
+    function feedTransitionAuthOptions() {
+      return {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: function () {
+          return switchFeedToVisitor({ refresh: false })
+        },
+      }
+    }
+
+    function sanitizeFeedForVisitor() {
+      nextCursor = null
+      noMore = false
+      var list = document.getElementById('feed-list')
+      if (list) list.innerHTML = ''
+      var noMoreEl = document.getElementById('no-more')
+      if (noMoreEl) noMoreEl.style.display = 'none'
+      showState(null)
+    }
+
+    async function refreshVisitorFeedAfterUnauthorized() {
+      if (feedVisitorRefreshPromise) return feedVisitorRefreshPromise
+      feedVisitorRefreshPromise = initVisitorFeed()
+      try {
+        await feedVisitorRefreshPromise
+      } finally {
+        feedVisitorRefreshPromise = null
+      }
+    }
+
+    async function switchFeedToVisitor(options) {
+      var shouldRefresh = !options || options.refresh !== false
+      if (feedAuthMode === 'visitor') {
+        if (shouldRefresh && feedVisitorRefreshPromise) await feedVisitorRefreshPromise
+        return
+      }
+      feedAuthMode = 'visitor'
+      teardownPrivateFeedResources()
+      sanitizeFeedForVisitor()
+      if (shouldRefresh) await refreshVisitorFeedAfterUnauthorized()
+    }
+
+    function openFeedLoginModal() {
+      openLoginModal({ onSuccess: resumeAuthenticatedFeed })
+    }
 
     function escapeHtml(text) {
       var div = document.createElement('div')
@@ -736,8 +793,14 @@
     }
 
     /* ===== Header 配置 ===== */
-    async function loadHeader() {
-      var res = await request('GET', '/api/feed/config/header')
+    async function loadHeader(authOptions) {
+      var res = await request(
+        'GET',
+        '/api/feed/config/header',
+        null,
+        authOptions || feedTransitionAuthOptions()
+      )
+      if (res && res.code === 401 && feedAuthMode === 'visitor') return
       var bg = '/static/images/feed/bg_default.jpg'
       var avatar = '/static/images/avatar/character-ref/base.png'
       var sig = ''
@@ -770,8 +833,24 @@
       }
     }
 
-    async function loadMsgBadge() {
-      var res = await request('GET', '/api/agent/unread-count')
+    function hideMsgBadge() {
+      var el = document.getElementById('msg-badge')
+      if (!el) return
+      el.textContent = '0'
+      el.style.display = 'none'
+    }
+
+    async function loadMsgBadge(authOptions) {
+      if (!isFeedAuthenticated()) {
+        hideMsgBadge()
+        return
+      }
+      var res = await request(
+        'GET',
+        '/api/agent/unread-count',
+        null,
+        authOptions || feedSilentAuthOptions()
+      )
       var el = document.getElementById('msg-badge')
       if (res && res.code === 0 && res.data && res.data.count > 0) {
         el.textContent = res.data.count > 99 ? '99+' : String(res.data.count)
@@ -795,6 +874,7 @@
     }
 
     function buildCommentsHtml(comments) {
+      if (!isFeedAuthenticated()) return ''
       if (!comments || comments.length === 0) return ''
       var html = '<div class="feed-comments">'
       comments.forEach(function (c) {
@@ -817,7 +897,7 @@
       var item = document.createElement('div')
       item.className = 'feed-item'
       item.dataset.id = post.id
-      item.dataset.liked = post.user_liked ? '1' : '0'
+      item.dataset.liked = isFeedAuthenticated() && post.user_liked ? '1' : '0'
       item.dataset.likes = post.display_likes || 0
       item.dataset.dateKey = wallDateKey(post.scheduled_publish_time)
       // 展示评论数对齐点赞：display_comments = base×倍率 + 真实可见条数（后端组装）
@@ -839,8 +919,8 @@
           '</div>' +
           buildImagesHtml(post.image_urls) +
           '<div class="feed-actions">' +
-            '<div class="act like-act' + (post.user_liked ? ' liked' : '') + '" role="button" aria-label="点赞">' +
-              '<span class="ico">' + heartIconHtml(!!post.user_liked) + '</span>' +
+            '<div class="act like-act' + (isFeedAuthenticated() && post.user_liked ? ' liked' : '') + '" role="button" aria-label="点赞">' +
+              '<span class="ico">' + heartIconHtml(!!(isFeedAuthenticated() && post.user_liked)) + '</span>' +
               '<span class="like-count">' + (post.display_likes || 0) + '</span></div>' +
             '<div class="act comment-act" role="button" aria-label="评论">' +
               '<span class="ico">' + ICON_COMMENT + '</span>' +
@@ -1085,6 +1165,8 @@
       lastLoadAt = nowTs
       loading = true
       var isBootReset = !!(reset && bootLoadingPending && !bootDismissed)
+      var retryAsVisitor = false
+      var requestWasAuthenticated = isFeedAuthenticated()
 
       try {
         if (reset) {
@@ -1099,7 +1181,16 @@
 
         var path = '/api/feed/list?size=20'
         if (nextCursor) path += '&cursor=' + encodeURIComponent(nextCursor)
-        var res = await request('GET', path)
+        var res = await request('GET', path, null, feedTransitionAuthOptions())
+        if (res && res.code === 401 && feedAuthMode === 'visitor') {
+          retryAsVisitor = requestWasAuthenticated
+          renderSkeleton(false)
+          if (!retryAsVisitor && reset) {
+            showState('error')
+            document.getElementById('state-error-text').textContent = res.message || '加载失败，请稍后重试'
+          }
+          return
+        }
         renderSkeleton(false)
 
         if (!res || res.code !== 0 || !res.data) {
@@ -1148,6 +1239,7 @@
         }
       } finally {
         loading = false
+        if (retryAsVisitor) await refreshVisitorFeedAfterUnauthorized()
         // 首进 reset，或 boot 未关时已有列表内容（哨兵抢跑兜底）
         if (bootLoadingPending && !bootDismissed && (isBootReset || document.getElementById('feed-list').children.length > 0)) {
           await finishBootAfterListReady()
@@ -1174,6 +1266,10 @@
 
     /* ===== 点赞（STEP-024，乐观更新 + 回滚 + 300ms 防抖） ===== */
     function onToggleLike(item) {
+      if (!isFeedAuthenticated()) {
+        openFeedLoginModal()
+        return
+      }
       if (item.dataset.likeLock === '1') return
       item.dataset.likeLock = '1'
       setTimeout(function () { item.dataset.likeLock = '0' }, 300)
@@ -1194,13 +1290,18 @@
       setLikeVisual(act, newLiked)
 
       var method = newLiked ? 'POST' : 'DELETE'
-      request(method, '/api/feed/' + postId + '/like').then(function (res) {
+      request(method, '/api/feed/' + postId + '/like', null, {
+        authPolicy: AUTH_401_POLICIES.INTERACTIVE_MODAL,
+        onUnauthorized: switchFeedToVisitor,
+        onLoginSuccess: resumeAuthenticatedFeed,
+      }).then(function (res) {
         if (!res || res.code !== 0 || !res.data) {
           // 回滚
           item.dataset.liked = wasLiked ? '1' : '0'
           item.dataset.likes = likes
           cntEl.textContent = likes
           setLikeVisual(act, wasLiked)
+          if (res && res.code === 401) return
           showToast('操作失败，请重试', 'error')
           return
         }
@@ -1220,6 +1321,10 @@
     var countEl = document.getElementById('comment-count')
 
     function openCommentPanel(postId, replyToLxm) {
+      if (!isFeedAuthenticated()) {
+        openFeedLoginModal()
+        return
+      }
       commentingPostId = postId
       commentingReplyToLxm = !!replyToLxm
       inputEl.value = ''
@@ -1245,6 +1350,11 @@
       sendEl.classList.toggle('active', inputEl.value.trim().length >= 1)
     })
     sendEl.addEventListener('click', async function () {
+      if (!isFeedAuthenticated()) {
+        closeCommentPanel()
+        openFeedLoginModal()
+        return
+      }
       var content = inputEl.value.trim()
       if (content.length < 1 || commentingPostId == null) return
       var postId = commentingPostId
@@ -1252,9 +1362,14 @@
       sendEl.disabled = true
       var body = { content: content }
       if (replyToLxm) body.reply_to_lxm = true
-      var res = await request('POST', '/api/feed/' + postId + '/comments', body)
+      var res = await request('POST', '/api/feed/' + postId + '/comments', body, {
+        authPolicy: AUTH_401_POLICIES.INTERACTIVE_MODAL,
+        onUnauthorized: switchFeedToVisitor,
+        onLoginSuccess: resumeAuthenticatedFeed,
+      })
       sendEl.disabled = false
       if (!res || res.code !== 0) {
+        if (res && res.code === 401) return
         var code = res ? res.code : -1
         var msg = res ? res.message : '发送失败'
         if (code === 10504) msg = '你刚刚才评论过，等 30 秒吧~'
@@ -1407,6 +1522,7 @@
     var pendingNewCount = 0
     var feedEventSource = null
     var sseRetryDelay = 1000
+    var sseRetryTimer = null
 
     function updateNewFeedBar() {
       var bar = document.getElementById('new-feed-bar')
@@ -1426,8 +1542,13 @@
     })
 
     function connectFeedSSE() {
+      if (!isFeedAuthenticated() || feedEventSource) return
       var token = localStorage.getItem('token')
       if (!token) return
+      if (sseRetryTimer) {
+        clearTimeout(sseRetryTimer)
+        sseRetryTimer = null
+      }
       try {
         feedEventSource = new EventSource('/api/feed/events?token=' + encodeURIComponent(token))
       } catch (e) { return }
@@ -1448,13 +1569,29 @@
       feedEventSource.onerror = function () {
         // EventSource 默认自动重连；此处叠加指数退避，最大 30s
         if (feedEventSource) { feedEventSource.close(); feedEventSource = null }
-        setTimeout(connectFeedSSE, sseRetryDelay)
+        if (!isFeedAuthenticated()) return
+        sseRetryTimer = setTimeout(function () {
+          sseRetryTimer = null
+          connectFeedSSE()
+        }, sseRetryDelay)
         sseRetryDelay = Math.min(sseRetryDelay * 2, 30000)
       }
     }
 
+    function disconnectFeedSSE() {
+      if (feedEventSource) {
+        feedEventSource.close()
+        feedEventSource = null
+      }
+      if (sseRetryTimer) {
+        clearTimeout(sseRetryTimer)
+        sseRetryTimer = null
+      }
+      sseRetryDelay = 1000
+    }
+
     window.addEventListener('beforeunload', function () {
-      if (feedEventSource) { feedEventSource.close(); feedEventSource = null }
+      disconnectFeedSSE()
     })
 
     /* ===== 已读上报（STEP-029） ===== */
@@ -1470,7 +1607,12 @@
         if (!id || reportedComments[id]) return
         reportedComments[id] = true
         commentReplyObserver.unobserve(entry.target)
-        request('POST', '/api/feed/comments/' + id + '/read').then(function () {
+        request(
+          'POST',
+          '/api/feed/comments/' + id + '/read',
+          null,
+          feedSilentAuthOptions()
+        ).then(function () {
           if (typeof pendingReplyCount === 'number' && pendingReplyCount > 0) pendingReplyCount--
         })
       })
@@ -1487,7 +1629,12 @@
             reportedPosts[postId] = true
             delete postDwellTimers[postId]
             postDwellObserver.unobserve(entry.target)
-            request('POST', '/api/feed/' + postId + '/read')
+            request(
+              'POST',
+              '/api/feed/' + postId + '/read',
+              null,
+              feedSilentAuthOptions()
+            )
           }, 3000)
         } else if (postDwellTimers[postId]) {
           clearTimeout(postDwellTimers[postId])
@@ -1499,6 +1646,7 @@
     // 每次渲染完新卡片后调用，挂载两类观察器
     // 注意：loadFeed 传入的 rootEl 常为帖子节点本身；querySelectorAll 只匹配后代，须先 observe 自身
     function observeReadTargets(rootEl) {
+      if (feedAuthMode !== 'authenticated') return
       var scope = rootEl || document
       if (rootEl && rootEl.classList && rootEl.classList.contains('feed-item') && rootEl.dataset.id) {
         postDwellObserver.observe(rootEl)
@@ -1512,34 +1660,96 @@
       })
     }
 
+    function teardownPrivateFeedResources() {
+      disconnectFeedSSE()
+      hideMsgBadge()
+      pendingNewCount = 0
+      updateNewFeedBar()
+      window.__feedAnchorCommentId__ = null
+      if (typeof closeCommentPanel === 'function') closeCommentPanel()
+      commentReplyObserver.disconnect()
+      postDwellObserver.disconnect()
+      Object.keys(postDwellTimers).forEach(function (postId) {
+        clearTimeout(postDwellTimers[postId])
+      })
+      postDwellTimers = {}
+      reportedComments = {}
+      reportedPosts = {}
+    }
+
     /* ===== 初始化（STEP-022 mounted） ===== */
+    async function initVisitorFeed() {
+      feedAuthMode = 'visitor'
+      teardownPrivateFeedResources()
+      window.__feedAnchorCommentId__ = null
+      var visitorFeedRequests = [loadHeader(), loadFeed(true)]
+      await Promise.allSettled(visitorFeedRequests)
+      enableFeedInfiniteScroll()
+    }
+
+    async function initAuthenticatedFeed(allowFocus) {
+      feedAuthMode = 'authenticated'
+      var transitionOptions = feedTransitionAuthOptions()
+      var headerPromise = loadHeader(transitionOptions)
+      var badgePromise = loadMsgBadge(transitionOptions)
+      var enterRes = await request(
+        'POST',
+        '/api/feed/enter',
+        null,
+        transitionOptions
+      )
+
+      if (!isFeedAuthenticated()) {
+        await Promise.allSettled([headerPromise, badgePromise])
+        await refreshVisitorFeedAfterUnauthorized()
+        return
+      }
+
+      var params = new URLSearchParams(location.search)
+      var focus = allowFocus !== false && params.get('focus') === 'unread_reply'
+      if (enterRes && enterRes.code === 0 && enterRes.data && enterRes.data.anchor_comment_id) {
+        window.__feedAnchorCommentId__ = enterRes.data.anchor_comment_id
+      } else if (focus) {
+        window.__feedAnchorCommentId__ = null
+      }
+
+      await Promise.allSettled([headerPromise, badgePromise])
+      if (!isFeedAuthenticated()) {
+        await refreshVisitorFeedAfterUnauthorized()
+        return
+      }
+      await loadFeed(true)
+      if (!isFeedAuthenticated()) return
+      enableFeedInfiniteScroll()
+      connectFeedSSE()
+      observeReadTargets(document)
+    }
+
+    async function resumeAuthenticatedFeed() {
+      if (feedResumePromise) return feedResumePromise
+      feedResumePromise = (async function () {
+        if (!localStorage.getItem('token')) return
+        teardownPrivateFeedResources()
+        await initAuthenticatedFeed(false)
+      })()
+      try {
+        await feedResumePromise
+      } finally {
+        feedResumePromise = null
+      }
+    }
+
     async function initFeed() {
       startFeedBootProgress()
-      loadHeader()
-      loadMsgBadge()
-      try {
-        var enterRes = await request('POST', '/api/feed/enter')
-        var params = new URLSearchParams(location.search)
-        var focus = params.get('focus') === 'unread_reply'
-        if (enterRes && enterRes.code === 0 && enterRes.data && enterRes.data.anchor_comment_id) {
-          window.__feedAnchorCommentId__ = enterRes.data.anchor_comment_id
-        } else if (focus) {
-          window.__feedAnchorCommentId__ = null
-        }
-        await loadFeed(true)
-        enableFeedInfiniteScroll()
-        connectFeedSSE()
-      } catch (err) {
-        console.error('[feed] initFeed 异常', err)
-        dismissFeedBootLoading()
-        enableFeedInfiniteScroll()
-        showState('error')
-        document.getElementById('state-error-text').textContent = '加载失败，请检查网络后重试'
+      if (isFeedAuthenticated()) {
+        await initAuthenticatedFeed(true)
+      } else {
+        await initVisitorFeed()
       }
     }
 
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') loadMsgBadge()
+      if (document.visibilityState === 'visible' && isFeedAuthenticated()) loadMsgBadge()
     })
 
     initFeed().catch(function (err) {

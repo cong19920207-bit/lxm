@@ -4,7 +4,7 @@
 > 发现日期：2026-07-13  
 > 方案复核日期：2026-07-15  
 > 审查范围：`backend/utils/admin_auth.py`、`backend/routers/admin/*`、`admin/static/js/admin-api.js`、相关模型与配置  
-> 关联 PRD：`docs/design/PRD-管理后台观察者与安全加固-v1.md`  
+> 关联 PRD：`docs/design/admin-observer-security/PRD-管理后台观察者与安全加固-v1.md`
 > 状态：阶段 A 安全项已于 2026-07-16 12:04 CST 独立部署并完成人工确认；阶段 B observer 权限安全边界已于 2026-07-16 17:02 CST 独立部署，五角色门禁、35 页验收与项目所有者稳定性确认于 2026-07-17 完成
 
 ---

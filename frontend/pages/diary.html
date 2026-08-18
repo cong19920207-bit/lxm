@@ -313,7 +313,9 @@
 
   <script src="/static/js/api.js"></script>
   <script>
-    checkLogin()
+    var diaryPageAuthorized = requireProtectedPage()
+    var diaryPageActive = diaryPageAuthorized
+    var diaryObserver = null
 
     var MONTH_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     var WEEKDAY_ZH = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -322,7 +324,23 @@
     var loading = false
     var noMore = false
     var totalLoaded = 0
-    var relationLevel = parseInt(localStorage.getItem('relationship_level') || '0', 10) || 0
+    var relationLevel = diaryPageAuthorized
+      ? (parseInt(localStorage.getItem('relationship_level') || '0', 10) || 0)
+      : 0
+
+    function stopDiaryPrivateResources() {
+      diaryPageActive = false
+      loading = false
+      noMore = true
+      if (diaryObserver) {
+        diaryObserver.disconnect()
+        diaryObserver = null
+      }
+    }
+
+    function diaryProtectedAuthOptions() {
+      return protectedPageAuthOptions(stopDiaryPrivateResources)
+    }
 
     function hideAllEmptyStates() {
       document.getElementById('empty-active').style.display = 'none'
@@ -370,10 +388,19 @@
     }
 
     async function loadDiaries(page) {
-      if (loading || noMore) return
+      if (!diaryPageActive || loading || noMore) return
       loading = true
 
-      const res = await request('GET', '/api/diary/list?page=' + page)
+      const res = await request(
+        'GET',
+        '/api/diary/list?page=' + page,
+        undefined,
+        diaryProtectedAuthOptions()
+      )
+      if (!diaryPageActive || (res && res.code === 401)) {
+        loading = false
+        return
+      }
       if (!res || res.code !== 0 || !res.data) {
         loading = false
         if (page === 1) {
@@ -487,21 +514,26 @@
         if (card.classList.contains('unread')) {
           card.classList.remove('unread')
           card.classList.add('read')
-          request('POST', '/api/diary/' + diary.id + '/read')
+          request(
+            'POST',
+            '/api/diary/' + diary.id + '/read',
+            undefined,
+            diaryProtectedAuthOptions()
+          )
         }
       }
     }
 
-    const observer = new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting && !loading && !noMore) {
-        loadDiaries(currentPage + 1)
-      }
-    })
-    observer.observe(document.getElementById('bottom-sentinel'))
-
     async function initDiary() {
+      if (!diaryPageActive) return
       const diaryPromise = loadDiaries(1)
-      request('GET', '/api/relationship/status').then(function (relRes) {
+      request(
+        'GET',
+        '/api/relationship/status',
+        undefined,
+        diaryProtectedAuthOptions()
+      ).then(function (relRes) {
+        if (!diaryPageActive) return
         if (relRes && relRes.code === 0 && relRes.data) {
           relationLevel = relRes.data.level || 0
           localStorage.setItem('relationship_level', String(relationLevel))
@@ -518,7 +550,19 @@
       await diaryPromise
     }
 
+    function startDiaryPrivateResources() {
+      if (!diaryPageActive) return
+      diaryObserver = new IntersectionObserver(function (entries) {
+        if (diaryPageActive && entries[0].isIntersecting && !loading && !noMore) {
+          loadDiaries(currentPage + 1)
+        }
+      })
+      diaryObserver.observe(document.getElementById('bottom-sentinel'))
+      initDiary()
+    }
+
     document.getElementById('btn-retry-diary').addEventListener('click', function () {
+      if (!diaryPageActive) return
       loading = false
       noMore = false
       currentPage = 1
@@ -529,7 +573,7 @@
       initDiary()
     })
 
-    initDiary()
+    if (diaryPageAuthorized) startDiaryPrivateResources()
   </script>
 </body>
 </html>

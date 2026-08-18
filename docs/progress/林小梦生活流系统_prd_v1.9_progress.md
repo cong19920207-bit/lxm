@@ -4,10 +4,10 @@
 > 创建时间：2026-07-05
 > **v2 更新时间**：2026-07-05（同步二次审查修订：M1/M2/M3 按新 22/5/12 STEP 划分；补齐依赖与备注）
 > **最近补记**：2026-07-12（H5 话题着色 + 进页 boot / TB-LF-010；同日评论角标假数 `display_comments` / 迁移 `v6e`；连续回复 `reply_to_lxm`；TB-LF-001/008/009 等同前）
-> PRD 来源：`docs/design/prd_v1.9.md`（v1.9.4）
-> 补充规格：`docs/design/prompt_spec_v1.2_complete.md`（v1.2.6）、`docs/design/朋友圈页面展示逻辑规范_v1.1.md`
-> 拆解文档：`docs/design/林小梦生活流系统_prd_v1.9_steps.md`（v2）
-> 实施计划：`docs/design/林小梦生活流系统_实施计划.md`（v2，M1→M2→M3 + 契约分阶段汇总）
+> PRD 来源：`docs/design/life-feed/prd_v1.9.md`（v1.9.4）
+> 补充规格：`docs/design/life-feed/prompt_spec_v1.2_complete.md`（v1.2.6）、`docs/design/life-feed/朋友圈页面展示逻辑规范_v1.1.md`
+> 拆解文档：`docs/design/life-feed/林小梦生活流系统_prd_v1.9_steps.md`（v2）
+> 实施计划：`docs/design/life-feed/林小梦生活流系统_实施计划.md`（v2，M1→M2→M3 + 契约分阶段汇总）
 > 契约文档：`docs/contract.md`（生活流：**2026-07-12 已合并**；阶段草案快照见 `docs/contract/drafts/生活流/`）
 >
 > **运维补丁（2026-07-09）**：DeepSeek 单次超时 15s→45s（全局默认 + 感知 IM 显式）；日场景 `plan_date=2026-07-10` 复测 ready（约 36s）。详见 TB-LF-006 / M1 契约「DeepSeek 超时 / 重试」。
@@ -25,7 +25,7 @@
 | 38 | 38 | 100% | M3 完成 | 21/21 | 5/5 | 12/12 |
 
 > 每完成一个 STEP，手动更新上表中的完成数和完成率。
-> 里程碑闸门与契约汇总规则见 `docs/design/林小梦生活流系统_实施计划.md`。
+> 里程碑闸门与契约汇总规则见 `docs/design/life-feed/林小梦生活流系统_实施计划.md`。
 
 ---
 
@@ -171,7 +171,7 @@
 | 2026-07-05 | 初始拆解，基于 PRD v1.9.4 | 全部 | — |
 | 2026-07-05 | 审查遗漏回填：SSE 调度、未读滚动、Header 配置、后台菜单等；新增 STEP-038 | STEP-003,008,013,015~022,026~027,030,034~038 | 已写入 steps 文档 |
 | 2026-07-05 | steps_review 遗漏回填：trigger_type 迁移、4.4.1 张数、系统日志横切、level 映射、TD-001、SSE 去重等 | STEP-001,003,006~009,012~013,018~021,023,026,031,035,038 | 已写入 steps 文档 |
-| 2026-07-05 | 新增实施计划 + 契约分阶段汇总规则（M1/M2 草案，M3 合并 contract.md） | — | `docs/design/林小梦生活流系统_实施计划.md` |
+| 2026-07-05 | 新增实施计划 + 契约分阶段汇总规则（M1/M2 草案，M3 合并 contract.md） | — | `docs/design/life-feed/林小梦生活流系统_实施计划.md` |
 | 2026-07-05 | **v2 二次审查修订**：<br>1. M1/M2/M3 重划分（22/5/12）<br>2. STEP-023/025 前移至 M1（用户体验完整性）<br>3. 5 个二选一技术选型定案（scene_id / actual_publish_time / LLM-05 延迟 / SSE 注册表 / LiblibAI 统计）<br>4. 15 个偏薄 STEP 内容补齐<br>5. 首次评论 30s override 竞态处理明确（STEP-017 原子 UPDATE 抢占）<br>6. STEP-016 stub → M2 STEP-020 替换机制明确<br>7. 契约措辞统一为「契约条目草稿」<br>8. 每个 M 独立验证清单添加<br>9. STEP 依赖顺序图与波次表重构 | 全部 38 STEP + 实施计划全文 | v2 已写入 steps.md、实施计划.md、progress.md |
 | 2026-07-09 | STEP-031 管理页 CRUD/展示补齐；快照近14天分页；编辑场景 category 校验；ops 只读生活计划/宇宙；列表改 admin-table | 006,008,010,031,038 | 代码已改；M3 契约草案已增量；技术债 TD-033/034 |
 | 2026-07-09 | 朋友圈内容/评论/感知三页 UI 补齐（admin-table + 文档已有 API 接线）；真删帖/本地上传记 TD；无服务端契约变更 | 014,034,035 | 代码已改；M3 草案 §2.3~2.5；TD-034 清偿、TD-035/036 新增 |

@@ -2,11 +2,11 @@
 
 > 文档路径：`docs/progress/PRD-管理后台观察者与安全加固-v1_progress.md`  
 > 创建时间：2026-07-15  
-> PRD 来源：`docs/design/PRD-管理后台观察者与安全加固-v1.md`（v2.3）
+> PRD 来源：`docs/design/admin-observer-security/PRD-管理后台观察者与安全加固-v1.md`（v2.3）
 > 项目配置：`docs/design/PROJECT_CONFIG_林小梦.md`  
 > 漏洞专档：`docs/security/admin-backend-vulns-2026-07.md`  
 > 契约文档：`docs/contract.md`
-> 实施计划：`docs/design/PRD-管理后台观察者与安全加固-v1_实施计划.md`
+> 实施计划：`docs/design/admin-observer-security/PRD-管理后台观察者与安全加固-v1_实施计划.md`
 > 契约草案：`docs/contract/drafts/管理后台观察者与安全加固/`
 > 当前里程碑：✅ M1/M2/M3 全部完成；本计划已收尾
 

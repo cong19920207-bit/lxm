@@ -263,6 +263,55 @@ def test_login_html_desktop_only_site_shell():
         assert fragment in html, fragment
 
 
+def test_shared_login_modal_and_auth_policy_contract():
+    """共享登录弹窗：三面板、一次回调及三类显式 401 策略。"""
+    api_js = _read_js("api.js")
+    theme = (REPO / "frontend" / "static" / "css" / "h5-theme.css").read_text(
+        encoding="utf-8"
+    )
+    login = _read("login.html")
+
+    for fragment in (
+        "AUTH_401_POLICIES",
+        "SILENT_VISITOR",
+        "PROTECTED_HOME_MODAL",
+        "INTERACTIVE_MODAL",
+        "openLoginModal",
+        "closeLoginModal",
+        "switchAuthModalPanel",
+        "submitAuthModalLogin",
+        "submitAuthModalRegister",
+        "submitAuthModalReset",
+        "consumeLoginModalSignal",
+        "redirectToHomeLogin",
+        "requireLogin",
+        "lxm_open_login_once",
+        "登录后，她就能记住你了",
+        "登录并继续",
+        "暂不登录，继续看看",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/reset-password",
+    ):
+        assert fragment in api_js, fragment
+
+    for fragment in (
+        ".auth-modal-overlay",
+        ".auth-modal-sheet",
+        ".auth-modal-avatar",
+        ".auth-modal-panel",
+        ".auth-modal-submit",
+        "backdrop-filter: blur",
+        "linear-gradient",
+    ):
+        assert fragment in theme, fragment
+
+    # 独立登录页继续沿用原流程，但校验规则与弹窗共享。
+    assert "const RULES = AUTH_FORM_RULES" in login
+    assert "注册成功，请登录" in login
+    assert "window.location.href = '/pages/index.html'" in login
+
+
 def test_settings_change_password_ids():
     html = _read("settings.html")
     api_js = _read_js("api.js")
@@ -429,3 +478,145 @@ def test_index_html_home_surface_contract():
     assert "/api/memory/list" not in html
     assert "h5-home-decor" not in html
     assert "overflow-y: auto" not in html.split(".home-cards-scroll")[1].split("}")[0]
+
+
+def test_index_guest_mode_contract():
+    """首页访客态：不发纯个性化请求，精确降级并在原页完成登录恢复。"""
+    html = _read("index.html")
+    for fragment in (
+        "renderVisitorHome",
+        "refreshHomeAfterLogin",
+        "openHomeLoginModal",
+        "handleHomeQuickAction",
+        "goHomeDiary",
+        "homeAuthMode",
+        "故事从今天开始",
+        "AUTH_401_POLICIES.SILENT_VISITOR",
+        "consumeLoginModalSignal",
+        "visitorFeedRequests",
+        "request('GET', '/api/feed/list?size=8'",
+        "onclick=\"handleHomeQuickAction('voice')\"",
+        "onclick=\"handleHomeQuickAction('video')\"",
+        "onclick=\"handleHomeQuickAction('memory')\"",
+        "onclick=\"handleHomeQuickAction('sleep')\"",
+        "onclick=\"handleHomeQuickAction('more')\"",
+        "onclick=\"goHomeDiary()\"",
+    ):
+        assert fragment in html, fragment
+
+    assert "checkLogin()" not in html
+
+
+def test_feed_guest_read_only_contract():
+    """Feed 访客仅加载 Header/list，写交互先登录且不挂私有资源。"""
+    html = _read("feed.html")
+    for fragment in (
+        "feedAuthMode",
+        "initVisitorFeed",
+        "resumeAuthenticatedFeed",
+        "teardownPrivateFeedResources",
+        "sanitizeFeedForVisitor",
+        "refreshVisitorFeedAfterUnauthorized",
+        "feedVisitorRefreshPromise",
+        "feedTransitionAuthOptions",
+        "refresh: false",
+        "retryAsVisitor",
+        "requestWasAuthenticated",
+        "disconnectFeedSSE",
+        "openFeedLoginModal",
+        "isFeedAuthenticated",
+        "AUTH_401_POLICIES.SILENT_VISITOR",
+        "AUTH_401_POLICIES.INTERACTIVE_MODAL",
+        "visitorFeedRequests",
+        "if (!isFeedAuthenticated())",
+        "if (feedAuthMode !== 'authenticated') return",
+        "window.__feedAnchorCommentId__ = null",
+        "'/api/feed/config/header'",
+        "request('GET', path",
+    ):
+        assert fragment in html, fragment
+
+    assert "checkLogin()" not in html
+    assert "if (res && res.code === 401 && feedAuthMode === 'visitor') {\n        res = await request" not in html
+
+
+def test_settings_guest_mode_contract():
+    """设置页访客隐藏私有分区，保留公开 About，并可原页登录恢复。"""
+    html = _read("settings.html")
+    for fragment in (
+        'id="settings-private-sections"',
+        'id="settings-auth-action"',
+        'id="settings-auth-action-text"',
+        "settingsAuthMode",
+        "renderVisitorSettings",
+        "renderAuthenticatedSettings",
+        "restoreAuthenticatedSettings",
+        "openSettingsLoginModal",
+        "settingsSilentAuthOptions",
+        "AUTH_401_POLICIES.SILENT_VISITOR",
+        "点击登录",
+        "'/api/app/persona-background'",
+    ):
+        assert fragment in html, fragment
+
+    assert "checkLogin()" not in html
+
+
+def test_chat_guest_shell_and_interaction_gate_contract():
+    """Chat 访客只初始化页面壳；发送、重试和私有导航均先通过登录门禁。"""
+    html = _read("chat.html")
+    for fragment in (
+        "chatAuthMode",
+        "initVisitorChat",
+        "resumeAuthenticatedChat",
+        "switchChatToVisitor",
+        "openChatLoginModal",
+        "chatSilentAuthOptions",
+        "chatInteractiveAuthOptions",
+        "resetPrivateChatUi",
+        "rollbackChatSendForUnauthorized",
+        "isChatAuthenticated",
+        "AUTH_401_POLICIES.SILENT_VISITOR",
+        "AUTH_401_POLICIES.INTERACTIVE_MODAL",
+        "if (!isChatAuthenticated())",
+        "onclick=\"goChatProtected('/pages/memory.html')\"",
+        "visitorChatRequests",
+    ):
+        assert fragment in html, fragment
+
+    assert "checkLogin()" not in html
+
+
+def test_protected_pages_redirect_to_home_login_once_contract():
+    """Diary/Memory/Relationship 直访与 401 均走首页单次弹窗信号。"""
+    api_js = _read_js("api.js")
+    diary = _read("diary.html")
+    relationship = _read("relationship.html")
+    memory = _read_js("memory-nebula.js")
+
+    for fragment in (
+        "function requireProtectedPage",
+        "function protectedPageAuthOptions",
+        "AUTH_401_POLICIES.PROTECTED_HOME_MODAL",
+        "await options.onUnauthorized()",
+        "redirectToHomeLogin()",
+    ):
+        assert fragment in api_js, fragment
+
+    for source, gate, stop, options in (
+        (diary, "diaryPageAuthorized", "stopDiaryPrivateResources", "diaryProtectedAuthOptions"),
+        (
+            relationship,
+            "relationshipPageAuthorized",
+            "stopRelationshipPrivateResources",
+            "relationshipProtectedAuthOptions",
+        ),
+        (memory, "memoryPageAuthorized", "stopMemoryPrivateResources", "memoryProtectedAuthOptions"),
+    ):
+        assert "requireProtectedPage()" in source
+        assert gate in source
+        assert stop in source
+        assert options in source
+        assert "AUTH_401_POLICIES.PROTECTED_HOME_MODAL" not in source
+        assert "checkLogin()" not in source
+        assert "/pages/login.html" not in source

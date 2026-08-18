@@ -1,0 +1,5915 @@
+{
+  "version": 1,
+  "generated_from": ".doc-migration-baseline/snapshots/2026-07-19",
+  "scan_roots": [
+    "docs/INDEX.md",
+    "docs/contract.md",
+    "docs/contract/current",
+    "docs/contract/known-gaps.md",
+    "docs/tech-debt.md",
+    "docs/tech-debt/active"
+  ],
+  "exclude_roots": [
+    ".doc-migration-baseline",
+    "docs/contract/history",
+    "docs/contract/drafts",
+    "docs/tech-debt/archive",
+    "docs/tech-debt/audit-2026-07-19.md"
+  ],
+  "relation_types": [
+    "depends_on",
+    "extends",
+    "related_to",
+    "supersedes",
+    "blocks",
+    "resolved_by"
+  ],
+  "documents": [
+    {
+      "id": "docs-index",
+      "path": "docs/INDEX.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "routing"
+      ],
+      "keywords": [
+        "索引",
+        "任务路由",
+        "未登录",
+        "登录弹窗"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [
+        "contract-index",
+        "tech-debt-index"
+      ],
+      "related_td": [],
+      "max_lines": 150,
+      "legacy_order": -2
+    },
+    {
+      "id": "contract-index",
+      "path": "docs/contract.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "routing"
+      ],
+      "keywords": [
+        "契约",
+        "兼容入口"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 150,
+      "legacy_order": -1
+    },
+    {
+      "id": "contract-shared-conventions",
+      "path": "docs/contract/current/_shared/conventions.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "shared-conventions"
+      ],
+      "keywords": [
+        "shared-conventions",
+        "shared-conventions"
+      ],
+      "code_paths": [
+        "backend/main.py"
+      ],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 400,
+      "legacy_order": 1
+    },
+    {
+      "id": "contract-shared-auth-rbac",
+      "path": "docs/contract/current/_shared/auth-rbac.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "shared-auth-rbac"
+      ],
+      "keywords": [
+        "shared-auth-rbac",
+        "shared-auth-rbac"
+      ],
+      "code_paths": [
+        "backend/utils/admin_auth.py",
+        "backend/routers/admin/auth.py"
+      ],
+      "route_prefixes": [],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 400,
+      "legacy_order": 2
+    },
+    {
+      "id": "contract-core-user-auth-data",
+      "path": "docs/contract/current/core-user-auth/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "core-user-auth"
+      ],
+      "keywords": [
+        "core-user-auth",
+        "core-user-auth-data"
+      ],
+      "code_paths": [
+        "backend/models/user.py",
+        "backend/routers/auth.py",
+        "backend/routers/user.py"
+      ],
+      "route_prefixes": [
+        "/api/auth",
+        "/api/user"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-001",
+        "TD-024",
+        "TD-025"
+      ],
+      "max_lines": 600,
+      "legacy_order": 3
+    },
+    {
+      "id": "contract-core-user-auth-api",
+      "path": "docs/contract/current/core-user-auth/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "core-user-auth"
+      ],
+      "keywords": [
+        "core-user-auth",
+        "core-user-auth-api"
+      ],
+      "code_paths": [
+        "backend/models/user.py",
+        "backend/routers/auth.py",
+        "backend/routers/user.py"
+      ],
+      "route_prefixes": [
+        "/api/auth",
+        "/api/user"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-001",
+        "TD-024",
+        "TD-025"
+      ],
+      "max_lines": 400,
+      "legacy_order": 4
+    },
+    {
+      "id": "contract-h5-app-api",
+      "path": "docs/contract/current/h5-app/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "h5-app"
+      ],
+      "keywords": [
+        "h5-app",
+        "h5-app-api",
+        "未登录",
+        "访客态",
+        "登录弹窗",
+        "401 策略",
+        "open-login"
+      ],
+      "code_paths": [
+        "backend/routers/app.py",
+        "backend/utils/auth_middleware.py",
+        "frontend/static/js/api.js",
+        "frontend/static/js/memory-nebula.js",
+        "frontend/static/css/h5-theme.css",
+        "frontend/pages/index.html",
+        "frontend/pages/feed.html",
+        "frontend/pages/settings.html",
+        "frontend/pages/chat.html",
+        "frontend/pages/diary.html",
+        "frontend/pages/memory.html",
+        "frontend/pages/relationship.html",
+        "frontend/pages/login.html"
+      ],
+      "route_prefixes": [
+        "/api/app"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [
+        "contract-core-user-auth-api",
+        "contract-life-feed-api"
+      ],
+      "related_td": [
+        "TD-015",
+        "TD-024",
+        "TD-025"
+      ],
+      "max_lines": 400,
+      "legacy_order": 5
+    },
+    {
+      "id": "contract-chat-emotion-data",
+      "path": "docs/contract/current/chat-emotion/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "chat-emotion"
+      ],
+      "keywords": [
+        "chat-emotion",
+        "chat-emotion-data"
+      ],
+      "code_paths": [
+        "backend/routers/chat.py",
+        "backend/services/chat_service.py",
+        "backend/models/emotion_log.py"
+      ],
+      "route_prefixes": [
+        "/api/chat"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-015",
+        "TD-016",
+        "TD-018",
+        "TD-019",
+        "TD-020",
+        "TD-023",
+        "TD-030"
+      ],
+      "max_lines": 600,
+      "legacy_order": 6
+    },
+    {
+      "id": "contract-chat-emotion-api",
+      "path": "docs/contract/current/chat-emotion/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "chat-emotion"
+      ],
+      "keywords": [
+        "chat-emotion",
+        "chat-emotion-api"
+      ],
+      "code_paths": [
+        "backend/routers/chat.py",
+        "backend/services/chat_service.py",
+        "backend/models/emotion_log.py"
+      ],
+      "route_prefixes": [
+        "/api/chat"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-015",
+        "TD-016",
+        "TD-018",
+        "TD-019",
+        "TD-020",
+        "TD-023",
+        "TD-030"
+      ],
+      "max_lines": 400,
+      "legacy_order": 7
+    },
+    {
+      "id": "contract-memory-knowledge-data",
+      "path": "docs/contract/current/memory-knowledge/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "memory-knowledge"
+      ],
+      "keywords": [
+        "memory-knowledge",
+        "memory-knowledge-data"
+      ],
+      "code_paths": [
+        "backend/routers/memory.py",
+        "backend/services/memory_service.py",
+        "backend/services/step6_orchestrator.py"
+      ],
+      "route_prefixes": [
+        "/api/memory",
+        "/api/admin/memory"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-017",
+        "TD-022",
+        "TD-023",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029"
+      ],
+      "max_lines": 600,
+      "legacy_order": 8
+    },
+    {
+      "id": "contract-memory-knowledge-api",
+      "path": "docs/contract/current/memory-knowledge/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "memory-knowledge"
+      ],
+      "keywords": [
+        "memory-knowledge",
+        "memory-knowledge-api"
+      ],
+      "code_paths": [
+        "backend/routers/memory.py",
+        "backend/services/memory_service.py",
+        "backend/services/step6_orchestrator.py"
+      ],
+      "route_prefixes": [
+        "/api/memory",
+        "/api/admin/memory"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-017",
+        "TD-022",
+        "TD-023",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029"
+      ],
+      "max_lines": 400,
+      "legacy_order": 9
+    },
+    {
+      "id": "contract-memory-knowledge-admin",
+      "path": "docs/contract/current/memory-knowledge/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "memory-knowledge"
+      ],
+      "keywords": [
+        "memory-knowledge",
+        "memory-knowledge-admin"
+      ],
+      "code_paths": [
+        "backend/routers/memory.py",
+        "backend/services/memory_service.py",
+        "backend/services/step6_orchestrator.py"
+      ],
+      "route_prefixes": [
+        "/api/memory",
+        "/api/admin/memory"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-017",
+        "TD-022",
+        "TD-023",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029"
+      ],
+      "max_lines": 400,
+      "legacy_order": 10
+    },
+    {
+      "id": "contract-diary-data",
+      "path": "docs/contract/current/diary/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "diary"
+      ],
+      "keywords": [
+        "diary",
+        "diary-data"
+      ],
+      "code_paths": [
+        "backend/routers/diary.py",
+        "backend/services/diary_service.py",
+        "backend/tasks/ai_diary_task.py"
+      ],
+      "route_prefixes": [
+        "/api/diary"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-006",
+        "TD-007",
+        "TD-013",
+        "TD-014",
+        "TD-018"
+      ],
+      "max_lines": 600,
+      "legacy_order": 11
+    },
+    {
+      "id": "contract-diary-api",
+      "path": "docs/contract/current/diary/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "diary"
+      ],
+      "keywords": [
+        "diary",
+        "diary-api"
+      ],
+      "code_paths": [
+        "backend/routers/diary.py",
+        "backend/services/diary_service.py",
+        "backend/tasks/ai_diary_task.py"
+      ],
+      "route_prefixes": [
+        "/api/diary"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-006",
+        "TD-007",
+        "TD-013",
+        "TD-014",
+        "TD-018"
+      ],
+      "max_lines": 400,
+      "legacy_order": 12
+    },
+    {
+      "id": "contract-diary-admin",
+      "path": "docs/contract/current/diary/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "diary"
+      ],
+      "keywords": [
+        "diary",
+        "diary-admin"
+      ],
+      "code_paths": [
+        "backend/routers/diary.py",
+        "backend/services/diary_service.py",
+        "backend/tasks/ai_diary_task.py"
+      ],
+      "route_prefixes": [
+        "/api/diary"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-006",
+        "TD-007",
+        "TD-013",
+        "TD-014",
+        "TD-018"
+      ],
+      "max_lines": 400,
+      "legacy_order": 13
+    },
+    {
+      "id": "contract-relationship-data",
+      "path": "docs/contract/current/relationship/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "relationship"
+      ],
+      "keywords": [
+        "relationship",
+        "relationship-data"
+      ],
+      "code_paths": [
+        "backend/routers/relationship.py",
+        "backend/services/relationship_service.py"
+      ],
+      "route_prefixes": [
+        "/api/relationship"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-005"
+      ],
+      "max_lines": 600,
+      "legacy_order": 14
+    },
+    {
+      "id": "contract-relationship-api",
+      "path": "docs/contract/current/relationship/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "relationship"
+      ],
+      "keywords": [
+        "relationship",
+        "relationship-api"
+      ],
+      "code_paths": [
+        "backend/routers/relationship.py",
+        "backend/services/relationship_service.py"
+      ],
+      "route_prefixes": [
+        "/api/relationship"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-005"
+      ],
+      "max_lines": 400,
+      "legacy_order": 15
+    },
+    {
+      "id": "contract-relationship-admin",
+      "path": "docs/contract/current/relationship/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "relationship"
+      ],
+      "keywords": [
+        "relationship",
+        "relationship-admin"
+      ],
+      "code_paths": [
+        "backend/routers/relationship.py",
+        "backend/services/relationship_service.py"
+      ],
+      "route_prefixes": [
+        "/api/relationship"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-005"
+      ],
+      "max_lines": 400,
+      "legacy_order": 16
+    },
+    {
+      "id": "contract-agent-future-data",
+      "path": "docs/contract/current/agent-future/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "agent-future"
+      ],
+      "keywords": [
+        "agent-future",
+        "agent-future-data"
+      ],
+      "code_paths": [
+        "backend/routers/agent.py",
+        "backend/services/future_handler.py",
+        "backend/tasks/agent_message_task.py"
+      ],
+      "route_prefixes": [
+        "/api/agent"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-004",
+        "TD-015"
+      ],
+      "max_lines": 600,
+      "legacy_order": 17
+    },
+    {
+      "id": "contract-agent-future-api",
+      "path": "docs/contract/current/agent-future/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "agent-future"
+      ],
+      "keywords": [
+        "agent-future",
+        "agent-future-api"
+      ],
+      "code_paths": [
+        "backend/routers/agent.py",
+        "backend/services/future_handler.py",
+        "backend/tasks/agent_message_task.py"
+      ],
+      "route_prefixes": [
+        "/api/agent"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-004",
+        "TD-015"
+      ],
+      "max_lines": 400,
+      "legacy_order": 18
+    },
+    {
+      "id": "contract-agent-future-admin",
+      "path": "docs/contract/current/agent-future/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "agent-future"
+      ],
+      "keywords": [
+        "agent-future",
+        "agent-future-admin"
+      ],
+      "code_paths": [
+        "backend/routers/agent.py",
+        "backend/services/future_handler.py",
+        "backend/tasks/agent_message_task.py"
+      ],
+      "route_prefixes": [
+        "/api/agent"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-004",
+        "TD-015"
+      ],
+      "max_lines": 400,
+      "legacy_order": 19
+    },
+    {
+      "id": "contract-persona-data",
+      "path": "docs/contract/current/persona-prompt-world-state/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "persona-prompt-world-state"
+      ],
+      "keywords": [
+        "persona-prompt-world-state",
+        "persona-data"
+      ],
+      "code_paths": [
+        "backend/models/world_state.py",
+        "backend/services/prompt_builder.py",
+        "backend/routers/admin/persona.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/persona",
+        "/api/admin/prompts"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-002",
+        "TD-003",
+        "TD-020",
+        "TD-021"
+      ],
+      "max_lines": 600,
+      "legacy_order": 20
+    },
+    {
+      "id": "contract-persona-api",
+      "path": "docs/contract/current/persona-prompt-world-state/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "persona-prompt-world-state"
+      ],
+      "keywords": [
+        "persona-prompt-world-state",
+        "persona-api"
+      ],
+      "code_paths": [
+        "backend/models/world_state.py",
+        "backend/services/prompt_builder.py",
+        "backend/routers/admin/persona.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/persona",
+        "/api/admin/prompts"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-002",
+        "TD-003",
+        "TD-020",
+        "TD-021"
+      ],
+      "max_lines": 400,
+      "legacy_order": 21
+    },
+    {
+      "id": "contract-persona-admin",
+      "path": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "persona-prompt-world-state"
+      ],
+      "keywords": [
+        "persona-prompt-world-state",
+        "persona-admin"
+      ],
+      "code_paths": [
+        "backend/models/world_state.py",
+        "backend/services/prompt_builder.py",
+        "backend/routers/admin/persona.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/persona",
+        "/api/admin/prompts"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-002",
+        "TD-003",
+        "TD-020",
+        "TD-021"
+      ],
+      "max_lines": 400,
+      "legacy_order": 22
+    },
+    {
+      "id": "contract-life-feed-data",
+      "path": "docs/contract/current/life-feed/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "life-feed"
+      ],
+      "keywords": [
+        "life-feed",
+        "life-feed-data"
+      ],
+      "code_paths": [
+        "backend/routers/feed.py",
+        "backend/services/feed_service.py",
+        "backend/tasks/life_feed_task.py"
+      ],
+      "route_prefixes": [
+        "/api/feed",
+        "/api/admin/feed"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 600,
+      "legacy_order": 23
+    },
+    {
+      "id": "contract-life-feed-api",
+      "path": "docs/contract/current/life-feed/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "life-feed"
+      ],
+      "keywords": [
+        "life-feed",
+        "life-feed-api",
+        "匿名 Feed",
+        "可选鉴权",
+        "访客态",
+        "open-login"
+      ],
+      "code_paths": [
+        "backend/routers/feed.py",
+        "backend/services/feed_service.py",
+        "backend/tasks/life_feed_task.py",
+        "backend/utils/auth_middleware.py",
+        "frontend/pages/feed.html",
+        "frontend/static/js/api.js"
+      ],
+      "route_prefixes": [
+        "/api/feed",
+        "/api/admin/feed"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [
+        "contract-h5-app-api"
+      ],
+      "related_td": [
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 400,
+      "legacy_order": 24
+    },
+    {
+      "id": "contract-life-feed-admin",
+      "path": "docs/contract/current/life-feed/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "life-feed"
+      ],
+      "keywords": [
+        "life-feed",
+        "life-feed-admin"
+      ],
+      "code_paths": [
+        "backend/routers/feed.py",
+        "backend/services/feed_service.py",
+        "backend/tasks/life_feed_task.py"
+      ],
+      "route_prefixes": [
+        "/api/feed",
+        "/api/admin/feed"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 400,
+      "legacy_order": 25
+    },
+    {
+      "id": "contract-admin-security-data",
+      "path": "docs/contract/current/admin-security-accounts/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "admin-security-accounts"
+      ],
+      "keywords": [
+        "admin-security-accounts",
+        "admin-security-data"
+      ],
+      "code_paths": [
+        "backend/routers/admin/accounts.py",
+        "backend/routers/admin/users.py",
+        "backend/routers/admin/operation_logs.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/auth",
+        "/api/admin/accounts",
+        "/api/admin/users"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-shared-auth-rbac"
+      ],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 600,
+      "legacy_order": 26
+    },
+    {
+      "id": "contract-admin-security-api",
+      "path": "docs/contract/current/admin-security-accounts/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "admin-security-accounts"
+      ],
+      "keywords": [
+        "admin-security-accounts",
+        "admin-security-api"
+      ],
+      "code_paths": [
+        "backend/routers/admin/accounts.py",
+        "backend/routers/admin/users.py",
+        "backend/routers/admin/operation_logs.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/auth",
+        "/api/admin/accounts",
+        "/api/admin/users"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-shared-auth-rbac"
+      ],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 400,
+      "legacy_order": 27
+    },
+    {
+      "id": "contract-observability-api",
+      "path": "docs/contract/current/observability-third-party/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "observability-third-party"
+      ],
+      "keywords": [
+        "observability-third-party",
+        "observability-api"
+      ],
+      "code_paths": [
+        "backend/routers/admin/system_monitor.py",
+        "backend/routers/admin/stats.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/stats",
+        "/api/admin/system"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-shared-auth-rbac"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012",
+        "TD-033"
+      ],
+      "max_lines": 400,
+      "legacy_order": 28
+    },
+    {
+      "id": "contract-observability-admin",
+      "path": "docs/contract/current/observability-third-party/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "observability-third-party"
+      ],
+      "keywords": [
+        "observability-third-party",
+        "observability-admin"
+      ],
+      "code_paths": [
+        "backend/routers/admin/system_monitor.py",
+        "backend/routers/admin/stats.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/stats",
+        "/api/admin/system"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-shared-auth-rbac"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012",
+        "TD-033"
+      ],
+      "max_lines": 400,
+      "legacy_order": 29
+    },
+    {
+      "id": "contract-openapi-data",
+      "path": "docs/contract/current/openapi/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "openapi"
+      ],
+      "keywords": [
+        "openapi",
+        "openapi-data"
+      ],
+      "code_paths": [
+        "backend/routers/open/chat.py",
+        "backend/routers/open/agent.py",
+        "backend/services/open_api_key_service.py"
+      ],
+      "route_prefixes": [
+        "/api/open/v1",
+        "/api/admin/users/{user_id}/open-api-key"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-chat-emotion-api",
+        "contract-agent-future-api"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-030",
+        "TD-031"
+      ],
+      "max_lines": 600,
+      "legacy_order": 30
+    },
+    {
+      "id": "contract-openapi-api",
+      "path": "docs/contract/current/openapi/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "openapi"
+      ],
+      "keywords": [
+        "openapi",
+        "openapi-api"
+      ],
+      "code_paths": [
+        "backend/routers/open/chat.py",
+        "backend/routers/open/agent.py",
+        "backend/services/open_api_key_service.py"
+      ],
+      "route_prefixes": [
+        "/api/open/v1",
+        "/api/admin/users/{user_id}/open-api-key"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-chat-emotion-api",
+        "contract-agent-future-api"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-030",
+        "TD-031"
+      ],
+      "max_lines": 400,
+      "legacy_order": 31
+    },
+    {
+      "id": "contract-history-implementation",
+      "path": "docs/contract/history/implementation-log.md",
+      "status": "history",
+      "authority": false,
+      "scopes": [
+        "history"
+      ],
+      "keywords": [
+        "history",
+        "history-implementation"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 1000,
+      "legacy_order": 32
+    },
+    {
+      "id": "contract-known-gaps",
+      "path": "docs/contract/known-gaps.md",
+      "status": "needs-review",
+      "authority": "canonical",
+      "scopes": [
+        "cross-cutting"
+      ],
+      "keywords": [
+        "缺口",
+        "冲突",
+        "待确认"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [
+        "contract-index"
+      ],
+      "related_documents": [],
+      "related_td": [
+        "TD-001",
+        "TD-002",
+        "TD-003",
+        "TD-004",
+        "TD-005",
+        "TD-006",
+        "TD-007",
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012",
+        "TD-013",
+        "TD-014",
+        "TD-015",
+        "TD-016",
+        "TD-017",
+        "TD-018",
+        "TD-019",
+        "TD-020",
+        "TD-021",
+        "TD-022",
+        "TD-023",
+        "TD-024",
+        "TD-025",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029",
+        "TD-030",
+        "TD-031",
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 400,
+      "legacy_order": 900
+    },
+    {
+      "id": "contract-history-release-summary",
+      "path": "docs/contract/history/release-summary.md",
+      "status": "history",
+      "authority": false,
+      "scopes": [
+        "history"
+      ],
+      "keywords": [
+        "发布摘要",
+        "历史"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 400,
+      "legacy_order": 901
+    },
+    {
+      "id": "contract-draft-c733ee9a8651",
+      "path": "docs/contract/drafts/生活流/M1_临时缺陷台账.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-d4487a412795",
+      "path": "docs/contract/drafts/生活流/M1_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-b3342225ac5b",
+      "path": "docs/contract/drafts/生活流/M2_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-99424009136e",
+      "path": "docs/contract/drafts/生活流/M3_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-3a35fcdcfca2",
+      "path": "docs/contract/drafts/生活流/README.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-ff7e43f24fdd",
+      "path": "docs/contract/drafts/管理后台观察者与安全加固/M1_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-b9bc16c34422",
+      "path": "docs/contract/drafts/管理后台观察者与安全加固/M2_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-6853b5cbad8f",
+      "path": "docs/contract/drafts/管理后台观察者与安全加固/M3_契约草案.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-draft-3df690877d6d",
+      "path": "docs/contract/drafts/管理后台观察者与安全加固/README.md",
+      "status": "draft",
+      "authority": false,
+      "scopes": [
+        "draft"
+      ],
+      "keywords": [
+        "草案"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 2000,
+      "legacy_order": 0
+    },
+    {
+      "id": "tech-debt-index",
+      "path": "docs/tech-debt.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "tech-debt"
+      ],
+      "keywords": [
+        "技术债",
+        "TD"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [
+        "TD-001",
+        "TD-002",
+        "TD-003",
+        "TD-004",
+        "TD-005",
+        "TD-006",
+        "TD-007",
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012",
+        "TD-013",
+        "TD-014",
+        "TD-015",
+        "TD-016",
+        "TD-017",
+        "TD-018",
+        "TD-019",
+        "TD-020",
+        "TD-021",
+        "TD-022",
+        "TD-023",
+        "TD-024",
+        "TD-025",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029",
+        "TD-030",
+        "TD-031",
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 150,
+      "legacy_order": -1
+    },
+    {
+      "id": "tech-debt-agent-future",
+      "path": "docs/tech-debt/active/agent-future.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "agent-future"
+      ],
+      "keywords": [
+        "agent-future",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/agent.py",
+        "backend/services/future_handler.py",
+        "backend/tasks/agent_message_task.py"
+      ],
+      "route_prefixes": [
+        "/api/agent"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-agent-future-data",
+        "contract-agent-future-api",
+        "contract-agent-future-admin"
+      ],
+      "related_td": [
+        "TD-004"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1046
+    },
+    {
+      "id": "tech-debt-chat-emotion",
+      "path": "docs/tech-debt/active/chat-emotion.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "chat-emotion"
+      ],
+      "keywords": [
+        "chat-emotion",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/chat.py",
+        "backend/services/chat_service.py",
+        "backend/models/emotion_log.py"
+      ],
+      "route_prefixes": [
+        "/api/chat"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-chat-emotion-data",
+        "contract-chat-emotion-api"
+      ],
+      "related_td": [
+        "TD-015",
+        "TD-016",
+        "TD-019",
+        "TD-020"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1047
+    },
+    {
+      "id": "tech-debt-core-user-auth",
+      "path": "docs/tech-debt/active/core-user-auth.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "core-user-auth"
+      ],
+      "keywords": [
+        "core-user-auth",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/models/user.py",
+        "backend/routers/auth.py",
+        "backend/routers/user.py"
+      ],
+      "route_prefixes": [
+        "/api/auth",
+        "/api/user"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-core-user-auth-data",
+        "contract-core-user-auth-api"
+      ],
+      "related_td": [
+        "TD-001",
+        "TD-024",
+        "TD-025"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1048
+    },
+    {
+      "id": "tech-debt-cross-cutting",
+      "path": "docs/tech-debt/active/cross-cutting.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "cross-cutting"
+      ],
+      "keywords": [
+        "cross-cutting",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/services/content_safety_service.py"
+      ],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [
+        "contract-known-gaps"
+      ],
+      "related_td": [
+        "TD-030"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1049
+    },
+    {
+      "id": "tech-debt-diary",
+      "path": "docs/tech-debt/active/diary.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "diary"
+      ],
+      "keywords": [
+        "diary",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/diary.py",
+        "backend/services/diary_service.py",
+        "backend/tasks/ai_diary_task.py"
+      ],
+      "route_prefixes": [
+        "/api/diary"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-diary-data",
+        "contract-diary-api",
+        "contract-diary-admin"
+      ],
+      "related_td": [
+        "TD-006",
+        "TD-007",
+        "TD-013",
+        "TD-014",
+        "TD-018"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1050
+    },
+    {
+      "id": "tech-debt-life-feed",
+      "path": "docs/tech-debt/active/life-feed.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "life-feed"
+      ],
+      "keywords": [
+        "life-feed",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/feed.py",
+        "backend/services/feed_service.py",
+        "backend/tasks/life_feed_task.py"
+      ],
+      "route_prefixes": [
+        "/api/feed",
+        "/api/admin/feed"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-life-feed-data",
+        "contract-life-feed-api",
+        "contract-life-feed-admin"
+      ],
+      "related_td": [
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1051
+    },
+    {
+      "id": "tech-debt-memory-knowledge",
+      "path": "docs/tech-debt/active/memory-knowledge.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "memory-knowledge"
+      ],
+      "keywords": [
+        "memory-knowledge",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/memory.py",
+        "backend/services/memory_service.py",
+        "backend/services/step6_orchestrator.py"
+      ],
+      "route_prefixes": [
+        "/api/memory",
+        "/api/admin/memory"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-memory-knowledge-data",
+        "contract-memory-knowledge-api",
+        "contract-memory-knowledge-admin"
+      ],
+      "related_td": [
+        "TD-017",
+        "TD-022",
+        "TD-023",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1052
+    },
+    {
+      "id": "tech-debt-observability-third-party",
+      "path": "docs/tech-debt/active/observability-third-party.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "observability-third-party"
+      ],
+      "keywords": [
+        "observability-third-party",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/admin/system_monitor.py",
+        "backend/routers/admin/stats.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/stats",
+        "/api/admin/system"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-observability-api",
+        "contract-observability-admin"
+      ],
+      "related_td": [
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1053
+    },
+    {
+      "id": "tech-debt-openapi",
+      "path": "docs/tech-debt/active/openapi.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "openapi"
+      ],
+      "keywords": [
+        "openapi",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/open/chat.py",
+        "backend/routers/open/agent.py",
+        "backend/services/open_api_key_service.py"
+      ],
+      "route_prefixes": [
+        "/api/open/v1",
+        "/api/admin/users/{user_id}/open-api-key"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-openapi-data",
+        "contract-openapi-api"
+      ],
+      "related_td": [
+        "TD-031"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1054
+    },
+    {
+      "id": "tech-debt-persona-prompt-world-state",
+      "path": "docs/tech-debt/active/persona-prompt-world-state.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "persona-prompt-world-state"
+      ],
+      "keywords": [
+        "persona-prompt-world-state",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/models/world_state.py",
+        "backend/services/prompt_builder.py",
+        "backend/routers/admin/persona.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/persona",
+        "/api/admin/prompts"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-persona-data",
+        "contract-persona-api",
+        "contract-persona-admin"
+      ],
+      "related_td": [
+        "TD-002",
+        "TD-003",
+        "TD-021"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1055
+    },
+    {
+      "id": "tech-debt-relationship",
+      "path": "docs/tech-debt/active/relationship.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "relationship"
+      ],
+      "keywords": [
+        "relationship",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/routers/relationship.py",
+        "backend/services/relationship_service.py"
+      ],
+      "route_prefixes": [
+        "/api/relationship"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "contract-relationship-data",
+        "contract-relationship-api",
+        "contract-relationship-admin"
+      ],
+      "related_td": [
+        "TD-005"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1056
+    },
+    {
+      "id": "tech-debt-archive",
+      "path": "docs/tech-debt/archive/README.md",
+      "status": "archive",
+      "authority": false,
+      "scopes": [
+        "archive"
+      ],
+      "keywords": [
+        "技术债归档"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 150,
+      "legacy_order": 0
+    },
+    {
+      "id": "tech-debt-audit-2026-07-19",
+      "path": "docs/tech-debt/audit-2026-07-19.md",
+      "status": "audit",
+      "authority": false,
+      "scopes": [
+        "audit"
+      ],
+      "keywords": [
+        "技术债核查",
+        "代码证据"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [
+        "TD-001",
+        "TD-002",
+        "TD-003",
+        "TD-004",
+        "TD-005",
+        "TD-006",
+        "TD-007",
+        "TD-008",
+        "TD-009",
+        "TD-010",
+        "TD-011",
+        "TD-012",
+        "TD-013",
+        "TD-014",
+        "TD-015",
+        "TD-016",
+        "TD-017",
+        "TD-018",
+        "TD-019",
+        "TD-020",
+        "TD-021",
+        "TD-022",
+        "TD-023",
+        "TD-024",
+        "TD-025",
+        "TD-026",
+        "TD-027",
+        "TD-028",
+        "TD-029",
+        "TD-030",
+        "TD-031",
+        "TD-032",
+        "TD-033",
+        "TD-034",
+        "TD-035",
+        "TD-036",
+        "TD-037"
+      ],
+      "max_lines": 250,
+      "legacy_order": 0
+    },
+    {
+      "id": "contract-code-surface-coverage",
+      "path": "docs/contract/code-surface-coverage.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "routing"
+      ],
+      "keywords": [
+        "代码面",
+        "路由",
+        "模型",
+        "页面",
+        "调度任务"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 400,
+      "legacy_order": 950
+    }
+  ],
+  "relations": [
+    {
+      "from": "contract-openapi-api",
+      "type": "depends_on",
+      "to": "contract-chat-emotion-api"
+    },
+    {
+      "from": "contract-openapi-api",
+      "type": "depends_on",
+      "to": "contract-agent-future-api"
+    },
+    {
+      "from": "contract-known-gaps",
+      "type": "related_to",
+      "to": "tech-debt-index"
+    },
+    {
+      "from": "tech-debt-cross-cutting",
+      "type": "extends",
+      "to": "contract-chat-emotion-api"
+    },
+    {
+      "from": "tech-debt-cross-cutting",
+      "type": "extends",
+      "to": "contract-openapi-api"
+    }
+  ],
+  "coverage": {
+    "contract_sections": [
+      "C-001",
+      "C-002",
+      "C-003",
+      "C-004",
+      "C-005",
+      "C-006",
+      "C-007",
+      "C-008",
+      "C-009",
+      "C-010",
+      "C-011",
+      "C-012",
+      "C-013",
+      "C-014",
+      "C-015",
+      "C-016",
+      "C-017",
+      "C-018",
+      "C-019",
+      "C-020",
+      "C-021",
+      "C-022",
+      "C-023",
+      "C-024",
+      "C-025",
+      "C-026",
+      "C-027",
+      "C-028",
+      "C-029",
+      "C-030",
+      "C-031",
+      "C-032",
+      "C-033",
+      "C-034",
+      "C-035",
+      "C-036",
+      "C-037",
+      "C-038",
+      "C-039",
+      "C-040",
+      "C-041",
+      "C-042",
+      "C-043",
+      "C-044",
+      "C-045",
+      "C-046",
+      "C-047",
+      "C-048",
+      "C-049",
+      "C-050",
+      "C-051",
+      "C-052",
+      "C-053",
+      "C-054",
+      "C-055",
+      "C-056",
+      "C-057",
+      "C-058",
+      "C-059",
+      "C-060",
+      "C-061",
+      "C-062",
+      "C-063",
+      "C-064",
+      "C-065",
+      "C-066",
+      "C-067",
+      "C-068",
+      "C-069",
+      "C-070",
+      "C-071",
+      "C-072",
+      "C-073",
+      "C-074",
+      "C-075",
+      "C-076",
+      "C-077",
+      "C-078",
+      "C-079",
+      "C-080",
+      "C-081",
+      "C-082",
+      "C-083",
+      "C-084",
+      "C-085",
+      "C-086",
+      "C-087",
+      "C-088",
+      "C-089",
+      "C-090",
+      "C-091",
+      "C-092",
+      "C-093",
+      "C-094",
+      "C-095",
+      "C-096",
+      "C-097",
+      "C-098"
+    ],
+    "tech_debts": [
+      "TD-001",
+      "TD-002",
+      "TD-003",
+      "TD-004",
+      "TD-005",
+      "TD-006",
+      "TD-007",
+      "TD-013",
+      "TD-014",
+      "TD-008",
+      "TD-009",
+      "TD-010",
+      "TD-011",
+      "TD-012",
+      "TD-015",
+      "TD-016",
+      "TD-017",
+      "TD-018",
+      "TD-019",
+      "TD-020",
+      "TD-021",
+      "TD-022",
+      "TD-023",
+      "TD-024",
+      "TD-026",
+      "TD-027",
+      "TD-028",
+      "TD-029",
+      "TD-025",
+      "TD-030",
+      "TD-031",
+      "TD-032",
+      "TD-033",
+      "TD-034",
+      "TD-035",
+      "TD-036",
+      "TD-037"
+    ]
+  },
+  "migration_coverage": {
+    "contract_sections": [
+      {
+        "id": "C-001",
+        "legacy_order": 1,
+        "source_heading": "表名：users",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/core-user-auth/data.md",
+        "sha256": "73d656e90f79bf61e422a103b33b5e18e8e04e202beb58eb7db5ee461897983f"
+      },
+      {
+        "id": "C-002",
+        "legacy_order": 2,
+        "source_heading": "表名：relationship",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/data.md",
+        "sha256": "7fdee00828788df9cd3f1e58d8ad1cf4c7885a7e87838d50462aceb241ec67f6"
+      },
+      {
+        "id": "C-003",
+        "legacy_order": 3,
+        "source_heading": "表名：conversation_log",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/chat-emotion/data.md",
+        "sha256": "4277a2eeaedb8588fe9547c330c5c213d9b6179b6029171541e0fdb6726721df"
+      },
+      {
+        "id": "C-004",
+        "legacy_order": 4,
+        "source_heading": "表名：emotion_log",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/chat-emotion/data.md",
+        "sha256": "cb638ae9fc2b336f1d3511e1561866fff85ec3e8f3933d67debae952eeba8060"
+      },
+      {
+        "id": "C-005",
+        "legacy_order": 5,
+        "source_heading": "表名：user_short_term_emotion",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/chat-emotion/data.md",
+        "sha256": "5b4ffb0bb511aa7591f14ad659417a91c48eb948117fb10db3d13ed4e9e51d28"
+      },
+      {
+        "id": "C-006",
+        "legacy_order": 6,
+        "source_heading": "表名：memory",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/memory-knowledge/data.md",
+        "sha256": "89a7ae53242f9ce4e5716c1e82b0dab6ecfa6e90e33f3c47a4bdb50f3ac457da"
+      },
+      {
+        "id": "C-007",
+        "legacy_order": 7,
+        "source_heading": "表名：ai_diary",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/diary/data.md",
+        "sha256": "913c91bd7fb6ba8d44cf95a3b47c8329623d373c19793e7c3efd1adcf2a8cb8c"
+      },
+      {
+        "id": "C-008",
+        "legacy_order": 8,
+        "source_heading": "表名：agent_message",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/agent-future/data.md",
+        "sha256": "b8df07a1ed3ae08411ca973f0ae4a2baede1820852a34cce619dfcb05c9547b8"
+      },
+      {
+        "id": "C-009",
+        "legacy_order": 9,
+        "source_heading": "表名：login_log",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/data.md",
+        "sha256": "d6678b00d8a2cf3cae94a55cd96dd132c494e37f88faf9b43d27d93d5911033c"
+      },
+      {
+        "id": "C-010",
+        "legacy_order": 10,
+        "source_heading": "表名：world_state",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/data.md",
+        "sha256": "0959145a98089f2f106503cfcb1c9332d8d92a704a018f6f3a9cf62d66de7751"
+      },
+      {
+        "id": "C-011",
+        "legacy_order": 11,
+        "source_heading": "表名：relationship_growth_log",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/data.md",
+        "sha256": "75d09454c01b41396d0a86e36323278a7150abf286de5f8b6ab28a647ed7b330"
+      },
+      {
+        "id": "C-012",
+        "legacy_order": 12,
+        "source_heading": "表名：relationship_level_history",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/data.md",
+        "sha256": "911fe76d065d30e9e7f5234c79b9763ec11460650a8fc4ae4a61941a20256cf8"
+      },
+      {
+        "id": "C-013",
+        "legacy_order": 13,
+        "source_heading": "表名：relationship_change_history",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/data.md",
+        "sha256": "8752e4f9a91aaf2750cda55acfd5a1e7ea47498056c6b1c0e27810dc90336896"
+      },
+      {
+        "id": "C-014",
+        "legacy_order": 14,
+        "source_heading": "表名：user_timeline_seq",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/data.md",
+        "sha256": "f73f2335542c3a65da20d0cf967168ba7a442536a03184b502dbc4aa04e71d50"
+      },
+      {
+        "id": "C-015",
+        "legacy_order": 15,
+        "source_heading": "表名：admin_users",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/data.md",
+        "sha256": "5788ddd251f8b1eca89cd1f4288707b4e225ccb938a8f051bba6a28e5008ad6e"
+      },
+      {
+        "id": "C-016",
+        "legacy_order": 16,
+        "source_heading": "表名：admin_config",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/data.md",
+        "sha256": "0a0050c6b819970498a38e9039443d42e8d514776c3219069158e58cab5ac156"
+      },
+      {
+        "id": "C-017",
+        "legacy_order": 17,
+        "source_heading": "表名：admin_operation_logs",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/data.md",
+        "sha256": "a5c6929bdd9d330bbdde7a7d6c9fccd13d3c0f43b1226c0a613ff59079d82b2b"
+      },
+      {
+        "id": "C-018",
+        "legacy_order": 18,
+        "source_heading": "生活流新增表（8）",
+        "source_parent": "数据库表结构",
+        "disposition": "current",
+        "target": "docs/contract/current/life-feed/data.md",
+        "sha256": "8b61f9de35f0d79dcead2c4454b41bcae1b925d05619ce4fa6549c95575cec75"
+      },
+      {
+        "id": "C-019",
+        "legacy_order": 19,
+        "source_heading": "统一说明",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/_shared/conventions.md",
+        "sha256": "e0e07f288fd53d302498d69beb3b88969353d94546c4ddd0f22a739cc6c664e8"
+      },
+      {
+        "id": "C-020",
+        "legacy_order": 20,
+        "source_heading": "模块：H5 认证（`/api/auth`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/core-user-auth/api.md",
+        "sha256": "efcf2faffb49c6013dd78b56c213b1d5393f1ca786543938943bc6c18816cc9f"
+      },
+      {
+        "id": "C-021",
+        "legacy_order": 21,
+        "source_heading": "模块：H5 应用（`/api/app`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/h5-app/api.md",
+        "sha256": "bcb3a1b4303ea6a059a3aa6c019f4888bff2c5ff5caa1800c6087f99d659b647"
+      },
+      {
+        "id": "C-022",
+        "legacy_order": 22,
+        "source_heading": "模块：H5 对话（`/api/chat`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/chat-emotion/api.md",
+        "sha256": "3254a11354cae25b5a1ab5422d475ed446f82995e0cb9800ffbd374acf139f81"
+      },
+      {
+        "id": "C-023",
+        "legacy_order": 23,
+        "source_heading": "模块：H5 日记（`/api/diary`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/diary/api.md",
+        "sha256": "02a0a3bf14e4a2468b5e083b85d1614fac438e3255fdf04c33e04a0ffb40d6fc"
+      },
+      {
+        "id": "C-024",
+        "legacy_order": 24,
+        "source_heading": "`frontend/pages/diary.html`（H5 日记页）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/diary/api.md",
+        "sha256": "d66e1d8694d27ff797134f000d96383d17010313d431c5b6e1fe9db520cba550"
+      },
+      {
+        "id": "C-025",
+        "legacy_order": 25,
+        "source_heading": "模块：H5 记忆（`/api/memory`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/memory-knowledge/api.md",
+        "sha256": "12a25f9484726a20913af9c82dedfe2121e484eed9f03786efdf75e516dd535d"
+      },
+      {
+        "id": "C-026",
+        "legacy_order": 26,
+        "source_heading": "模块：H5 主动消息（`/api/agent`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/agent-future/api.md",
+        "sha256": "8b92571f648a2dd7f4706f83bda7696568f104c7fd31db451b228ad605ecaea7"
+      },
+      {
+        "id": "C-027",
+        "legacy_order": 27,
+        "source_heading": "模块：H5 关系（`/api/relationship`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/api.md",
+        "sha256": "1e5f7680adc62203b6acd5204e2e3ac2b21d3fa6851564369b030cedc22d54e1"
+      },
+      {
+        "id": "C-028",
+        "legacy_order": 28,
+        "source_heading": "模块：H5 朋友圈 / 生活流（`/api/feed`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/life-feed/api.md",
+        "sha256": "ffea9331728c0c412287622d31137b63a0e36fe27304adc0ce6e351eddcd9d01"
+      },
+      {
+        "id": "C-029",
+        "legacy_order": 29,
+        "source_heading": "模块：H5 用户（占位）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/core-user-auth/api.md",
+        "sha256": "784e723a8ca4facdf652e18e9c6fded25556a681fd12e1cb5626e5d8d8606614"
+      },
+      {
+        "id": "C-030",
+        "legacy_order": 30,
+        "source_heading": "模块：管理后台认证（`/api/admin/auth`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/_shared/auth-rbac.md",
+        "sha256": "6ce98f171a2ed6df77037028a47aafcf092a81a59f2df8dd89effedfe02a7ca8"
+      },
+      {
+        "id": "C-031",
+        "legacy_order": 31,
+        "source_heading": "模块：管理后台账号（`/api/admin`，super_admin）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/_shared/auth-rbac.md",
+        "sha256": "1981410b9fc9ac967ff9b541ec87ac935fa8aa46e0b8745f6fc439f4c93d82c8"
+      },
+      {
+        "id": "C-032",
+        "legacy_order": 32,
+        "source_heading": "模块：管理后台观察者统一权限契约（`observer`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/_shared/auth-rbac.md",
+        "sha256": "b23c81f1a0861f2cc05a1218a985cfc3943aca36264c7e08a1a8984bb9d5f107"
+      },
+      {
+        "id": "C-033",
+        "legacy_order": 33,
+        "source_heading": "模块：管理后台操作日志（`/api/admin`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/api.md",
+        "sha256": "7c530c7f45ec4bcbfabd5ce4435dc9c0207829cfb56b07d94cdc9d0ad1f458d7"
+      },
+      {
+        "id": "C-034",
+        "legacy_order": 34,
+        "source_heading": "管理端列表日期筛选（`admin_date_filter`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/api.md",
+        "sha256": "7c8d2cd8691fce6299e993e5b1abcbf562877d7fcf26a829cc9fef48a7fa02db"
+      },
+      {
+        "id": "C-035",
+        "legacy_order": 35,
+        "source_heading": "模块：管理后台用户管理（`/api/admin`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/admin-security-accounts/api.md",
+        "sha256": "537b9fa4dd4d1f0fbd573e4864b34e2a6b03246eb386eb839eed15e56a2a51b0"
+      },
+      {
+        "id": "C-036",
+        "legacy_order": 36,
+        "source_heading": "模块：向量召回与 Prompt Token 热配置（`/api/admin/configs`，STEP-025）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/memory-knowledge/api.md",
+        "sha256": "ae50635857d9a126950c2520c92601d9cb19991ac99baa1964d52555152317b3"
+      },
+      {
+        "id": "C-037",
+        "legacy_order": 37,
+        "source_heading": "模块：角色知识库（`/api/admin/character-knowledge`，STEP-027 / R-L1L3-20）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/api.md",
+        "sha256": "f102593cb344a244af9114b555d00aa76ae2c6126358018727f1312537abd642"
+      },
+      {
+        "id": "C-038",
+        "legacy_order": 38,
+        "source_heading": "模块：人格 / 情绪 / 世界观 / Prompt / 安全 / 测试用例",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/api.md",
+        "sha256": "8b06641dadfbf0d0ca04b940669c9944daa1f0a5720f328dcea8d893f6b4d984"
+      },
+      {
+        "id": "C-039",
+        "legacy_order": 39,
+        "source_heading": "模块：记忆与向量（管理）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/memory-knowledge/api.md",
+        "sha256": "489f35672d95b3a700ccbceaf6752a55954ea69b6a836d4ee24f12e6699d39e8"
+      },
+      {
+        "id": "C-040",
+        "legacy_order": 40,
+        "source_heading": "模块：Agent 管理",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/agent-future/api.md",
+        "sha256": "4226d78616c8296c35196a8e2be92ecbcfca78043d7cdd4cad9b6fbcb2ff7508"
+      },
+      {
+        "id": "C-041",
+        "legacy_order": 41,
+        "source_heading": "模块：关系规则与日记（管理）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/api.md",
+        "sha256": "94ea0154602e5ee7469e66e5420e9f167080007c28e7efd7a6b2a8f8665afdc4"
+      },
+      {
+        "id": "C-042",
+        "legacy_order": 42,
+        "source_heading": "模块：数据统计（`/api/admin/stats`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/api.md",
+        "sha256": "b261625e32159f011a12c36858c700220157ce7c95c721d49027a71bc841256a"
+      },
+      {
+        "id": "C-043",
+        "legacy_order": 43,
+        "source_heading": "模块：管理后台 · 生活流（`/api/admin`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/life-feed/api.md",
+        "sha256": "e62221a7aad456b9b64d4ab45ace577faaa84280b37083168fbdc3075cd70741"
+      },
+      {
+        "id": "C-044",
+        "legacy_order": 44,
+        "source_heading": "模块：系统监控与第三方（`/api/admin`）",
+        "source_parent": "接口定义",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/api.md",
+        "sha256": "ffede9d9dbbbe44bc853d5f76ef1fd60f53cd02b341376a3b0293e5e0b2235f8"
+      },
+      {
+        "id": "C-045",
+        "legacy_order": 45,
+        "source_heading": "`admin/pages/system-monitor.html`（系统监控）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/admin-ui.md",
+        "sha256": "5630714488a09a083a41b49bef6ac791f8b500dea8974393a7a2c9feb1b8169f"
+      },
+      {
+        "id": "C-046",
+        "legacy_order": 46,
+        "source_heading": "`admin/pages/system-logs.html`（系统日志）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/admin-ui.md",
+        "sha256": "ff45e8c8b6774fbc7c80d948dd3eae315523602ac03bdfdd5e0d52d5fb9ffd21"
+      },
+      {
+        "id": "C-047",
+        "legacy_order": 47,
+        "source_heading": "`admin/pages/third-party.html`（第三方服务监控）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/admin-ui.md",
+        "sha256": "9e8097258bb3ae916891334d8b24d608a58d1cced6a7c5c0d7e8fd80ee2f067c"
+      },
+      {
+        "id": "C-048",
+        "legacy_order": 48,
+        "source_heading": "`admin/pages/dashboard.html`（数据看板）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/admin-ui.md",
+        "sha256": "80ddaa56faa81d13c2c44f473674d673db5170b70a33c2f04cdb2af433f5df38"
+      },
+      {
+        "id": "C-049",
+        "legacy_order": 49,
+        "source_heading": "`admin/pages/persona.html`（AI人格管理）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "2e7c2032552cb9ec655f968eb9df1af21bfb866ae09c37474f3f21aae72f60f4"
+      },
+      {
+        "id": "C-050",
+        "legacy_order": 50,
+        "source_heading": "`admin/pages/prompt.html`（Prompt 管理 · Step5 / Step5.5）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "024c8b2c6720923711d1e8dabdff99fe4cdef241071d446bda9a59f81a3c18e3"
+      },
+      {
+        "id": "C-051",
+        "legacy_order": 51,
+        "source_heading": "`admin/pages/step5-5-switch.html`（Step5.5 总开关）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "0972f047b366f7557f13df31690bfef2baa13032818c0f2fa5e14dca6d77716b"
+      },
+      {
+        "id": "C-052",
+        "legacy_order": 52,
+        "source_heading": "对话流 Prompt 只读页（`admin/pages/chat-prompt-*.html`）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "d0401c416bd618de9a996c2b0a3025223e0a2cf7491c44ef4d94b6d574c080bb"
+      },
+      {
+        "id": "C-053",
+        "legacy_order": 53,
+        "source_heading": "`admin/pages/test-tool.html`（AI测试工具）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "7d3f85847f64597a19638327924a2b87dc3ab6aa5a4d7fc496389d1024de7ff9"
+      },
+      {
+        "id": "C-054",
+        "legacy_order": 54,
+        "source_heading": "`admin/pages/safety-rules.html`（内容安全规则）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "9764efd00ca2aa8e2710d67649a0740e56f67d0734a6cacabcaf640876ba16e1"
+      },
+      {
+        "id": "C-055",
+        "legacy_order": 55,
+        "source_heading": "`admin/pages/knowledge.html`（角色知识库）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/persona-prompt-world-state/admin-ui.md",
+        "sha256": "84b829cb98627da4b92ae3050b15a4f695f1c3eb060e238eb0c27ab071cbd7c7"
+      },
+      {
+        "id": "C-056",
+        "legacy_order": 56,
+        "source_heading": "`admin/pages/memory-rules.html`（Step6 记忆拆解 / 原记忆规则页）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/memory-knowledge/admin-ui.md",
+        "sha256": "f204d748cca74cd4186821c31c5fae01e0b3624c25d871a5cb236b7aeb511a1b"
+      },
+      {
+        "id": "C-057",
+        "legacy_order": 57,
+        "source_heading": "`admin/pages/agent-rules.html`（Agent配置）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/agent-future/admin-ui.md",
+        "sha256": "cf764f3661b3d847c14269c6e7753956b044544eb3491791caf5b8609c51b025"
+      },
+      {
+        "id": "C-058",
+        "legacy_order": 58,
+        "source_heading": "`admin/pages/relationship-rules.html`（关系成长配置）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/admin-ui.md",
+        "sha256": "b1f0d09678bb6057ebc5118041f1ab6d4af9c36a81cf41ba5911e53695da8ce2"
+      },
+      {
+        "id": "C-059",
+        "legacy_order": 59,
+        "source_heading": "`admin/pages/diary-rules.html`（日记规则配置）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/diary/admin-ui.md",
+        "sha256": "69cac47db7585d672738b3c129a13ecd2ef7685f9bde20f3a78f658b631bf1ec"
+      },
+      {
+        "id": "C-060",
+        "legacy_order": 60,
+        "source_heading": "`admin/pages/diary-history.html`（AI 日记历史）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/diary/admin-ui.md",
+        "sha256": "543c1ead1beb55b089e53e97f072452b829927feae72b33f3da5e1d8ede161e4"
+      },
+      {
+        "id": "C-061",
+        "legacy_order": 61,
+        "source_heading": "`admin/pages/data-report.html`（数据报表）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/observability-third-party/admin-ui.md",
+        "sha256": "4dd695268600b1290ca5d53ba4dea8bd04d36df41b29af862a29dc2b38bd4700"
+      },
+      {
+        "id": "C-062",
+        "legacy_order": 62,
+        "source_heading": "生活流管理页（`admin/pages/` · 侧栏「🌿 生活流 Prompt」）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/life-feed/admin-ui.md",
+        "sha256": "1028e0d67bfff5b1002778ce1a05a32afb98d1c82205db098d29e5d5d5352831"
+      },
+      {
+        "id": "C-063",
+        "legacy_order": 63,
+        "source_heading": "技术债记录（关系 / 日记管理页）",
+        "source_parent": "管理端页面",
+        "disposition": "current",
+        "target": "docs/contract/current/relationship/admin-ui.md",
+        "sha256": "fa2d78378d0cc0707a35047fc666e25ddfb28abfde07b505915c0c64ae0dcba1"
+      },
+      {
+        "id": "C-064",
+        "legacy_order": 64,
+        "source_heading": "STEP-001：relationship 表 DDL 迁移",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "90d8ae04e86f43c6004d08b719da3f9bacced8da8f49300c148ee862aef67d74"
+      },
+      {
+        "id": "C-065",
+        "legacy_order": 65,
+        "source_heading": "STEP-002：relationship 变更历史表",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "34eb1fe0672d30a3cf7d7dec8dd18a9e098cb02fc7c36f173235284270e9e614"
+      },
+      {
+        "id": "C-066",
+        "legacy_order": 66,
+        "source_heading": "STEP-003：DashVector type 常量 + search/upsert 签名扩展",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "631ad20ad78d52b994103b839339691549e6693200e707335719836c62717216"
+      },
+      {
+        "id": "C-067",
+        "legacy_order": 67,
+        "source_heading": "STEP-004：Step5 Prompt 提示词改造",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "2888dd5f4957036cc2e230eda9ef5804d9cd439271cf5574f8bb6ea592f4e476"
+      },
+      {
+        "id": "C-068",
+        "legacy_order": 68,
+        "source_heading": "STEP-005：Step5 输出 JSON 解析器 + 校验规则",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "2af072aeaa060f740004faa86a9f5359319b5dfbe7625502a76a4a400953e04c"
+      },
+      {
+        "id": "C-069",
+        "legacy_order": 69,
+        "source_heading": "STEP-006：messages >5 条合并规则（§2.9.1）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "0e55752bda13e8d5a963d13b0322cd941d8bcf4a9b58de7c7e25124cb0e1e792"
+      },
+      {
+        "id": "C-070",
+        "legacy_order": 70,
+        "source_heading": "STEP-007：future.time_natural 时间解析器（§2.8.4）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "4d564c9eae9c4bbb6448c095895dbdc722e4c5549d59f581a25452e7ef4b7b8c"
+      },
+      {
+        "id": "C-071",
+        "legacy_order": 71,
+        "source_heading": "STEP-008：round_id 提前生成 + 超时配置（§2.9.3 / §2.11.2）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "1b66234a03dc94522f4cad9eae12f37b36900d0873174a12142e3ad09e88cb67"
+      },
+      {
+        "id": "C-072",
+        "legacy_order": 72,
+        "source_heading": "STEP-009：Step5.5 触发判定 + LLM 调用 + 解析（§2.7.1 / §2.7.4 D2）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "752336b8cccf5089a74c0d43f4e45e0109fa1d8b515ef23edfd440d58c8befd4"
+      },
+      {
+        "id": "C-073",
+        "legacy_order": 73,
+        "source_heading": "STEP-010：SSE 协议扩展（多气泡流式）（§2.9.4 / §2.7.5 / §2.7.3）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "7742c225fce7a37164d19d40d46c8251afe36ee5397f0857d664ed7aacf72002"
+      },
+      {
+        "id": "C-074",
+        "legacy_order": 74,
+        "source_heading": "STEP-011：conversation_log 多气泡落库（§2.8.1 / §2.8.3）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "b2aad3b31b6f187458491ee34de67c7cd00cf5228540cd85cbd3491aba568e6f"
+      },
+      {
+        "id": "C-075",
+        "legacy_order": 75,
+        "source_heading": "STEP-012：内容安全兼容新结构化输出（§9.1 / §9.3）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "9f0c01dcadd57bb855cd70ca8d5c058c3ef993ce3103278dcc055bbe4e855cba"
+      },
+      {
+        "id": "C-076",
+        "legacy_order": 76,
+        "source_heading": "STEP-013：Step6 记忆总结 LLM Prompt + JSON 解析（R-MEM-01 / R-MEM-06 / R-MEM-07 / §2.5）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "d6af1f6ed4fd192f03df94b24940f3bb7269a193627c2fb8db8cc96c664efad1"
+      },
+      {
+        "id": "C-077",
+        "legacy_order": 77,
+        "source_heading": "STEP-015：Step6 relationship 标量 + 历史 + Future 槽（R-MEM-05 / §2.8.4）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "5fb983028763a6fb27d9cadd2adcb8ff341c4df2dd2b8b3ab0e5fa6c377ccd18"
+      },
+      {
+        "id": "C-078",
+        "legacy_order": 78,
+        "source_heading": "STEP-014：Step6 DashVector 四路向量写入（R-MEM-04）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "79225fb0c860d622e775820f0e7a89f68e0317c730144e14dab7cde385486fbb"
+      },
+      {
+        "id": "C-079",
+        "legacy_order": 79,
+        "source_heading": "STEP-016：Step6 异步入队 + M2 半异步 + 重试（§2.8.4 / §2.9.3）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "37a9e4cb7c8f0c25d017285dcae31994634a591f0f0541625b85c73e869d7aa0"
+      },
+      {
+        "id": "C-080",
+        "legacy_order": 80,
+        "source_heading": "STEP-022：proactive_times 计数/清零 + 频控调整（R-FUT-03 / §2.2 变更 8.2）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "aee9c2b72ddebf9c8f8241e7d1c5f62a41f9365da5c23150f73d661eea8da202"
+      },
+      {
+        "id": "C-081",
+        "legacy_order": 81,
+        "source_heading": "STEP-023：Future 槽消费轮询 Handler（R-AGT-02 / Step8 轮询）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "10dc3c929110511a15b0e741f6b0f1702c5d5a5b3272808ef9b2a7cd478f6b41"
+      },
+      {
+        "id": "C-082",
+        "legacy_order": 82,
+        "source_heading": "STEP-024：Step8 子链路（R-L1L3-12 / §8.3 子链路编排）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "30200018a0d5d716ac790f0e6d5580d86c020d52ad92caa6a51fab1e6cc5552e"
+      },
+      {
+        "id": "C-083",
+        "legacy_order": 83,
+        "source_heading": "STEP-021：Step3 Prompt 新增模块 + Token 裁剪（R-L1L3-19）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "fa100f2bf1e6bf5c8468e7b4491fcb504f205a0a72b1e74ac6457cb836d6a74c"
+      },
+      {
+        "id": "C-084",
+        "legacy_order": 84,
+        "source_heading": "STEP-020：Step2 多路向量检索（R-L1L3-10 / R-L1L3-17 / R-L1L3-18 / R-L1L3-21）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "8dc38ae4b4a5a88a863cdda0e1552f7dc688cbae9dba843652d4324c6a6b14a8"
+      },
+      {
+        "id": "C-085",
+        "legacy_order": 85,
+        "source_heading": "STEP-019：Step1.5 查询重写 LLM（R-L1L3-09 / R-L1L3-12 / R-L1L3-13 / R-L1L3-14）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "11ef80fd90d65cfd737e64a552a176951fbe9ede51595f8b6bbbe643d6f0451c"
+      },
+      {
+        "id": "C-086",
+        "legacy_order": 86,
+        "source_heading": "STEP-018：Step1 并行装载扩展（R-L1L3-01 / R-L1L3-06）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "b69e70fc83e4998f45e51bf4a6437ed961e937acec8de3f3fa34118479730a83"
+      },
+      {
+        "id": "C-087",
+        "legacy_order": 87,
+        "source_heading": "STEP-017：时间描述串 + 活动描述串生成（R-L1L3-11）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "3cc2d4cd3f705ef0b3e0ea8fb5bf0379e0d1ca0a2580a815b99dde2d4f98345e"
+      },
+      {
+        "id": "C-088",
+        "legacy_order": 88,
+        "source_heading": "STEP-025：管理后台向量召回 + Prompt Token 热配置（R-L1L3-17 / R-L1L3-19 / §6）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "17d278cba60bc5d60ad915591ef4f4543be693d802bc1ab2a7b5550442d5c42c"
+      },
+      {
+        "id": "C-089",
+        "legacy_order": 89,
+        "source_heading": "STEP-026：管理后台 Step5 / Step5.5 Prompt 编辑 + Step5.5 总开关（§2.7.9 / §2.7.1 B3）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "d5f1c4c3f4a6348b49ce88ca407235d5f5afbb28bd8f4ba97a7761cfdb247147"
+      },
+      {
+        "id": "C-090",
+        "legacy_order": 90,
+        "source_heading": "STEP-027：管理后台角色知识库 CRUD（R-L1L3-20）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "fd75125e24a8c80947687728e4de7f3c44513e82092db6359f15df9542137d16"
+      },
+      {
+        "id": "C-091",
+        "legacy_order": 91,
+        "source_heading": "STEP-028：Step6 / 角色知识库 doc_id 合法化 + 三层 key（R-MEM-04 修订）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "2f62a7a96b2d03773ffbcddf57fac4d74ee06a452126af32bde02516b7ad3cdf"
+      },
+      {
+        "id": "C-092",
+        "legacy_order": 92,
+        "source_heading": "管理后台 · 对话流 Prompt 侧栏 + 只读展示（2026-07-13）",
+        "source_parent": "开发日志",
+        "disposition": "historical",
+        "target": "docs/contract/history/implementation-log.md",
+        "sha256": "cbed729f979aacdae992a455f85bc74f30621fb6b253162f5597709f61778c13"
+      },
+      {
+        "id": "C-093",
+        "legacy_order": 93,
+        "source_heading": "表名：user_api_keys",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/data.md",
+        "sha256": "413bd708f9fdeee10d6cb1d4c870a984d39090c38ffc76a50198b648261522e0"
+      },
+      {
+        "id": "C-094",
+        "legacy_order": 94,
+        "source_heading": "POST `/api/open/v1/chat/send`",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/api.md",
+        "sha256": "ff29ae7be935bcae269d7969ae6a90ef693ba55db90c075ea760f119996a3356"
+      },
+      {
+        "id": "C-095",
+        "legacy_order": 95,
+        "source_heading": "POST `/api/open/v1/chat/resend`",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/api.md",
+        "sha256": "785a148f7008d49dbf614dcb1ee673ae966b04ada1aee6f28ceef7f485c0bfb8"
+      },
+      {
+        "id": "C-096",
+        "legacy_order": 96,
+        "source_heading": "GET `/api/open/v1/chat/timeline`",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/api.md",
+        "sha256": "3d42eb5c875f7d283dc3543a6723fad20720b0064a02e0b8ee6638de2d3cf219"
+      },
+      {
+        "id": "C-097",
+        "legacy_order": 97,
+        "source_heading": "GET `/api/open/v1/agent/messages` · GET `/api/open/v1/agent/unread-count` · POST `/api/open/v1/agent/messages/{message_id}/read`",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/api.md",
+        "sha256": "478aafe3dfeb48fe370d29ccaec03d893881f9823a79d613e71ab1ad406bab71"
+      },
+      {
+        "id": "C-098",
+        "legacy_order": 98,
+        "source_heading": "Admin：GET/POST `/api/admin/users/{user_id}/open-api-key`",
+        "source_parent": "Open API v1（第三方 API Key）",
+        "disposition": "current",
+        "target": "docs/contract/current/openapi/api.md",
+        "sha256": "632a243f07743f8427825c613c0afd7b1ec86d0fc665c9ff6c79731adf1bdce7"
+      }
+    ],
+    "contract_unheaded_spans": [
+      {
+        "id": "U-001",
+        "name": "release-preamble",
+        "target": "docs/contract/history/release-summary.md",
+        "sha256": "0b6ee85bacdcb70115824ab00931e8b1a3d8ab2b74908e09079849b7cad8652e"
+      },
+      {
+        "id": "U-002",
+        "name": "known-gaps",
+        "target": "docs/contract/known-gaps.md",
+        "sha256": "58eb67c7425dc1a40635f2cc93823a1720f6af88c033cb84fc4727c82a1b1fdc"
+      },
+      {
+        "id": "U-003",
+        "name": "priority-fixes",
+        "target": "docs/contract/known-gaps.md",
+        "sha256": "ae20da76da1809fdcbd715782864c14549c5693451d16d3cf145bf2fafbc4f50"
+      }
+    ],
+    "tech_debts": [
+      {
+        "id": "TD-001",
+        "legacy_order": 1,
+        "original_status": "待清偿",
+        "primary_scope": "core-user-auth",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [],
+        "detail": "docs/tech-debt/active/core-user-auth.md",
+        "sha256": "ff40f885418da7679b290464a62bfa0d1ec8415059af04e5284a944b1eee0854"
+      },
+      {
+        "id": "TD-002",
+        "legacy_order": 2,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "persona-prompt-world-state",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "tests/test_step026_prompt_config.py"
+        ],
+        "detail": "docs/tech-debt/active/persona-prompt-world-state.md",
+        "sha256": "5791ae6e51f19acabb81f8dfec8be7e5398581760af9f1e7062e7b726d3e4a70"
+      },
+      {
+        "id": "TD-003",
+        "legacy_order": 3,
+        "original_status": "待清偿",
+        "primary_scope": "persona-prompt-world-state",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/prompt.html"
+        ],
+        "detail": "docs/tech-debt/active/persona-prompt-world-state.md",
+        "sha256": "c29e0c3cfa5b4463bc97258b39c1d7463b5dac85d07b851d2e1361ed855c1371"
+      },
+      {
+        "id": "TD-004",
+        "legacy_order": 4,
+        "original_status": "待清偿",
+        "primary_scope": "agent-future",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/routers/admin/agent_mgmt.py",
+          "backend/services/agent_service.py"
+        ],
+        "detail": "docs/tech-debt/active/agent-future.md",
+        "sha256": "0f3052ef77b84693587c91713d9ebdfe48d407a885234bf8eeb0f081d50320d7"
+      },
+      {
+        "id": "TD-005",
+        "legacy_order": 5,
+        "original_status": "待清偿",
+        "primary_scope": "relationship",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/relationship-rules.html",
+          "backend/routers/admin/relationship_mgmt.py",
+          "backend/services/relationship_service.py"
+        ],
+        "detail": "docs/tech-debt/active/relationship.md",
+        "sha256": "bbbab8a97c4d5a9f20437b0a1b1895b27169113d62714dd8141543f88876236b"
+      },
+      {
+        "id": "TD-006",
+        "legacy_order": 6,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "diary",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/diary-history.html",
+          "admin/static/js/admin-api.js",
+          "backend/routers/admin/relationship_mgmt.py"
+        ],
+        "detail": "docs/tech-debt/active/diary.md",
+        "sha256": "bfcdee4efb932091249ca3f5117b7fbd8fc57e6a8f7a0e8066fbb313d98bd76f"
+      },
+      {
+        "id": "TD-007",
+        "legacy_order": 7,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "diary",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/services/diary_rules_loader.py"
+        ],
+        "detail": "docs/tech-debt/active/diary.md",
+        "sha256": "83c3c4c5a6d1c3bc74a4a6c1600871fc758f80b2d9e5509588d0dd7f4f8965cc"
+      },
+      {
+        "id": "TD-013",
+        "legacy_order": 8,
+        "original_status": "待清偿",
+        "primary_scope": "diary",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "scripts/run_diary_batch.py"
+        ],
+        "detail": "docs/tech-debt/active/diary.md",
+        "sha256": "c6f874fa81657e097131289ebd8ebf52a8b3049fbe41c53490f7912f7b7c6322"
+      },
+      {
+        "id": "TD-014",
+        "legacy_order": 9,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "diary",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "frontend/pages/diary.html"
+        ],
+        "detail": "docs/tech-debt/active/diary.md",
+        "sha256": "94537359c2a977339baf6f587dc84f7957bb69b54a57bce978280b71aaaf92a1"
+      },
+      {
+        "id": "TD-008",
+        "legacy_order": 10,
+        "original_status": "待清偿",
+        "primary_scope": "observability-third-party",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/data-report.html",
+          "backend/services/llm_service.py"
+        ],
+        "detail": "docs/tech-debt/active/observability-third-party.md",
+        "sha256": "5767c301b0ba6f0af26fb6a78b9f1be05c959c4277fa560375c030afb4f8b037"
+      },
+      {
+        "id": "TD-009",
+        "legacy_order": 11,
+        "original_status": "待清偿",
+        "primary_scope": "observability-third-party",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/data-report.html",
+          "backend/routers/admin/stats.py",
+          "backend/services/stats_service.py"
+        ],
+        "detail": "docs/tech-debt/active/observability-third-party.md",
+        "sha256": "047f9f02230cd689a38c5d932f4a38088e3db50c181804438605ec07fb32e95e"
+      },
+      {
+        "id": "TD-010",
+        "legacy_order": 12,
+        "original_status": "待清偿",
+        "primary_scope": "observability-third-party",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/system-monitor.html",
+          "backend/routers/admin/system_monitor.py"
+        ],
+        "detail": "docs/tech-debt/active/observability-third-party.md",
+        "sha256": "1e315426c7a755a63d8f0ebb58b02d6ff0345d19b8443c77b6bed5ce46e0cb23"
+      },
+      {
+        "id": "TD-011",
+        "legacy_order": 13,
+        "original_status": "待清偿",
+        "primary_scope": "observability-third-party",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/routers/admin/system_monitor.py"
+        ],
+        "detail": "docs/tech-debt/active/observability-third-party.md",
+        "sha256": "e168fcb6cd6d130ae034df7507b6b3bd9109c1f561aa92dca253675559030f52"
+      },
+      {
+        "id": "TD-012",
+        "legacy_order": 14,
+        "original_status": "待清偿",
+        "primary_scope": "observability-third-party",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/config.py",
+          "backend/routers/admin/system_monitor.py",
+          "backend/utils/llm_client.py"
+        ],
+        "detail": "docs/tech-debt/active/observability-third-party.md",
+        "sha256": "99caca121be6a01120dc4b9c772d7e7c43d397d921e2de46a2dfdc004e3ce10a"
+      },
+      {
+        "id": "TD-015",
+        "legacy_order": 15,
+        "original_status": "部分完成（原文状态）",
+        "primary_scope": "chat-emotion",
+        "related_scopes": [
+          "h5-app",
+          "agent-future"
+        ],
+        "depends_on": [
+          "TD-016"
+        ],
+        "code_evidence": [
+          "admin/pages/user-detail.html",
+          "backend/config.py",
+          "backend/models/conversation_log.py",
+          "backend/routers/admin/users.py",
+          "backend/routers/chat.py",
+          "backend/schemas/chat.py",
+          "backend/services/llm_service.py",
+          "backend/services/memory_service.py",
+          "backend/services/prompt_builder.py",
+          "backend/utils/llm_client.py",
+          "frontend/pages/chat.html",
+          "scripts/test_chat_e2e.py",
+          "tests/test_chat.py"
+        ],
+        "detail": "docs/tech-debt/active/chat-emotion.md",
+        "sha256": "a641b26ae4218a35e0debe04cd550c20b22ff11c3e253c49ff97789826048d9d"
+      },
+      {
+        "id": "TD-016",
+        "legacy_order": 16,
+        "original_status": "已处理（原文状态，待用户确认归档）",
+        "primary_scope": "chat-emotion",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/user-detail.html"
+        ],
+        "detail": "docs/tech-debt/active/chat-emotion.md",
+        "sha256": "fe964d862f5161b8841c4e1980b1ce4e7596f902f72790fbbd4b863fea23e1d2"
+      },
+      {
+        "id": "TD-017",
+        "legacy_order": 17,
+        "original_status": "部分完成（原文状态）",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [
+          "TD-023"
+        ],
+        "code_evidence": [],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "5ef1909e506a825297eca4004aaa589301e12a264addc00987d20a18d0ff37a8"
+      },
+      {
+        "id": "TD-018",
+        "legacy_order": 18,
+        "original_status": "待清偿",
+        "primary_scope": "diary",
+        "related_scopes": [
+          "chat-emotion"
+        ],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/services/diary_service.py"
+        ],
+        "detail": "docs/tech-debt/active/diary.md",
+        "sha256": "656a147817b6a23ce439709cbe7923d85c95d840310364249a7469607144edf2"
+      },
+      {
+        "id": "TD-019",
+        "legacy_order": 19,
+        "original_status": "待评估",
+        "primary_scope": "chat-emotion",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "frontend/pages/chat.html",
+          "scripts/test_chat_e2e.py"
+        ],
+        "detail": "docs/tech-debt/active/chat-emotion.md",
+        "sha256": "9e8ab939f8274024244b4f7d4d459fe7770a8794358cdcac5ec55bc84ab06660"
+      },
+      {
+        "id": "TD-020",
+        "legacy_order": 20,
+        "original_status": "部分完成（原文状态）",
+        "primary_scope": "chat-emotion",
+        "related_scopes": [
+          "persona-prompt-world-state"
+        ],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/config.py",
+          "backend/routers/chat.py",
+          "backend/services/relationship_service.py"
+        ],
+        "detail": "docs/tech-debt/active/chat-emotion.md",
+        "sha256": "0cc92d6a13f1f88ac15906a54b9d218edc5219e3a7767dd8e88ed4e39f3348b0"
+      },
+      {
+        "id": "TD-021",
+        "legacy_order": 21,
+        "original_status": "待清偿",
+        "primary_scope": "persona-prompt-world-state",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [],
+        "detail": "docs/tech-debt/active/persona-prompt-world-state.md",
+        "sha256": "d186b6ac5a03bfe59d1eda56b69c9e8bebc9b753dd5e6a43b790d64f6ca26186"
+      },
+      {
+        "id": "TD-022",
+        "legacy_order": 22,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/routers/chat.py",
+          "backend/services/memory_llm_service.py",
+          "backend/services/memory_service.py",
+          "backend/services/multi_vector_retrieval_service.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "f2e7aa7b3e1b44807a5b00f904d85214003232698c4caa883cbac339a61505f7"
+      },
+      {
+        "id": "TD-023",
+        "legacy_order": 23,
+        "original_status": "部分完成（原文状态）",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [
+          "chat-emotion"
+        ],
+        "depends_on": [
+          "TD-022"
+        ],
+        "code_evidence": [
+          "backend/routers/admin/memory_mgmt.py",
+          "backend/services/memory_llm_service.py",
+          "backend/services/memory_service.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "3a27e372871dc3d6ce0df013d9b275225c94980df718b0a6e55e49549ada5293"
+      },
+      {
+        "id": "TD-024",
+        "legacy_order": 24,
+        "original_status": "部分完成（原文状态）",
+        "primary_scope": "core-user-auth",
+        "related_scopes": [
+          "h5-app"
+        ],
+        "depends_on": [],
+        "code_evidence": [
+          "frontend/pages/settings.html"
+        ],
+        "detail": "docs/tech-debt/active/core-user-auth.md",
+        "sha256": "fe55c37c102e68aa2089489cf4b942a8d3e5c1488324511004441efdb7aaa096"
+      },
+      {
+        "id": "TD-026",
+        "legacy_order": 25,
+        "original_status": "待清偿",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/utils/dashvector_client.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "e525825263fc2e9a1228a54f30149ecfe9123a4e30bcc770f2398d2a64d42ddc"
+      },
+      {
+        "id": "TD-027",
+        "legacy_order": 26,
+        "original_status": "待清偿",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "tests/test_multi_vector_retrieval_service.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "843300a6c4a7273753dba8bc750a7f19a9a0d008eac34d2fefef6c2addeaa220"
+      },
+      {
+        "id": "TD-028",
+        "legacy_order": 27,
+        "original_status": "待清偿",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [
+          "TD-026"
+        ],
+        "code_evidence": [
+          "backend/services/character_knowledge_service.py",
+          "backend/services/memory_llm_service.py",
+          "backend/utils/character_knowledge_validate.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "ba1f2ccf21e73c1f368b8cf43f9b2d56e45d48201046ff8f798187f0019417ec"
+      },
+      {
+        "id": "TD-029",
+        "legacy_order": 28,
+        "original_status": "待清偿",
+        "primary_scope": "memory-knowledge",
+        "related_scopes": [],
+        "depends_on": [
+          "TD-028"
+        ],
+        "code_evidence": [
+          "backend/services/step6_orchestrator.py"
+        ],
+        "detail": "docs/tech-debt/active/memory-knowledge.md",
+        "sha256": "90953887c4596f9f37b5c8d12dc75e67ea2145cccbb8a9c1fce4754bbcf1f93f"
+      },
+      {
+        "id": "TD-025",
+        "legacy_order": 29,
+        "original_status": "待清偿",
+        "primary_scope": "core-user-auth",
+        "related_scopes": [
+          "h5-app"
+        ],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/routers/auth.py",
+          "backend/schemas/auth.py",
+          "frontend/pages/settings.html"
+        ],
+        "detail": "docs/tech-debt/active/core-user-auth.md",
+        "sha256": "f60b10ee24a4391f3182fa62ee9e595ade87f08e0266d4d4e772356049993a7a"
+      },
+      {
+        "id": "TD-030",
+        "legacy_order": 30,
+        "original_status": "待清偿",
+        "primary_scope": "cross-cutting",
+        "related_scopes": [
+          "chat-emotion",
+          "openapi"
+        ],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/services/chat_service.py"
+        ],
+        "detail": "docs/tech-debt/active/cross-cutting.md",
+        "sha256": "4c0847229d4922aafc594b8e81883d8e6f5ef59b8d96b424a40d3f21f3ac8bec"
+      },
+      {
+        "id": "TD-031",
+        "legacy_order": 31,
+        "original_status": "待清偿",
+        "primary_scope": "openapi",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "backend/services/chat_service.py"
+        ],
+        "detail": "docs/tech-debt/active/openapi.md",
+        "sha256": "be085967ed1d7fad26df80436cd7e0272c95f1bdb2475dc11cf162496bf1ffef"
+      },
+      {
+        "id": "TD-032",
+        "legacy_order": 32,
+        "original_status": "已处理（原文状态，待用户确认归档）",
+        "primary_scope": "life-feed",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "frontend/pages/feed.html"
+        ],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "e011e98272c53605f869c6458b7b4b357a2848fe4132354612048d6137d8eb01"
+      },
+      {
+        "id": "TD-033",
+        "legacy_order": 33,
+        "original_status": "待清偿",
+        "primary_scope": "life-feed",
+        "related_scopes": [
+          "observability-third-party"
+        ],
+        "depends_on": [],
+        "code_evidence": [],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "322a14dbd6458f5c43d5e757336effd3169fa3647ed72bc9ff4064b509db2b74"
+      },
+      {
+        "id": "TD-034",
+        "legacy_order": 34,
+        "original_status": "已清偿（原文状态，待用户确认归档）",
+        "primary_scope": "life-feed",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/feed-posts.html"
+        ],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "dd93e5c55bc0f953753756cbb3bcce288bffca0bf978a044d2ed15e18936ad77"
+      },
+      {
+        "id": "TD-035",
+        "legacy_order": 35,
+        "original_status": "待清偿",
+        "primary_scope": "life-feed",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "admin/pages/feed-posts.html",
+          "backend/routers/admin/feed_mgmt.py"
+        ],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "97d6b39465889998cb46fe881f74018c30b511b5a3c2b21231e37898f512d7d6"
+      },
+      {
+        "id": "TD-036",
+        "legacy_order": 36,
+        "original_status": "待清偿",
+        "primary_scope": "life-feed",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "30cf383d452a444ab9b0b3288b77e69e9fc7e6c879a110537e3ad25cefe9cdb7"
+      },
+      {
+        "id": "TD-037",
+        "legacy_order": 37,
+        "original_status": "待清偿",
+        "primary_scope": "life-feed",
+        "related_scopes": [],
+        "depends_on": [],
+        "code_evidence": [
+          "frontend/pages/feed.html",
+          "scripts/migrate_admin_config_config_key_nonunique.sql"
+        ],
+        "detail": "docs/tech-debt/active/life-feed.md",
+        "sha256": "934e6c67c4a4dd93d0fb78ebd39726f05bfa6e2438548ed22f53e9446f06cc19"
+      }
+    ]
+  },
+  "llm_retrieval_scenarios": [
+    {
+      "id": "feed-comments",
+      "query": "朋友圈评论",
+      "required": [
+        "contract-life-feed-api",
+        "contract-life-feed-admin"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "openapi-resend",
+      "query": "OpenAPI resend",
+      "required": [
+        "contract-openapi-api",
+        "contract-chat-emotion-api",
+        "contract-shared-conventions"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "observer-export",
+      "query": "observer 导出",
+      "required": [
+        "contract-shared-auth-rbac",
+        "contract-admin-security-api"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "diary-timezone",
+      "query": "日记时区",
+      "required": [
+        "contract-diary-api",
+        "contract-shared-conventions"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "step6-vector",
+      "query": "Step6 向量",
+      "required": [
+        "contract-memory-knowledge-api",
+        "contract-memory-knowledge-data",
+        "tech-debt-memory-knowledge"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "future-message",
+      "query": "Future 主动消息",
+      "required": [
+        "contract-agent-future-api",
+        "contract-agent-future-data"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "system-monitor",
+      "query": "系统监控",
+      "required": [
+        "contract-observability-api",
+        "contract-observability-admin",
+        "contract-shared-auth-rbac"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
+      "id": "password-api",
+      "query": "密码接口",
+      "required": [
+        "contract-core-user-auth-api",
+        "contract-shared-conventions",
+        "tech-debt-core-user-auth"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    }
+  ],
+  "code_surface_coverage": {
+    "counts": {
+      "route": 200,
+      "model": 26,
+      "admin-page": 35,
+      "h5-page": 8,
+      "scheduled-job": 13
+    },
+    "entries": [
+      {
+        "kind": "route",
+        "path": "backend/main.py",
+        "line": 202,
+        "symbol": "@app.get(\"/\")",
+        "scope": "shared-conventions",
+        "contract_document": "contract-shared-conventions"
+      },
+      {
+        "kind": "route",
+        "path": "backend/main.py",
+        "line": 207,
+        "symbol": "@app.get(\"/pages/{page_name}.html\")",
+        "scope": "shared-conventions",
+        "contract_document": "contract-shared-conventions"
+      },
+      {
+        "kind": "route",
+        "path": "backend/main.py",
+        "line": 216,
+        "symbol": "@app.get(\"/admin\")",
+        "scope": "shared-conventions",
+        "contract_document": "contract-shared-conventions"
+      },
+      {
+        "kind": "route",
+        "path": "backend/main.py",
+        "line": 221,
+        "symbol": "@app.get(\"/admin/pages/{page_name}.html\")",
+        "scope": "shared-conventions",
+        "contract_document": "contract-shared-conventions"
+      },
+      {
+        "kind": "route",
+        "path": "backend/main.py",
+        "line": 230,
+        "symbol": "@app.get(\"/static/images/avatar/{filename}\")",
+        "scope": "shared-conventions",
+        "contract_document": "contract-shared-conventions"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 98,
+        "symbol": "@router.get(\"/accounts\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 111,
+        "symbol": "@router.post(\"/accounts\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 163,
+        "symbol": "@router.put(\"/accounts/{account_id}\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 213,
+        "symbol": "@router.delete(\"/accounts/{account_id}\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 254,
+        "symbol": "@router.post(\"/accounts/{account_id}/reset-password\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/accounts.py",
+        "line": 289,
+        "symbol": "@router.post(\"/accounts/{account_id}/unlock\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_aware_mgmt.py",
+        "line": 67,
+        "symbol": "@router.get(\"/agent-aware\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_aware_mgmt.py",
+        "line": 121,
+        "symbol": "@router.get(\"/agent-aware/{queue_id}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_aware_mgmt.py",
+        "line": 142,
+        "symbol": "@router.post(\"/agent-aware/{queue_id}/retry\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_aware_mgmt.py",
+        "line": 166,
+        "symbol": "@router.delete(\"/agent-aware/{queue_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_aware_mgmt.py",
+        "line": 188,
+        "symbol": "@router.post(\"/users/{user_id}/aware/reset\", dependencies=[require_role(\"super_admin\")])",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 57,
+        "symbol": "@router.get(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 69,
+        "symbol": "@router.put(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 140,
+        "symbol": "@router.get(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 152,
+        "symbol": "@router.put(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 200,
+        "symbol": "@router.get(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 222,
+        "symbol": "@router.put(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/agent_mgmt.py",
+        "line": 259,
+        "symbol": "@router.get(",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/auth.py",
+        "line": 94,
+        "symbol": "@router.post(\"/login\")",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/auth.py",
+        "line": 173,
+        "symbol": "@router.post(\"/logout\")",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/auth.py",
+        "line": 192,
+        "symbol": "@router.post(\"/change-password\")",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/chat_prompt_view.py",
+        "line": 22,
+        "symbol": "@router.get(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/chat_prompt_view.py",
+        "line": 33,
+        "symbol": "@router.get(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/chat_prompt_view.py",
+        "line": 44,
+        "symbol": "@router.get(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/chat_prompt_view.py",
+        "line": 55,
+        "symbol": "@router.get(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/emotion_config.py",
+        "line": 37,
+        "symbol": "@router.get(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/emotion_config.py",
+        "line": 49,
+        "symbol": "@router.put(",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_comment_mgmt.py",
+        "line": 59,
+        "symbol": "@router.get(\"/feed/comments\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_comment_mgmt.py",
+        "line": 104,
+        "symbol": "@router.get(\"/feed/comments/{comment_id}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_comment_mgmt.py",
+        "line": 125,
+        "symbol": "@router.put(\"/feed/comments/{comment_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_comment_mgmt.py",
+        "line": 152,
+        "symbol": "@router.delete(\"/feed/comments/{comment_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_comment_mgmt.py",
+        "line": 171,
+        "symbol": "@router.post(\"/feed/comments/{comment_id}/regenerate\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 122,
+        "symbol": "@router.get(\"/feed/posts\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 154,
+        "symbol": "@router.get(\"/feed/posts/{post_id}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 177,
+        "symbol": "@router.put(\"/feed/posts/{post_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 209,
+        "symbol": "@router.delete(\"/feed/posts/{post_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 231,
+        "symbol": "@router.patch(\"/feed/posts/{post_id}/visibility\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 278,
+        "symbol": "@router.post(\"/feed/posts\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 420,
+        "symbol": "@router.get(\"/feed/config/auto-publish\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/feed_mgmt.py",
+        "line": 434,
+        "symbol": "@router.put(\"/feed/config/auto-publish\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/knowledge_mgmt.py",
+        "line": 42,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/knowledge_mgmt.py",
+        "line": 65,
+        "symbol": "@router.post(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/knowledge_mgmt.py",
+        "line": 96,
+        "symbol": "@router.put(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/knowledge_mgmt.py",
+        "line": 128,
+        "symbol": "@router.delete(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_config_mgmt.py",
+        "line": 73,
+        "symbol": "@router.get(\"/life-config\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_config_mgmt.py",
+        "line": 101,
+        "symbol": "@router.put(\"/life-config/draft\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_config_mgmt.py",
+        "line": 119,
+        "symbol": "@router.delete(\"/life-config/draft/{config_key}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_config_mgmt.py",
+        "line": 142,
+        "symbol": "@router.post(\"/life-config/publish\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 105,
+        "symbol": "@router.get(\"/life-plan/outline\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 134,
+        "symbol": "@router.post(\"/life-plan/outline\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 167,
+        "symbol": "@router.put(\"/life-plan/outline/{plan_date}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 197,
+        "symbol": "@router.delete(\"/life-plan/outline/{plan_date}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 219,
+        "symbol": "@router.post(\"/life-plan/outline/generate\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 262,
+        "symbol": "@router.get(\"/life-plan/settings\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 280,
+        "symbol": "@router.put(\"/life-plan/settings\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 346,
+        "symbol": "@router.get(\"/life-plan/daily\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 378,
+        "symbol": "@router.post(\"/life-plan/daily/{plan_date}/generate\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 408,
+        "symbol": "@router.post(\"/life-plan/daily/{plan_date}/scenes\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 457,
+        "symbol": "@router.put(\"/life-plan/daily/{plan_date}/scenes/{scene_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/life_plan_mgmt.py",
+        "line": 505,
+        "symbol": "@router.delete(\"/life-plan/daily/{plan_date}/scenes/{scene_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 111,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 125,
+        "symbol": "@router.put(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 161,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 193,
+        "symbol": "@router.put(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 301,
+        "symbol": "@router.post(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 360,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_mgmt.py",
+        "line": 426,
+        "symbol": "@router.delete(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/operation_logs.py",
+        "line": 44,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/operation_logs.py",
+        "line": 123,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/operation_logs.py",
+        "line": 155,
+        "symbol": "@router.post(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 93,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 118,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 130,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 154,
+        "symbol": "@router.delete(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 169,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 192,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 239,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 256,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/persona.py",
+        "line": 293,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 137,
+        "symbol": "@router.get(\"/prompt/step5\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 160,
+        "symbol": "@router.get(\"/prompt/step5/draft\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 165,
+        "symbol": "@router.put(\"/prompt/step5/draft\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 178,
+        "symbol": "@router.delete(\"/prompt/step5/draft\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 189,
+        "symbol": "@router.post(\"/prompt/step5/publish\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 234,
+        "symbol": "@router.get(\"/prompt/step5/history\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 245,
+        "symbol": "@router.get(\"/prompt/step5/history/{version}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 273,
+        "symbol": "@router.post(\"/prompt/step5/rollback\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 298,
+        "symbol": "@router.get(\"/prompt/step5-5/fragments\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 321,
+        "symbol": "@router.get(\"/prompt/step5-5/draft\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 326,
+        "symbol": "@router.put(\"/prompt/step5-5/draft/{fragment_key}\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 363,
+        "symbol": "@router.delete(\"/prompt/step5-5/draft\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 374,
+        "symbol": "@router.post(\"/prompt/step5-5/publish\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 421,
+        "symbol": "@router.get(\"/prompt/step5-5/history\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 432,
+        "symbol": "@router.get(\"/prompt/step5-5/history/{version}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 460,
+        "symbol": "@router.post(\"/prompt/step5-5/rollback\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 485,
+        "symbol": "@router.get(\"/prompt/step5-5-switch\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 508,
+        "symbol": "@router.get(\"/prompt/step5-5-switch/draft\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 513,
+        "symbol": "@router.put(\"/prompt/step5-5-switch/draft\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 526,
+        "symbol": "@router.delete(\"/prompt/step5-5-switch/draft\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 537,
+        "symbol": "@router.post(\"/prompt/step5-5-switch/publish\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 580,
+        "symbol": "@router.get(\"/prompt/step5-5-switch/history\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 591,
+        "symbol": "@router.post(\"/prompt/step5-5-switch/rollback\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/prompt_mgmt.py",
+        "line": 616,
+        "symbol": "@router.post(\"/prompt/test\", dependencies=[require_role(*_WRITE_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/relationship_mgmt.py",
+        "line": 57,
+        "symbol": "@router.get(",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/relationship_mgmt.py",
+        "line": 69,
+        "symbol": "@router.put(",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/relationship_mgmt.py",
+        "line": 198,
+        "symbol": "@router.get(",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/relationship_mgmt.py",
+        "line": 210,
+        "symbol": "@router.put(",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/relationship_mgmt.py",
+        "line": 281,
+        "symbol": "@router.get(",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 73,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 92,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 107,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 122,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 137,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/stats.py",
+        "line": 50,
+        "symbol": "@router.get(\"/stats/dashboard\")",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/stats.py",
+        "line": 60,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/stats.py",
+        "line": 85,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/stats.py",
+        "line": 127,
+        "symbol": "@router.post(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/stats.py",
+        "line": 213,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 75,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 163,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 376,
+        "symbol": "@router.put(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 464,
+        "symbol": "@router.post(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 723,
+        "symbol": "@router.get(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/system_monitor.py",
+        "line": 794,
+        "symbol": "@router.post(",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/test_cases.py",
+        "line": 46,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/test_cases.py",
+        "line": 73,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/test_cases.py",
+        "line": 133,
+        "symbol": "@router.delete(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 54,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 161,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 258,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 398,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 644,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 661,
+        "symbol": "@router.post(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 678,
+        "symbol": "@router.put(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 696,
+        "symbol": "@router.delete(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 714,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 731,
+        "symbol": "@router.post(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 748,
+        "symbol": "@router.put(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 766,
+        "symbol": "@router.delete(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 786,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 820,
+        "symbol": "@router.get(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 840,
+        "symbol": "@router.post(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 899,
+        "symbol": "@router.put(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/users.py",
+        "line": 973,
+        "symbol": "@router.post(",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/vector_config.py",
+        "line": 143,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/vector_config.py",
+        "line": 156,
+        "symbol": "@router.put(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/vector_config.py",
+        "line": 211,
+        "symbol": "@router.get(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/vector_config.py",
+        "line": 224,
+        "symbol": "@router.put(",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/world_state_mgmt.py",
+        "line": 35,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/world_state_mgmt.py",
+        "line": 47,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/world_state_mgmt.py",
+        "line": 82,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 100,
+        "symbol": "@router.get(\"/worldview/snapshots\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 163,
+        "symbol": "@router.get(\"/worldview/snapshots/{snapshot_id}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 177,
+        "symbol": "@router.put(\"/worldview/snapshots/{snapshot_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 204,
+        "symbol": "@router.delete(\"/worldview/snapshots/{snapshot_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 244,
+        "symbol": "@router.get(\"/worldview/events\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 268,
+        "symbol": "@router.post(\"/worldview/events\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 291,
+        "symbol": "@router.put(\"/worldview/events/{event_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/worldview_mgmt.py",
+        "line": 325,
+        "symbol": "@router.delete(\"/worldview/events/{event_id}\", dependencies=[require_role(*_ALLOWED_ROLES)])",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/agent.py",
+        "line": 21,
+        "symbol": "@router.get(\"/messages\")",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/agent.py",
+        "line": 57,
+        "symbol": "@router.post(\"/messages/{message_id}/read\")",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/agent.py",
+        "line": 88,
+        "symbol": "@router.get(\"/unread-count\")",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/app.py",
+        "line": 27,
+        "symbol": "@router.get(\"/persona-background\", response_model=ApiResponse)",
+        "scope": "h5-app",
+        "contract_document": "contract-h5-app-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/auth.py",
+        "line": 104,
+        "symbol": "@router.post(\"/register\", response_model=ApiResponse)",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/auth.py",
+        "line": 151,
+        "symbol": "@router.post(\"/login\", response_model=ApiResponse)",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/auth.py",
+        "line": 222,
+        "symbol": "@router.post(\"/reset-password\", response_model=ApiResponse)",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/auth.py",
+        "line": 249,
+        "symbol": "@router.post(\"/logout\", response_model=ApiResponse)",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/chat.py",
+        "line": 719,
+        "symbol": "@router.post(\"/send\")",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/chat.py",
+        "line": 757,
+        "symbol": "@router.post(\"/resend\")",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/chat.py",
+        "line": 781,
+        "symbol": "@router.get(\"/history\")",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/chat.py",
+        "line": 825,
+        "symbol": "@router.get(\"/timeline\")",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/diary.py",
+        "line": 22,
+        "symbol": "@router.get(\"/list\", response_model=ApiResponse)",
+        "scope": "diary",
+        "contract_document": "contract-diary-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/diary.py",
+        "line": 71,
+        "symbol": "@router.post(\"/{diary_id}/read\", response_model=ApiResponse)",
+        "scope": "diary",
+        "contract_document": "contract-diary-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 36,
+        "symbol": "@router.get(\"/list\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 48,
+        "symbol": "@router.get(\"/config/header\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 58,
+        "symbol": "@router.post(\"/enter\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 68,
+        "symbol": "@router.get(\"/badge\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 78,
+        "symbol": "@router.post(\"/{post_id}/like\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 92,
+        "symbol": "@router.delete(\"/{post_id}/like\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 106,
+        "symbol": "@router.post(\"/{post_id}/comments\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 125,
+        "symbol": "@router.get(\"/events\")",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 164,
+        "symbol": "@router.post(\"/comments/{comment_id}/read\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/feed.py",
+        "line": 178,
+        "symbol": "@router.post(\"/{post_id}/read\", response_model=ApiResponse)",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/memory.py",
+        "line": 19,
+        "symbol": "@router.get(\"/list\")",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/agent.py",
+        "line": 19,
+        "symbol": "@router.get(\"/messages\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/agent.py",
+        "line": 28,
+        "symbol": "@router.get(\"/unread-count\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/agent.py",
+        "line": 37,
+        "symbol": "@router.post(\"/messages/{message_id}/read\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/chat.py",
+        "line": 17,
+        "symbol": "@router.post(\"/send\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/chat.py",
+        "line": 26,
+        "symbol": "@router.post(\"/resend\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/chat.py",
+        "line": 34,
+        "symbol": "@router.get(\"/timeline\")",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/relationship.py",
+        "line": 15,
+        "symbol": "@router.get(\"/status\", response_model=ApiResponse)",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/relationship.py",
+        "line": 26,
+        "symbol": "@router.get(\"/history\", response_model=ApiResponse)",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/relationship.py",
+        "line": 37,
+        "symbol": "@router.get(\"/detail\", response_model=ApiResponse)",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/relationship.py",
+        "line": 48,
+        "symbol": "@router.get(\"/growth-log\", response_model=ApiResponse)",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/utils/admin_auth.py",
+        "line": 159,
+        "symbol": "用法：@router.get(\"/xxx\", dependencies=[Depends(require_role(\"super_admin\",\"ops_admin\"))])",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_config.py",
+        "line": 12,
+        "symbol": "AdminConfig",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_operation_log.py",
+        "line": 13,
+        "symbol": "AdminOperationLog",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_user.py",
+        "line": 12,
+        "symbol": "AdminUser",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/agent_aware_queue.py",
+        "line": 20,
+        "symbol": "AgentAwareQueue",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/agent_message.py",
+        "line": 32,
+        "symbol": "AgentMessage",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/ai_diary.py",
+        "line": 12,
+        "symbol": "AiDiary",
+        "scope": "diary",
+        "contract_document": "contract-diary-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/conversation_log.py",
+        "line": 13,
+        "symbol": "ConversationLog",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/emotion_log.py",
+        "line": 12,
+        "symbol": "EmotionLog",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_comment.py",
+        "line": 16,
+        "symbol": "FeedComment",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_like.py",
+        "line": 14,
+        "symbol": "FeedLike",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_post.py",
+        "line": 17,
+        "symbol": "FeedPost",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/life_plan.py",
+        "line": 12,
+        "symbol": "LifePlan",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/life_plan_outline.py",
+        "line": 15,
+        "symbol": "LifePlanOutline",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/login_log.py",
+        "line": 12,
+        "symbol": "LoginLog",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/memory.py",
+        "line": 12,
+        "symbol": "Memory",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship.py",
+        "line": 13,
+        "symbol": "Relationship",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_change_history.py",
+        "line": 14,
+        "symbol": "RelationshipChangeHistory",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_growth_log.py",
+        "line": 12,
+        "symbol": "RelationshipGrowthLog",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_level_history.py",
+        "line": 12,
+        "symbol": "RelationshipLevelHistory",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user.py",
+        "line": 12,
+        "symbol": "User",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_api_key.py",
+        "line": 12,
+        "symbol": "UserApiKey",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_short_term_emotion.py",
+        "line": 12,
+        "symbol": "UserShortTermEmotion",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_timeline_seq.py",
+        "line": 11,
+        "symbol": "UserTimelineSeq",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/world_state.py",
+        "line": 12,
+        "symbol": "WorldState",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/worldview_event.py",
+        "line": 16,
+        "symbol": "WorldviewEvent",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/worldview_snapshot.py",
+        "line": 15,
+        "symbol": "WorldviewSnapshot",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/accounts.html",
+        "line": 1,
+        "symbol": "accounts.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/agent-aware.html",
+        "line": 1,
+        "symbol": "agent-aware.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/agent-rules.html",
+        "line": 1,
+        "symbol": "agent-rules.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-agent.html",
+        "line": 1,
+        "symbol": "chat-prompt-agent.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step15.html",
+        "line": 1,
+        "symbol": "chat-prompt-step15.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step3.html",
+        "line": 1,
+        "symbol": "chat-prompt-step3.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step8.html",
+        "line": 1,
+        "symbol": "chat-prompt-step8.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/dashboard.html",
+        "line": 1,
+        "symbol": "dashboard.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/data-report.html",
+        "line": 1,
+        "symbol": "data-report.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/diary-history.html",
+        "line": 1,
+        "symbol": "diary-history.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/diary-rules.html",
+        "line": 1,
+        "symbol": "diary-rules.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/error.html",
+        "line": 1,
+        "symbol": "error.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/feed-comments.html",
+        "line": 1,
+        "symbol": "feed-comments.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/feed-posts.html",
+        "line": 1,
+        "symbol": "feed-posts.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/knowledge.html",
+        "line": 1,
+        "symbol": "knowledge.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-global.html",
+        "line": 1,
+        "symbol": "life-feed-global.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-prompts.html",
+        "line": 1,
+        "symbol": "life-feed-prompts.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-system.html",
+        "line": 1,
+        "symbol": "life-feed-system.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-plan.html",
+        "line": 1,
+        "symbol": "life-plan.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/login.html",
+        "line": 1,
+        "symbol": "login.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/memory-rules.html",
+        "line": 1,
+        "symbol": "memory-rules.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/operation-logs.html",
+        "line": 1,
+        "symbol": "operation-logs.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/persona.html",
+        "line": 1,
+        "symbol": "persona.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/prompt.html",
+        "line": 1,
+        "symbol": "prompt.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/relationship-rules.html",
+        "line": 1,
+        "symbol": "relationship-rules.html",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/safety-rules.html",
+        "line": 1,
+        "symbol": "safety-rules.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/step5-5-switch.html",
+        "line": 1,
+        "symbol": "step5-5-switch.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/system-logs.html",
+        "line": 1,
+        "symbol": "system-logs.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/system-monitor.html",
+        "line": 1,
+        "symbol": "system-monitor.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/test-tool.html",
+        "line": 1,
+        "symbol": "test-tool.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/third-party.html",
+        "line": 1,
+        "symbol": "third-party.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/user-detail.html",
+        "line": 1,
+        "symbol": "user-detail.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/users.html",
+        "line": 1,
+        "symbol": "users.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/vector-token-config.html",
+        "line": 1,
+        "symbol": "vector-token-config.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/worldview.html",
+        "line": 1,
+        "symbol": "worldview.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/chat.html",
+        "line": 1,
+        "symbol": "chat.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/diary.html",
+        "line": 1,
+        "symbol": "diary.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/feed.html",
+        "line": 1,
+        "symbol": "feed.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/index.html",
+        "line": 1,
+        "symbol": "index.html",
+        "scope": "h5-app",
+        "contract_document": "contract-h5-app-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/login.html",
+        "line": 1,
+        "symbol": "login.html",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/memory.html",
+        "line": 1,
+        "symbol": "memory.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/relationship.html",
+        "line": 1,
+        "symbol": "relationship.html",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/settings.html",
+        "line": 1,
+        "symbol": "settings.html",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 152,
+        "symbol": "daily_diary_task",
+        "scope": "diary",
+        "contract_document": "contract-diary-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 165,
+        "symbol": "agent_scan_task",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 174,
+        "symbol": "future_slot_scan_task",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 183,
+        "symbol": "inactive_proactive_reset_task",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 192,
+        "symbol": "weekly_outline_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 201,
+        "symbol": "weekly_outline_retry_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 212,
+        "symbol": "daily_scenes_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 219,
+        "symbol": "daily_scenes_retry_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 228,
+        "symbol": "daily_her_universe_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 237,
+        "symbol": "daily_feed_publish_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 246,
+        "symbol": "comment_reply_poll_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 255,
+        "symbol": "agent_aware_poll_task",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 264,
+        "symbol": "feed_new_broadcast_task",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      }
+    ],
+    "path": "docs/contract/code-surface-coverage.md"
+  }
+}

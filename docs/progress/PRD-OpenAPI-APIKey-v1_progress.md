@@ -2,7 +2,7 @@
 
 > 文档路径：`docs/progress/PRD-OpenAPI-APIKey-v1_progress.md`
 > 创建时间：2026-06-04
-> PRD 来源：`docs/design/PRD-OpenAPI-APIKey-v1.md`（v1.9）
+> PRD 来源：`docs/design/openapi/PRD-OpenAPI-APIKey-v1.md`（v1.9）
 > 契约文档：`docs/contract.md`
 
 ---

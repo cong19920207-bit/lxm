@@ -41,7 +41,7 @@
 ## 项目文档
 
 - **契约文档**：`docs/contract.md`
-- **需求文档**：`docs/design/PRD-管理后台观察者与安全加固-v1.md`
+- **需求文档**：`docs/design/admin-observer-security/PRD-管理后台观察者与安全加固-v1.md`
 - **漏洞专档**：`docs/security/admin-backend-vulns-2026-07.md`
 - **项目规则**：`.cursorrules`
 

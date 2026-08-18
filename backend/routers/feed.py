@@ -16,7 +16,7 @@ from backend.database import get_db
 from backend.schemas.common import ApiResponse
 from backend.services.feed_service import FeedError, feed_service
 from backend.services.feed_sse_service import feed_sse_service
-from backend.utils.auth_middleware import get_current_user
+from backend.utils.auth_middleware import get_current_user, get_current_user_optional
 from backend.utils.jwt_handler import verify_token
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class CommentBody(BaseModel):
 async def get_feed_list(
     cursor: str | None = Query(None, description="游标：上一页最后一条 scheduled_publish_time"),
     size: int = Query(20, ge=1, le=50, description="每页数量，默认 20 上限 50"),
-    user_id: int = Depends(get_current_user),
+    user_id: int | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Feed 列表（游标分页，仅返回已到点+可见+ready 的帖子，评论私有过滤）。"""
@@ -47,7 +47,7 @@ async def get_feed_list(
 
 @router.get("/config/header", response_model=ApiResponse)
 async def get_feed_header_config(
-    user_id: int = Depends(get_current_user),
+    user_id: int | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """朋友圈页 Header 配置（背景图/头像/签名/昵称），缺失回落默认。"""

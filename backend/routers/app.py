@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from backend.schemas.common import ApiResponse
 from backend.services.admin_config_service import admin_config_service
 from backend.services.prompt_builder import DEFAULT_PERSONA
-from backend.utils.auth_middleware import get_current_user
+from backend.utils.auth_middleware import get_current_user_optional
 
 router = APIRouter(prefix="/api/app", tags=["H5应用"])
 
@@ -25,7 +25,7 @@ def _extract_default_background() -> str:
 
 
 @router.get("/persona-background", response_model=ApiResponse)
-async def get_persona_background(user_id: int = Depends(get_current_user)):
+async def get_persona_background(user_id: int | None = Depends(get_current_user_optional)):
     """获取林小梦角色背景（只读，供设置页「关于林小梦」展示）"""
     persona = await admin_config_service.get_active_config("persona")
     background = ""

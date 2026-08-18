@@ -1,0 +1,783 @@
+# History Implementation
+
+- 文档 ID：`contract-history-implementation`
+- 权威状态：`false`
+- 功能范围：`history`
+- 必读依赖：无
+- 相关技术债：无
+
+### STEP-001：relationship 表 DDL 迁移
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：为 relationship 表新增 9 个扩展字段，支撑 Step6 记忆写回与 Step8 Future 槽机制
+- 涉及文件：
+  - `backend/models/relationship.py`（修改）
+  - `alembic/versions/v4a_step001_relationship_extend.py`（新增）
+- 字段变更：
+  - 新增字段：relation_description - TEXT - 关系描述
+  - 新增字段：user_real_name - VARCHAR(50) - 用户真实称呼
+  - 新增字段：user_hobby_name - VARCHAR(50) - 用户昵称
+  - 新增字段：user_description - TEXT - 用户印象
+  - 新增字段：character_purpose - TEXT - 角色当前回应策略
+  - 新增字段：character_attitude - TEXT - 角色当前态度
+  - 新增字段：future_timestamp - INTEGER - Future 预约时间戳
+  - 新增字段：future_action - VARCHAR(200) - Future 预约意图摘要
+  - 新增字段：proactive_times - INTEGER(default=0) - 主动消息计数
+- 测试结果：✅ Lint 通过，ORM 与迁移脚本字段一致
+- 备注：无
+
+### STEP-002：relationship 变更历史表
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：创建 append-only 历史表 `relationship_change_history`，记录 Step6 对 relationship 扩展字段的每次更新；`RelationshipHistoryService.append_history()` 仅做 INSERT，支持排障与回溯
+- 涉及文件：
+  - `backend/models/relationship_change_history.py`（新增）
+  - `backend/models/__init__.py`（修改：注册 RelationshipChangeHistory）
+  - `alembic/versions/v4b_step002_relationship_change_history.py`（新增）
+  - `backend/services/relationship_history_service.py`（新增）
+  - `tests/test_relationship_change_history.py`（新增）
+- 字段变更：
+  - 新增表：relationship_change_history（9 个字段，详见数据库表结构章节）
+- 测试结果：✅ 全部通过（7 个用例：单条写入字段完整性、连续写入排序、old_value 为 NULL、round_id 为 NULL、按 user_id 查询、空历史）
+- 备注：主键使用 `BigInteger().with_variant(Integer, "sqlite")` 兼容 SQLite 测试环境的 autoincrement 限制
+
+### STEP-003：DashVector type 常量 + search/upsert 签名扩展
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 `constants.py` 定义 4 类 DashVector 向量类型常量（R-L1L3-08），扩展 `dashvector_client` 的 `upsert()` / `search()` 签名支持 `memory_type` 参数（R-L1L3-15），按规则拼接 filter 实现分类型检索与写入（R-VEC-01）
+- 涉及文件：
+  - `backend/constants.py`（修改：新增 `MEMORY_TYPE_CHARACTER_GLOBAL` / `MEMORY_TYPE_CHARACTER_PRIVATE` / `MEMORY_TYPE_CHARACTER_KNOWLEDGE` / `MEMORY_TYPE_USER` 常量及 `VALID_MEMORY_TYPES` 校验集合）
+  - `backend/utils/dashvector_client.py`（修改：`upsert()` 新增 `memory_type` 参数并自动注入 `type` 字段；`search()` 新增 `memory_type` 参数、`user_id` 改为可选、按规则拼接 filter）
+  - `backend/services/vector_service.py`（修改：`upsert()` / `search()` 透传 `memory_type` 参数）
+  - `backend/services/memory_service.py`（修改：5 处调用适配 `memory_type=MEMORY_TYPE_USER`）
+  - `backend/routers/chat.py`（修改：`_search_memories` 适配 `memory_type=MEMORY_TYPE_USER`）
+  - `backend/services/agent_service.py`（修改：`_search_memories_for_agent` 适配 `memory_type=MEMORY_TYPE_USER`）
+  - `backend/routers/admin/users.py`（修改：编辑记忆 upsert 适配 `memory_type=MEMORY_TYPE_USER`）
+- 字段变更：
+  - 新增常量：`MEMORY_TYPE_CHARACTER_GLOBAL` = `"character_global"` - 角色公开设定
+  - 新增常量：`MEMORY_TYPE_CHARACTER_PRIVATE` = `"character_private"` - 角色私有设定
+  - 新增常量：`MEMORY_TYPE_CHARACTER_KNOWLEDGE` = `"character_knowledge"` - 角色知识技能
+  - 新增常量：`MEMORY_TYPE_USER` = `"user"` - 用户画像
+  - `dashvector_client.search()` 签名：新增 `memory_type: str`，`user_id: int` → `user_id: int | None = None`
+  - `dashvector_client.upsert()` 签名：新增 `memory_type: str`，自动向 fields 注入 `"type"` 字段
+  - filter 拼接规则：无 user_id → `type = '{memory_type}'`；有 user_id → `type = '{memory_type}' AND user_id = {uid}`
+- 测试结果：✅ Lint 通过，所有现有调用已适配新签名
+- 备注：无（本环节不新建 collection、不做旧数据迁移；Step2 多路检索已在 STEP-020 实现）
+
+### STEP-004：Step5 Prompt 提示词改造
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：按 `Step5-prompt提示词改造.md` 对 `prompt_builder.py` 进行最小化改写，输出新 6 字段 JSON Schema（inner_monologue / messages / relation_change / future / emotion / knowledge_expand），新增【知识性话题回应原则】与【当前时间】模块，关系状态追加 4 行扩展字段，同步更新 hint 与主动消息 Schema
+- 涉及文件：
+  - `backend/services/prompt_builder.py`（修改：`SYSTEM_PROMPT_TEXT` 完全替换为新 Schema + 示例 + 知识性话题原则；`_build_relationship_prompt()` 尾部追加 4 行扩展字段；新增 `_generate_time_description()` 和 `_build_time_prompt()`；`build_chat_prompt()` 插入时间模块；`_build_user_input()` hint 替换；`_build_active_task_instruction()` 输出指令同步；Token 预算调整）
+  - `backend/routers/admin/prompt_mgmt.py`（修改：`_MODULE_TOKEN_LIMITS` 与 `_TOTAL_TOKEN_LIMIT` 同步调整）
+  - `tests/test_prompt_builder.py`（新增：10 个测试用例覆盖 Schema 验证、扩展字段注入/空值、模块顺序、时间描述）
+  - `docs/contract.md`（修改：更新时间、Token 限制引用、开发日志）
+- 字段变更：
+  - `MODULE_TOKEN_LIMITS["system"]`：400 → 1200（含完整 Schema + few-shot 示例，实测 1152 Token）
+  - `MODULE_TOKEN_LIMITS["relationship"]`：200 → 250（追加 4 行扩展字段）
+  - `MAX_TOTAL_TOKENS`：4096 → 5200
+  - `prompt_mgmt.py` `_MODULE_TOKEN_LIMITS` / `_TOTAL_TOKEN_LIMIT` 同步更新
+  - `SYSTEM_PROMPT_TEXT`：新增【回复格式规则】messages 数组 + type 约束、【知识性话题回应原则】、完整 6 字段 JSON Schema + 字段说明 + 输出示例
+  - `_build_relationship_prompt()` 输出：追加 `关系描述` / `对TA的印象` / `亲密称呼` / `用户真名` 四行（读取 STEP-001 新增的 relationship 扩展列）
+  - 新增模块★【当前时间】：`_generate_time_description()` 生成 `现在是{周几}{时段}{时}点{分}分`
+- 测试结果：✅ 全部 10 个用例通过
+- 备注：无（不改【身份禁区】【核心陪伴原则】【人格设定】【用户记忆】【情绪状态】【最近对话】的原有内容；不实现 Step5.5；不实现 Step1-3 角色记忆/知识检索）
+
+### STEP-005：Step5 输出 JSON 解析器 + 校验规则
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：替换现有 `{emotion, reply}` 解析器，支持新 6 字段扁平 JSON 解析 + 严格校验（§2.7.7 / CP3 / U1 / U2 / R-BND-02）
+- 涉及文件：
+  - `backend/services/llm_service.py`（修改：新增 `Step5ParseError` 异常类、`MessageItem` / `RelationChange` / `FutureSlot` / `EmotionResult` / `Step5Output` Pydantic 模型、`parse_step5_output()` 解析函数、`LLMService.chat_with_step5_parse()` 方法；保留旧 `chat_with_parse_strict` 供 Agent 主动消息等旧链路兼容）
+  - `backend/routers/chat.py`（修改：`_execute_llm_bundle` 内 `chat_with_parse_strict` → `chat_with_step5_parse`，不再读取 `result["reply"]`，改为拼接 `step5_result.messages[].content`；SSE Future payload 新增 `step5` 字段携带完整结构化数据）
+  - `tests/test_step5_parser.py`（新增：25 个单元测试覆盖合法解析、CP3 大小写敏感、U2 空消息、U1 knowledge_expand trim、默认值填充、边界非 JSON）
+- 字段变更：
+  - 新增 Pydantic 模型 `Step5Output`：`inner_monologue(str)` / `messages(List[MessageItem])` / `relation_change(RelationChange)` / `future(FutureSlot)` / `emotion(EmotionResult)` / `knowledge_expand(str)`
+  - SSE `_resolve_generation_future` payload 新增 `step5: dict`（`model_dump()` 序列化）
+  - `ai_reply` 生成逻辑：`"\n".join(m.content for m in step5_result.messages)`
+- 校验规则：
+  - JSON 解析失败 → `Step5ParseError`
+  - `messages` 为空数组或全部 content trim 为空 → `Step5ParseError`（U2）
+  - 任一 `messages[].type` 非精确 `"text"` → `Step5ParseError`（CP3，大小写敏感）
+  - `knowledge_expand` trim 后仅精确「是」为是，其余按「否」（U1），不判失败
+  - `relation_change.delta` 缺失 → 默认 0（R-BND-02）
+  - `future` 缺失 → 默认 `time_natural="无", action="无"`
+- 测试结果：✅ 全部 25 个用例通过
+- 备注：STEP-006 已实现 messages >5 合并；STEP-007 已实现 `future.time_natural` 解析（见 STEP-007）；Step5.5 触发与润色见 **STEP-009**。
+
+### STEP-006：messages >5 条合并规则（§2.9.1）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：实现 §2.9.1 定义的消息合并规则——当 messages 超过 5 条时，将第 6 条及以后的 content 按顺序用半角空格拼入第 5 条（下标 4）末尾；合并后若超过可配置的单条长度上限则尾部截断并打日志
+- 涉及文件：
+  - `backend/constants.py`（修改：新增 `MAX_MESSAGES_COUNT=5` 消息最大条数上限、`MAX_SINGLE_MESSAGE_LENGTH=2000` 合并后单条 content 最大字符数）
+  - `backend/services/llm_service.py`（修改：新增 `merge_messages_if_exceed(messages, max_count=5, max_length=2000)` 纯函数；新增 import `MAX_MESSAGES_COUNT` / `MAX_SINGLE_MESSAGE_LENGTH`）
+  - `backend/routers/chat.py`（修改：`_execute_llm_bundle` 内 Step5 成功后先算 `step6_messages`（Step5 原始 messages 合并），再条件调用 Step5.5（STEP-009）；`final_messages` 为 5.5 成功时的润色结果否则为 Step5 合并结果；`ai_reply` 与 SSE payload 中 `step5.messages` 使用 `final_messages`）
+  - `tests/test_merge_messages.py`（新增：16 个单元测试覆盖不合并、6 条合并、8 条合并、截断+日志、自定义参数、空格拼接等场景）
+- 消费点接入：
+  - 消费点 1（Step5 路径 / 5.5 回退）：`final_messages = merge_messages_if_exceed(step5_result.messages)` — 未触发 Step5.5 或 5.5 失败/未命中门闩时使用；`ai_reply`、`step5.messages` 均基于此
+  - 消费点 2（Step5.5 输出后）：`execute_step5_5` 返回非空时 `final_messages = step5_5_result`（函数内已对 5.5 解析结果执行 `merge_messages_if_exceed`），见 **STEP-009**
+  - 消费点 3（Step6 入参快照 CP1）：`step6_messages = merge_messages_if_exceed(step5_result.messages)`，**仅** Step5 原始产出，供后续 Step6 入队，见 **STEP-016**
+- 函数签名：`merge_messages_if_exceed(messages: list[MessageItem], max_count: int = 5, max_length: int = 2000) -> list[MessageItem]`
+- 合并规则：
+  - `len(messages) <= max_count` → 原样返回（浅拷贝）
+  - `len(messages) > max_count` → 保留前 max_count-1 条不变，第 max_count 条 content 与后续所有条 content 用半角空格拼接
+  - 合并后 content 长度 > max_length → 尾部截断至 max_length + WARNING 日志
+  - 纯函数，不修改入参
+- 测试结果：✅ 全部 16 个用例通过
+- 备注：消费点 3（Step6 入队接线）已由 **STEP-016** 完成；不修改 LLM Prompt 中对条数的描述；SSE 多气泡分包推送逻辑已在 **STEP-010** 实现
+
+### STEP-007：future.time_natural 时间解析器（§2.8.4）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：纯 Python 正则解析 LLM 输出的 `future.time_natural`，基准时区 UTC；合法格式返回 Unix 秒级时间戳，「无」返回 `None`（无预约）；非法格式返回 `None` 并 `logger.warning` 结构化日志（`raw_input` / `reason` / `action=slot_cleared`）。另提供 `is_future_slot_valid(ts)`：`now - ts <= 1800` 为有效（30 分钟过期窗口）
+- 涉及文件：
+  - `backend/utils/future_time_parser.py`（新增：`parse_future_time`、`is_future_slot_valid`、内部 `_log_parse_failure`）
+  - `tests/test_future_time_parser.py`（新增）
+- 字段变更：
+  - 无（本环节仅新增工具模块与测试，未改数据库与对外 HTTP 契约）
+- 测试结果：✅ 全部 22 个用例通过
+- 备注：未接入 `chat.py` / `relationship` 写入与 Step8 轮询消费（仍不在本 STEP 范围）；调用方在解析失败时需自行清空 Future 槽并保留 `proactive_times`（与需求 §2.8.4 一致）
+
+### STEP-008：round_id 提前生成 + 超时配置（§2.9.3 / §2.11.2）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：`round_id` 在 `_execute_llm_bundle` 内于 Step5 解析成功（`chat_with_step5_parse` 正常返回）后立即 `str(uuid.uuid4())` 生成；同一值传入 `_persist_bundle_success` 写入本轮 pack 内全部 user 行、**全部 assistant 行**（STEP-011 起可为 N 行）及 `emotion_log`；成功闭环时 `_resolve_generation_future` 的内存 payload 增加 `round_id`、`step6_messages`（合并后 messages 的 `model_dump` 列表）供后续 Step6 入队读取；`_sse_chat_wait_bundle` 使用 `_BUNDLE_WAIT_TIMEOUT_SEC = 120.0`（**仅** `asyncio.wait_for` 等待本代 Future 的上限，**不**约束 `_execute_llm_bundle` 整段墙钟，见 **POST /api/chat/send** 与 **「部署与网关（对话 SSE）」**）；`LLM_TIMEOUT_CHAT`（默认 45s）未改；仓库内 `nginx/nginx.conf` 的 `proxy_read_timeout` 已为 300s，满足 ≥130s。
+- 涉及文件：
+  - `backend/routers/chat.py`（修改）
+  - `tests/test_chat.py`（修改：新增 `TestStep008RoundId`；`test_chat_send_stream_response` 改为 mock `chat_with_step5_parse`）
+  - `docs/contract.md`（修改：顶部摘要、本开发日志条目）
+- 字段变更：
+  - 新增字段：无（MySQL/SQLite 表无 DDL 变更）
+  - 修改字段 / 契约扩展：`Future` 成功 payload 新增 `round_id`（`str`，UUID 文本）、`step6_messages`（`list[dict]`，Step6 入参快照）；私有函数 `_persist_bundle_success` 新增必填参数 `round_id: str`（原在函数内 `uuid.uuid4()` 生成，现改为调用方传入）；模块常量 `_BUNDLE_WAIT_TIMEOUT_SEC`：`55.0` → `120.0`（**SSE** 侧 `wait_for` 等待同代 Future 的上限；**非**后端 `_execute_llm_bundle` 墙钟硬指标）
+- API / 接口契约：
+  - 接口名称：无新增 HTTP 路由
+  - Method + Path：无变更（`POST /api/chat/send`、`POST /api/chat/resend` 等）
+  - Request Body：无变更
+  - Response：成功 / 失败信封与 SSE 事件类型与 STEP 前一致；`round_id` / `step6_messages` 仅服务端 Future 内存 payload
+  - 变更类型：无（对外契约不变）
+- 数据模型：
+  - 表名 / 集合名：无新增表
+  - 变更类型：无（未新增列、未修改列类型）
+  - 字段详情：`conversation_log.round_id`、`emotion_log.round_id` 仍为既有列（TD-016 / V2-B）；本 STEP 仅改变 `round_id` 的生成时机与落库/Future 一致性
+- 测试结果：✅ 全部通过（`pytest tests/test_chat.py` 共 28 条，含 `TestStep008RoundId` 3 条）
+- 未完成项记录：
+  - 无（Step6 异步入队与 `Step6Snapshot` 使用 `round_id` 及合并后 messages 已在 **STEP-016** 完成；STEP-008 仍负责 Future payload 携带 `round_id` / `step6_messages` 供观测）
+- 备注：`round_id` 与 `generation_id` 仍为独立 UUID（需求文档「与 generation_id 同源」为建议项）；Step5 解析失败路径不生成 `round_id`、不调用 `_persist_bundle_success`。**STEP-011** 起 `_persist_bundle_success` 的 assistant 落库参数由 `ai_reply: str` 改为 `messages: list`（多行 assistant），`round_id` 传入方式不变。**`_BUNDLE_WAIT_TIMEOUT_SEC`** 仅为 SSE 侧 `wait_for` 上限，**非**整链墙钟硬指标，见契约顶栏「SSE 等待上限语义」与 **POST /api/chat/send**。
+
+### STEP-009：Step5.5 触发判定 + LLM 调用 + 解析（§2.7.1 / §2.7.4 D2）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 Step5 解析成功后，读取 `admin_config` 总开关与双门闩 OR 判定；命中则按 `doc/step5_5_prompt.md` 拼装 Prompt、调用豆包非流式接口、解析 JSON 数组、经 `merge_messages_if_exceed` 合并至 ≤5 条后覆盖 `final_messages`；未命中/超时/解析失败则回退 Step5 合并 messages（R-BND-06）。`step6_messages` 始终仅基于 Step5 原始 messages 合并（R-BND-05）。
+- 涉及文件：
+  - `backend/services/step5_5_service.py`（新增）
+  - `backend/routers/chat.py`（修改：接入 `execute_step5_5`、`LEVEL_DEFINITIONS`）
+  - `tests/test_step5_5.py`（新增）
+  - `docs/contract.md`（修改：本条目、admin_config 说明、H5 对话语义摘要、STEP-006 消费点描述）
+- 字段变更：
+  - 新增字段：无（无 DDL）
+  - 修改字段：无
+  - 新增运行时配置约定：`admin_config.config_key = step5_5_enabled`，`config_value` 可为 JSON 布尔 / 字符串 / 数字等，`get_active_config` 解析后按实现约定判定开/关（true/1/on/yes/enabled 等视为开启）
+- API / 接口契约：
+  - 接口名称：无新增用户端或管理端 HTTP 接口
+  - Method + Path：无变更（仍通过 `POST /api/chat/send`、`POST /api/chat/resend` 触发同一 `_execute_llm_bundle` 链路）
+  - Request Body：无变更（`ChatSendRequest` / `ChatResendRequest`）
+  - Response：成功仍为 SSE（`meta` / `delta` / `done` / `failed` / `obsolete`）；**不**因 Step5.5 新增帧类型；失败码与既有定义一致
+  - 变更类型：**服务端内部行为扩展**（条件追加第二次 LLM HTTP 调用，子超时 30s）
+- 数据模型：
+  - 表名：`admin_config`（既有表）
+  - 变更类型：新增约定 `config_key` 行（由运维/后台发布，非代码迁移自动生成）
+  - 字段详情：`config_key = step5_5_enabled`；`config_value` 为开关语义内容；须 `is_active=true` 且 `is_draft=false` 的生效行；Redis 键 `active_config:step5_5_enabled` 与现有热加载机制一致
+- 触发判定规则（§2.7.1）：
+  - 总开关（B3）：`step5_5_enabled` 关闭 → 不执行 Step5.5
+  - 门闩 A：`rand < 0.12`（12%）
+  - 门闩 B：仅 `knowledge_expand == "是"` 时 `rand < 0.5`（50%）
+  - 命中 A OR B → 执行 Step5.5
+- LLM 调用规则：
+  - 独立子超时 30s（§2.7.4 D2）：`asyncio.wait_for` + `llm_client.chat_sync(..., timeout_sec=30)`
+  - 输出：顶层 JSON **数组**（R-BND-04），元素 `{ "type": "text", "content": "..." }`，解析后经 `merge_messages_if_exceed` 至 ≤5 条
+- 回退机制（R-BND-06）：超时、HTTP 异常、非法 JSON、`type`/`content` 校验失败 → `execute_step5_5` 返回 `None`，主链路使用 Step5 的 `merge_messages_if_exceed(step5_result.messages)` 作为 `final_messages`
+- 测试结果：✅ 全部通过（`pytest tests/test_step5_5.py` 共 32 条）
+- 测试覆盖场景：
+  - 场景1：总开关关闭 → 不触发（4 个用例）
+  - 场景2：开关开启 + knowledge_expand="否" + 命中门闩 A（3 个用例）
+  - 场景3：开关开启 + knowledge_expand="是" + 命中门闩 B（4 个用例）
+  - 场景4：LLM 返回非法 JSON → 回退（4 个用例）
+  - 场景5：LLM 超时 → 回退（2 个用例）
+  - 边界：5.5 返回 7 条 → 合并到 5 条（2 个用例）；解析/Prompt/开关值兼容等（13 个用例）
+- 未完成项记录：
+  - 无（管理端 Step5.5 总开关与模板编辑已由 **STEP-026** 交付）
+- 备注：`should_trigger_step5_5()` 支持 `_rand_a` / `_rand_b` 单测注入；Step5.5 Prompt 正文由 **`admin_config:step5_5_prompt_fragments`** 六段模板热加载（缺省与 `step5_5_prompt_fragments.py` / `doc/step5_5_prompt.md` 对齐），运行时 **`build_step5_5_prompt(..., fragments=...)`** 拼装。Step5.5 走 `llm_client` 直调，**未**写入 `LLMService._record_stats` 的 Redis 统计（与主链路 Step5 调用不同）；若需看板包含 5.5，可在后续 STEP 对齐统计写入。
+
+### STEP-010：SSE 协议扩展（多气泡流式）（§2.9.4 / §2.7.5 / §2.7.3）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：服务端 `_sse_chat_wait_bundle` 按 CP2 先发 `meta`（含 `message_count`、`generation_id`），再按条发 `delta`（含 `message_index`），末包 `done` 含整轮 `messages` + `emotion`；`step5.messages` 为空时回退 `reply` 单条。H5 `appendAIThinkingBubble` / `consumeChatSse` 不预铺空气泡、按 index 填槽、`done.messages` 定稿。单测：`TestStep010SseMultiBubble`（3 条集成、单条边界、Python 镜像 H5 乱序填槽与 done 覆盖语义）、`test_chat_send_stream_response` 补充断言；集成路径须 mock `execute_step5_5`，避免 `admin_config_service` 走未 mock 的 `redis_client.get_redis`。
+- 涉及文件：
+  - `backend/routers/chat.py`（修改）
+  - `frontend/pages/chat.html`（修改）
+  - `tests/test_chat.py`（修改）
+  - `docs/contract.md`（修改）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段 / 契约扩展（SSE JSON 行，非 ORM）：
+    - `meta.message_count` - `int` - 本轮气泡条数 N（失败/obsolete/超时路径可为 0）
+    - `delta.message_index` - `int` - 目标气泡下标 0≤index<N
+    - `done.messages` - `array` - `[{"type":"text","content":"..."}, ...]`，客户端真相源
+- 测试结果：✅ 全部通过（`pytest tests/test_chat.py` 全量）
+- 备注：未实现 voice/image 多模态 SSE；`resend` 与 `send` 共用协议未单独改。真实网络乱序 E2E 未纳入本 STEP，乱序/以 done 为准由 Python 镜像单测覆盖。
+- API / 接口契约：
+  - 接口名称：H5 对话流式发送 / 叹号重发
+  - Method + Path：`POST /api/chat/send`、`POST /api/chat/resend`（无变更）
+  - Request Body：与 `ChatSendRequest` / `ChatResendRequest` 一致（无变更）
+  - Response：
+    - 成功：`StreamingResponse`（`text/event-stream`），SSE 行 JSON；`meta`：`generation_id`、`message_count`；`delta`：`content`、`message_index`；`done`：`messages`、`emotion`；另含 `failed` / `obsolete` 等既有类型
+    - 失败（未进 SSE）：`ApiResponse`，`code` + `message`（如队列满 10104 等，与既有定义一致）
+  - 变更类型：**修改**（SSE 帧字段扩展，事件类型名不变）
+- 数据模型：
+  - 表名 / 集合名：无
+  - 变更类型：无
+  - 字段详情：无
+- H5 端行为变更（契约补充）：
+  - `appendAIThinkingBubble()`：`setMessageCount` / `appendTextAt` / `finalize`
+  - `consumeChatSse()`：解析 `meta.message_count`、`delta.message_index`、`done.messages`
+- 未完成项记录：
+  - 无
+
+### STEP-011：conversation_log 多气泡落库（§2.8.1 / §2.8.3）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：成功闭环时 `_persist_bundle_success` 将 `final_messages`（Step5.5 成功则为其输出，否则 Step5 合并后列表）按条落库：`allocate_sort_seq(user_id, count=len(messages), db=...)` 一次取 N 个连续序号，循环插入 N 行 `ConversationLog(role="assistant", content=messages[i].content, sort_seq=seqs[i], round_id=...)`；pack 内 user 行仍批量标 `delivered` 并写同一 `round_id`；`emotion_log` 仍挂首条 pack user 的 `id`。`messages` 为空时函数直接 `return` 并打 warning（正常路径不应出现）。`GET /api/chat/timeline` 未改代码：合并后按 `sort_seq` 排序，多 assistant 自然按序展示。
+- 涉及文件：
+  - `backend/routers/chat.py`（修改：`_persist_bundle_success` 签名 `ai_reply`→`messages`，`_execute_llm_bundle` 传 `final_messages`）
+  - `tests/test_chat.py`（修改：新增 `TestStep011MultiBubblePersist`；`TestStep008RoundId::test_persist_bundle_success_uses_passed_round_id` 适配新签名）
+  - `docs/contract.md`（修改：本条目、表说明、H5 模块语义、timeline 说明、顶部摘要）
+- 字段变更：
+  - 新增字段：无（无 DDL）
+  - 修改字段：无（`conversation_log` 列集合不变）
+  - 行为变更：原「每轮成功闭环写 **1** 行 assistant（`content` 为多气泡 `\n` 拼接）」→ 写 **N** 行 assistant（N = 对外 messages 条数，≤5 由 Step5/合并保证），每行独立 `id` / `sort_seq`，`round_id` 与本轮 user 行一致
+- 测试结果：✅ 全部通过（`pytest tests/test_chat.py` 全量 36 条，含 STEP-011 新增 4 条）
+- 备注：管理后台用户对话查看页 **未** 在本 STEP 适配多行 assistant 展示（与需求范围一致）；人格偏离率分母仍为当日 `role=assistant` 的 `conversation_log` **行数**，多气泡一轮会计多条。
+- API / 接口契约：
+  - 接口名称：无新增路由；H5 timeline / send 响应结构字段名不变
+  - Method + Path：`GET /api/chat/timeline`、`POST /api/chat/send`、`POST /api/chat/resend` — **路径与 JSON 信封不变**
+  - Request Body：无变更
+  - Response：
+    - `GET /api/chat/timeline`：`items[]` 中同一用户时间线可出现 **多条** `source=assistant` 且可共享 `round_id`（契约未强制返回 `round_id` 字段，DB 层已写入；若客户端需分组可后续扩展响应）
+    - `POST /api/chat/send` / `resend`：SSE 契约同 STEP-010（无变更）
+  - 变更类型：**行为/语义补充**（DB 行数与 timeline 列表项数相对 STEP-010 前「单条 assistant」增加）
+- 数据模型：
+  - 表名：`conversation_log`
+  - 变更类型：无（仅写入行数语义变化）
+  - 字段详情：无新增列；`round_id` 含义更新见上文数据库表结构
+- 未完成项记录：
+  - 未完成功能：管理后台对话查看页面对「同一 round 多行 assistant」的展示与可读性优化
+  - 原因：STEP-011 明确不包含 Admin UI
+  - 计划在后续 STEP（产品排期）中处理
+
+### STEP-012：内容安全兼容新结构化输出（§9.1 / §9.3）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 `_execute_llm_bundle` 内 Step5 解析成功且 generation 仍有效后，依次执行：① `_check_inner_monologue_safety` 对 `inner_monologue` 调用 `check_content`，违规则 `logger.warning` 并赋空串（不拦截整轮，避免 Step6 记忆污染）；② `_check_messages_safety` 对 `step5_result.messages` 每条非空 `content` 调用 `check_content`，任一 `is_safe=False` 则 `_mark_pack_failed(..., DELIVERY_STATUS_FAILED_BLOCKED)`、`_resolve_generation_future` 携带 `code=10101`（`ERR_CONTENT_UNSAFE`）并 `return`（不执行 Step5.5）；③ Step5.5 返回非空时对其 `messages` 再跑 `_check_messages_safety`，不通过则 `final_messages = merge_messages_if_exceed(step5_result.messages)` 并打 warning。未改 `content_safety_service.check_content` 规则本身；未对 Step6 产出做安全检测（§9.1）。
+- 涉及文件：
+  - `backend/constants.py`（修改：新增 `DELIVERY_STATUS_FAILED_BLOCKED = "failed_blocked"`）
+  - `backend/routers/chat.py`（修改：新增 `_check_messages_safety`、`_check_inner_monologue_safety`；`_execute_llm_bundle` 插入上述检测逻辑）
+  - `tests/test_step012_content_safety.py`（新增：集成 + 辅助函数单测共 10 条）
+  - `docs/contract.md`（修改：本开发日志、`POST /api/chat/send` 的 `failed`/语义摘要、`delivery_status` 示例、顶部「最后更新」摘要）
+- 字段变更：
+  - 新增字段：无（无 DDL）
+  - 修改字段：`conversation_log.delivery_status`（user 行）— 新增合法取值 **`failed_blocked`**（与 `backend/constants.py` 常量 `DELIVERY_STATUS_FAILED_BLOCKED` 一致），表示 **AI 侧** Step5 对外 messages 内容安全拦截导致的整轮失败
+- 测试结果：✅ 全部通过（`pytest tests/test_step012_content_safety.py` 10 条；`pytest tests/test_chat.py` 36 条；`pytest tests/test_step5_5.py` 32 条回归）
+- 备注：`POST /api/chat/resend` 依赖的 `_open_window_has_bang` 当前仅将 `failed_timeout` / `failed_error` 视为「叹号可重发」；**`failed_blocked` 未纳入**，故纯内容拦截失败时 **可能** 返回 **10107**（无可重发），与超时/解析类叹号行为不完全一致；若产品要求拦截后也可重试，需在后续 STEP 扩展 `_open_window_has_bang` 与前端叹号映射。
+- API / 接口契约：
+  - 接口名称：`POST /api/chat/send`、`POST /api/chat/resend`（SSE 成功路径）
+  - Method + Path：`POST /api/chat/send`、`POST /api/chat/resend`
+  - Request Body：无变更（与既有 `ChatSendRequest` / `ChatResendRequest` 一致）
+  - Response：
+    - 成功（SSE）：事件类型集合不变；**`failed` 事件** 在 Step5 messages 安全拦截时 **`code` 可为 `10101`**（`ERR_CONTENT_UNSAFE`），`message` 为服务端文案（如「内容安全拦截」）
+    - 失败（未进入 SSE）：无变更（用户输入侧 **10101** 仍为既有语义）
+  - 变更类型：**修改**（SSE `failed` 的 `code` 语义扩展；成功路径内部增加 AI 输出安全分支）
+- 数据模型：
+  - 表名：`conversation_log`
+  - 变更类型：**无新列**；`delivery_status` 字符串枚举在契约与常量层 **新增取值** `failed_blocked`（见上「字段变更」）
+  - 字段详情：无新增物理列
+- 未完成项记录：
+  - 无（`failed_blocked` 与重发叹号是否打通见上「备注」，属产品/后续 STEP 可选）
+
+### STEP-013：Step6 记忆总结 LLM Prompt + JSON 解析（R-MEM-01 / R-MEM-06 / R-MEM-07 / §2.5）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：新增 `memory_llm_service.py`，提供 `Step6MemoryOutput`（驼峰 11 字段，与 Step5 snake_case 独立）；`build_step6_prompt()` 按「系统指令 + 当前时间 + 人格 + 关系状态 + 近期历史（不含本轮）+ 本轮完整对话 + 任务说明 + §2.5 完整 few-shot」拼装；本轮「林小梦」侧正文仅拼接 **Step5 解析产出的** `messages[].content`（§2.9.3，不含 Step5.5 润色）；`parse_step6_output()` 用与 Step5 同类的首段 `{...}` 正则提取后 `json.loads`，顶层非对象则失败；字段缺失时除 `InnerMonologue` 默认空串外其余默认字符串「无」；非法 JSON 抛 `Step6ParseError`。多行 `key：value` 中行级合法性（全角冒号）不在本模块校验，由 STEP-014 丢弃非法行。
+- 涉及文件：
+  - `backend/services/memory_llm_service.py`（新增：`Step6MemoryOutput`、`Step6ParseError`、`parse_step6_output`、`build_step6_prompt`、§2.5 few-shot 常量）
+  - `tests/test_memory_llm_service.py`（新增：解析与 Prompt 拼装单测 30 条）
+  - `docs/contract.md`（修改：顶部「最后更新」摘要、本开发日志条目）
+- 字段变更：
+  - 新增字段：无（无 DDL；`Step6MemoryOutput` 为内存模型，非 DB 列）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_memory_llm_service.py` 30 条）
+- 备注：`build_step6_prompt` / `parse_step6_output` 已由 **STEP-016** 在 `execute_step6` 管线中调用；四路向量 `upsert_step6_vectors`、relationship 写回 `update_relationship_from_step6` 同由 STEP-016 编排调用。
+- API / 接口契约：
+  - 接口名称：无（本 STEP 仅新增内部 Service 与单测，未暴露新 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**
+- 数据模型：
+  - 表名 / 集合名：—
+  - 变更类型：**无**
+  - 字段详情：无
+- 未完成项记录：
+  - 未完成功能：Step6 调用后的 **LLM 统计异步写入**（与主对话 `llm_service` 统计路径对齐，若产品要求单独计数可后续 STEP 增补）
+  - 原因：STEP-016 范围不含 Redis `llm_stats` / `llm_response_times` 写入
+  - 计划在后续运维/观测 STEP 或统一埋点中处理
+
+### STEP-015：Step6 relationship 标量 + 历史 + Future 槽（R-MEM-05 / §2.8.4）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 `relationship_service.py` 的 `RelationshipService` 类中新增 `update_relationship_from_step6(relationship, step6_output, round_id, *, future_time_natural, future_action)` 方法。**6 个标量字段写回**：通过 `_STEP6_FIELD_MAP` 映射 Step6 驼峰字段名到 relationship 表蛇形列名（`UserRealName`→`user_real_name`、`UserHobbyName`→`user_hobby_name`、`UserDescription`→`user_description`、`CharacterPurpose`→`character_purpose`、`CharacterAttitude`→`character_attitude`、`RelationDescription`→`relation_description`）；值非「无」→ `setattr` 覆盖 + 调用 `RelationshipHistoryService.append_history` 写入变更历史（old_value 从当前 relationship 实例读取）；值为「无」→ 跳过该列赋值，保留库内上一轮值。**Future 槽处理**：优先判定 `future_action` 为「无」→ 清空 `future_timestamp` 和 `future_action`；否则当 `future_time_natural` 非「无」时调用 `parse_future_time()` 解析——成功→写入 `future_timestamp`（Unix 时间戳）+ `future_action`，失败→清空 future 字段 + 保留 `proactive_times` 不变 + `logger.warning` 结构化日志。所有变更历史记录 `trigger_source='step6'`，携带 `round_id`。不在本 STEP 范围：`relation_change.delta` 与 growth 的映射（R-BND-09 暂缓）、`proactive_times` 的 +1 逻辑（STEP-022 负责）。
+- 涉及文件：
+  - `backend/services/relationship_service.py`（修改：新增 `_STEP6_FIELD_MAP` 类属性、`update_relationship_from_step6` 方法；新增 import `RelationshipHistoryService`、`parse_future_time`、`Optional`）
+  - `tests/test_step015_relationship_step6.py`（新增：标量写回+历史+Future 槽单测 11 条）
+  - `docs/contract.md`（修改：顶部「最后更新」摘要、本开发日志、STEP-013 未完成项更新）
+- 字段变更：
+  - 新增字段：无（无 DDL；所需列已由 STEP-001 创建）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_step015_relationship_step6.py` 11 条）
+- 备注：`update_relationship_from_step6` 已由 **STEP-016** `execute_step6` 在独立 DB session 中调用并 `commit`。
+- API / 接口契约：
+  - 接口名称：无（本 STEP 仅新增内部 Service 方法与单测，未暴露新 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**
+- 数据模型：
+  - 表名 / 集合名：`relationship`（已有）、`relationship_change_history`（已有）
+  - 变更类型：**运行时写入**（无 DDL）
+  - 字段详情：无
+- 未完成项记录：
+  - ~~`proactive_times` +1（STEP-022）~~ → ✅ 已由 STEP-022 完成
+  - 未完成功能：`relation_change.delta` 与 growth 的映射（R-BND-09）
+  - 原因：STEP-015 范围仅限 Service 方法交付
+  - 计划在 R-BND-09 相关 STEP 中处理
+
+### STEP-014：Step6 DashVector 四路向量写入（R-MEM-04）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 `memory_llm_service.py` 中实现 `parse_kv_lines(text)`：按 `\n` 拆行，每行按**首处**全角冒号 `：` 分割为 `(key, value)`，strip 后 key 或 value 为空、或行内无全角冒号的行丢弃。`upsert_step6_vectors(output: Step6MemoryOutput, user_id: int)` 遍历四类字段与 `constants` 中 `MEMORY_TYPE_*` 映射：`CharacterPublicSettings`→`character_global`、`CharacterPrivateSettings`→`character_private`、`CharacterKnowledges`→`character_knowledge`、`UserSettings`→`user`；字段值等于字符串「无」（strip 后）则整路跳过；否则对合法行生成 `doc_id="{memory_type}:{stable_key}:{user_id或空}"`（无 user 后缀时第三段为空字符串，形如 `character_global:外貌-体态:`）；对 **value** 调用 `embedding_service.get_embedding`，向量非空则 `dashvector_client.upsert(doc_id, vector, fields, memory_type)`，其中 `fields.content` 为「key：value」整行文本；`character_private` 与 `user` 在 `fields` 中附带 `user_id`（整数），另两类不附带；`dashvector_client` 合并 `type=memory_type`（与 STEP-003 一致）。同 key 同 type（及同 user 作用域）再次 upsert 覆盖；本轮未再出现的 key **不**自动删除。返回 `dict[str, int]` 为各 `memory_type` 成功写入条数计数。
+- 涉及文件：
+  - `backend/services/memory_llm_service.py`（修改：新增 `parse_kv_lines`、`_build_doc_id`、`upsert_step6_vectors` 及常量映射；依赖 `embedding_service`、`dashvector_client`）
+  - `tests/test_step6_vector_upsert.py`（新增：解析、doc_id、四路写入 mock 单测 22 条）
+  - `docs/contract.md`（修改：顶部「最后更新」摘要、本开发日志、STEP-013 备注与未完成项）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_step6_vector_upsert.py` 22 条；回归 `tests/test_memory_llm_service.py` 30 条）
+- 备注：`upsert_step6_vectors` 已由 **STEP-016** `execute_step6` 调用；管理后台知识库 CRUD 见 **STEP-027**；`memory` 表 `dashvector_id` 与 Step6 行级 doc_id 无强制关联（Step6 使用稳定 doc_id 策略）。
+- API / 接口契约：
+  - 接口名称：无（本 STEP 仅新增内部异步函数与单测，未暴露新 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**
+- 数据模型：
+  - 表名 / 集合名：**DashVector 集合**（配置项 `collection_name`，与既有向量库配置一致；无新集合名）
+  - 变更类型：**运行时文档约定**（非 MySQL 迁移）
+  - 字段详情：
+    - 文档 `id`（即 upsert 的 `doc_id`）：字符串，`{memory_type}:{stable_key}:{user_id或空}`，`stable_key` 为全角冒号前的 key 原文
+    - 向量字段 `vector`：与 `text-embedding-v3` 维度一致（与既有 `embedding_service` 一致）
+    - `fields.type`：四类之一 `character_global` / `character_private` / `character_knowledge` / `user`（由客户端合并写入，与 STEP-003 检索 filter 一致）
+    - `fields.content`：字符串，格式为「key：value」（全角冒号，与解析行一致）
+    - `fields.user_id`：整数，**仅** `character_private`、`user` 两类写入；`character_global`、`character_knowledge` **省略**该字段
+- 未完成项记录：
+  - 无（对话链路调用已由 **STEP-016** 完成）
+
+### STEP-016：Step6 异步入队 + M2 半异步 + 重试（§2.8.4 / §2.9.3）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：`Step6Snapshot` 在 `_execute_llm_bundle` 内于 Step5 解析成功、内容安全通过、`_persist_bundle_success` 落库之后构建：`step6_messages = merge_messages_if_exceed(step5_result.messages)`（≤5，CP1，**不含** Step5.5 润色）；`asyncio.create_task(execute_step6(snapshot))` 入队，**不 await**，保证 `_resolve_generation_future` / SSE 不被 Step6 阻塞（M2）；`execute_step6` 内整段管线失败时 `asyncio.sleep(0.5)` 后 **再执行 1 次**（共 2 次），仍失败则 `logger.error` 含 `exc_info` 后返回，**允许不落库**；快照含 `persona`（Redis `active_config:persona`，空则 `DEFAULT_PERSONA`）、关系等级名、relationship 六列读快照、近期对话 `{role,content}`、Step5 `future`、打包用户原文 `bundled`；`_step6_pipeline`：`build_step6_prompt` → `llm_client.chat_sync`（**45s**，模块常量 `_STEP6_LLM_TIMEOUT_SEC`，固定值非环境变量）→ `parse_step6_output` → `upsert_step6_vectors` → 新开 `async_session_maker` 加载 `Relationship` → `update_relationship_from_step6` → `commit`；无 `relationship` 行则 warning 跳过标量更新；入队构建 try/except 仅日志。SSE 事件格式**未**改。
+- 涉及文件：
+  - `backend/services/step6_orchestrator.py`（新增：`Step6Snapshot`、`execute_step6`、`_ConvProxy`、`_step6_pipeline`）
+  - `backend/routers/chat.py`（修改：导入 `DEFAULT_PERSONA`、`REDIS_KEY_PERSONA`、`Step6Snapshot`、`execute_step6`；闭环成功后 `create_task(execute_step6)`）
+  - `tests/test_step016_step6_orchestrator.py`（新增：6 条单测）
+  - `docs/contract.md`（修改：顶部摘要、H5 对话语义、STEP-006/008/013/014/015 备注与未完成项、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL；无新 HTTP 字段）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_step016_step6_orchestrator.py` 6 条；回归 `tests/test_merge_messages.py` + `test_step016` 共 22 条）
+- 备注：未实现 **STEP-028** 管理后台 Step6 失败监控页；Step6 **未**写入与主对话相同的 Redis `llm_stats` / `llm_response_times` 统计（与 `.cursorrules` 全量 LLM 统计口径可后续对齐）；退避固定 **500ms**（需求区间 200ms～1s 取默认中值）。
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由；`POST /api/chat/send` / `resend` 的 SSE 事件集合不变）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（服务端后台异步行为补充，见 H5 模块「语义摘要」）
+- 数据模型：
+  - 表名 / 集合名：`relationship`、`relationship_change_history`、DashVector 文档（与 STEP-014/015 一致）
+  - 变更类型：**运行时写入**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - 未完成功能：管理后台 Step6 失败可观测性（**STEP-028**）；Step6 LLM 与主链一致的 **Redis LLM 统计**写入（若产品要求）
+  - 原因：本 STEP 明确排除管理端监控；统计未纳入范围
+  - 计划在 STEP-028 或统一观测 STEP 中处理
+
+### STEP-022：proactive_times 计数/清零 + 频控调整（R-FUT-03 / §2.2 变更 8.2）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：**proactive_times 清零**：`chat.py` `POST /api/chat/send` 入口在用户消息落库 commit 后、防抖调度前，独立 session 查询 `relationship` 表，若 `proactive_times != 0` 则置 0 并 commit，异常仅日志不阻断主链路。**频控参数调整（§2.2 变更 8.2）**：`agent_service.py` `check_and_trigger` 方法中每日上限从 2 调整为 8（含 Future 槽消费计入），两次间隔从 `timedelta(hours=6)` 调整为 `timedelta(minutes=30)`。**proactive_times +1**：`generate_and_save_message` 在 Redis 计数器 INCR 后，独立 session 加载 `relationship`，若 `proactive_times < 3` 则 +1 并 commit（上限保护 3），异常仅日志不阻断。**Future 槽计入计数器**：新增 `increment_agent_count_for_future(user_id)` 方法，对 `agent:count:{user_id}:{date}` 执行 INCR + EXPIRE（TTL 到日末），供 STEP-023 Future 槽消费成功后调用。**30 天无活动清零**：新增 `reset_inactive_proactive_times()` 方法，查询 `proactive_times > 0` 且 `last_interaction_at` 为 NULL 或超过 30 天的 relationship 记录，将 `proactive_times` 置 0 + 清空 `future_timestamp`/`future_action`；`scheduler.py` 注册每日凌晨 1:00 UTC CronTrigger 执行该任务。**Agent 扫描间隔调整**：`scheduler.py` 中 Agent 主动消息扫描从 `IntervalTrigger(hours=6)` 调整为 `IntervalTrigger(minutes=30)`，与频控最小间隔匹配。
+- 涉及文件：
+  - `backend/routers/chat.py`（修改：`chat_send` 函数新增 proactive_times 清零逻辑块）
+  - `backend/services/agent_service.py`（修改：`check_and_trigger` 频控参数 2→8、6h→30min；`generate_and_save_message` 新增 proactive_times +1 逻辑；新增 `increment_agent_count_for_future` 方法；新增 `reset_inactive_proactive_times` 方法）
+  - `backend/tasks/scheduler.py`（修改：Agent 扫描间隔 6h→30min；新增 `_run_inactive_reset` 包装器 + `inactive_proactive_reset_task` CronTrigger 注册）
+  - `tests/test_step022_proactive_times.py`（新增：proactive_times 计数/清零 + 频控参数单测 18 条）
+  - `docs/contract.md`（修改：顶部「最后更新」摘要、本开发日志）
+- 字段变更：
+  - 新增字段：无（`proactive_times` 已在 STEP-001 添加）
+  - 修改字段：无
+- 测试结果：✅ 全部 18 条通过（`pytest tests/test_step022_proactive_times.py`：场景1 用户发消息清零 3 条、场景2 主动消息后+1 3 条、场景3 概率公式验证 3 条、频控参数边界 4 条、30 天无活动清零 4 条、Future 槽计入计数器 1 条）
+- API / 接口契约：
+  - 接口名称：`POST /api/chat/send`（已有接口，新增内部副作用）
+  - Method + Path：POST /api/chat/send
+  - Request Body：无变更
+  - Response：无变更
+  - 变更类型：**内部行为变更**（无对外 HTTP 契约变更，仅新增内部 proactive_times 清零副作用）
+- 数据模型：
+  - 表名 / 集合名：`relationship`（已有表，读写 `proactive_times` / `future_timestamp` / `future_action`）
+  - 变更类型：**运行时写入**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - ~~未完成功能：Future 槽消费轮询（STEP-023）~~ → ✅ 已由 **STEP-023** 完成
+  - ~~未完成功能：Step8 子链路专用 LLM 调用与编排（STEP-024）~~ → ✅ 已由 **STEP-024** 完成
+
+### STEP-023：Future 槽消费轮询 Handler（R-AGT-02 / Step8 轮询）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：新增 `FutureSlotHandler`（`future_handler.py`），由 APScheduler 每 **60 秒** 执行 `scan_and_consume()`：联表 `relationship` + `users`，筛选 **4 条件同时成立** 的到期槽（`future_timestamp` 非空、≤当前 Unix 秒、>当前时间−1800、用户未封禁）。单用户 `_consume_one()`：**始终**检查 Redis `agent:blacklist:{user_id}`；**不**走 8 次/天与 30 分钟间隔频控；调用 `calculate_action_score(user_id, TriggerType.FUTURE)`，评分 **<6** 或黑名单则 **仅清空** `future_timestamp`/`future_action` 并打日志。通过则调用 `execute_step8_subchain(user_id, future_action)` 执行 Step8 子链路（已由 STEP-024 实现）；成功后再 `_on_consume_success`：**清空槽**、`proactive_times` **+1**（上限 3）、`increment_agent_count_for_future` 计入当日 `agent:count`。`cleanup_expired_slots()` 清理 **超出 30 分钟窗口** 的残留槽位。路 B：`check_and_trigger` 在频控前若 `_has_pending_future_slot`（`future_timestamp > now`）则 **跳过** 定时扫描写入。
+- 涉及文件：
+  - `backend/services/future_handler.py`（新增：`FutureSlotHandler` / `future_handler` 单例）
+  - `backend/tasks/scheduler.py`（修改：新增 `_run_future_slot_scan`、`future_slot_scan_task` IntervalTrigger 60s）
+  - `backend/services/agent_service.py`（修改：`check_and_trigger` 路 B 优先级保护；`_has_pending_future_slot`；`TRIGGER_WEIGHTS` / `AGENT_FALLBACK_REPLIES` 增加 FUTURE；`import time`）
+  - `backend/models/agent_message.py`（修改：`TriggerType.FUTURE`）
+  - `tests/test_step023_future_handler.py`（新增：14 条单测）
+  - `docs/contract.md`（修改：`agent_message.trigger_type` 说明、顶部摘要、本开发日志、STEP-022 未完成项）
+- 字段变更：
+  - 新增字段：无（无 DDL）
+  - 修改字段：`agent_message.trigger_type` — 允许取值扩展为含 **`FUTURE`**（仍为 `String(10)`，ORM 层 `TriggerType` 常量）
+- 测试结果：✅ 全部通过（`pytest tests/test_step023_future_handler.py` 14 条）
+- 备注：Future 消费成功后已由 **STEP-024** 实现的 `execute_step8_subchain()` 完成 Step8 专用子链路。轮询周期取 **60 秒**（需求「参考每秒」的折中，避免 DB 压力过大）。
+- API / 接口契约：
+  - 接口名称：无新增对外 HTTP 接口（仅后台定时任务）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（运行时行为：定时扫描 Redis + MySQL）
+- 数据模型：
+  - 表名 / 集合名：`agent_message`（`trigger_type` 语义扩展）、`relationship`（读写 Future 槽与 `proactive_times`）、Redis `agent:count:{user_id}:{date}`、`agent:blacklist:{user_id}`
+  - 变更类型：**取值约定扩展**（无表结构 DDL）
+  - 字段详情：无新列；`trigger_type` 新增合法枚举值 `FUTURE`
+- 未完成项记录：
+  - ~~未完成功能：Step8 子链路 **专用** LLM 调用与编排（STEP-024）~~ → ✅ 已由 **STEP-024** 完成
+  - 未完成功能：管理后台 Future/Agent 监控页（若需求单独立项）
+
+---
+
+### STEP-024：Step8 子链路（R-L1L3-12 / §8.3 子链路编排）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- > ⚠️ 本条为 2026-05-05 历史纪要，其中 Step1.5 入参描述（`future.action` 替代 `last_user_text`）已被顶部「2026-05-30 摘要」更新为 `rewrite_input`，**当前实现以摘要为准**。
+- 实现说明：新增 `step8_subchain.py`，实现 Future 槽到期触发的主动消息子链路 `execute_step8_subchain(user_id, future_action)`，复用主链 Step 变体：**Step1** 在单个 `async with async_session_maker()` 会话内 **顺序** `await` `_get_recent_conversations`（最多 20 条、反转后取末 10 轮参与下游）、`_get_relationship`、`_get_emotion_context`（数据源与主链相同；**不得**对同一 `AsyncSession` 使用 `asyncio.gather` 并行执行多条语句，否则触发 SQLAlchemy 异步会话状态错误）；**Step1.5 变体** 调用 `execute_query_rewrite(source="step8")`，输入用 `future.action` 替代 `last_user_text`，降级路径用 `future.action` 通过 `embedding_service.get_embedding` 生成单 Embedding（R-L1L3-12）；**Step2** 完全复用 `execute_multi_vector_retrieval()`；**Step3 变体** 调用 `PromptBuilder.build_step8_prompt()`，将 9 模块中的【用户消息】替换为【主动发起】模块（含 `future.action` 摘要，指导 LLM 以预约内容自然开启对话）；**Step5** 完全复用 `llm_service.chat_with_step5_parse()`，含内容安全检查（`check_content`）与人格偏离检测（`_check_persona_risk` 关键词扫描，偏离时回退默认回复写入 `agent_message`）；**Step5.5** 调用 `execute_step5_5(gate_a_override=0.03)` 配置较低触发概率（主链 0.12 vs Step8 0.03）；**产出** 写入 `agent_message` 表（`trigger_type=FUTURE`，不走 SSE），`sort_seq` 通过 `allocate_sort_seq` 分配；**Step6** `asyncio.create_task(execute_step6(snapshot))` 异步入队记忆总结（不阻塞）；**衰减门控** `_decay_gate_and_update`：`proactive_times` +1（上限 3），以 `0.15^(proactive_times+1)` 概率从 Step5 输出解析 future 字段并写入下一轮 Future 预约。边界处理：`future_action` 为空/None/纯空白→日志 + 返回 False。`prompt_builder.py` 新增 `_build_proactive_input(future_action, limits)` 和 `build_step8_prompt(user_id, ...)` 两个方法。`step5_5_service.py` `should_trigger_step5_5()` / `execute_step5_5()` 新增 `gate_a_override` 可选参数支持外部覆盖门闩 A 概率。`future_handler.py` `_consume_one()` 中 `generate_and_save_message(FUTURE)` 占位替换为 `execute_step8_subchain(user_id, future_action)`。**维护（2026-05-07）**：修正 Step1 装载实现描述（顺序查询替代错误的同 session 并行 gather）；不改变对外契约。
+- 涉及文件：
+  - `backend/services/step8_subchain.py`（新增：`execute_step8_subchain`、`_get_recent_conversations`、`_get_relationship`、`_get_emotion_context`、`_build_step8_round_context`、`_check_persona_risk`、`_fallback_write_agent_message`、`_decay_gate_and_update`；常量 `STEP8_GATE_A_PROBABILITY=0.03`、`DECAY_BASE=0.15`、`PROACTIVE_TIMES_CAP=3`、`STEP8_FALLBACK_REPLY`、`PERSONA_RISK_KEYWORDS`）
+  - `backend/services/prompt_builder.py`（修改：`PromptBuilder` 新增 `_build_proactive_input()` 和 `build_step8_prompt()` 方法）
+  - `backend/services/step5_5_service.py`（修改：`should_trigger_step5_5()` 和 `execute_step5_5()` 新增 `gate_a_override` 参数）
+  - `backend/services/future_handler.py`（修改：`_consume_one()` 中调用替换为 `execute_step8_subchain`；新增 `from backend.services.step8_subchain import execute_step8_subchain`）
+  - `tests/test_step024_step8_subchain.py`（新增：10 条单测）
+  - `tests/test_step023_future_handler.py`（修改：2 条测试适配 `execute_step8_subchain` mock）
+  - `docs/contract.md`（修改：顶部摘要、STEP-022/STEP-023 未完成项更新、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_step024_step8_subchain.py` 10 条：场景1 完整子链路执行+agent_message 写入、场景2 Step1.5 失败降级用 future.action Embedding、场景3 proactive_times=3 衰减概率≈0.05%、衰减门控命中写入 Future、衰减门控未命中不写入、future_action 空/None/纯空白 3 条边界、Step5 失败返回 False、proactive_times 上限不超过 3）；既有测试 `test_step023_future_handler.py` 14 条 + `test_step5_5.py` 32 条 + `test_prompt_builder.py` 30 条全部通过（共 86 条无回归）
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由，子链路为内部后台任务）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（运行时行为：Future 槽到期后内部触发）
+- 数据模型：
+  - 表名 / 集合名：`agent_message`（写入 `trigger_type=FUTURE` 的主动消息）、`relationship`（读写 `proactive_times`/`future_timestamp`/`future_action`）
+  - 变更类型：**运行时写入**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - 无
+
+---
+
+### STEP-021：Step3 Prompt 新增模块 + Token 裁剪（R-L1L3-19）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- > ⚠️ 本条为 2026-05-05 历史纪要；**2026-05-30** 起主链在 recent_chat 与 user_input 之间新增 **`user_nickname` 模块**（有称呼时 +1 段）、relationship 删除称呼行，**以顶部「2026-05-30 摘要」为准**。
+- 实现说明：`prompt_builder.py` 重构为 9 模块结构拼装（R-L1L3-19）。新增模块 A「角色设定与知识」（`_build_character_knowledge_prompt()`）：合并 Step2 的 `character_global` + `character_private` 结果标记为「角色设定」，`character_knowledge` 结果标记为「角色知识」，所有条目按 DashVector score 降序排列，超过 `character_knowledge` Token 上限时从低分端逐条移除（不重新计算 Embedding）；模块 A 插入在 Persona 之后、Relationship 之前。新增模块 B「时间与活动状态」（原 `_build_time_prompt()`）：形式上归入 `time_activity` 模块键，保持在 Emotion 之后 Recent Chat 之前位置，空活动描述时跳过活动行。`MAX_TOTAL_TOKENS` 从 5200 调整为 7373（基线 ×1.8）；`MODULE_TOKEN_LIMITS` 全部更新为 R-L1L3-19 指定默认值（system 720 / persona 1080 / character_knowledge 600 / relationship 360 / memory 900 / emotion 270 / time_activity 80 / recent_chat 1800 / user_input 900）。新增 `_load_token_limits()` 方法：从 `admin_config_service.get_active_config("prompt_token_config")` 热加载 JSON 配置（期望格式 `{"max_total": 7373, "system": 720, ...}`），仅覆盖存在且 > 0 的键，其余回退默认值，异常时全部回退默认值。`_trim_to_budget()` 实现 5 级裁剪优先级引擎：①`recent_chat` 从最早对话逐条删除 → ②`memory` 从末尾（最低分）逐条删除 → ③`character_knowledge`（模块 A）按 score 从低到高逐条删除 → ④`relationship` 扩展部分移除（调用 `_build_relationship_prompt_core()` 仅保留核心等级/语气/沉默修正）→ ⑤`time_activity`（模块 B）整块移除；System / Persona 绝不裁剪。`_build_memory_prompt()` 扩展为兼容 Step2 检索结果（dict 列表，含 `content`/`score`）和 Memory ORM 实例两种格式。`build_chat_prompt()` 新增 `retrieval_results: dict | None` 参数，接收 `MultiVectorRetrievalResult.format_for_prompt()` 输出的四路检索结果 dict。所有模块构建方法统一接收 `limits` 参数（从热配加载），不再硬编码读取全局常量。`chat.py` `_execute_llm_bundle` 中：`memories` 参数改为直接传递 `memories_raw`（Step2 user_results dict 列表），不再通过 `_MemoryProxy` 包装；新增 `retrieval_for_prompt = retrieval_result.format_for_prompt()` 并传递给 `build_chat_prompt`。`build_active_message_prompt()` 保持向后兼容（仍接受 Memory ORM 实例，不使用模块 A/B）。
+- 涉及文件：
+  - `backend/services/prompt_builder.py`（修改：常量 `MAX_TOTAL_TOKENS`/`MODULE_TOKEN_LIMITS` 更新；新增 `TRIM_PRIORITY`/`MODULE_ORDER`/`_PROMPT_TOKEN_CONFIG_KEY` 常量；新增 `admin_config_service` 导入；`PromptBuilder` 类重构——新增 `_load_token_limits()`/`_build_character_knowledge_prompt()`/`_merge_character_knowledge_items()`/`_render_character_knowledge()`/`_build_relationship_prompt_core()`/`_trim_to_budget()` 方法；`build_chat_prompt()` 新增 `retrieval_results` 参数、9 模块 dict 拼装流程；所有 `_build_*` 方法新增 `limits` 参数；删除旧 `_check_token_limit()` 方法）
+  - `backend/routers/chat.py`（修改：`_execute_llm_bundle` 中删除 `_MemoryProxy` 类及包装逻辑，改为直接传 `memories_raw` + `retrieval_for_prompt`）
+  - `tests/test_prompt_builder.py`（修改：30 条测试含新增 STEP-021 场景：全量注入无裁剪、总 Token 超限裁剪优先级、模块 A score 裁剪、热配覆盖默认值、9 模块顺序验证、模块 A 空结果跳过、relationship 扩展裁剪、Step2 dict 格式记忆、默认 Token 上限验证）
+  - `docs/contract.md`（修改：顶部「最后更新」摘要、本开发日志、STEP-020 未完成项关闭）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+  - 新增 admin_config 键：`prompt_token_config`（JSON，`{"max_total": 7373, "system": 720, "persona": 1080, "character_knowledge": 600, "relationship": 360, "memory": 900, "emotion": 270, "time_activity": 80, "recent_chat": 1800, "user_input": 900}`，由管理后台 STEP-025 创建的配置页发布）
+- 测试结果：✅ 全部通过（`pytest tests/test_prompt_builder.py` 30 条：含场景1 全量注入无裁剪、场景2 超限先裁 recent_chat 再裁 memory、场景3 模块 A 超 600 按 score 裁剪、边界热配 recent_chat=1000 使用配置值、9 模块顺序/8 模块顺序（无模块 A）、模块 A 内容注入/空结果跳过、Step2 dict 格式记忆、relationship 扩展裁剪核心、Token 默认值验证、原有 STEP-004/STEP-017 测试全量保留）
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（仅对话链路内部 Prompt 拼装改造）
+- 数据模型：
+  - 表名 / 集合名：`admin_config`（仅读取 `prompt_token_config`，无 DDL）
+  - 变更类型：**运行时读取**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - 管理后台「Prompt Token 配置」页创建与发布流程（STEP-025）
+
+---
+
+### STEP-020：Step2 多路向量检索（R-L1L3-10 / R-L1L3-17 / R-L1L3-18 / R-L1L3-21）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- > ⚠️ 本条为 2026-05-05 历史纪要，已被顶部「2026-05-30 摘要」更新（per-route 主路 + 2.5 补充路、`character_private` 独立 Embedding、`skipped_routes`、按路容错），**当前实现以摘要为准**。
+- 实现说明：新增 `multi_vector_retrieval_service.py`，实现 Step2 多路向量检索。`MultiVectorRetrievalResult` dataclass 承载 4 路检索结果（`character_global_results` / `character_private_results` / `character_knowledge_results` / `user_results`），附带 `top_k` / `threshold` / `is_fallback` 元数据，提供 `all_results`（去重合并按 score 降序）、`user_memory_results`（兼容旧 `memories_raw` 格式）、`format_for_prompt`（分路 dict）属性。`execute_multi_vector_retrieval()` 主入口：正常路径（Step1.5 成功）阶段① `asyncio.gather` 并行调用 `embedding_service.get_embedding` 生成 3 个 Embedding（CharacterGlobal / CharacterKnowledge / UserProfile），阶段② `asyncio.gather` 并行执行 4 次 `dashvector_client.search`（`character_global` 无 user_id + `character_private` 有 user_id 复用 CharacterGlobal Embedding + `character_knowledge` 无 user_id + `user` 有 user_id）；降级路径（Step1.5 失败）用 `fallback_embedding` 直接执行全部 4 路检索（R-L1L3-12），过滤条件不变。从 `admin_config_service.get_active_config("vector_retrieval_config")` 热加载 TopK 和阈值（R-L1L3-17），期望 JSON `{"top_k": 3, "threshold": 0.7}`，无配置或解析失败时回退默认值。`chat.py` `_execute_llm_bundle` 中：在 `round_context` 构建后新增 Step1.5（`execute_query_rewrite`）+ Step2（`execute_multi_vector_retrieval`）调用，`memories_raw` 取自 `retrieval_result.user_memory_results`，`memories` 取自 `_MemoryProxy` 包装后的列表；删除旧 `user_embedding = await _get_embedding(last_user_text)` 及关联 `_search_memories` 调用（R-L1L3-21）；`_persona_text` 在 Step1.5 阶段预获取后复用至 Step6 快照构建，消除重复 Redis `GET`。
+- 涉及文件：
+  - `backend/services/multi_vector_retrieval_service.py`（新增：`MultiVectorRetrievalResult`、`_load_retrieval_config`、`_phase1_generate_embeddings`、`_phase2_parallel_search`、`_fallback_search`、`execute_multi_vector_retrieval`）
+  - `backend/routers/chat.py`（修改：新增 `execute_multi_vector_retrieval` / `execute_query_rewrite` 导入；`_execute_llm_bundle` 中删除旧 `user_embedding` / `_search_memories` 代码，新增 Step1.5 + Step2 调用链，`_persona_text` 提前获取复用至 Step6）
+  - `tests/test_multi_vector_retrieval_service.py`（新增：6 条单测）
+  - `docs/contract.md`（修改：顶部摘要、本开发日志、STEP-019 未完成项更新）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+  - 新增 admin_config 键：`vector_retrieval_config`（JSON，`{"top_k": 3, "threshold": 0.7}`，由管理后台 STEP-025 创建的配置页发布）
+- 测试结果：✅ 全部通过（`pytest tests/test_multi_vector_retrieval_service.py` 6 条：场景1 正常 3 Embedding+4 检索 ≤12 条、场景2 降级 1 Embedding+4 检索、场景2b 降级无 Embedding 返回空、场景3 部分路 0 命中、边界热配 TopK=5 覆盖默认、无配置回退默认值）
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（仅对话链路内部数据流改造）
+- 数据模型：
+  - 表名 / 集合名：`admin_config`（仅读取 `vector_retrieval_config`，无 DDL）
+  - 变更类型：**运行时读取**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - ~~Prompt 拼装层消费 4 路检索结果（STEP-021）~~ → ✅ 已由 STEP-021 完成
+  - 管理后台「向量召回配置」页创建与发布流程（STEP-025）
+
+---
+
+### STEP-019：Step1.5 查询重写 LLM（R-L1L3-09 / R-L1L3-12 / R-L1L3-13 / R-L1L3-14）
+- 完成时间：2026-05-05（**2026-05-08** 调整超时与业务层重试策略，见实现说明）
+- 状态：✅ 已完成
+- > ⚠️ 本条为 2026-05-05 历史纪要，已被顶部「2026-05-30 摘要」更新（`QueryRewriteOutput` 扩为 13 字段、`rewrite_input` 改名、C1 四路全「无」合法成功态），**当前实现以摘要为准**。
+- 实现说明：新增 `query_rewrite_service.py`，实现 Step1.5 查询重写 LLM 调用。`QueryRewriteOutput` Pydantic 模型定义 7 字段输出（`InnerMonologue` + `CharacterGlobalQueryQuestion`/`Keywords` + `CharacterKnowledgeQueryQuestion`/`Keywords` + `UserProfileQueryQuestion`/`Keywords`，字段名与 R-L1L3-09 严格一致）；`QueryRewriteResult` dataclass 作为返回值（`success`=True 时 `output` 非空，`success`=False 时 `fallback_embedding` 非空为降级成功）。`_build_step1_5_prompt()` 按需求文档 Step1.5 Prompt 结构拼装 7 模块（系统指令、时间活动、人格、关系、近期对话、用户消息、任务含完整输出 JSON Schema），复用 STEP-018 的 `round_context` 预计算值（R-L1L3-14：共用已截取的 `recent_10`，不新增 DB 查询），兼容 dict 和 ORM 实例两种对话格式。`execute_query_rewrite()` 主入口：**timeout=45s**（`_STEP1_5_TIMEOUT_SEC`）；**业务层不重试**（整轮「LLM + 解析」仅 1 次，失败后立即 `_fallback_with_embedding()`）；底层经 `llm_client.chat_sync`，**单次 HTTP 超时同 45s**，内层仍最多 **3 次** POST + 1s/2s 退避（`LLM_MAX_RETRIES`）；`_parse_query_rewrite_output()` 用与 Step5/Step6 同类的首段 `{...}` 正则提取后 `json.loads`，校验至少一组 QueryQuestion 非空；降级（R-L1L3-12）：用 `last_user_text`（Step8 子链路为 `future.action`）通过 `embedding_service.get_embedding` 生成单 Embedding 作为 Step2 全部 4 路检索的统一 query，不触发叹号，用户无感知。结构化日志含 `user_id`、`elapsed`、`error`、`source`（区分主链 `main` / Step8 子链路 `step8`）。`InnerMonologue` 不落库、不返前端。**与整链等待**：Step1.5 为 `_execute_llm_bundle` 内首段 LLM 子调用之一，其 `chat_sync` 最坏耗时可 **单独超过** `_BUNDLE_WAIT_TIMEOUT_SEC`（120s），与 **SSE `wait_for`** 的关系见 **POST /api/chat/send** 与 **「部署与网关（对话 SSE）」**。
+- 涉及文件：
+  - `backend/services/query_rewrite_service.py`（新增：`QueryRewriteOutput`、`QueryRewriteResult`、`_build_step1_5_prompt`、`_parse_query_rewrite_output`、`execute_query_rewrite`、`_fallback_with_embedding`）
+  - `tests/test_query_rewrite_service.py`（新增：7 条单测，mock `llm_client.chat_sync` / `embedding_service.get_embedding`）
+  - `docs/contract.md`（修改：顶部摘要、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_query_rewrite_service.py` 7 条：场景1 正常返回三组 QueryQuestion/Keywords、场景2 LLM 超时后降级与结构化日志、场景3 InnerMonologue 仅 `output` 内存字段、边界非法 JSON 一次失败后降级、`_parse_query_rewrite_output` 与 `_build_step1_5_prompt` 纯函数）
+- API / 接口契约：
+  - 接口名称：无（本 STEP 仅新增内部 Service，未暴露新 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（仅对话链路内部新增查询重写层）
+- 数据模型：
+  - 表名 / 集合名：无（不涉及 DB 变更）
+  - 变更类型：**无**
+  - 字段详情：无新列
+- 未完成项记录：
+  - ~~`_execute_llm_bundle` 接入 `execute_query_rewrite` 调用~~ → **已在 STEP-020 中完成**
+  - 管理后台 Step1.5 失败记录查询（R-L1L3-13，STEP-028 或统一观测 STEP 中处理）
+
+---
+
+### STEP-018：Step1 并行装载扩展（R-L1L3-01 / R-L1L3-06）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：在 `_execute_llm_bundle` 的 LLM 打包路径中，于 `_get_relationship` 读取之后新增 `_build_round_context()` 辅助函数构建本轮内存上下文 dict，包含：`time_description`（调用 `_generate_time_description()`）、`activity_description`（调用 `get_activity_description()`）、6 个关系扩展字段（`relation_description` / `user_real_name` / `user_hobby_name` / `user_description` / `character_purpose` / `character_attitude`，NULL 时用占位文案）、`level` / `level_name` / `silence_days`；`round_context` 在 Step5.5（`execute_step5_5` 调用处）和 Step6（`Step6Snapshot` 构建处）共用同一份，不重复 SELECT；`POST /api/chat/send` 的 `asyncio.gather` 中移除 `_get_relationship`（R-L1L3-01：无下游消费的重复 SELECT）；`build_chat_prompt` 新增可选 `round_context` 参数，`_build_time_prompt` 优先使用预计算的时间/活动描述值，避免重复生成/Redis 读取
+- 涉及文件：
+  - `backend/routers/chat.py`（修改：新增 `from datetime import datetime`；新增 `_generate_time_description` / `get_activity_description` 导入；新增 `_build_round_context()` 辅助函数；`_execute_llm_bundle` 中构建 `round_context` 并传入 `build_chat_prompt`、Step5.5、Step6 调用处；`chat_send` 的 gather 移除 `_get_relationship`）
+  - `backend/services/prompt_builder.py`（修改：`build_chat_prompt` 新增 `round_context: dict | None = None` 参数并传递给 `_build_time_prompt`；`_build_time_prompt` 新增 `round_context` 关键字参数，有值时跳过 `_generate_time_description()` / `get_activity_description()` 调用）
+  - `tests/test_step018_round_context.py`（新增：10 条单测覆盖扩展字段有值、全 NULL 占位、时间/活动注入、新用户无 relationship、gather 静态检查、round_context 键完整性）
+  - `docs/contract.md`（修改：顶部摘要、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+- 测试结果：✅ 全部通过（`pytest tests/test_step018_round_context.py` 10 条；`pytest tests/test_prompt_builder.py tests/test_chat.py` 55 条回归通过）
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（仅对话链路内部数据流优化）
+- 数据模型：
+  - 表名 / 集合名：`relationship`（仅读取已有字段，无 DDL）
+  - 变更类型：**无**
+  - 字段详情：无新列
+- 未完成项记录：
+  - 无
+
+---
+
+### STEP-017：时间描述串 + 活动描述串生成（R-L1L3-11）
+- 完成时间：2026-05-05
+- 状态：✅ 已完成
+- 实现说明：`_generate_time_description()` 已在 STEP-004 实现（纯代码按周几+时段+小时:分钟生成自然语言）；本 STEP 新增 `get_activity_description()` 异步函数，从 Redis `active_config:activity_schedule` 读取静态 JSON（格式如 `{"14-18": "她在写代码"}`），按当前小时段匹配，未配置/未命中/解析失败→空字符串；`_build_time_prompt()` 改为 async，活动描述非空时追加在时间描述后一行，空串时跳过
+- 涉及文件：
+  - `backend/services/prompt_builder.py`（修改：新增 `import json`；新增模块级 `get_activity_description()` 异步函数；`_build_time_prompt()` 同步→异步，条件注入活动描述；`build_chat_prompt()` 对应 await）
+  - `tests/test_prompt_builder.py`（修改：新增 9 条测试用例，`_build_prompt` 辅助函数增加 `get_activity_description` mock）
+  - `docs/contract.md`（修改：顶部摘要、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL）
+  - 修改字段：无
+  - 新增 Redis 缓存键：`active_config:activity_schedule`（JSON，由管理后台通用 admin_config 编辑发布）
+- 测试结果：✅ 全部通过（`pytest tests/test_prompt_builder.py` 19 条）
+- admin_config 配置格式：`config_key = "activity_schedule"`，`config_value` 为 JSON 对象，key 为小时范围 `"start-end"`（start <= hour < end），value 为活动描述文案字符串
+- 备注：不创建管理后台专属页面（复用现有 admin_config 通用编辑）；不实现完整活动计划功能（TD-021 技术债）
+- API / 接口契约：
+  - 接口名称：无（未新增/修改对外 HTTP 路由）
+  - Method + Path：—
+  - Request Body：—
+  - Response：—
+  - 变更类型：**无**（仅 Prompt 拼装层内部变更）
+- 数据模型：
+  - 表名 / 集合名：`admin_config`（仅读取，无 DDL）
+  - 变更类型：**运行时读取**（无 DDL）
+  - 字段详情：无新列
+- 未完成项记录：
+  - 无
+
+---
+
+### STEP-025：管理后台向量召回 + Prompt Token 热配置（R-L1L3-17 / R-L1L3-19 / §6）
+- 完成时间：2026-05-07
+- 状态：✅ 已完成
+- 实现说明：新增 `GET|PUT /api/admin/configs/vector_retrieval_config` 与 `GET|PUT /api/admin/configs/prompt_token_config`；**PUT 语义为部分字段 PATCH**：请求体仅含待更新键（`exclude_unset` + 剔除 `null`），与库中当前生效 JSON 及代码默认值合并后调用 `admin_config_service.publish_config`（MySQL 多版本行 + Redis `active_config:{config_key}` + `publish_monitor:{key}`）；鉴权 `super_admin` + `ai_trainer`；`GET` 返回合并后的完整生效视图供表单展示；管理端单页双 Tab `vector-token-config.html` 保存时仅提交相对首屏快照有变化的字段；审计沿用 `publish_config` 内 `log_operation` → `admin_operation_log`（`module=ai_config`，`action=publish`）
+- 涉及文件：
+  - `backend/routers/admin/vector_config.py`（新增）
+  - `backend/main.py`（修改：`include_router` 注册 `/api/admin/configs`）
+  - `backend/constants.py`（修改：新增 `ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID = 20046` 及 `ADMIN_ERROR_MESSAGES`）
+  - `admin/pages/vector-token-config.html`（新增）
+  - `admin/static/js/admin-api.js`（修改：`MENU_CONFIG` 增加 `vector-token` 菜单项，`super_admin` / `ai_trainer`）
+  - `tests/test_admin_vector_token_config.py`（新增）
+  - `docs/contract.md`（修改：文首摘要、`### 模块：向量召回与 Prompt Token 热配置`、本开发日志）
+- 字段变更：
+  - 新增字段：无（无 MySQL DDL；`admin_config` 仍用既有 `config_key` / `config_value` 行）
+  - 修改字段：无
+  - 新增错误码：`ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID`（20046）— 请求体未含任何有效更新字段，或合并后向量/Token 业务校验失败
+- 测试结果：✅ 全部通过（`pytest tests/test_admin_vector_token_config.py` 6 条）
+- API / 接口契约：
+  - 接口名称：向量召回热配置读取 / 部分更新发布
+  - Method + Path：`GET /api/admin/configs/vector_retrieval_config`、`PUT /api/admin/configs/vector_retrieval_config`
+  - Request Body（PUT，均为可选，**至少其一**，`extra=forbid`）：
+    - `"top_k"`: `int` — 1–20，全路统一 TopK
+    - `"threshold"`: `float` — 0.0–1.0，相似度阈值
+  - Response：
+    - 成功：`{ "code": 0, "data": { ... }, "message": "success" }` — GET 的 `data` 为 `{ top_k, threshold }`；PUT 的 `data` 为 `publish_config` 返回的 `{ version, published_at }` 等
+    - 失败：空 PATCH 或合并后校验失败 → `{ "code": 20046, "message": string, "data": null }`；鉴权失败 → HTTP **403**；非法 JSON / Pydantic 校验失败 → HTTP **422**
+  - 变更类型：**新增**
+  - 接口名称：Prompt Token 热配置读取 / 部分更新发布
+  - Method + Path：`GET /api/admin/configs/prompt_token_config`、`PUT /api/admin/configs/prompt_token_config`
+  - Request Body（PUT，字段均可选，**至少其一**，`extra=forbid`；整型 `ge=1`，`max_total` `le=50000`，模块单项 `le=20000`）：
+    - `"max_total"`: `int` — 总池上限
+    - `"system"` / `"persona"` / `"character_knowledge"` / `"relationship"` / `"memory"` / `"emotion"` / `"time_activity"` / `"recent_chat"` / `"user_input"`: `int` — 各模块 Token 上限
+  - Response：成功/失败信封同上；GET 的 `data` 为上述键的完整对象（与 `prompt_builder` 默认合并）
+  - 变更类型：**新增**
+- 数据模型：
+  - 表名 / 集合名：`admin_config`（无 DDL 变更）
+  - 变更类型：**无**（沿用现有多行语义：`config_key` 为 `vector_retrieval_config` / `prompt_token_config` 的已发布行）
+  - 字段详情：无新列；`config_value` JSON 形态由本 STEP 管理端约定（向量：`top_k`+`threshold`；Token：`max_total` + 九模块键）
+- 未完成项记录：
+  - 无
+- 备注：无（STEP-026）
+
+---
+
+### STEP-026：管理后台 Step5 / Step5.5 Prompt 编辑 + Step5.5 总开关（§2.7.9 / §2.7.1 B3）
+- 完成时间：2026-05-07
+- 状态：✅ 已完成
+- 实现说明：主链 Step5 模块1 System 从 **`admin_config.config_key = step5_system_prompt`**（JSON `{"content": string}`）热加载，缺省回退 **`SYSTEM_PROMPT_TEXT`**（`prompt_builder._load_step5_system_template_raw`）；Step5.5 从 **`step5_5_prompt_fragments`** 六段合并默认后拼装（`step5_5_prompt_fragments.py` + `execute_step5_5` 内 `load_active_step5_5_fragments`）；**废弃**旧 **`prompt_modules`** 七模块管理接口；**`POST /api/admin/prompt/test`** 使用 **`build_chat_prompt`** + **`chat_with_step5_parse(..., is_test=true)`**，`use_draft` 时覆盖 Step5 System；总开关 **`step5_5_enabled`** 独立页发布（发布不要求先跑 LLM 测试）；RBAC **`super_admin` + `ai_trainer`**；发布校验 Step5 契约字段名与 Step5.5 占位符（`20025`）。
+- 涉及文件：
+  - `backend/services/prompt_builder.py`（Step5 System 热加载、`build_chat_prompt` 可选 `system_prompt_override`）
+  - `backend/services/step5_5_prompt_fragments.py`（新增：默认六段、拼装、校验）
+  - `backend/services/step5_5_service.py`（`build_step5_5_prompt` 支持片段、`load_active_step5_5_fragments`）
+  - `backend/routers/admin/prompt_mgmt.py`（重写：Step5 / Step5.5 / 开关 / 测试）
+  - `admin/pages/prompt.html`、`admin/pages/step5-5-switch.html`、`admin/static/js/admin-api.js`（菜单原 `step55switch`；**2026-07-13** 起侧栏入口为「对话流 Prompt」内 `cp-step55-switch`）
+  - `tests/test_step026_prompt_config.py`（新增）；`tests/test_prompt_builder.py`（mock `get_active_config`）
+- 字段变更：无 DDL；**新增运行时约定键** `step5_system_prompt`、`step5_5_prompt_fragments`（`step5_5_enabled` 沿用 STEP-009）
+- 测试结果：`pytest tests/test_step026_prompt_config.py tests/test_step5_5.py` 通过
+- API / 接口契约：见本文档「模块：人格 / 情绪 / … / **Prompt**」整节；旧 **`prompt_modules`** 路径已删除
+- 未完成项记录：无
+
+---
+
+### STEP-027：管理后台角色知识库 CRUD（R-L1L3-20）
+- 完成时间：2026-05-24
+- 状态：✅ 已完成
+- 实现说明：新增 `GET|POST|PUT|DELETE /api/admin/character-knowledge`；`character_knowledge_service` + `character_knowledge_validate`；`dashvector_client.list_by_filter` / `fetch_by_ids`；仅维护 `character_global` / `character_knowledge`；RBAC `super_admin` + `ai_trainer`；页面 `knowledge.html` + 菜单 📚
+- 涉及文件：
+  - `backend/routers/admin/knowledge_mgmt.py`（新增）
+  - `backend/services/character_knowledge_service.py`（新增）
+  - `backend/utils/character_knowledge_validate.py`（新增）
+  - `backend/utils/dashvector_client.py`（修改：list/fetch）
+  - `backend/constants.py`（修改：20047–20052）
+  - `backend/main.py`（修改：注册路由）
+  - `admin/pages/knowledge.html`（新增）
+  - `admin/static/js/admin-api.js`（修改：菜单）
+  - `tests/test_admin_character_knowledge.py`（新增）
+  - `docs/contract.md`（本条目）
+- 测试结果：✅ `pytest tests/test_admin_character_knowledge.py` 5 条通过
+
+---
+
+### STEP-028：Step6 / 角色知识库 doc_id 合法化 + 三层 key（R-MEM-04 修订）
+- 完成时间：2026-05-24
+- 状态：✅ 已完成
+- 实现说明：DashVector `doc_id` 由 `{type}:{key}:` 改为 `{type}_{sha256(key)[:12]}_{user_suffix}`（`user_suffix=0` 或 `user_id`）；KV **key 强制三层 `XXX-XXX-XXX`**；向量 `fields.stable_key` 存 key 原文；`dashvector_client.upsert` 解析响应 `message` 中单条失败；Step6 Prompt/few-shot 同步三层 key；**旧记忆 `mem_*` 不变**。
+- 涉及文件：
+  - `backend/utils/character_knowledge_validate.py`（修改：统一 `build_doc_id` / `parse_doc_id` / `validate_key` / `hash_key`）
+  - `backend/services/memory_llm_service.py`（修改：接入公共 doc_id；`validate_key` 丢弃非法行；写 `stable_key`）
+  - `backend/services/character_knowledge_service.py`（修改：列表/CRUD 适配新 doc_id；写 `stable_key`）
+  - `backend/utils/dashvector_client.py`（修改：upsert 业务失败检测）
+  - `admin/pages/knowledge.html`（修改：三层 key 说明与前端预检）
+  - `tests/test_character_knowledge_validate.py`（新增）
+  - `tests/test_dashvector_upsert_response.py`（新增）
+  - `tests/test_step6_vector_upsert.py`、`tests/test_admin_character_knowledge.py`（修改）
+  - `docs/contract.md`、`doc/对话链路改造-需求确认记录.md`（修改）
+- 测试结果：✅ `pytest tests/test_character_knowledge_validate.py tests/test_step6_vector_upsert.py tests/test_admin_character_knowledge.py tests/test_dashvector_upsert_response.py tests/test_memory_llm_service.py` **59** 条通过
+
+---
+
+### 管理后台 · 对话流 Prompt 侧栏 + 只读展示（2026-07-13）
+- 完成时间：2026-07-13
+- 状态：✅ 已完成
+- 实现说明：侧栏新增可折叠分组 **「🗣️ 对话流 Prompt」**（`CHAT_PROMPT_MENU`）；Step1.5 / Step3 / Step8 / Agent P0～P4 为只读页 + **`GET /api/admin/chat-prompt-view/*`**（文案与运行时同源常量）；Step5 / Step5.5 / Step5.5 开关 / Step6 链到既有可编辑页（方案 A）。废止一级独立项「Prompt管理 / Step5.5开关 / 记忆规则」。生活流侧栏改名 **「🌿 生活流 Prompt」**，子项重排并以「生活流人格拓展」替换「全局配置」展示名。无 DDL。
+- 涉及文件：
+  - `backend/routers/admin/chat_prompt_view.py`、`backend/services/chat_prompt_view_service.py`（新增）
+  - `backend/services/prompt_builder.py`（抽出只读同源常量）
+  - `backend/main.py`（注册路由）
+  - `admin/pages/chat-prompt-step15.html` / `step3` / `step8` / `agent`（新增）
+  - `admin/pages/prompt.html`、`memory-rules.html`、`step5-5-switch.html`、`life-feed-global.html`（侧栏/顶栏入口）
+  - `admin/static/js/admin-api.js`、`admin/static/css/admin-common.css`
+  - `tests/test_chat_prompt_view.py`（新增）
+  - `docs/contract.md`、`docs/contract/drafts/生活流/M3_契约草案.md`（本条目）
+- 测试结果：✅ 只读 API + `prompt_builder` 相关单测通过
+- API / 接口契约：见上文「Prompt」模块 · 对话流 Prompt 只读展示；管理端页面节「对话流 Prompt 只读页」
+- 未完成项记录：无
+
+---
+
+#

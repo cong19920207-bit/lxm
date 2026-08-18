@@ -110,7 +110,7 @@ class FeedService:
         }
 
     # ---------- STEP-015 列表 ----------
-    async def list_feed(self, db: AsyncSession, user_id: int,
+    async def list_feed(self, db: AsyncSession, user_id: int | None,
                         cursor: str | None, size: int) -> dict:
         now = feed_now()
         size = max(1, min(size or _DEFAULT_PAGE_SIZE, _MAX_PAGE_SIZE))
@@ -151,7 +151,7 @@ class FeedService:
 
         # 私有评论：仅当前用户
         comments_by_post: dict[int, list] = {}
-        if posts:
+        if posts and user_id is not None:
             post_ids = [p.id for p in posts]
             rows = (await db.execute(
                 select(FeedComment)
@@ -171,23 +171,27 @@ class FeedService:
                         c.lxm_reply_read_at.isoformat() if c.lxm_reply_read_at else None),
                 })
 
-        items = [{
-            "id": p.id,
-            "content_text": p.content_text,
-            "hashtags": p.hashtags or [],
-            "image_urls": p.image_urls or [],
-            "scheduled_publish_time": p.scheduled_publish_time.isoformat(),
-            "emotion": p.emotion,
-            "city": p.city or "",
-            "display_likes": _display_likes(p),
-            "display_comments": _display_comments(
-                p, len(comments_by_post.get(p.id, []))),
-            "user_liked": False,  # 由下方批量填充
-            "comments": comments_by_post.get(p.id, []),
-        } for p in posts]
+        items = []
+        for p in posts:
+            item = {
+                "id": p.id,
+                "content_text": p.content_text,
+                "hashtags": p.hashtags or [],
+                "image_urls": p.image_urls or [],
+                "scheduled_publish_time": p.scheduled_publish_time.isoformat(),
+                "emotion": p.emotion,
+                "city": p.city or "",
+                "display_likes": _display_likes(p),
+                "display_comments": _display_comments(
+                    p, len(comments_by_post.get(p.id, []))),
+            }
+            if user_id is not None:
+                item["user_liked"] = False  # 由下方批量填充
+                item["comments"] = comments_by_post.get(p.id, [])
+            items.append(item)
 
         # user_liked 批量查询
-        if posts:
+        if posts and user_id is not None:
             liked_ids = set((await db.execute(
                 select(FeedLike.post_id).where(
                     FeedLike.post_id.in_([p.id for p in posts]),

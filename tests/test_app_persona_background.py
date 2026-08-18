@@ -90,9 +90,150 @@ async def _register_and_login(client: AsyncClient) -> str:
 
 
 @pytest.mark.asyncio
-async def test_persona_background_requires_auth(client):
-    resp = await client.get("/api/app/persona-background")
+async def test_persona_background_allows_missing_authorization(client):
+    """只有完全缺少 Authorization 时，persona-background 才进入匿名分支。"""
+    with patch(
+        "backend.routers.app.admin_config_service.get_active_config",
+        new=AsyncMock(return_value={"background": "公开角色背景"}),
+    ):
+        resp = await client.get("/api/app/persona-background")
+
+    assert resp.status_code == 200
+    assert resp.json()["data"] == {"background": "公开角色背景"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "authorization",
+    [
+        "",
+        "Basic not-a-bearer-token",
+        "Bearer",
+        "Bearer invalid.token.here",
+    ],
+)
+async def test_persona_background_rejects_present_but_invalid_authorization(
+    client, authorization
+):
+    """出现认证头后不得静默降级为匿名访问。"""
+    resp = await client.get(
+        "/api/app/persona-background",
+        headers={"Authorization": authorization},
+    )
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_only_feed_public_gets_allow_missing_authorization(client):
+    """Feed 匿名白名单精确到 list/header，写接口和 badge 继续强鉴权。"""
+    with (
+        patch(
+            "backend.routers.feed.feed_service.list_feed",
+            new=AsyncMock(return_value={"posts": [], "next_cursor": None}),
+        ) as list_feed,
+        patch(
+            "backend.routers.feed.feed_service.get_header_config",
+            new=AsyncMock(return_value={"display_nickname": "林小梦"}),
+        ),
+    ):
+        list_resp = await client.get("/api/feed/list")
+        header_resp = await client.get("/api/feed/config/header")
+
+    assert list_resp.status_code == 200
+    assert header_resp.status_code == 200
+    assert list_feed.await_args.args[1] is None
+
+    assert (await client.get("/api/feed/badge")).status_code == 401
+    assert (await client.post("/api/feed/enter")).status_code == 401
+    assert (await client.post("/api/feed/1/like")).status_code == 401
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/feed/list",
+        "/api/feed/config/header",
+        "/api/app/persona-background",
+    ],
+)
+async def test_public_gets_reject_forged_bearer_token(client, path):
+    resp = await client.get(
+        path,
+        headers={"Authorization": "Bearer invalid.token.here"},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_public_get_rejects_expired_bearer_token(client):
+    from datetime import datetime, timedelta, timezone
+
+    import jwt as pyjwt
+
+    from backend.config import get_jwt_algorithm, get_jwt_secret
+
+    expired_token = pyjwt.encode(
+        {
+            "user_id": 1,
+            "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+            "iat": datetime.now(timezone.utc) - timedelta(hours=2),
+        },
+        get_jwt_secret(),
+        algorithm=get_jwt_algorithm(),
+    )
+    resp = await client.get(
+        "/api/app/persona-background",
+        headers={"Authorization": f"Bearer {expired_token}"},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_public_get_rejects_banned_user_token(client, monkeypatch):
+    token = await _register_and_login(client)
+
+    async def _banned_redis():
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value="1")
+        return redis
+
+    monkeypatch.setattr("backend.utils.auth_middleware.get_redis", _banned_redis)
+    resp = await client.get(
+        "/api/app/persona-background",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_feed_list_keeps_authenticated_user_context(client):
+    token = await _register_and_login(client)
+    with patch(
+        "backend.routers.feed.feed_service.list_feed",
+        new=AsyncMock(return_value={"posts": [], "next_cursor": None}),
+    ) as list_feed:
+        resp = await client.get(
+            "/api/feed/list",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    assert isinstance(list_feed.await_args.args[1], int)
+
+
+@pytest.mark.asyncio
+async def test_protected_page_module_gets_remain_strongly_authenticated(client):
+    """开放 H5 页面不等于开放 Diary/Memory/Relationship 私有接口。"""
+    paths = (
+        "/api/diary/list?page=1",
+        "/api/memory/list?page=1&page_size=50",
+        "/api/relationship/detail",
+    )
+
+    responses = [await client.get(path) for path in paths]
+
+    assert [response.status_code for response in responses] == [401, 401, 401]
 
 
 @pytest.mark.asyncio

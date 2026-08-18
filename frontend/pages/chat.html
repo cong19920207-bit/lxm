@@ -650,7 +650,7 @@
           <span class="feed-badge" id="feed-badge" aria-hidden="true">0</span>
         </button>
         <span class="bar-divider" aria-hidden="true"></span>
-        <button type="button" class="bar-action" onclick="location.href='/pages/memory.html'" aria-label="记忆星云">
+        <button type="button" class="bar-action" onclick="goChatProtected('/pages/memory.html')" aria-label="记忆星云">
           <img src="/static/images/chat/icon-memory-nebula.png" alt="">
         </button>
       </div>
@@ -685,8 +685,6 @@
   <script src="/static/js/api.js"></script>
   <script src="/static/js/chat-time.js"></script>
   <script>
-    checkLogin()
-
     /** 全屏背景随 AI 情绪切换（与 AVATAR_MAP 同源；顶栏头像固定 default） */
     function updateChatBackgroundEmotion(emotionLabel) {
       const layer = document.getElementById('chat-bg-image')
@@ -706,6 +704,45 @@
     let loadingTimeline = false
     let noMoreTimeline = false
     let agentTipMessageId = null
+    let chatAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    let chatResumePromise = null
+    let chatShellInitialized = false
+    let chatScrollObserver = null
+    const visitorChatRequests = Object.freeze([])
+
+    function isChatAuthenticated() {
+      return chatAuthMode === 'authenticated' && Boolean(localStorage.getItem('token'))
+    }
+
+    function chatSilentAuthOptions() {
+      return {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: switchChatToVisitor,
+      }
+    }
+
+    function chatInteractiveAuthOptions(onUnauthorized) {
+      return {
+        authPolicy: AUTH_401_POLICIES.INTERACTIVE_MODAL,
+        onUnauthorized: async function () {
+          if (typeof onUnauthorized === 'function') await onUnauthorized()
+          switchChatToVisitor({ preserveInput: true })
+        },
+        onLoginSuccess: resumeAuthenticatedChat,
+      }
+    }
+
+    function openChatLoginModal() {
+      openLoginModal({ onSuccess: resumeAuthenticatedChat })
+    }
+
+    function goChatProtected(path) {
+      if (!isChatAuthenticated()) {
+        openChatLoginModal()
+        return
+      }
+      location.href = path
+    }
 
     /* 用户默认头像（与 static 目录一致：user 小写，Linux 区分大小写） */
     const USER_AVATAR_SRC = '/static/images/user/avatar/user_default.png'
@@ -765,13 +802,16 @@
 
     /* ====== 草稿保存 ====== */
     function saveDraft() {
+      if (!isChatAuthenticated()) return
       sessionStorage.setItem('chat_draft', document.getElementById('msg-input').value)
     }
 
     function loadDraft() {
+      if (!isChatAuthenticated()) return
       const draft = sessionStorage.getItem('chat_draft')
       if (draft) {
         const input = document.getElementById('msg-input')
+        if (input.value) return
         input.value = draft
         autoResize(input)
         updateSendBtn()
@@ -1081,6 +1121,17 @@
     const CHAT_SEND_DEBOUNCE_MS = 300
     let lastSendOrResendAt = 0
 
+    function rollbackChatSendForUnauthorized(userRow, aiBubble, content) {
+      if (aiBubble) aiBubble.removeRow()
+      if (userRow && userRow.parentNode) userRow.remove()
+      const input = document.getElementById('msg-input')
+      if (input && !input.value) {
+        input.value = content || ''
+        autoResize(input)
+        updateSendBtn()
+      }
+    }
+
     /** 未闭环窗口内 user 行：最后一条已落库 assistant（非 agent、非流式中）之后，与后端 fetch_open_window_user_rows 对齐 */
     function getOpenWindowUserRows() {
       const rows = [...document.querySelectorAll('#chat-messages .msg-row')]
@@ -1199,6 +1250,10 @@
     }
 
     async function handleSend() {
+      if (!isChatAuthenticated()) {
+        openChatLoginModal()
+        return
+      }
       const input = document.getElementById('msg-input')
       const content = input.value.trim()
       if (!content) return
@@ -1247,10 +1302,9 @@
         clearTimeout(timeoutId)
 
         if (response.status === 401) {
-          aiBubble.removeRow()
-          if (userRow.parentNode) userRow.remove()
-          clearToken()
-          window.location.href = '/pages/login.html'
+          await handleUnauthorized(chatInteractiveAuthOptions(function () {
+            rollbackChatSendForUnauthorized(userRow, aiBubble, content)
+          }))
           return
         }
 
@@ -1300,6 +1354,10 @@
     document.getElementById('chat-messages').addEventListener('click', async function (e) {
       const btn = e.target.closest('.msg-bang')
       if (!btn || btn.disabled) return
+      if (!isChatAuthenticated()) {
+        openChatLoginModal()
+        return
+      }
       const tNow = Date.now()
       if (tNow - lastSendOrResendAt < CHAT_SEND_DEBOUNCE_MS) return
       lastSendOrResendAt = tNow
@@ -1326,10 +1384,10 @@
         })
         clearTimeout(timeoutId)
         if (response.status === 401) {
-          aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) btn.disabled = false
-          clearToken()
-          window.location.href = '/pages/login.html'
+          await handleUnauthorized(chatInteractiveAuthOptions(function () {
+            aiBubble.removeRow()
+            if (sessionAtStart === chatSendSession) btn.disabled = false
+          }))
           return
         }
         if (!response.ok) {
@@ -1354,7 +1412,7 @@
 
     /* ====== 加载统一时间线 ====== */
     async function loadTimeline(isFirstPage) {
-      if (loadingTimeline || noMoreTimeline) return
+      if (!isChatAuthenticated() || loadingTimeline || noMoreTimeline) return
       loadingTimeline = true
 
       let url = '/api/chat/timeline?limit=20'
@@ -1362,7 +1420,11 @@
         url += '&cursor=' + timelineCursor
       }
 
-      const res = await request('GET', url)
+      const res = await request('GET', url, undefined, chatSilentAuthOptions())
+      if (!isChatAuthenticated()) {
+        loadingTimeline = false
+        return
+      }
       if (res.code === 0 && res.data) {
         const items = res.data.items || []
         if (items.length === 0) {
@@ -1444,8 +1506,14 @@
 
     /* ====== 加载未读主动消息提示条 ====== */
     async function loadAgentTip() {
-      const res = await request('GET', '/api/agent/messages')
-      if (res.code !== 0 || !res.data) return
+      if (!isChatAuthenticated()) return
+      const res = await request(
+        'GET',
+        '/api/agent/messages',
+        undefined,
+        chatSilentAuthOptions()
+      )
+      if (!isChatAuthenticated() || res.code !== 0 || !res.data) return
 
       const messages = res.data.messages || res.data || []
       if (messages.length === 0) return
@@ -1472,8 +1540,19 @@
         return
       }
 
+      if (!isChatAuthenticated()) {
+        openChatLoginModal()
+        return
+      }
+
       if (agentTipMessageId) {
-        await request('POST', '/api/agent/messages/' + agentTipMessageId + '/read')
+        const res = await request(
+          'POST',
+          '/api/agent/messages/' + agentTipMessageId + '/read',
+          undefined,
+          chatInteractiveAuthOptions()
+        )
+        if (res.code === 401) return
       }
       hideAgentTip()
       scrollToBottom()
@@ -1492,13 +1571,14 @@
 
     /* ====== 上滑加载更多 ====== */
     function setupScrollObserver() {
+      if (!isChatAuthenticated() || chatScrollObserver) return
       const sentinel = document.getElementById('top-sentinel')
-      const observer = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && !loadingTimeline && !noMoreTimeline) {
+      chatScrollObserver = new IntersectionObserver(entries => {
+        if (isChatAuthenticated() && entries[0].isIntersecting && !loadingTimeline && !noMoreTimeline) {
           loadTimeline(false)
         }
       }, { root: document.getElementById('chat-messages'), threshold: 0 })
-      observer.observe(sentinel)
+      chatScrollObserver.observe(sentinel)
     }
 
     /* ====== 键盘弹起适配 ====== */
@@ -1539,8 +1619,15 @@
     window.__chatFeedBadge = { unread: 0, newCount: 0 }
 
     async function loadChatFeedBadge() {
+      if (!isChatAuthenticated()) return
       try {
-        const res = await request('GET', '/api/feed/badge')
+        const res = await request(
+          'GET',
+          '/api/feed/badge',
+          undefined,
+          chatSilentAuthOptions()
+        )
+        if (!isChatAuthenticated()) return
         let unread = 0
         let newCount = 0
         if (res && res.code === 0 && res.data) {
@@ -1575,37 +1662,114 @@
       }
     }
 
-    async function initChat() {
-      loadDraft()
-
+    function initializeChatShell() {
+      if (chatShellInitialized) return
+      chatShellInitialized = true
       syncChatBottomPadding()
       setupInputAreaBottomSync()
       setupSendBtnKeepKeyboard()
+      updateChatBackgroundEmotion('平静')
+    }
 
-      loadChatFeedBadge()
+    function resetPrivateChatUi(options = {}) {
+      timelineCursor = null
+      loadingTimeline = false
+      noMoreTimeline = false
+      agentTipMessageId = null
 
-      await loadTimeline(true)
-
-      await loadAgentTip()
-
-      syncChatBottomPadding()
-      scrollToBottom()
-
-      // 用最新 AI 消息的情绪初始化头像
-      const aiMessages = document.querySelectorAll('.msg-row.ai')
-      if (aiMessages.length > 0) {
-        const lastAiRow = aiMessages[aiMessages.length - 1]
-        const emotionAttr = lastAiRow.getAttribute('data-emotion')
-        updateChatBackgroundEmotion(emotionAttr || '平静')
-      } else {
-        updateChatBackgroundEmotion('平静')
+      if (chatScrollObserver) {
+        chatScrollObserver.disconnect()
+        chatScrollObserver = null
       }
 
-      setupScrollObserver()
+      document.querySelectorAll('#chat-messages .msg-row, #chat-messages .msg-time-divider')
+        .forEach(function (node) { node.remove() })
+      hideAgentTip()
+
+      window.__chatFeedBadge = { unread: 0, newCount: 0 }
+      const badge = document.getElementById('feed-badge')
+      badge.textContent = '0'
+      badge.classList.remove('is-on')
+      badge.setAttribute('aria-hidden', 'true')
+
+      if (!options.preserveInput) {
+        const input = document.getElementById('msg-input')
+        input.value = ''
+        input.style.height = 'auto'
+        updateSendBtn()
+      }
+      updateChatBackgroundEmotion('平静')
+      syncChatBottomPadding()
+    }
+
+    function switchChatToVisitor(options = {}) {
+      chatAuthMode = 'visitor'
+      if (chatSendAbort) {
+        chatSendSession += 1
+        chatSendAbort.abort()
+        chatSendAbort = null
+      }
+      resetPrivateChatUi(options)
+    }
+
+    function initVisitorChat() {
+      initializeChatShell()
+      switchChatToVisitor()
+      return visitorChatRequests
+    }
+
+    async function resumeAuthenticatedChat() {
+      if (!localStorage.getItem('token')) {
+        initVisitorChat()
+        return
+      }
+      if (chatResumePromise) return chatResumePromise
+
+      chatResumePromise = (async function () {
+        initializeChatShell()
+        chatAuthMode = 'authenticated'
+        resetPrivateChatUi({ preserveInput: true })
+        loadDraft()
+
+        await Promise.all([loadChatFeedBadge(), loadTimeline(true)])
+        if (!isChatAuthenticated()) return
+
+        await loadAgentTip()
+        if (!isChatAuthenticated()) return
+
+        syncChatBottomPadding()
+        scrollToBottom()
+
+        // 用最新 AI 消息的情绪初始化头像
+        const aiMessages = document.querySelectorAll('.msg-row.ai')
+        if (aiMessages.length > 0) {
+          const lastAiRow = aiMessages[aiMessages.length - 1]
+          const emotionAttr = lastAiRow.getAttribute('data-emotion')
+          updateChatBackgroundEmotion(emotionAttr || '平静')
+        } else {
+          updateChatBackgroundEmotion('平静')
+        }
+
+        setupScrollObserver()
+      })()
+
+      try {
+        await chatResumePromise
+      } finally {
+        chatResumePromise = null
+      }
+    }
+
+    function initChat() {
+      if (chatAuthMode === 'authenticated') {
+        resumeAuthenticatedChat()
+      } else {
+        initVisitorChat()
+      }
     }
 
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') loadChatFeedBadge()
+      if (document.visibilityState === 'visible' && isChatAuthenticated()) loadChatFeedBadge()
     })
 
     initChat()

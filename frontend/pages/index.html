@@ -1307,7 +1307,7 @@
           </div>
         </div>
         <div class="bar-right">
-          <button type="button" class="home-intimacy-pill" onclick="goToRelationship()" aria-label="关系状态，点击进入关系页">
+          <button type="button" class="home-intimacy-pill" onclick="goHomeRelationship()" aria-label="关系状态，点击进入关系页">
             <span class="home-intimacy-label">
               <svg class="home-intimacy-heart" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -1363,31 +1363,31 @@
       <div class="home-real-content">
         <div class="home-quick-actions-wrap home-glass-card home-enter-item" style="--enter-delay: 0.26s">
           <div class="home-quick-actions" role="toolbar" aria-label="快捷互动">
-            <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
+            <button type="button" class="home-quick-btn" onclick="handleHomeQuickAction('voice')">
               <span class="home-quick-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               </span>
               <span>语音通话</span>
             </button>
-            <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
+            <button type="button" class="home-quick-btn" onclick="handleHomeQuickAction('video')">
               <span class="home-quick-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               </span>
               <span>视频通话</span>
             </button>
-            <button type="button" class="home-quick-btn" onclick="location.href='/pages/memory.html'">
+            <button type="button" class="home-quick-btn" onclick="handleHomeQuickAction('memory')">
               <span class="home-quick-icon" aria-hidden="true">
                 <img src="/static/images/chat/icon-memory-nebula.png" alt="">
               </span>
               <span>记忆星云</span>
             </button>
-            <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
+            <button type="button" class="home-quick-btn" onclick="handleHomeQuickAction('sleep')">
               <span class="home-quick-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
               </span>
               <span>陪我入睡</span>
             </button>
-            <button type="button" class="home-quick-btn" onclick="showToast('敬请期待')">
+            <button type="button" class="home-quick-btn" onclick="handleHomeQuickAction('more')">
               <span class="home-quick-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>
               </span>
@@ -1423,7 +1423,7 @@
             </div>
           </article>
 
-          <article class="home-preview-card home-glass-card home-diary-card home-enter-item" style="--enter-delay: 0.42s" role="button" tabindex="0" onclick="location.href='/pages/diary.html'">
+          <article class="home-preview-card home-glass-card home-diary-card home-enter-item" style="--enter-delay: 0.42s" role="button" tabindex="0" onclick="goHomeDiary()" onkeydown="if(event.key==='Enter'||event.key===' '){goHomeDiary()}">
             <div class="home-card-icon home-card-icon--diary" aria-hidden="true">
               <img src="/static/images/Index/home-diary-icon.png" alt="" width="44" height="44">
             </div>
@@ -1472,8 +1472,6 @@
 
   <script src="/static/js/api.js"></script>
   <script>
-    checkLogin()
-
     const LEVEL_NAMES = ['陌生', '朋友', '亲密', '知己']
     const DIARY_PLACEHOLDER = '今天记录点什么好呢...'
     const HOME_LOADER_KEY = 'lxm_home_loader_done'
@@ -1498,6 +1496,8 @@
     let loaderMsgTimer = null
     let loaderProgressTimer = null
     let loaderDismissTimer = null
+    let homeAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    let homeVisitorRendered = false
 
     function handleAvatarError(img) {
       img.onerror = null
@@ -1849,6 +1849,13 @@
       el.classList.add('is-hidden')
     }
 
+    function renderVisitorKnownDays() {
+      const el = document.getElementById('known-days')
+      if (!el) return
+      el.textContent = '故事从今天开始'
+      el.classList.remove('is-hidden')
+    }
+
     function renderTopBarIntimacy(d) {
       const growth = d.current_growth ?? d.growth_value ?? 0
       const progressInfo = document.getElementById('progress-info')
@@ -1917,6 +1924,75 @@
         badge.style.display = 'none'
         badge.classList.remove('unread-badge--active')
       }
+    }
+
+    function hideUnreadBadge() {
+      const badge = document.getElementById('unread-badge')
+      if (!badge) return
+      badge.textContent = '0'
+      badge.style.display = 'none'
+      badge.classList.remove('unread-badge--active')
+    }
+
+    function renderVisitorHome() {
+      homeAuthMode = 'visitor'
+      homeVisitorRendered = true
+      localStorage.removeItem('relationship_level')
+      updateAvatarEmotion(null)
+      document.getElementById('status-text').textContent = DEFAULT_STATUS_TEXT
+      renderRelationshipPreview({ level: 0, level_name: LEVEL_NAMES[0] })
+      renderTopBarIntimacy({ current_growth: 0, next_threshold: 200, progress_percent: 0 })
+      renderVisitorKnownDays()
+      renderDiaryPreview([], 0)
+      hideUnreadBadge()
+      renderFeedReplyPill(0)
+      renderFeedFooter(0)
+      window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
+      document.getElementById('main-content').classList.add('content-loaded')
+    }
+
+    function switchHomeToVisitor() {
+      if (homeAuthMode === 'visitor' && homeVisitorRendered) return
+      renderVisitorHome()
+    }
+
+    function openHomeLoginModal() {
+      openLoginModal({ onSuccess: refreshHomeAfterLogin })
+    }
+
+    async function refreshHomeAfterLogin() {
+      if (!localStorage.getItem('token')) return
+      homeAuthMode = 'authenticated'
+      homeVisitorRendered = false
+      await loadPage()
+    }
+
+    function goHomeRelationship() {
+      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+        openHomeLoginModal()
+        return
+      }
+      goToRelationship()
+    }
+
+    function goHomeDiary() {
+      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+        openHomeLoginModal()
+        return
+      }
+      location.href = '/pages/diary.html'
+    }
+
+    function handleHomeQuickAction(action) {
+      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+        openHomeLoginModal()
+        return
+      }
+      if (action === 'memory') {
+        location.href = '/pages/memory.html'
+        return
+      }
+      showToast('敬请期待')
     }
 
     /** 朋友圈更新时间：今天/昨天/更早（按北京墙钟字符串解析，避免浏览器时区偏移） */
@@ -2013,18 +2089,36 @@
 
     async function loadPage(options) {
       const deferAvatar = options && options.deferAvatar === true
+      if (!localStorage.getItem('token')) {
+        renderVisitorHome()
+        await loadFeedHomeCard()
+        return { emotion: null }
+      }
+
+      homeAuthMode = 'authenticated'
+      homeVisitorRendered = false
+      const silentAuthOptions = {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: switchHomeToVisitor,
+      }
       try {
         const [relSettled, detailSettled, diarySettled, unreadSettled] = await Promise.allSettled([
-          request('GET', '/api/relationship/status'),
-          request('GET', '/api/relationship/detail'),
-          request('GET', '/api/diary/list?page=1&page_size=1'),
-          request('GET', '/api/agent/unread-count'),
+          request('GET', '/api/relationship/status', null, silentAuthOptions),
+          request('GET', '/api/relationship/detail', null, silentAuthOptions),
+          request('GET', '/api/diary/list?page=1&page_size=1', null, silentAuthOptions),
+          request('GET', '/api/agent/unread-count', null, silentAuthOptions),
         ])
 
         const relRes = relSettled.status === 'fulfilled' ? relSettled.value : { code: -1, data: null }
         const detailRes = detailSettled.status === 'fulfilled' ? detailSettled.value : { code: -1, data: null }
         const diaryRes = diarySettled.status === 'fulfilled' ? diarySettled.value : { code: -1, data: null }
         const unreadRes = unreadSettled.status === 'fulfilled' ? unreadSettled.value : { code: -1, data: null }
+
+        if (homeAuthMode === 'visitor') {
+          renderVisitorHome()
+          await loadFeedHomeCard()
+          return { emotion: null }
+        }
 
         let level = 0
         let emotion = null
@@ -2057,7 +2151,7 @@
         }
 
         renderUnreadBadge(unreadRes)
-        loadFeedHomeCard()
+        await loadFeedHomeCard()
         document.getElementById('main-content').classList.add('content-loaded')
 
         return { emotion }
@@ -2077,12 +2171,56 @@
      * - list 最新帖 → 正文 / 更新时间 / 双图
      */
     async function loadFeedHomeCard() {
+      const silentAuthOptions = {
+        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
+        onUnauthorized: switchHomeToVisitor,
+      }
+
+      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+        const visitorFeedRequests = [
+          request('GET', '/api/feed/list?size=8', null, silentAuthOptions),
+        ]
+        const [listSettled] = await Promise.allSettled(visitorFeedRequests)
+        const listRes = listSettled.status === 'fulfilled' ? listSettled.value : null
+        renderFeedReplyPill(0)
+        renderFeedFooter(0)
+        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
+        if (listRes && listRes.code === 0 && listRes.data) {
+          renderFeedPreview(listRes.data.posts || [])
+        } else {
+          renderFeedPreview([])
+        }
+        return
+      }
+
       const [badgeSettled, listSettled] = await Promise.allSettled([
-        request('GET', '/api/feed/badge'),
-        request('GET', '/api/feed/list?size=8'),
+        request('GET', '/api/feed/badge', null, silentAuthOptions),
+        request('GET', '/api/feed/list?size=8', null, silentAuthOptions),
       ])
       const badgeRes = badgeSettled.status === 'fulfilled' ? badgeSettled.value : null
       const listRes = listSettled.status === 'fulfilled' ? listSettled.value : null
+
+      if (homeAuthMode === 'visitor') {
+        renderFeedReplyPill(0)
+        renderFeedFooter(0)
+        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
+        if (listRes && listRes.code === 0 && listRes.data) {
+          renderFeedPreview(listRes.data.posts || [])
+        } else {
+          const anonymousList = await request(
+            'GET',
+            '/api/feed/list?size=8',
+            null,
+            silentAuthOptions
+          )
+          renderFeedPreview(
+            anonymousList.code === 0 && anonymousList.data
+              ? (anonymousList.data.posts || [])
+              : []
+          )
+        }
+        return
+      }
 
       let unread = 0
       let newCount = 0
@@ -2124,6 +2262,7 @@
     })
 
     initHomePage()
+    consumeLoginModalSignal({ onSuccess: refreshHomeAfterLogin })
   </script>
 </body>
 </html>

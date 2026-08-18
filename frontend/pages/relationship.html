@@ -922,7 +922,9 @@
 
   <script src="/static/js/api.js"></script>
   <script>
-    checkLogin()
+    const relationshipPageAuthorized = requireProtectedPage()
+    let relationshipPageActive = relationshipPageAuthorized
+    let logObserver = null
 
     const ICON_MAP = {
       dialog: '💬',
@@ -936,9 +938,30 @@
     let logNoMore = false
     let pageData = null
 
+    function stopRelationshipPrivateResources() {
+      relationshipPageActive = false
+      logLoading = false
+      logNoMore = true
+      if (logObserver) {
+        logObserver.disconnect()
+        logObserver = null
+      }
+    }
+
+    function relationshipProtectedAuthOptions() {
+      return protectedPageAuthOptions(stopRelationshipPrivateResources)
+    }
+
     async function loadPage() {
+      if (!relationshipPageActive) return
       try {
-        const res = await request('GET', '/api/relationship/detail')
+        const res = await request(
+          'GET',
+          '/api/relationship/detail',
+          undefined,
+          relationshipProtectedAuthOptions()
+        )
+        if (!relationshipPageActive || res.code === 401) return
         if (res.code !== 0 || !res.data) {
           showToast('加载失败，请重试', 'error')
           document.getElementById('page-body').classList.add('content-loaded')
@@ -1208,10 +1231,19 @@
     }
 
     async function loadGrowthLog() {
-      if (logLoading || logNoMore) return
+      if (!relationshipPageActive || logLoading || logNoMore) return
       logLoading = true
 
-      const res = await request('GET', '/api/relationship/growth-log?page=' + logPage + '&page_size=20')
+      const res = await request(
+        'GET',
+        '/api/relationship/growth-log?page=' + logPage + '&page_size=20',
+        undefined,
+        relationshipProtectedAuthOptions()
+      )
+      if (!relationshipPageActive || res.code === 401) {
+        logLoading = false
+        return
+      }
       if (res.code !== 0 || !res.data) {
         logLoading = false
         return
@@ -1275,14 +1307,18 @@
       logLoading = false
     }
 
-    const logObserver = new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting && !logLoading && !logNoMore) {
-        loadGrowthLog()
-      }
-    }, { threshold: 0 })
+    function startRelationshipPrivateResources() {
+      if (!relationshipPageActive) return
+      logObserver = new IntersectionObserver(function (entries) {
+        if (relationshipPageActive && entries[0].isIntersecting && !logLoading && !logNoMore) {
+          loadGrowthLog()
+        }
+      }, { threshold: 0 })
 
-    const sentinel = document.getElementById('log-sentinel')
-    if (sentinel) logObserver.observe(sentinel)
+      const sentinel = document.getElementById('log-sentinel')
+      if (sentinel) logObserver.observe(sentinel)
+      loadPage()
+    }
 
     function checkLevelUpParam(levelInfo) {
       const params = new URLSearchParams(window.location.search)
@@ -1351,7 +1387,7 @@
       }
     }
 
-    loadPage()
+    if (relationshipPageAuthorized) startRelationshipPrivateResources()
   </script>
 </body>
 </html>

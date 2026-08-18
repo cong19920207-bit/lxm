@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.constants import (
@@ -147,6 +147,34 @@ class TestListFeed:
         r = await feed_service.list_feed(db, _USER, None, 20)
         assert r["posts"][0]["user_liked"] is True
         assert r["posts"][0]["display_likes"] == 5 * 2 + 0
+
+    @pytest.mark.asyncio
+    async def test_anonymous_list_omits_private_fields_and_private_queries(self, db):
+        """匿名列表不能靠“先查再删”隐藏点赞或评论数据。"""
+        db.add(_post(1, base_comments=3, comment_multiplier=2))
+        await db.commit()
+        db.add(FeedComment(post_id=1, user_id=_USER, content="我的评论",
+                           gen_status="pending"))
+        db.add(FeedLike(user_id=_USER, post_id=1))
+        await db.commit()
+
+        statements = []
+
+        def capture_sql(_conn, _cursor, statement, _parameters, _context, _executemany):
+            statements.append(statement.lower())
+
+        event.listen(db.bind.sync_engine, "before_cursor_execute", capture_sql)
+        try:
+            result = await feed_service.list_feed(db, None, None, 20)
+        finally:
+            event.remove(db.bind.sync_engine, "before_cursor_execute", capture_sql)
+
+        item = result["posts"][0]
+        assert item["display_comments"] == 6
+        assert "user_liked" not in item
+        assert "comments" not in item
+        assert not any("feed_comment" in sql for sql in statements)
+        assert not any("feed_like" in sql for sql in statements)
 
 
 class TestDisplayComments:

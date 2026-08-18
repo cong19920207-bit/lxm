@@ -1,0 +1,469 @@
+{
+  "schema_version": 2,
+  "run_id": "20260802T095138Z-open-login",
+  "phase": "final",
+  "state": "IMPLEMENTATION_PLAN_READY",
+  "outcome": "PASS_WITH_RISKS",
+  "code_status": "NOT_STARTED",
+  "source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+  "validated_source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+  "source_manifest": [
+    {
+      "id": "user-decision-all-a",
+      "source": "USER_DECISION",
+      "sha256": "1bfb8112b6ce9e1ba5804c8a11004c64c29022ba5bf6f2e02a4a5e5d5a1a91dc",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/design/open_login/prd-delivery-runs/20260802T095138Z-open-login/sources/user-decision-20260802T100750Z.md"
+    },
+    {
+      "id": "project-rules",
+      "source": "REPO_BASELINE",
+      "sha256": "6d3536dd0548cc7a5ce67a9eb5aacdecde70885d872bfc1c97ca62e0c4fe0e3f",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/AGENTS.md"
+    },
+    {
+      "id": "docs-index",
+      "source": "REPO_BASELINE",
+      "sha256": "fe2694eb301720e2da568675527362c40078db878bfc4cfe6fc5419e9f0384e5",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/INDEX.md"
+    },
+    {
+      "id": "docs-manifest",
+      "source": "REPO_BASELINE",
+      "sha256": "8280b441b9cc5937982a7aa5da153d7e82728d045fabb1a9f2ecd14b47b0ca9d",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/llm-manifest.json"
+    },
+    {
+      "id": "tech-debt-index",
+      "source": "CONTRACT",
+      "sha256": "c4dfbcedb2d1306faa316bc01c87d5a840490b295de043bbcc46ebb4b77cab0a",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/tech-debt.md"
+    },
+    {
+      "id": "tech-debt-core-user-auth",
+      "source": "CONTRACT",
+      "sha256": "134a34836a4422bde1ba72d9591c5a4d6efdaae65db81b99b719655fb36d24d1",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/tech-debt/active/core-user-auth.md"
+    },
+    {
+      "id": "tech-debt-cross-cutting",
+      "source": "CONTRACT",
+      "sha256": "e66725e487c3a334ad6080f51678ded01261143625e82fe10bf442e323e7de82",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/tech-debt/active/cross-cutting.md"
+    },
+    {
+      "id": "runtime-fastapi-http-security",
+      "source": "RUNTIME",
+      "sha256": "674c402c3ab080965101a0ece3449aebcac09e317310bf7d50498ee4f2734ca0",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/.venv-step001/lib/python3.11/site-packages/fastapi/security/http.py"
+    },
+    {
+      "id": "prd-open-login",
+      "source": "PRD",
+      "sha256": "fa5f80111c7061852304783febbfa435e2ccb85dbb7ec5ec19055051419779b6",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/design/open_login/PRD-未登录可用功能开放与登录弹窗改造-v1.md"
+    },
+    {
+      "id": "contract-shared-conventions",
+      "source": "CONTRACT",
+      "sha256": "de36c263df4899e36acf3e89b7e637b9b587a5613e02cd1da50355d3178f7236",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/_shared/conventions.md"
+    },
+    {
+      "id": "contract-core-user-auth-api",
+      "source": "CONTRACT",
+      "sha256": "7331d088b488a4c961f488f91bed1ad2d9bf5cbe11be052b2b879a0d6677b69b",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/core-user-auth/api.md"
+    },
+    {
+      "id": "contract-h5-app-api",
+      "source": "CONTRACT",
+      "sha256": "89174adbb8458d38772fb4259d829e0c45c5af8ae67b749b12e0e67bd4c9fa17",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/h5-app/api.md"
+    },
+    {
+      "id": "contract-life-feed-api",
+      "source": "CONTRACT",
+      "sha256": "79c96c16c82e03f1e682b79ff14c1b11e9d73d4297f51b85b4105821be3e1f75",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/life-feed/api.md"
+    },
+    {
+      "id": "contract-life-feed-data",
+      "source": "CONTRACT",
+      "sha256": "8c7e5d622b6605b77ef814c79f1efda9fdd3f6d3fe719e91536ce52c4adc5f62",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/life-feed/data.md"
+    },
+    {
+      "id": "contract-chat-emotion-api",
+      "source": "CONTRACT",
+      "sha256": "8067c3c17c4a9212e9a10d5e5d261a8952cb4b59ce740b731cba05dac005ec7f",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/chat-emotion/api.md"
+    },
+    {
+      "id": "contract-diary-api",
+      "source": "CONTRACT",
+      "sha256": "d4ab4be9c2c7a3c3e138a4087c6d72b41b55e9855dbbca537bcf63fc72401741",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/diary/api.md"
+    },
+    {
+      "id": "contract-memory-knowledge-api",
+      "source": "CONTRACT",
+      "sha256": "b9434445fa0c50b487a188922bddafabac16b5d4565e038c2d5a363434faa323",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/memory-knowledge/api.md"
+    },
+    {
+      "id": "contract-relationship-api",
+      "source": "CONTRACT",
+      "sha256": "c4f7a0178622b53ce0302f42411c9bb51a3fb5d65c0a44a3f698ee14f2ab0f60",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/relationship/api.md"
+    },
+    {
+      "id": "repo-api-js",
+      "source": "REPO_BASELINE",
+      "sha256": "c0ac5b799b0a6242a41a07ac1333ae2a6ca328cc963946e2e1c905757af0e3e8",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/js/api.js"
+    },
+    {
+      "id": "repo-login-page",
+      "source": "REPO_BASELINE",
+      "sha256": "87183b11d637ba8e57003485398d0596e9f9f8ba0256a5c81c7f886e3e5302c6",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/login.html"
+    },
+    {
+      "id": "repo-index-page",
+      "source": "REPO_BASELINE",
+      "sha256": "f1a8ec090bb2b488710879486731e992f520b6a9fbb464e93db2bf135ff9b16c",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/index.html"
+    },
+    {
+      "id": "repo-feed-page",
+      "source": "REPO_BASELINE",
+      "sha256": "6fcec0780057a8269e12d32ba4c9a72f8e02ab127598e1965f79807962c003d3",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/feed.html"
+    },
+    {
+      "id": "repo-settings-page",
+      "source": "REPO_BASELINE",
+      "sha256": "a1651233e4e7d26a07a5e531ef853e60f06908cf345550debf8efeba88788fb7",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/settings.html"
+    },
+    {
+      "id": "repo-chat-page",
+      "source": "REPO_BASELINE",
+      "sha256": "3f5f6e586816540dcceb9dd3cf62aa3d33624bccade30053d3607d2ad945b1f9",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/chat.html"
+    },
+    {
+      "id": "repo-diary-page",
+      "source": "REPO_BASELINE",
+      "sha256": "30e52cde534ed340c08192b85537a2871b7dcebbe669b337d90b4dc14955f0c0",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/diary.html"
+    },
+    {
+      "id": "repo-memory-page",
+      "source": "REPO_BASELINE",
+      "sha256": "00f1f3ed522fe88a79b33c08dc69a33610e8f19c32aeae252a7b8e445d0ea8e5",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/memory.html"
+    },
+    {
+      "id": "repo-memory-nebula-js",
+      "source": "REPO_BASELINE",
+      "sha256": "16528f0985ae29f5c4ad466999890a7fdc85bfbabe594f91155836da7b7bae3a",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/js/memory-nebula.js"
+    },
+    {
+      "id": "repo-relationship-page",
+      "source": "REPO_BASELINE",
+      "sha256": "2eb330396a9e9b106ac68ab06ca10189058556a13aa11b873b725b07c025aa54",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/relationship.html"
+    },
+    {
+      "id": "repo-auth-middleware",
+      "source": "REPO_BASELINE",
+      "sha256": "daafb400f7c8016bdc90f15a29a3be4e0e3ac9339bdc18e50a303879cd22c158",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/backend/utils/auth_middleware.py"
+    },
+    {
+      "id": "repo-auth-router",
+      "source": "REPO_BASELINE",
+      "sha256": "3b3eddc0e9c6ac79a097a1fe0754141b3bcf484ec8c5db1a5829bddd42d49401",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/backend/routers/auth.py"
+    },
+    {
+      "id": "repo-feed-router",
+      "source": "REPO_BASELINE",
+      "sha256": "82b4c97ae8bf2d83b5984a564d9334643b9aeda089030bb6f39c5a5e35bcd708",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/backend/routers/feed.py"
+    },
+    {
+      "id": "repo-app-router",
+      "source": "REPO_BASELINE",
+      "sha256": "5d480c9ffae1815acc7e32cc10802ae02062e4561ebbfd42b45f1781a5961727",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/backend/routers/app.py"
+    },
+    {
+      "id": "repo-feed-service",
+      "source": "REPO_BASELINE",
+      "sha256": "ab929b4c7a8d7b07151d24cd5fa38b3ea3860add7538524d311ef4e9420b332c",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/backend/services/feed_service.py"
+    },
+    {
+      "id": "repo-test-app-persona",
+      "source": "REPO_BASELINE",
+      "sha256": "b6db2dcc712ee8596a52d99aa552a913c490cd9dce845084f333868abe033c70",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/tests/test_app_persona_background.py"
+    },
+    {
+      "id": "repo-test-feed-service",
+      "source": "REPO_BASELINE",
+      "sha256": "6e1affd7dbd24d116ae2efd0e53c41d887e268f0d9be0f888f7ed17922e82f48",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/tests/test_step015_feed_service.py"
+    },
+    {
+      "id": "repo-test-h5-static",
+      "source": "REPO_BASELINE",
+      "sha256": "1b6789b2831476d326cf65aef5485352d8a048e7461b78e85b8f7c3aed40fa3c",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/tests/test_h5_static_contract.py"
+    },
+    {
+      "id": "repo-readme",
+      "source": "REPO_BASELINE",
+      "sha256": "4a4ffa68318d84112817b298a7d9fb7f69fd14e2513c221a5f6aca16be4b14cc",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/README.md"
+    }
+  ],
+  "artifacts": {
+    "requirements_ledger": {
+      "path": "requirements-ledger.md",
+      "role": "requirements_ledger",
+      "sha256": "731e789ba5fd3a62af8bcda43ab9a27c2e05111556164aad2a98705d65313c9c"
+    },
+    "decision_addendum": {
+      "path": "decision-addendum.md",
+      "role": "decision_addendum",
+      "sha256": "4369de4682c6631bc0ab157756646c063fa8bfcc36d39d2c6fd259b17993cc75"
+    },
+    "steps_draft": {
+      "path": "steps-draft.md",
+      "role": "step_draft",
+      "sha256": "ba26e17b4568dd2d9168a4988b34563752ca6f3fa2d7b8f0dd81e53c089576e8"
+    },
+    "step_audit": {
+      "path": "step-audit.md",
+      "role": "step_audit",
+      "sha256": "ddeb569fb9d8e4fc014a2042635243b4e7d3712b74e5e55ca399d13af1630971"
+    },
+    "steps_verified": {
+      "path": "steps-verified.md",
+      "role": "step_verified",
+      "sha256": "e8f3e64f52cf7351c2897612d6bce96517999a2ed7fdac516e5fa1dd56cda092"
+    },
+    "execution_plan": {
+      "path": "execution-plan.md",
+      "role": "execution_plan",
+      "sha256": "d02239a282940a729ab1eb89d65095409c94a636e123784fde1c79f26c36d5c0"
+    },
+    "run": {
+      "path": "run.json",
+      "role": "run_index"
+    }
+  },
+  "stage_results": [
+    {
+      "phase": "prd-review",
+      "state": "PRD_READY",
+      "outcome": "PASS_WITH_RISKS",
+      "source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+      "artifact_keys": [
+        "requirements_ledger"
+      ]
+    },
+    {
+      "phase": "prd-to-steps",
+      "state": "STEPS_DRAFTED",
+      "outcome": "PASS_WITH_RISKS",
+      "source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+      "artifact_keys": [
+        "steps_draft"
+      ]
+    },
+    {
+      "phase": "step-doc-review",
+      "state": "STEPS_VERIFIED",
+      "outcome": "PASS_WITH_RISKS",
+      "source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+      "artifact_keys": [
+        "step_audit",
+        "steps_verified"
+      ]
+    },
+    {
+      "phase": "milestone-step-execution",
+      "state": "IMPLEMENTATION_PLAN_READY",
+      "outcome": "PASS_WITH_RISKS",
+      "source_digest": "819af0688f9c56cfc9cbca57ea71aad2b64883753e0046c418f6926b52d5525f",
+      "artifact_keys": [
+        "execution_plan"
+      ]
+    }
+  ],
+  "requirements": [
+    {"id": "C1", "source": "PRD"},
+    {"id": "C2", "source": "PRD"},
+    {"id": "C3", "source": "PRD"},
+    {"id": "C4", "source": "PRD"},
+    {"id": "C5", "source": "PRD"},
+    {"id": "C6", "source": "PRD"},
+    {"id": "C7", "source": "PRD"},
+    {"id": "C8", "source": "PRD"},
+    {"id": "C9", "source": "PRD"},
+    {"id": "C10", "source": "PRD"},
+    {"id": "C11", "source": "PRD"},
+    {"id": "C12", "source": "PRD"},
+    {"id": "C13", "source": "PRD"},
+    {"id": "C14", "source": "PRD"},
+    {"id": "C15", "source": "PRD"},
+    {"id": "C16", "source": "PRD"},
+    {"id": "C17", "source": "PRD"},
+    {"id": "C18", "source": "PRD"},
+    {"id": "CSTR-01", "source": "PRD"},
+    {"id": "CSTR-02", "source": "PRD"},
+    {"id": "CSTR-03", "source": "PRD"},
+    {"id": "CSTR-04", "source": "PRD"},
+    {"id": "CSTR-05", "source": "PRD"},
+    {"id": "CSTR-06", "source": "PRD"},
+    {"id": "UD-01", "source": "USER_DECISION"},
+    {"id": "UD-02", "source": "USER_DECISION"},
+    {"id": "UD-03", "source": "USER_DECISION"}
+  ],
+  "acceptance": [
+    {"id": "AC-01", "source": "PRD"},
+    {"id": "AC-02", "source": "PRD"},
+    {"id": "AC-03", "source": "PRD"},
+    {"id": "AC-04", "source": "PRD"},
+    {"id": "AC-05", "source": "PRD"},
+    {"id": "AC-06", "source": "PRD"},
+    {"id": "AC-07", "source": "PRD"}
+  ],
+  "steps": [
+    {
+      "id": "STEP-001",
+      "requirement_ids": ["C7", "C17", "CSTR-03", "CSTR-04", "CSTR-05"],
+      "acceptance_ids": ["AC-07"],
+      "depends_on": [],
+      "references": [
+        {"kind":"path","value":"backend/utils/auth_middleware.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-auth-middleware","locator":"backend/utils/auth_middleware.py","critical":true},
+        {"kind":"path","value":".venv-step001/lib/python3.11/site-packages/fastapi/security/http.py","status":"existing","source":"RUNTIME","source_id":"runtime-fastapi-http-security","locator":".venv-step001/lib/python3.11/site-packages/fastapi/security/http.py","critical":false},
+        {"kind":"path","value":"backend/routers/feed.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-feed-router","locator":"backend/routers/feed.py","critical":true},
+        {"kind":"path","value":"backend/services/feed_service.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-feed-service","locator":"backend/services/feed_service.py","critical":true},
+        {"kind":"path","value":"backend/routers/app.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-app-router","locator":"backend/routers/app.py","critical":true},
+        {"kind":"path","value":"tests/test_app_persona_background.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-app-persona","locator":"tests/test_app_persona_background.py","critical":false},
+        {"kind":"path","value":"tests/test_step015_feed_service.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-feed-service","locator":"tests/test_step015_feed_service.py","critical":false},
+        {"kind":"symbol","value":"get_current_user_optional","status":"planned","source":"PLANNED","critical":true}
+      ]
+    },
+    {
+      "id": "STEP-002",
+      "requirement_ids": ["C11", "C12", "C13", "C14", "C15", "C16", "CSTR-02", "CSTR-03", "CSTR-06", "UD-01"],
+      "acceptance_ids": ["AC-06"],
+      "depends_on": [],
+      "references": [
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"frontend/pages/login.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-login-page","locator":"frontend/pages/login.html","critical":true},
+        {"kind":"path","value":"backend/routers/auth.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-auth-router","locator":"backend/routers/auth.py","critical":true},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-003",
+      "requirement_ids": ["C1", "C2", "C3", "C4", "C5", "C6", "C16", "CSTR-01", "CSTR-03"],
+      "acceptance_ids": ["AC-01"],
+      "depends_on": ["STEP-001", "STEP-002"],
+      "references": [
+        {"kind":"path","value":"frontend/pages/index.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-index-page","locator":"frontend/pages/index.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-004",
+      "requirement_ids": ["C1", "C7", "C8", "C16", "CSTR-03", "UD-02"],
+      "acceptance_ids": ["AC-02"],
+      "depends_on": ["STEP-001", "STEP-002"],
+      "references": [
+        {"kind":"path","value":"frontend/pages/feed.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-feed-page","locator":"frontend/pages/feed.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"backend/routers/feed.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-feed-router","locator":"backend/routers/feed.py","critical":true},
+        {"kind":"path","value":"backend/services/feed_service.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-feed-service","locator":"backend/services/feed_service.py","critical":true},
+        {"kind":"path","value":"tests/test_step015_feed_service.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-feed-service","locator":"tests/test_step015_feed_service.py","critical":false},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-005",
+      "requirement_ids": ["C1", "C10", "C16", "CSTR-03"],
+      "acceptance_ids": ["AC-03"],
+      "depends_on": ["STEP-001", "STEP-002"],
+      "references": [
+        {"kind":"path","value":"frontend/pages/settings.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-settings-page","locator":"frontend/pages/settings.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"backend/routers/app.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-app-router","locator":"backend/routers/app.py","critical":true},
+        {"kind":"path","value":"tests/test_app_persona_background.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-app-persona","locator":"tests/test_app_persona_background.py","critical":false},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-006",
+      "requirement_ids": ["C1", "C9", "C18", "UD-03"],
+      "acceptance_ids": ["AC-04"],
+      "depends_on": ["STEP-002"],
+      "references": [
+        {"kind":"path","value":"frontend/pages/chat.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-chat-page","locator":"frontend/pages/chat.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"docs/contract/current/chat-emotion/api.md","status":"existing","source":"CONTRACT","source_id":"contract-chat-emotion-api","locator":"docs/contract/current/chat-emotion/api.md","critical":true},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-007",
+      "requirement_ids": ["C1", "C14", "C15"],
+      "acceptance_ids": ["AC-05"],
+      "depends_on": ["STEP-002", "STEP-003"],
+      "references": [
+        {"kind":"path","value":"frontend/pages/diary.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-diary-page","locator":"frontend/pages/diary.html","critical":true},
+        {"kind":"path","value":"frontend/pages/memory.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-memory-page","locator":"frontend/pages/memory.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/memory-nebula.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-memory-nebula-js","locator":"frontend/static/js/memory-nebula.js","critical":true},
+        {"kind":"path","value":"frontend/pages/relationship.html","status":"existing","source":"REPO_BASELINE","source_id":"repo-relationship-page","locator":"frontend/pages/relationship.html","critical":true},
+        {"kind":"path","value":"frontend/static/js/api.js","status":"existing","source":"REPO_BASELINE","source_id":"repo-api-js","locator":"frontend/static/js/api.js","critical":true},
+        {"kind":"path","value":"docs/contract/current/diary/api.md","status":"existing","source":"CONTRACT","source_id":"contract-diary-api","locator":"docs/contract/current/diary/api.md","critical":true},
+        {"kind":"path","value":"docs/contract/current/memory-knowledge/api.md","status":"existing","source":"CONTRACT","source_id":"contract-memory-knowledge-api","locator":"docs/contract/current/memory-knowledge/api.md","critical":true},
+        {"kind":"path","value":"docs/contract/current/relationship/api.md","status":"existing","source":"CONTRACT","source_id":"contract-relationship-api","locator":"docs/contract/current/relationship/api.md","critical":true},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false}
+      ]
+    },
+    {
+      "id": "STEP-008",
+      "requirement_ids": ["C13", "C18", "CSTR-05"],
+      "acceptance_ids": ["AC-01", "AC-02", "AC-03", "AC-04", "AC-05", "AC-06", "AC-07"],
+      "depends_on": ["STEP-001", "STEP-002", "STEP-003", "STEP-004", "STEP-005", "STEP-006", "STEP-007"],
+      "references": [
+        {"kind":"path","value":"docs/contract/current/life-feed/api.md","status":"existing","source":"CONTRACT","source_id":"contract-life-feed-api","locator":"docs/contract/current/life-feed/api.md","critical":true},
+        {"kind":"path","value":"docs/contract/current/h5-app/api.md","status":"existing","source":"CONTRACT","source_id":"contract-h5-app-api","locator":"docs/contract/current/h5-app/api.md","critical":true},
+        {"kind":"path","value":"docs/tech-debt.md","status":"existing","source":"CONTRACT","source_id":"tech-debt-index","locator":"docs/tech-debt.md","critical":true},
+        {"kind":"path","value":"docs/tech-debt/active/core-user-auth.md","status":"existing","source":"CONTRACT","source_id":"tech-debt-core-user-auth","locator":"docs/tech-debt/active/core-user-auth.md","critical":true},
+        {"kind":"path","value":"README.md","status":"existing","source":"REPO_BASELINE","source_id":"repo-readme","locator":"README.md","critical":true},
+        {"kind":"path","value":"tests/test_app_persona_background.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-app-persona","locator":"tests/test_app_persona_background.py","critical":false},
+        {"kind":"path","value":"tests/test_step015_feed_service.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-feed-service","locator":"tests/test_step015_feed_service.py","critical":false},
+        {"kind":"path","value":"tests/test_h5_static_contract.py","status":"existing","source":"REPO_BASELINE","source_id":"repo-test-h5-static","locator":"tests/test_h5_static_contract.py","critical":false},
+        {"kind":"path","value":"browser acceptance evidence","status":"planned","source":"PLANNED","critical":true}
+      ]
+    }
+  ],
+  "execution_plan": {
+    "milestones": [
+      {"id": "M1", "step_ids": ["STEP-001", "STEP-002"]},
+      {"id": "M2", "step_ids": ["STEP-003", "STEP-004", "STEP-005", "STEP-006"]},
+      {"id": "M3", "step_ids": ["STEP-007"]},
+      {"id": "M4", "step_ids": ["STEP-008"]}
+    ]
+  }
+}
