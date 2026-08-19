@@ -21,3 +21,5 @@
 | created_at              | DateTime    | 是   | utcnow |                       |
 | updated_at              | DateTime    | 是   | utcnow | `onupdate=utcnow`     |
 | expires_at              | DateTime    | 否   | NULL   | 过期时间                  |
+
+- **运行时口径（TD-022 已清偿，表结构保留）**：长记忆第一套写入已下线，H5/Admin 列表改读 Step6 用户向量；`memory` 表仍在 ORM/库中，主链不再 `extract_and_save`。存量清理与表删除见 TD-022。

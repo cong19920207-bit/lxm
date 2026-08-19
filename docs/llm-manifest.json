@@ -3646,7 +3646,7 @@
   ],
   "code_surface_coverage": {
     "counts": {
-      "route": 200,
+      "route": 199,
       "model": 26,
       "admin-page": 35,
       "h5-page": 8,
@@ -5246,14 +5246,6 @@
         "contract_document": "contract-relationship-api"
       },
       {
-        "kind": "route",
-        "path": "backend/utils/admin_auth.py",
-        "line": 159,
-        "symbol": "用法：@router.get(\"/xxx\", dependencies=[Depends(require_role(\"super_admin\",\"ops_admin\"))])",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-api"
-      },
-      {
         "kind": "model",
         "path": "backend/models/admin_config.py",
         "line": 12,
@@ -5266,16 +5258,16 @@
         "path": "backend/models/admin_operation_log.py",
         "line": 13,
         "symbol": "AdminOperationLog",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-data"
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
       },
       {
         "kind": "model",
         "path": "backend/models/admin_user.py",
         "line": 12,
         "symbol": "AdminUser",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-data"
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
       },
       {
         "kind": "model",
@@ -5362,8 +5354,8 @@
         "path": "backend/models/login_log.py",
         "line": 12,
         "symbol": "LoginLog",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-data"
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
       },
       {
         "kind": "model",
@@ -5434,8 +5426,8 @@
         "path": "backend/models/user_timeline_seq.py",
         "line": 11,
         "symbol": "UserTimelineSeq",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-data"
+        "scope": "openapi",
+        "contract_document": "contract-openapi-data"
       },
       {
         "kind": "model",
@@ -5610,8 +5602,8 @@
         "path": "admin/pages/life-plan.html",
         "line": 1,
         "symbol": "life-plan.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
       },
       {
         "kind": "admin-page",
@@ -5674,8 +5666,8 @@
         "path": "admin/pages/step5-5-switch.html",
         "line": 1,
         "symbol": "step5-5-switch.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
       },
       {
         "kind": "admin-page",
@@ -5690,16 +5682,16 @@
         "path": "admin/pages/system-monitor.html",
         "line": 1,
         "symbol": "system-monitor.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
       },
       {
         "kind": "admin-page",
         "path": "admin/pages/test-tool.html",
         "line": 1,
         "symbol": "test-tool.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
       },
       {
         "kind": "admin-page",

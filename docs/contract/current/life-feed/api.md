@@ -5,7 +5,7 @@
 - 功能范围：`life-feed`
 - 必读依赖：`contract-shared-conventions`
 - 相关技术债：`TD-032`, `TD-033`, `TD-034`, `TD-035`, `TD-036`, `TD-037`
-- 最近同步：`2026-08-13`（未登录开放与登录弹窗：文首当前口径 + 保留 C-028 迁移原文）
+- 最近同步：`2026-08-19`（DeepSeek 全局默认超时 45s→90s；Liblib 看板角色与代码对齐含 observer；未登录开放口径仍见文首 2026-08-13）
 
 > **当前口径（2026-08-13）**：`GET /api/feed/list` 与 `GET /api/feed/config/header` 为可选 Bearer。完全缺少 `Authorization` 头返回公共数据；有效 token 保留登录用户语义；头存在但无效均 HTTP `401`，不降级为匿名。匿名 list 必须省略 `user_liked` 和 `comments`；header 另含 `home_city`。其余 `/api/feed` 端点仍强鉴权。细则见「当前口径：Feed 可选鉴权与访客只读态」。下文「模块：H5 朋友圈 / 生活流」为 2026-07-19 迁移原文，其中“全部 JWT”和 list 必含用户字段已被当前口径取代。
 
@@ -115,7 +115,7 @@
 
 | 项 | 约定 |
 |----|------|
-| DeepSeek 超时 | 单次默认 **45s**，retry=2，退避 2s/4s；与豆包超时互不影响 |
+| DeepSeek 超时 | 全局默认 **90s**（`DEEPSEEK_DEFAULT_TIMEOUT`，仅 llm_01/02/04 未传 timeout 时走此值）；retry=2，退避 2s/4s；llm_03/05/06/07 业务层显式仍为 **45s**；thinking 保持开启；与豆包超时互不影响 |
 | Liblib payload | `templateUuid` + `generateParams`；selfie 含 `sourceImage`/`strength`/`resizedWidth`/`resizedHeight`；键见 `liblib_*` admin_config |
 | 同帖多图 | `imgCount` 固定 1；`count≥2` 按 seq 构图变体 + 独立 seed；进行中任务并发 **1** |
 | OSS 路径 | `lxm/posts/{post_id}/{seq:02d}.webp` |
@@ -182,7 +182,7 @@
 
 ### 模块：管理后台 · 生活流（`/api/admin`）
 
-> 前缀 `/api/admin`；Admin JWT；写操作落 `operation_log`；配置类写操作走草稿三卡点。路由：`life_plan_mgmt` / `worldview_mgmt` / `feed_mgmt` / `feed_comment_mgmt` / `agent_aware_mgmt` / `life_config_mgmt`。
+> 前缀 `/api/admin`；Admin JWT；写操作落 `operation_log`；配置类写操作走草稿三卡点。路由：`life_plan_mgmt` / `worldview_mgmt` / `feed_mgmt` / `feed_comment_mgmt` / `agent_aware_mgmt` / `life_config_mgmt`。写失败业务码 **20053–20070** 见 `contract-shared-conventions`。
 
 #### 生活计划（`life_plan_mgmt`）
 
@@ -249,7 +249,7 @@
 #### GET /api/admin/stats/liblib
 
 - Query `days`（1~30，默认 7）；读 Redis `liblib_stats:{YYYYMMDD}`
-- 权限：super_admin / ai_trainer / tech_ops
+- 权限：`super_admin` / `ai_trainer` / `tech_ops` / `observer`（与 `stats.py` `_LIBLIB_READ_ROLES` 及本页 RBAC「observer 可读生活流 GET」一致）
 - `data`：`{ days, daily:[{date,total,success,failed,points_used}], summary }`；Redis 异常可 `redis_error:true`
 
 #### RBAC（生活流）

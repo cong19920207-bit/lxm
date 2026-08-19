@@ -16,7 +16,7 @@
   - **人格偏离率**（`persona_deviation_rate`）：当日 `persona_risk_flag=true` 条数 / 当日 **`role=assistant`** 的 `conversation_log` 条数 × 100%（与 `stats_service._get_ai_performance_data` 一致）
 - **GET** `/stats/trend` — Query `metric`, `days`；`data` 为 **`[{ date, value }, ...]`** 数组（非 `dates`/`values` 对象）；需 `super_admin` / `ops_admin` / `observer`
 - **GET** `/stats/report` — Query report_type, start_date, end_date, page, page_size；`data`: `{ list, total, page, page_size, extra }`
-- **GET** `/stats/liblib` — Query `days`（1~30）；LiblibAI 日统计（见「管理后台 · 生活流」）
+- **GET** `/stats/liblib` — Query `days`（1~30）；LiblibAI 日统计；角色 `super_admin` / `ai_trainer` / `tech_ops` / `observer`（见「管理后台 · 生活流」）
 - **POST** `/stats/report/export` — Query 同报表条件，Excel 流；`ai_performance` 导出列第三表头为 **「AI回复数」**（对应 `total_count`，assistant 条数）
 - **说明**：`report_type=user` 时 `extra.level_distribution` 按 `**relationship.level`** 统计（无行用户计入 level 0），与后台用户列表关系字段数据源一致；**该分布为当前全量用户快照，不随 `start_date`/`end_date` 过滤**（与 `list[]` 按日明细不同）。
 - **状态**：已实现

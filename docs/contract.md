@@ -3,6 +3,7 @@
 - 文档 ID：`contract-index`
 - 权威状态：`canonical`（只负责路由；规则正文以 `contract/current/` 为准）
 - 最后迁移：2026-07-19
+- 最后更新：2026-08-19（以代码为准勘误：错误码 20053–20070、Liblib 看板含 observer、覆盖表 199 路由、known-gaps 过时条目）
 - 机器入口：[llm-manifest.json](llm-manifest.json)
 
 原单文件正文已无损保存在 `.doc-migration-baseline/snapshots/2026-07-19/contract.original.md`。该基线不参与默认扫描，未经用户明确要求不得读取、覆盖或删除。

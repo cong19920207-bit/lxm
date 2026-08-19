@@ -5,6 +5,7 @@
 - 功能范围：`shared-conventions`
 - 必读依赖：无
 - 相关技术债：无
+- 最近同步：`2026-08-19`（补生活流后台错误码 20053–20070，与 `backend/constants` 一致）
 
 ### 统一说明
 
@@ -86,6 +87,24 @@
 | `ADMIN_ERR_CHARACTER_KNOWLEDGE_DUPLICATE_KEY`  | 20050 | 同 type+key 已存在         |
 | `ADMIN_ERR_CHARACTER_KNOWLEDGE_NOT_FOUND`      | 20051 | doc_id 不存在             |
 | `ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED` | 20052 | Embedding 或 DashVector 失败 |
+| `ADMIN_ERR_LIFE_OUTLINE_ALREADY_EXISTS`            | 20053 | 一键生成：剩余自然日已有大纲 |
+| `ADMIN_ERR_LIFE_OUTLINE_EXISTS_ON_DATE`            | 20054 | 新增单日大纲：该日已存在 |
+| `ADMIN_ERR_LIFE_OUTLINE_MISSING`                   | 20055 | 手动生成日场景：当日大纲缺失 |
+| `ADMIN_ERR_LIFE_CATEGORY_INVALID`                  | 20056 | 内容分类不在词汇表内 |
+| `ADMIN_ERR_LIFE_PLAN_NOT_FOUND`                    | 20057 | 日计划/大纲不存在 |
+| `ADMIN_ERR_LIFE_SCENE_NOT_FOUND`                   | 20058 | 指定 scene_id 不存在 |
+| `ADMIN_ERR_LIFE_PARAM_INVALID`                     | 20059 | 生活流后台通用参数非法 |
+| `ADMIN_ERR_WORLDVIEW_SNAPSHOT_NOT_FOUND`           | 20060 | 世界观快照不存在 |
+| `ADMIN_ERR_WORLDVIEW_EVENT_NOT_FOUND`              | 20061 | 世界观事件不存在 |
+| `ADMIN_ERR_WORLDVIEW_ATTITUDE_INVALID`             | 20062 | core_attitude 非四选项之一 |
+| `ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN`              | 20063 | 后台朋友圈帖子不存在 |
+| `ADMIN_ERR_FEED_AI_DESCRIPTION_REQUIRED`           | 20064 | AI 生成缺少 description |
+| `ADMIN_ERR_FEED_POST_MODE_INVALID`                 | 20065 | 手动新增 mode 非 upload/ai_generate |
+| `ADMIN_ERR_LIFE_GENERATE_FAILED`                   | 20066 | LLM 生成失败（手动触发） |
+| `ADMIN_ERR_FEED_COMMENT_NOT_FOUND`                 | 20067 | 后台评论不存在 |
+| `ADMIN_ERR_AGENT_AWARE_NOT_FOUND`                  | 20068 | 感知队列记录不存在 |
+| `ADMIN_ERR_AGENT_AWARE_RETRY_INVALID`              | 20069 | 仅 failed 状态可重试 |
+| `ADMIN_ERR_RELATIONSHIP_NOT_FOUND`                 | 20070 | 用户关系记录不存在（重置特殊档计数） |
 
 
 ---

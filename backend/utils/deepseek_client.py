@@ -6,9 +6,9 @@
 #   - 每个 LLM 节点的模型版本由 admin_config 独立配置（见 deepseek_llm_service）
 #
 # 结构参照豆包 LLMClient（异步 httpx.AsyncClient，非流式），符合本项目全异步架构。
-# 超时/重试：timeout=45s、retry=2 次、指数退避 (2s, 4s)。
-# 说明：生活流 DeepSeek（V4pro）日场景等长输出实测常超 15s，统一抬到 45s；
-# 与豆包 LLM_TIMEOUT 默认 45s 对齐，互不影响。
+# 超时/重试：timeout=90s、retry=2 次、指数退避 (2s, 4s)。
+# 说明：2026-08-19 全局默认 45→90，覆盖 llm_01/02/04 长输出（V4-Pro thinking 保持开启）；
+# llm_03/05/06/07 仍走各自显式 45s。与豆包 LLM_TIMEOUT 互不影响。
 # 重试策略（STEP-002 单测要求）：4xx 立即抛错不重试；5xx / 超时 / 网络错误才重试。
 
 import asyncio
@@ -21,10 +21,10 @@ from backend.config import get_deepseek_api_key, get_deepseek_base_url
 
 logger = logging.getLogger(__name__)
 
-# 超时与重试配置：retry=2 次，指数退避 2s / 4s；单次默认 45s
+# 超时与重试配置：retry=2 次，指数退避 2s / 4s；单次默认 90s
 DEEPSEEK_MAX_RETRIES = 2
 DEEPSEEK_RETRY_BASE_DELAY = 2.0  # 指数退避基准：第 1 次重试等 2s，第 2 次等 4s
-DEEPSEEK_DEFAULT_TIMEOUT = 45.0
+DEEPSEEK_DEFAULT_TIMEOUT = 90.0
 
 
 class DeepSeekError(Exception):
@@ -68,7 +68,7 @@ class DeepSeekClient:
             messages: OpenAI 兼容消息数组，如 [{"role": "system", ...}, {"role": "user", ...}]
             model: 模型名称（由上层 deepseek_llm_service 按节点从 admin_config 读取后传入）
             temperature: 采样温度
-            timeout: 单次请求超时（秒），默认 45
+            timeout: 单次请求超时（秒），默认 90
 
         Returns:
             LLM 输出的 content 字符串

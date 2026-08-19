@@ -6,11 +6,11 @@
 - 必读依赖：`docs/llm-manifest.json`
 - 相关技术债：无
 
-> 执行时实际盘点为 200 个路由装饰器；计划中的 194 是较早盘点值。差异保留为可见事实，不将新增路由伪装成迁移遗漏。
+> 执行时实际盘点为 **199** 个 HTTP 路由装饰器（`@router`/`@app` 的 get/post/put/patch/delete）。此前将 `admin_auth.require_role` 误计为第 200 条路由；计划中的 194 是更早盘点值。
 
 | 类型 | 数量 |
 |---|---:|
-| 路由 | 200 |
+| 路由 | 199 |
 | 模型 | 26 |
 | 后台页面 | 35 |
 | H5 页面 | 8 |
@@ -221,10 +221,9 @@ H5 页面的未登录浏览、共享登录弹窗与 `401` 策略以 `contract-h5
 | 路由 | `backend/routers/relationship.py:26` | `relationship` | `contract-relationship-api` |
 | 路由 | `backend/routers/relationship.py:37` | `relationship` | `contract-relationship-api` |
 | 路由 | `backend/routers/relationship.py:48` | `relationship` | `contract-relationship-api` |
-| 路由 | `backend/utils/admin_auth.py:159` | `core-user-auth` | `contract-core-user-auth-api` |
 | 模型 | `backend/models/admin_config.py:12` | `admin-security-accounts` | `contract-admin-security-data` |
-| 模型 | `backend/models/admin_operation_log.py:13` | `core-user-auth` | `contract-core-user-auth-data` |
-| 模型 | `backend/models/admin_user.py:12` | `core-user-auth` | `contract-core-user-auth-data` |
+| 模型 | `backend/models/admin_operation_log.py:13` | `admin-security-accounts` | `contract-admin-security-data` |
+| 模型 | `backend/models/admin_user.py:12` | `admin-security-accounts` | `contract-admin-security-data` |
 | 模型 | `backend/models/agent_aware_queue.py:20` | `agent-future` | `contract-agent-future-data` |
 | 模型 | `backend/models/agent_message.py:32` | `agent-future` | `contract-agent-future-data` |
 | 模型 | `backend/models/ai_diary.py:12` | `diary` | `contract-diary-data` |
@@ -235,7 +234,7 @@ H5 页面的未登录浏览、共享登录弹窗与 `401` 策略以 `contract-h5
 | 模型 | `backend/models/feed_post.py:17` | `life-feed` | `contract-life-feed-data` |
 | 模型 | `backend/models/life_plan.py:12` | `life-feed` | `contract-life-feed-data` |
 | 模型 | `backend/models/life_plan_outline.py:15` | `life-feed` | `contract-life-feed-data` |
-| 模型 | `backend/models/login_log.py:12` | `core-user-auth` | `contract-core-user-auth-data` |
+| 模型 | `backend/models/login_log.py:12` | `admin-security-accounts` | `contract-admin-security-data` |
 | 模型 | `backend/models/memory.py:12` | `memory-knowledge` | `contract-memory-knowledge-data` |
 | 模型 | `backend/models/relationship.py:13` | `relationship` | `contract-relationship-data` |
 | 模型 | `backend/models/relationship_change_history.py:14` | `relationship` | `contract-relationship-data` |
@@ -244,7 +243,7 @@ H5 页面的未登录浏览、共享登录弹窗与 `401` 策略以 `contract-h5
 | 模型 | `backend/models/user.py:12` | `core-user-auth` | `contract-core-user-auth-data` |
 | 模型 | `backend/models/user_api_key.py:12` | `openapi` | `contract-openapi-data` |
 | 模型 | `backend/models/user_short_term_emotion.py:12` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/user_timeline_seq.py:11` | `core-user-auth` | `contract-core-user-auth-data` |
+| 模型 | `backend/models/user_timeline_seq.py:11` | `openapi` | `contract-openapi-data` |
 | 模型 | `backend/models/world_state.py:12` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_event.py:16` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_snapshot.py:15` | `persona-prompt-world-state` | `contract-persona-data` |
@@ -266,7 +265,7 @@ H5 页面的未登录浏览、共享登录弹窗与 `401` 策略以 `contract-h5
 | 后台页面 | `admin/pages/life-feed-global.html:1` | `life-feed` | `contract-life-feed-admin` |
 | 后台页面 | `admin/pages/life-feed-prompts.html:1` | `life-feed` | `contract-life-feed-admin` |
 | 后台页面 | `admin/pages/life-feed-system.html:1` | `life-feed` | `contract-life-feed-admin` |
-| 后台页面 | `admin/pages/life-plan.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
+| 后台页面 | `admin/pages/life-plan.html:1` | `life-feed` | `contract-life-feed-admin` |
 | 后台页面 | `admin/pages/login.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
 | 后台页面 | `admin/pages/memory-rules.html:1` | `memory-knowledge` | `contract-memory-knowledge-admin` |
 | 后台页面 | `admin/pages/operation-logs.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
@@ -274,10 +273,10 @@ H5 页面的未登录浏览、共享登录弹窗与 `401` 策略以 `contract-h5
 | 后台页面 | `admin/pages/prompt.html:1` | `persona-prompt-world-state` | `contract-persona-admin` |
 | 后台页面 | `admin/pages/relationship-rules.html:1` | `relationship` | `contract-relationship-admin` |
 | 后台页面 | `admin/pages/safety-rules.html:1` | `persona-prompt-world-state` | `contract-persona-admin` |
-| 后台页面 | `admin/pages/step5-5-switch.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
+| 后台页面 | `admin/pages/step5-5-switch.html:1` | `persona-prompt-world-state` | `contract-persona-admin` |
 | 后台页面 | `admin/pages/system-logs.html:1` | `observability-third-party` | `contract-observability-admin` |
-| 后台页面 | `admin/pages/system-monitor.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
-| 后台页面 | `admin/pages/test-tool.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
+| 后台页面 | `admin/pages/system-monitor.html:1` | `observability-third-party` | `contract-observability-admin` |
+| 后台页面 | `admin/pages/test-tool.html:1` | `persona-prompt-world-state` | `contract-persona-admin` |
 | 后台页面 | `admin/pages/third-party.html:1` | `observability-third-party` | `contract-observability-admin` |
 | 后台页面 | `admin/pages/user-detail.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
 | 后台页面 | `admin/pages/users.html:1` | `admin-security-accounts` | `contract-admin-security-api` |
