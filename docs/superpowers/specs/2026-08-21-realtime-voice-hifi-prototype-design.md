@@ -1,4 +1,4 @@
-# 林小梦实时语音通话高保真 H5 原型设计
+# 林小梦实时语音通话逐态 Demo 高保真设计
 
 日期：2026-08-21
 
@@ -8,7 +8,7 @@
 
 ## 1. 目的
 
-将现有逐态评审 Demo 升级为符合当前 LXM H5 工程结构的高保真、可交互产品页面。交付物应能作为正式前端开发基线，而不是带手机机框、假状态栏和调试面板的演示画布。
+直接基于现有 `docs/design/realtime_voice/P1/demo/demo-voice-call-states.html` 升级高保真、可交互逐态 Demo。交付物仍位于原 Demo 目录，但界面本身按真实 LXM H5 产品页面设计，可作为正式前端开发的视觉与交互基线，而不是带手机机框、假状态栏和调试面板的评审画布。
 
 本设计以以下内容为约束：
 
@@ -22,9 +22,9 @@
 
 ### 2.1 当前工程边界
 
-项目是 FastAPI 托管的原生 HTML/CSS/JavaScript H5，不是 React、Vue 或原生 iOS 工程。正式页面直接占满浏览器视口，并通过 `env(safe-area-inset-*)` 避让系统区域。
+项目是 FastAPI 托管的原生 HTML/CSS/JavaScript H5，不是 React、Vue 或原生 iOS 工程。正式页面直接占满浏览器视口，并通过 `env(safe-area-inset-*)` 避让系统区域。Demo 应复用这套页面坐标系、人物资产和沉浸式视觉语言，但本次不接入正式页面路由。
 
-首页“语音通话”当前仍执行“敬请期待”；正式语音页面、前端音频会话实现和完整生产语音 Router 尚不存在。现有 `docs/design/realtime_voice/P1/demo/demo-voice-call-states.html` 是状态评审器，不是产品页面。
+首页“语音通话”当前仍执行“敬请期待”；正式语音页面、前端音频会话实现和完整生产语音 Router 尚不存在。现有 Demo 已覆盖主要状态和部分变体，本次在其原文件上重构产品表层和交互，不将 Mock 行为写入正式 H5。
 
 ### 2.2 现有 Demo 的主要问题
 
@@ -39,17 +39,18 @@
 
 ### 3.1 目标
 
-- 产出无设备机框、无假系统 UI、无可见调试控件的正式 H5 页面。
+- 产出无设备机框、无假系统 UI、无可见调试控件的全屏 H5 Demo。
 - 完整覆盖 PRD 的权限、呼叫、连接、通话三阶段、重连、未接、技术失败和结束状态。
 - 让状态、控件、文案和动效通过单一状态机驱动。
-- 让 MockAdapter 与未来 ProviderAdapter 使用同一 UI 事件契约。
-- 从首页进入，并能返回聊天页验证通话记录卡片。
+- 让 Demo 状态事件与未来 ProviderAdapter 的业务语义保持一致。
+- 在 Demo 内完成从权限申请到通话记录卡片的闭环演示。
 - 在 402 × 874 上达到高保真，并能适配窄屏、长屏和横屏安全退化。
 - 遵守触控尺寸、对比度、屏幕阅读器和减少动态偏好。
 
 ### 3.2 非目标
 
 - 本次不实现真实 S2S、WebSocket、计费、CALL-01、转写、记忆或后处理服务。
+- 不新增 `frontend/pages/voice-call.html`，不修改首页入口、聊天页或正式后端路由。
 - 不在聊天页增加第二个通话发起入口。
 - 不公开显示实时字幕或内部转写。
 - 不实现原生 CallKit、后台持续通话或锁屏通话。
@@ -57,52 +58,45 @@
 
 ## 4. 选定架构
 
-采用“正式 H5 产品界面 + 可替换通话适配器”。
+采用“原 Demo 文件内的正式产品表层 + 确定性场景驱动器”。
 
 ```text
-index.html / 语音通话
-          ↓
-voice-call.html
-  ├─ VoiceCallView：渲染与可访问性
-  ├─ VoiceCallController：状态机与用户操作
-  ├─ MockVoiceCallAdapter：原型事件与场景复现
-  └─ VoiceCallAdapter 接口：未来接业务 API / Provider
-          ↓
-chat.html / source=call 通话记录卡片
+demo-voice-call-states.html
+  ├─ ProductSurface：全屏产品界面
+  ├─ DemoController：状态机与用户操作
+  ├─ ScenarioDriver：确定性主流程和异常流程
+  └─ EmbeddedChatScene：通话记录卡片闭环
+
+项目正式 H5 资产与样式规则
+  └─ 只读参考和复用，不在本次修改
 ```
 
 ### 4.1 文件边界
 
-正式实现阶段预期涉及：
+本次实现范围严格限定为：
 
-- `frontend/pages/voice-call.html`：语义化页面骨架；
-- `frontend/static/css/voice-call.css`：页面视觉、状态样式和动效；
-- `frontend/static/js/voice-call.js`：状态机、控制器、视图更新和能力检测；
-- `frontend/static/js/voice-call-mock.js`：仅用于原型的确定性场景适配器；
-- `frontend/pages/index.html`：登录通过后进入语音页面；
-- `frontend/pages/chat.html`：增加 `source=call` 的独立卡片渲染分支；
-- 对应静态契约测试和浏览器交互测试。
+- `docs/design/realtime_voice/P1/demo/demo-voice-call-states.html`：重构页面骨架、视觉、状态机、交互和场景驱动；
+- `docs/design/realtime_voice/P1/demo/assets/`：只在现有项目资产无法满足动效时补充必要图片；
+- `tests/test_realtime_voice_demo_contract.py`：同步正式 Demo 契约；
+- 浏览器自动化截图和交互验收，不修改正式 H5 页面。
 
-页面继续复用 `/static/css/common.css`、`/static/css/h5-theme.css` 和 `/static/js/api.js`。`body.voice-call-immersive` 对通用 neo 卡片规则做页面级隔离，方式与 `chat-immersive` 一致。
+Demo 保持单 HTML 可打开，继续通过相对路径复用 `frontend/static/images/` 中的现有人物资产。视觉令牌和交互规则对齐 `common.css`、`h5-theme.css`、`index.html` 与 `chat.html`，但不直接加载生产脚本或触发真实 API。
 
 ### 4.2 原型与生产的边界
 
-MockAdapter 只负责产生确定性的事件序列，不拥有任何产品 DOM。生产接入时替换 Adapter，不重写 UI 和状态机。
+ScenarioDriver 只负责产生确定性的事件序列，不拥有任何产品 DOM。Demo 中的状态枚举、控件语义和事件命名应能被正式开发沿用，但本次不承诺直接复制 Demo JavaScript 作为生产 Adapter。
 
 原型场景通过 URL 参数选择，例如：
 
 ```text
-/pages/voice-call.html?prototype=1&scenario=answered
-/pages/voice-call.html?prototype=1&scenario=missed
-/pages/voice-call.html?prototype=1&scenario=reconnect
-/pages/voice-call.html?prototype=1&scenario=failed
-/pages/voice-call.html?prototype=1&scenario=no-quota
+demo-voice-call-states.html?scenario=answered
+demo-voice-call-states.html?scenario=missed
+demo-voice-call-states.html?scenario=reconnect
+demo-voice-call-states.html?scenario=failed
+demo-voice-call-states.html?scenario=no-quota
 ```
 
-参数和测试钩子不渲染成界面。非原型模式未接入真实 Adapter 时必须明确阻断，不能自动播放一场模拟通话。
-
-本次高保真交付处于原型阶段：首页已登录入口明确跳转到
-`/pages/voice-call.html?prototype=1&scenario=answered`。生产语音 Adapter 接入并通过验收后，入口才改为无原型参数的正式地址；不得把 MockAdapter 当作线上语音能力发布。
+参数和测试钩子不渲染成界面。无参数时默认运行 `answered` 主流程，从权限说明开始；异常流程通过 URL 直接复现。旧的可见左侧状态导航、右侧变体面板和数字键切换全部移除。
 
 ## 5. 视口与布局
 
@@ -175,37 +169,37 @@ UI 使用一个持久页面壳，根据状态更新文案、视觉变量、可�
 
 ## 8. 核心交互
 
-### 8.1 从首页发起
+### 8.1 Demo 启动与权限流程
 
-1. 未登录沿用共享登录弹窗；登录成功只进入语音页一次。
-2. 已登录进入 `/pages/voice-call.html`。
-3. 首次或权限状态未知时显示权限说明，由用户点击触发 `getUserMedia`。
-4. 权限已授予时进入 `preflight`；只有检查通过才进入角色接听决策。
+1. 默认场景打开后显示权限说明，等价于用户已从首页进入通话流程。
+2. 点击“允许麦克风”在 Demo 内进入 `preflight`，不调用真实登录、额度或通话 API。
+3. 在安全上下文且用户允许时，Demo 可以读取本地输入音量驱动视觉；权限不可用时使用确定性模拟音量，不阻断评审。
+4. `preflight` 检查通过后才进入场景设定的角色接听结果。
 
-权限请求必须由明确的用户操作触发。页面不能在无说明的加载阶段偷偷请求麦克风。
+任何真实麦克风请求必须由明确的用户操作触发。页面不能在无说明的加载阶段请求麦克风；拒绝后仍允许通过模拟输入继续查看原型，并明确标记为视觉演示行为。
 
 ### 8.2 通话控制
 
 - 静音：即时更新图标、标签和 `aria-pressed`；静音后不再运行用户静音超时逻辑。
 - 挂断：首次点击立即进入 `ending` 并禁用重复点击；只产生一次结束意图。
-- 声音：先检测输出选择能力。支持时调用 Adapter；不支持时打开说明 Sheet，不能只改变按钮颜色。
-- 页面离开：在有效通话中拦截误触返回，显示“结束并离开 / 继续通话”；浏览器强制关闭由服务端心跳兜底。
+- 声音：Demo 展示可用、选中和系统控制三种视觉契约；不声称已切换真实音频输出。正式开发必须先检测能力，不支持时打开说明 Sheet。
+- 页面离开：Demo 内的返回操作在有效通话中显示“结束并离开 / 继续通话”；浏览器强制关闭不在原型中模拟。
 
 ### 8.3 自然打断
 
-`speaking` 状态持续监听经过回声抑制后的本地输入能量。短促附和只产生轻微视觉响应；超过 Adapter 配置阈值后：
+`speaking` 状态持续监听经过回声抑制后的本地输入能量。短促附和只产生轻微视觉响应；超过打断阈值后：
 
 1. 立即停止当前远端播放；
 2. UI 在一个动画周期内切换到 `listening`；
 3. 不弹“打断成功”Toast；
-4. 将打断事件交给 Adapter 闭环当前回合。
+4. 将打断事件交给 ScenarioDriver 闭环当前回合。
 
 首次进入 `speaking` 时可短暂显示“直接开口就能打断她”，同一用户后续通话不反复教学。
 
 ### 8.4 静音与软收尾
 
 - 只有 `listening` 且麦克风未静音、设备正常时才运行 6 秒确认和 12 秒告别逻辑。
-- 剩余时长达到阈值时只显示柔和提示并由 Adapter 注入 `time_low`；不弹阻断弹窗。
+- 剩余时长达到阈值时只显示柔和提示并由 ScenarioDriver 触发 `time_low`；不弹阻断弹窗。
 - 额度为零后进入自然收尾，前端不显示负余额，也不自行决定账本口径。
 
 ## 9. 动效设计
@@ -228,31 +222,31 @@ UI 使用一个持久页面壳，根据状态更新文案、视觉变量、可�
 
 所有循环动画必须在页面隐藏、终态和 `prefers-reduced-motion: reduce` 下停止。减少动态模式保留状态颜色和文案变化，不依赖运动传达必要信息。
 
-## 10. Adapter 事件契约
+## 10. Demo 事件契约
 
-UI 只消费业务语义事件，不直接读取 Provider 私有事件。
+产品表层只消费业务语义事件，不直接依赖 Scene 编号或 Provider 私有事件。正式开发可据此映射真实 Adapter。
 
 ```js
-adapter.on('state', { state, reason })
-adapter.on('turn', { phase: 'listening' | 'thinking' | 'speaking' })
-adapter.on('duration', { elapsedSeconds, remainingSeconds })
-adapter.on('input-level', { normalizedLevel })
-adapter.on('output-level', { normalizedLevel })
-adapter.on('reconnect', { attempt, maxAttempts })
-adapter.on('ended', { status, durationSeconds, summaryStatus })
-adapter.on('error', { code, retryable })
+driver.emit('state', { state, reason })
+driver.emit('turn', { phase: 'listening' | 'thinking' | 'speaking' })
+driver.emit('duration', { elapsedSeconds, remainingSeconds })
+driver.emit('input-level', { normalizedLevel })
+driver.emit('output-level', { normalizedLevel })
+driver.emit('reconnect', { attempt, maxAttempts })
+driver.emit('ended', { status, durationSeconds, summaryStatus })
+driver.emit('error', { code, retryable })
 ```
 
 Controller 对外只发出意图：
 
 ```js
-adapter.start()
-adapter.setMuted(boolean)
-adapter.requestOutputRoute()
-adapter.interrupt()
-adapter.hangup(reason)
-adapter.retry()
-adapter.destroy()
+driver.start()
+driver.setMuted(boolean)
+driver.requestOutputRoute()
+driver.interrupt()
+driver.hangup(reason)
+driver.retry()
+driver.destroy()
 ```
 
 重复、过期或与当前状态不相容的事件由 Controller 丢弃。`ending` 和 `ended` 是幂等终态；重复挂断不能触发第二次导航或第二次结果写入。
@@ -275,8 +269,7 @@ adapter.destroy()
 - `ready`：显示一至两行短摘要；
 - `failed`：显示“通话记录已保存，摘要暂时没有生成”，不把整张卡标红。
 
-高保真原型通过明确的 URL fixture 参数展示三种状态，例如
-`/pages/chat.html?prototype_call_card=pending`。通话结束后的原型导航携带该参数，便于跨页面验证；生产代码只接受时间线 `source=call` 数据，不能依赖 URL 或 `sessionStorage` 生成记录。
+高保真 Demo 在同一文件内切换到仿照正式聊天页的 `EmbeddedChatScene`，并由 ScenarioDriver 依次展示 `pending` 与 `ready`；`failed` 通过 `?scenario=summary-failed` 复现。它只表达 `source=call` 的产品契约，不修改 `chat.html`，也不使用 `sessionStorage` 伪造生产记录。
 
 ## 12. 异常与恢复
 
@@ -284,7 +277,7 @@ adapter.destroy()
 - 重连成功回到断开前的通话阶段，并使用短暂“已重新连接”可访问性播报。
 - 重连超时进入异常结束，不进入“她没接”的未接页。
 - CALL-01 未接、用户主动挂断、静音结束、额度结束、技术失败使用不同结果状态。
-- 页面重新进入时，原型模式从初始状态开始；生产模式应通过 `call_id` 查询恢复，原型不伪造恢复能力。
+- 页面重新打开或刷新时从所选场景的初始状态开始；正式开发应通过 `call_id` 查询恢复，Demo 不伪造生产恢复能力。
 
 ## 13. 隐私与无障碍
 
@@ -319,20 +312,20 @@ adapter.destroy()
 
 ### 14.2 交互
 
-- 首页访客点击先弹共享登录，成功后只进入一次语音页。
+- 默认打开后从权限说明开始，授权操作只推进一次场景状态。
 - 授权、拒绝、无额度、占用、未接、接通、重连、失败和结束均可确定性复现。
 - 静音和声音控件状态跨 `listening/thinking/speaking` 保持一致。
 - 挂断、结束和返回不会重复触发。
 - `speaking` 中持续输入能触发自然打断，短促输入不误触发。
-- 返回聊天后可验证通话记录卡片的 pending、ready 和 failed 摘要状态。
+- “返回聊天”后在内嵌聊天场景验证通话记录卡片的 pending、ready 和 failed 摘要状态。
 
 ### 14.3 技术质量
 
 - 无控制台错误、无图片 404、无未处理 Promise rejection。
 - 页面所有可交互元素可用键盘和屏幕阅读器访问。
 - `prefers-reduced-motion` 下无无限循环动画。
-- MockAdapter 使用 fake timers 或确定性时钟，测试不依赖真实等待。
-- 静态契约测试验证页面入口、状态枚举、文案、无设备壳结构和聊天卡片分支。
+- ScenarioDriver 使用可加速的确定性时钟，自动化测试不依赖长时间真实等待。
+- 静态契约测试验证状态枚举、文案、无设备壳结构、无可见调试器和内嵌聊天卡片分支。
 
 ## 15. 建议但不自动扩展的后续需求
 
@@ -348,13 +341,13 @@ adapter.destroy()
 
 ## 16. 设计完成定义
 
-本设计完成后，正式实现交付应同时包含：
+本设计完成后，Demo 交付应同时包含：
 
-- 无机框的高保真语音页面；
+- 在原 `demo-voice-call-states.html` 上完成的无机框高保真语音界面；
 - 全主流程与异常流程的可交互原型；
-- 首页入口和聊天流通话卡片；
-- 可替换 Adapter 契约；
+- 内嵌聊天场景中的通话记录卡片；
+- 可映射到正式 Adapter 的业务语义事件契约；
 - iPhone 16 Pro 关键状态截图；
 - 自动化静态契约与浏览器交互验证结果。
 
-达到以上条件才可称为“可直接进入真实语音服务接入的高保真前端基线”。
+达到以上条件才可称为“可直接供正式 H5 开发参考的高保真交互基线”；正式页面、真实 Adapter 和业务 API 接入属于后续开发任务。
