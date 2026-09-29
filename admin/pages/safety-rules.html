@@ -389,6 +389,15 @@
 
   async function saveCrisisKeywords() {
     clearCrisisError();
+    var input = document.getElementById('input-crisis');
+    var pending = (input.value || '').trim();
+    if (pending) {
+      if (crisisKeywords.indexOf(pending) < 0) {
+        crisisKeywords.push(pending);
+        renderTagCloud('cloud-crisis', crisisKeywords);
+      }
+      input.value = '';
+    }
     if (!crisisKeywords.length) {
       showCrisisError(null, '危机关键词不能为空，请至少保留一个词');
       return;
