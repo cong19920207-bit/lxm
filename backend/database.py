@@ -3,6 +3,7 @@
 
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -56,9 +57,39 @@ async def create_all_tables() -> None:
     旧库若缺 sort_seq 相关列/表，启动时幂等补齐并必要时回填历史数据。
     """
     import backend.models  # noqa: F401
+    from backend.models.realtime_voice import VOICE_TABLE_NAMES
+
+    runtime_tables = [
+        table
+        for table_name, table in Base.metadata.tables.items()
+        if table_name not in VOICE_TABLE_NAMES
+    ]
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(
+            lambda sync_conn: Base.metadata.create_all(
+                sync_conn,
+                tables=runtime_tables,
+            )
+        )
+        missing_voice_tables = await conn.run_sync(
+            lambda sync_conn: sorted(
+                VOICE_TABLE_NAMES - set(inspect(sync_conn).get_table_names())
+            )
+        )
+        if missing_voice_tables:
+            raise RuntimeError(
+                "实时语音数据库迁移未完成，缺少 Alembic 管理表: "
+                + ", ".join(missing_voice_tables)
+            )
+        call_columns = await conn.run_sync(lambda sync_conn: {
+            column['name'] for column in inspect(sync_conn).get_columns('voice_call')})
+        if 'call01_fallback' not in call_columns:
+            raise RuntimeError('实时语音数据库迁移未完成，缺少 voice_call.call01_fallback（v8f）')
+        memory_columns = await conn.run_sync(lambda sync_conn: {
+            column['name'] for column in inspect(sync_conn).get_columns('voice_memory_job')})
+        if 'extraction_snapshot' not in memory_columns:
+            raise RuntimeError('实时语音数据库迁移未完成，缺少 voice_memory_job.extraction_snapshot（v8e）')
 
     from backend.schema_timeline import ensure_timeline_sort_seq_ddl
     from backend.services.timeline_backfill_service import backfill_sort_seq_if_needed

@@ -1,0 +1,328 @@
+/* Shared list-page layout for the realtime voice administration pages. */
+.voice-list-page {
+  display: grid;
+  gap: 16px;
+}
+
+.voice-list-page .page-card {
+  margin-bottom: 0;
+}
+
+.voice-filter-card {
+  display: grid;
+  gap: 18px;
+}
+
+.voice-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.voice-card-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.voice-page-note {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.voice-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px 16px;
+  align-items: end;
+}
+
+.voice-filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.voice-filter-field .form-control {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.voice-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.voice-filter-actions--full {
+  grid-column: 1 / -1;
+}
+
+.voice-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.voice-check input {
+  width: 16px;
+  height: 16px;
+}
+
+.voice-result-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.voice-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 65px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.voice-result-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.voice-list-status {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.voice-table-wrap {
+  width: 100%;
+  overflow: auto;
+}
+
+.voice-table-wrap--tall {
+  max-height: 65vh;
+}
+
+.voice-result-card .admin-table th:first-child,
+.voice-result-card .admin-table td:first-child {
+  padding-left: 24px;
+}
+
+.voice-result-card .admin-table th:last-child,
+.voice-result-card .admin-table td:last-child {
+  padding-right: 24px;
+}
+
+.voice-list-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 12px 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.voice-list-footer:empty {
+  display: none;
+}
+
+.voice-empty {
+  padding: 48px 16px !important;
+  color: var(--text-disabled) !important;
+  text-align: center;
+}
+
+.voice-tabs-card {
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.voice-tabs {
+  gap: 4px;
+  margin: 18px -24px 0;
+  padding: 0 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.voice-tabs .tab-item {
+  flex: 0 0 auto;
+  appearance: none;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.voice-tabs .tab-item:focus-visible {
+  outline: 2px solid rgba(24, 144, 255, .35);
+  outline-offset: -2px;
+  border-radius: 4px 4px 0 0;
+}
+
+.voice-section-card {
+  display: grid;
+  gap: 16px;
+}
+
+.voice-section-card.tab-pane {
+  display: none;
+}
+
+.voice-section-card.tab-pane.active {
+  display: grid;
+}
+
+.voice-section-card .voice-filter-grid {
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.voice-section-card .voice-table-wrap {
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+.voice-details {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 14px;
+}
+
+.voice-details summary {
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voice-details[open] summary {
+  margin-bottom: 14px;
+}
+
+.voice-dialog {
+  width: min(1120px, calc(100vw - 32px));
+  max-width: 1120px;
+  max-height: 90vh;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+}
+
+.voice-dialog::backdrop {
+  background: rgba(0, 0, 0, .45);
+}
+
+.voice-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.voice-dialog-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.voice-dialog-body {
+  max-height: calc(90vh - 65px);
+  padding: 20px 24px 24px;
+  overflow: auto;
+}
+
+.voice-dialog-actions,
+.voice-dialog-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.voice-dialog-actions {
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.voice-dialog-tabs {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+}
+
+.voice-dialog-tabs .btn[aria-selected="true"] {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: #e6f7ff;
+  font-weight: 600;
+}
+
+.voice-dialog-panel {
+  min-height: 180px;
+  overflow-wrap: anywhere;
+}
+
+.voice-dialog-panel .admin-table {
+  margin-bottom: 16px;
+}
+
+.voice-dialog-panel td {
+  min-width: 90px;
+  max-width: 460px;
+  white-space: pre-wrap;
+}
+
+.voice-dialog-panel pre {
+  padding: 16px;
+  overflow: auto;
+  border-radius: 6px;
+  background: #f6f8fa;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .voice-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .voice-filter-grid {
+    grid-template-columns: 1fr;
+  }
+  .voice-filter-actions--full {
+    grid-column: auto;
+  }
+  .voice-result-header,
+  .voice-list-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

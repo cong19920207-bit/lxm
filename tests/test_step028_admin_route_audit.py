@@ -36,6 +36,80 @@ DIRECT_CACHE_WRITE_ALLOWLIST = {
     ("GET", "/api/admin/system/status"),
     ("GET", "/api/admin/third-party/status"),
 }
+VOICE_CONFIG_ROUTE_ROLES = {
+    ('POST', '/api/admin/voice/jobs/{job_id}/retry'): frozenset({'super_admin', 'tech_ops'}),
+    ('GET', '/api/admin/voice/crisis-records'): frozenset({'super_admin'}),
+    ('GET', '/api/admin/voice/crisis-records/{record_id}'): frozenset({'super_admin'}),
+    ("PUT", "/api/admin/safety-rules/crisis-keywords"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/safety-rules/crisis-keywords/history"): frozenset(
+        {"super_admin", "ai_trainer", "observer"}
+    ),
+    ("POST", "/api/admin/safety-rules/crisis-keywords/rollback"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("GET", "/api/admin/voice/capability-evidence/{evidence_report_id}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("PATCH", "/api/admin/voice/config/config/draft/{section}"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("PATCH", "/api/admin/voice/config/script/draft/{section}"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("DELETE", "/api/admin/voice/config/config/draft/{section}"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("DELETE", "/api/admin/voice/config/script/draft/{section}"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("DELETE", "/api/admin/voice/config/config/draft"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("DELETE", "/api/admin/voice/config/script/draft"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/validate"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/validate"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/publish"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/publish"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}/history"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}/history/{version}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/rollback"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/rollback"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/test-connection"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/test-capability"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    (
+        "POST",
+        "/api/admin/voice/config/capabilities/{capability_key}/force-test",
+    ): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+}
 
 
 def _admin_routes():
@@ -59,6 +133,18 @@ def _dependency_calls(dependant) -> set:
     return calls
 
 
+def _declared_role_sets(dependant) -> set[frozenset[str]]:
+    role_sets = set()
+    for child in dependant.dependencies:
+        call = child.call
+        if getattr(call, "__name__", None) == "_role_checker":
+            roles = inspect.getclosurevars(call).nonlocals.get("roles")
+            if roles is not None:
+                role_sets.add(frozenset(roles))
+        role_sets.update(_declared_role_sets(child))
+    return role_sets
+
+
 def _call_name(call: ast.Call) -> str | None:
     if isinstance(call.func, ast.Name):
         return call.func.id
@@ -69,7 +155,14 @@ def _call_name(call: ast.Call) -> str | None:
 
 def test_all_admin_routes_except_login_have_complete_admin_authentication():
     routes = _admin_routes()
-    assert len(routes) == 159
+    methods = {
+        (method, path)
+        for path, route in routes
+        for method in route.methods
+    }
+    assert len(routes) == 184
+    assert sum(method in {"GET", "HEAD"} for method, _ in methods) == 74
+    assert sum(method in WRITE_METHODS for method, _ in methods) == 108
 
     seen = set()
     for path, route in routes:
@@ -82,6 +175,24 @@ def test_all_admin_routes_except_login_have_complete_admin_authentication():
                 assert get_current_admin not in calls
             else:
                 assert get_current_admin in calls, key
+
+
+def test_voice_and_crisis_routes_have_exact_methods_and_roles():
+    actual = {}
+    for path, route in _admin_routes():
+        if not (
+            path.startswith("/api/admin/voice/")
+            or path.startswith("/api/admin/safety-rules/crisis-keywords")
+        ):
+            continue
+        for method in route.methods:
+            actual[(method, path)] = _declared_role_sets(route.dependant)
+
+    assert set(actual) == set(VOICE_CONFIG_ROUTE_ROLES)
+    assert actual == {
+        route: {roles}
+        for route, roles in VOICE_CONFIG_ROUTE_ROLES.items()
+    }
 
 
 def test_every_admin_write_uses_the_observer_method_gate_and_exports_are_marked():
@@ -142,5 +253,5 @@ def test_all_admin_get_head_handlers_have_no_forbidden_business_side_effects():
                         "attribute assignment",
                     )
 
-    assert len(audited) == 69
+    assert len(audited) == 77
     assert direct_cache_writers == DIRECT_CACHE_WRITE_ALLOWLIST

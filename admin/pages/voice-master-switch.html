@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语音通话总开关 - 林小梦管理后台</title>
+<link rel="stylesheet" href="/admin/static/css/admin-common.css">
+<style>
+.switch-panel{max-width:880px;padding:28px}.switch-panel p{line-height:1.8;color:var(--text-secondary)}
+.switch-row{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin:28px 0}
+.master-toggle{display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:600;cursor:pointer;position:relative}
+.master-toggle input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:inherit}
+.master-track{width:44px;height:24px;border-radius:12px;background:#bfbfbf;position:relative;flex-shrink:0}
+.master-track:after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.master-toggle input:checked+.master-track{background:var(--primary)}.master-toggle input:checked+.master-track:after{transform:translateX(20px)}
+.master-toggle input:focus-visible+.master-track{outline:3px solid #91caff;outline-offset:3px}
+.master-toggle:has(input:disabled){cursor:not-allowed;opacity:.65}#voice-master-error{color:#cf1322}
+</style>
+</head>
+<body><div id="sidebar-mount"></div><div class="admin-content"><div id="header-mount"></div>
+<main class="page-card switch-panel">
+<h2>语音通话总开关</h2>
+<p>控制是否允许发起新的语音通话。点击后确认一次即可保存并生效，正在进行的通话不受影响。</p>
+<div class="switch-row"><label class="master-toggle" for="voice-master-enabled"><input id="voice-master-enabled" type="checkbox" role="switch" disabled data-write-action><span class="master-track" aria-hidden="true"></span><span>启用语音通话</span></label><span id="voice-master-status" role="status" aria-live="polite">加载中</span></div>
+<p id="voice-master-error" role="alert" hidden></p>
+<p id="voice-master-updated"></p><p id="voice-master-role" hidden>当前账号仅可查看，超级管理员或技术运维可修改。</p>
+<button class="btn" id="btn-voice-master-reload" type="button">刷新状态</button>
+<p>总开关独立保存，语音设置中的草稿及发布状态不受影响。开启后仍需满足已发布设置中的维护、灰度范围等通话条件。</p>
+</main></div>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/voice-master-switch-admin.js?v=f9ee8d4ddc77"></script>
+</body></html>

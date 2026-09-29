@@ -1,0 +1,14 @@
+.voice-call-row { justify-content: center; padding: 4px 0; }
+.voice-call-card { width: min(82%, 320px); box-sizing: border-box; padding: 14px 16px; border: 1px solid rgba(0,0,0,.07); border-radius: 14px; background: rgba(255,255,255,.92); color: #333; }
+.voice-call-title { display: block; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.voice-call-summary { display: block; margin-top: 7px; color: #666; font-size: 13px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-call-summary.is-expanded { white-space: pre-wrap; overflow-wrap: anywhere; }
+button.voice-call-card { display: block; min-height: 44px; min-width: 44px; font: inherit; text-align: left; cursor: pointer; }
+button.voice-call-card:focus-visible { outline: 2px solid #567267; outline-offset: 2px; }
+.voice-call-expand { display: block; margin-top: 6px; color: #567267; font-size: 13px; }
+.voice-call-expand::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 8px; vertical-align: 3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+.voice-call-card[aria-expanded="true"] .voice-call-expand::after { transform: rotate(225deg); vertical-align: 0; }
+.voice-call-static,.voice-call-created { display: block; margin-top: 7px; color: #666; font-size: 13px; line-height: 1.6; }
+.voice-call-card.is-missed { padding-top: 10px; padding-bottom: 10px; }
+.voice-call-row{flex-direction:column;align-items:center}
+.voice-crisis-resource{box-sizing:border-box;width:min(100%,360px);margin-top:12px;padding:14px 16px;border:1px solid #bac6cf;border-radius:12px;background:#eef2f4;color:#374753;font-size:14px;line-height:1.7;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere}

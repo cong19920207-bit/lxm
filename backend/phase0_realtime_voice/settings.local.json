@@ -1,0 +1,29 @@
+{
+  "whitelist_user_ids": [
+    1
+  ],
+  "trigger_keywords": [
+    "上次",
+    "你还记得",
+    "我之前说过",
+    "我之前告诉过你",
+    "那个朋友",
+    "继续说",
+    "我们之前"
+  ],
+  "preamble_memory_doc_ids": [],
+  "voice_candidates": [
+    "S_5kGC1Z212",
+    "S_7fDYUZia2",
+    "saturn_zh_female_keainvsheng_tob",
+    "saturn_zh_female_nuanxinxuejie_tob",
+    "saturn_zh_female_wenrouwenya_tob",
+    "saturn_zh_female_tiexinnvyou_tob"
+  ],
+  "persona_version_label": [
+    "active",
+    "draft_snapshot"
+  ],
+  "max_recent_dialog_chars": 800,
+  "max_query_chars": 200
+}

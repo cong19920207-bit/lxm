@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通话运维 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-list-pages.css?v=p1-list-20260927">
+  <style>
+    #voice-ops-card[hidden], #voice-ops-write[hidden] { display: none; }
+    .voice-ops-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+    .voice-ops-confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .voice-ops-confirm .form-control { width: 160px; }
+    #voice-ops-state, #voice-ops-result { margin: 10px 0; }
+    #voice-ops-outcomes { margin-top: 12px; }
+    #voice-ops-outcomes p { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="voice-list-page">
+    <section class="page-card" id="voice-ops-card" hidden>
+      <div class="voice-card-heading">
+        <div>
+          <h2 class="voice-card-title">通话运维</h2>
+          <p class="voice-page-note">软停只阻止新拨打；硬停结束点击时正在进行的通话。这里只展示状态，不展示通话内容。</p>
+        </div>
+        <button type="button" class="btn btn-default" id="voice-ops-refresh">刷新通话</button>
+      </div>
+      <div id="voice-ops-write" class="voice-ops-controls" hidden>
+        <div class="voice-ops-confirm">
+          <label for="voice-ops-confirm">执行停止操作前，请输入 CONFIRM</label>
+          <input id="voice-ops-confirm" class="form-control" autocomplete="off" data-write-action>
+        </div>
+        <button type="button" id="voice-ops-soft" class="btn btn-danger" data-write-action>停止新拨打</button>
+        <button type="button" id="voice-ops-hard" class="btn btn-danger" data-write-action>结束进行中的通话</button>
+      </div>
+      <p id="voice-ops-state" role="status" aria-live="polite"></p>
+      <p id="voice-ops-result" role="status" aria-live="polite"></p>
+      <div id="voice-ops-outcomes" aria-label="通话处理结果"></div>
+      <div class="voice-table-wrap"><table class="admin-table">
+        <thead><tr><th>通话编号</th><th>用户编号</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="voice-ops-calls"></tbody>
+      </table></div>
+    </section>
+  </main>
+</div>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/voice-ops-admin.js?v=20260928-independent"></script>
+</body>
+</html>

@@ -438,6 +438,7 @@
     </div>
     <!-- Tab 内容区 -->
     <div class="tab-pane active" id="tab-conversation">
+      <p id="voice-history-note" style="display:none">语音通话请查看独立的<a id="voice-history-link">通话记录</a>。</p>
       <!-- 筛选栏 -->
       <div class="conv-filter">
         <span class="filter-label">开始时间</span>
@@ -545,11 +546,15 @@
 
 </div>
 
-<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
 <script>
 checkAdminLogin();
 
 var userId = new URLSearchParams(location.search).get('id');
+if (['super_admin','ops_admin','observer'].includes(getAdminRole())) {
+  document.getElementById('voice-history-note').style.display='block';
+  document.getElementById('voice-history-link').href='voice-calls.html?user_id='+encodeURIComponent(userId || '');
+}
 if (!userId) {
   window.location.href = '/admin/pages/users.html';
 }
@@ -1441,9 +1446,70 @@ function renderAccountTab() {
       '<button type="button" class="btn btn-default" data-write-action onclick="resetUserPassword()">重置密码</button>' +
     '</div>' +
     '<div class="info-card-title" style="margin-top:8px">Open API Key</div>' +
-    '<div id="open-api-key-area" style="font-size:14px;color:var(--text-secondary)">加载中...</div>';
+    '<div id="open-api-key-area" style="font-size:14px;color:var(--text-secondary)">加载中...</div>' +
+    '<div class="info-card-title" style="margin-top:24px">语音通话额度</div>' +
+    '<div id="voice-quota-area" style="font-size:14px;color:var(--text-secondary)">加载中...</div>';
   syncTopBarToggleStatusBtn();
   loadOpenApiKeyBlock();
+  loadVoiceQuota();
+}
+
+var voiceQuotaVersion = null;
+var voiceQuotaPending = false;
+
+async function loadVoiceQuota() {
+  var area = document.getElementById('voice-quota-area');
+  if (!area) return;
+  var res = await adminRequest('GET', '/api/admin/voice/users/' + encodeURIComponent(userId) + '/quota');
+  if (!res || res.code !== 0 || !res.data) {
+    voiceQuotaVersion = null;
+    area.textContent = '额度加载失败，请重新进入此页查看';
+    return;
+  }
+  var data = res.data;
+  voiceQuotaVersion = data.version;
+  var canGrant = ['super_admin', 'ops_admin'].includes(getAdminRole());
+  area.innerHTML =
+    '<div style="line-height:1.9">' +
+      '额度日期：' + esc(data.quota_date) + '（北京时间）<br>' +
+      '每日免费时长：' + Number(data.daily_free_seconds) + ' 秒；今日剩余：' + Number(data.free_remaining_seconds) + ' 秒<br>' +
+      '额外时长剩余：' + Number(data.extra_remaining_seconds) + ' 秒；总剩余：' + Number(data.remaining_seconds) + ' 秒' +
+    '</div>' +
+    (canGrant ?
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+        '<label for="voice-extra-seconds">补充额外时长</label>' +
+        '<input id="voice-extra-seconds" data-write-action type="number" min="1" max="86400" step="1" value="300" style="width:112px">' +
+        '<span>秒</span>' +
+        '<button id="voice-extra-grant" type="button" class="btn btn-primary" data-write-action>确认补充</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text-secondary);margin-top:6px">额外时长不随每日免费额度重置而失效。</div>' : '');
+  if (canGrant) document.getElementById('voice-extra-grant').onclick = grantVoiceExtra;
+}
+
+function grantVoiceExtra() {
+  if (voiceQuotaPending || voiceQuotaVersion === null || !userData) return;
+  var input = document.getElementById('voice-extra-seconds');
+  var seconds = Number(input && input.value);
+  if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 86400) {
+    showToast('请输入 1–86400 之间的整数秒数', 'error');
+    return;
+  }
+  voiceQuotaPending = true;
+  showConfirm('确认给用户 ' + esc(userData.username) + '（ID:' + esc(userId) + '）补充 ' + seconds + ' 秒额外语音时长？', async function () {
+    try {
+      var res = await adminRequest('POST', '/api/admin/voice/users/' + encodeURIComponent(userId) + '/quota/extra',
+        { seconds: seconds, expected_version: voiceQuotaVersion }, false,
+        { silentErrorToast: true, returnErrorResponse: true });
+      if (res && res.code === 0) {
+        showToast('额外时长已补充', 'success');
+      } else if (res) {
+        showToast(res.detail || res.message || '补充失败，请刷新余额后重试', 'error');
+      }
+      await loadVoiceQuota();
+    } finally {
+      voiceQuotaPending = false;
+    }
+  }, function () { voiceQuotaPending = false; });
 }
 
 function formatOpenApiMinute(iso) {

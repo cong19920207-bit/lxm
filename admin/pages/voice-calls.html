@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通话记录 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-list-pages.css?v=p1-list-20260927">
+  <style>
+    #voice-dialog [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="voice-list-page">
+    <section class="page-card voice-filter-card">
+      <div class="voice-card-heading">
+        <div>
+          <h2 class="voice-card-title">筛选条件</h2>
+          <p class="voice-page-note">逐轮文字只读。正文到期或删除后不再显示；查看、导出和补跑均记录审计。</p>
+        </div>
+      </div>
+      <form id="voice-filters">
+        <div class="voice-filter-grid" id="voice-filter-fields"></div>
+        <div class="voice-filter-actions" style="margin-top:16px">
+          <button class="btn btn-primary" type="submit">查询</button>
+          <button class="btn btn-default" type="reset">重置条件</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="page-card voice-result-card">
+      <div class="voice-result-header">
+        <h2 class="voice-result-title">通话列表</h2>
+        <span id="voice-status" class="voice-list-status" role="status"></span>
+      </div>
+      <div class="voice-table-wrap voice-table-wrap--tall">
+        <table class="admin-table">
+          <thead id="voice-head"></thead>
+          <tbody id="voice-rows"></tbody>
+        </table>
+      </div>
+      <div id="voice-pagination" class="voice-list-footer"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="voice-dialog" class="voice-dialog" aria-labelledby="voice-title">
+  <div class="voice-dialog-header">
+    <h2 id="voice-title">通话详情</h2>
+    <button class="btn btn-link" id="voice-close" type="button">关闭</button>
+  </div>
+  <div class="voice-dialog-body">
+    <div class="voice-dialog-actions">
+      <button class="btn btn-default" id="voice-export" data-write-action type="button">导出有效转写</button>
+      <button class="btn btn-default" id="voice-debug" type="button">受限调试</button>
+      <button class="btn btn-danger" id="voice-delete" data-write-action type="button" hidden>删除通话</button>
+    </div>
+    <nav id="voice-tabs" class="voice-dialog-tabs" aria-label="通话详情标签"></nav>
+    <div id="voice-detail-status" class="voice-list-status" role="status"></div>
+    <div id="voice-panel" class="voice-dialog-panel"></div>
+    <button class="btn btn-default" id="voice-more" type="button" hidden>加载更多</button>
+  </div>
+</dialog>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/voice-records-admin.js?v=p1-crisis-20260927"></script>
+</body>
+</html>

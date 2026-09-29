@@ -45,6 +45,21 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+    .safety-history-wrap {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .safety-history-empty {
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    .safety-inline-error {
+      display: none;
+      margin-top: 12px;
+    }
+    .safety-inline-error.show {
+      display: block;
+    }
     #safety-page-wrap.is-loading .safety-tag-cloud {
       opacity: 0.6;
       pointer-events: none;
@@ -58,10 +73,15 @@
   <div id="header-mount"></div>
 
   <div id="safety-page-wrap" class="page-card is-loading">
+    <div id="safety-load-error" class="alert alert-error" style="display:none;margin-bottom:12px" role="alert">
+      安全规则首次加载失败。为避免用不完整词表覆盖线上数据，编辑已锁定。
+      <button type="button" id="btn-retry-safety-load" class="btn btn-default btn-sm" style="margin-left:8px">重试加载</button>
+    </div>
     <div class="tabs" id="safety-tabs">
       <div class="tab-item active" data-target="pane-banned">违规关键词</div>
       <div class="tab-item" data-target="pane-persona">人格禁区关键词</div>
       <div class="tab-item" data-target="pane-style">语言风格禁忌词</div>
+      <div class="tab-item" data-target="pane-crisis">危机干预关键词</div>
     </div>
 
     <!-- 违规关键词 -->
@@ -102,10 +122,43 @@
         <div></div>
       </div>
     </div>
+
+    <!-- 实时语音危机干预词：独立发布与版本回滚 -->
+    <div id="pane-crisis" class="tab-pane" data-tab="crisis">
+      <div class="alert alert-warning" style="margin-bottom:12px">
+        危机干预词用于实时语音危机检测。保存即发布，不能为空；回滚需精确输入 CONFIRM。
+      </div>
+      <div id="crisis-config-health" class="alert alert-warning" role="status" aria-live="polite" style="margin-bottom:12px">正在读取危机词发布与缓存状态…</div>
+      <div id="cloud-crisis" class="safety-tag-cloud"></div>
+      <div class="flex-between safety-actions-row">
+        <div class="safety-input-group">
+          <input type="text" id="input-crisis" data-write-action class="form-control" style="width:240px;box-sizing:border-box" placeholder="输入危机关键词后按 Enter 添加" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="btn-save-crisis" data-write-action>发布危机词</button>
+        </div>
+        <button type="button" class="btn btn-default" id="btn-refresh-crisis-history">刷新历史</button>
+      </div>
+      <div id="crisis-inline-error" class="alert alert-error safety-inline-error" role="alert" aria-live="polite"></div>
+      <div class="safety-history-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>版本</th>
+              <th>状态</th>
+              <th>更新人</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="crisis-history-body">
+            <tr><td colspan="5" class="safety-history-empty">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js?v=observer-v1-20260716"></script>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
 <script>
 (function () {
   var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
@@ -114,6 +167,7 @@
   var bannedKeywords = [];
   var personaKeywords = [];
   var styleKeywords = [];
+  var crisisKeywords = [];
 
   // 问题一：首次 GET 完成前禁止编辑，避免异步返回覆盖用户输入
   var firstLoadFinished = false;
@@ -122,8 +176,8 @@
 
   function setFormEnabled(enabled) {
     var ids = [
-      'input-banned', 'input-persona', 'input-style',
-      'btn-save-banned', 'btn-save-persona', 'btn-save-style',
+      'input-banned', 'input-persona', 'input-style', 'input-crisis',
+      'btn-save-banned', 'btn-save-persona', 'btn-save-style', 'btn-save-crisis',
       'btn-import-excel'
     ];
     ids.forEach(function (id) {
@@ -136,18 +190,21 @@
     lastSyncedSnapshot = JSON.stringify({
       banned: bannedKeywords.slice(),
       persona: personaKeywords.slice(),
-      style: styleKeywords.slice()
+      style: styleKeywords.slice(),
+      crisis: crisisKeywords.slice()
     });
   }
 
   function isDirty() {
     if (lastSyncedSnapshot === null) {
-      return bannedKeywords.length > 0 || personaKeywords.length > 0 || styleKeywords.length > 0;
+      return bannedKeywords.length > 0 || personaKeywords.length > 0 ||
+        styleKeywords.length > 0 || crisisKeywords.length > 0;
     }
     return JSON.stringify({
       banned: bannedKeywords,
       persona: personaKeywords,
-      style: styleKeywords
+      style: styleKeywords,
+      crisis: crisisKeywords
     }) !== lastSyncedSnapshot;
   }
 
@@ -190,6 +247,7 @@
     renderTagCloud('cloud-banned', bannedKeywords);
     renderTagCloud('cloud-persona', personaKeywords);
     renderTagCloud('cloud-style', styleKeywords);
+    renderTagCloud('cloud-crisis', crisisKeywords);
   }
 
   function bindEnterInput(inputId, listRef, cloudId) {
@@ -218,7 +276,8 @@
 
     var res = await adminRequest('GET', '/api/admin/safety-rules');
 
-    if (res && res.code === 0 && res.data) {
+    var loadSucceeded = !!(res && res.code === 0 && res.data);
+    if (loadSucceeded) {
       var d = res.data;
       // 原地替换，避免与 bindEnterInput 闭包中的数组引用脱节
       function replaceInPlace(target, source) {
@@ -230,15 +289,47 @@
       replaceInPlace(bannedKeywords, d.banned_keywords);
       replaceInPlace(personaKeywords, d.persona_boundary_keywords);
       replaceInPlace(styleKeywords, d.style_violation_keywords);
+      replaceInPlace(crisisKeywords, d.crisis_keywords);
+      renderCrisisHealth(d.crisis_keywords_status);
       renderAllClouds();
       saveSnapshot();
+    } else {
+      renderCrisisHealth(null);
     }
 
     if (wrap) wrap.classList.remove('is-loading');
     if (pendingFirst) {
-      setFormEnabled(true);
-      firstLoadFinished = true;
+      setFormEnabled(loadSucceeded);
+      firstLoadFinished = loadSucceeded;
+      document.getElementById('safety-load-error').style.display = loadSucceeded ? 'none' : 'block';
+    } else if (loadSucceeded) {
+      document.getElementById('safety-load-error').style.display = 'none';
     }
+  }
+
+  function renderCrisisHealth(status) {
+    var host = document.getElementById('crisis-config-health');
+    host.className = 'alert alert-warning';
+    if (!status) {
+      host.textContent = '危机词状态暂时无法确认，请刷新或确认后端已更新。';
+      return;
+    }
+    var publication = {unpublished:'尚未发布危机词', invalid:'生效配置无效', unavailable:'发布状态读取失败', published:'已发布'};
+    var cache = {healthy:'正常', missing:'缺失', invalid:'内容无效', unavailable:'不可用', out_of_sync:'与生效版本不一致'};
+    var text = (publication[status.publication_status] || '发布状态未知')
+      + (status.active_version != null ? ' · V' + status.active_version : '')
+      + ' · 生效词数 ' + (status.keyword_count || 0)
+      + ' · 缓存：' + (cache[status.cache_status] || '未知') + '。';
+    if (!status.fallback_ready) {
+      text += '请由超级管理员或 AI 训练师在此发布经过审核的非空词库；无有效配置时新通话会被阻止。';
+    } else if (status.cache_status === 'out_of_sync') {
+      text += '缓存与数据库内容不一致，请检查最近发布或回滚结果。';
+    } else if (status.cache_status !== 'healthy') {
+      text += '危机检测可回退读取数据库中的已发布词库；其他通话依赖仍需正常。';
+    } else {
+      host.className = 'alert alert-info';
+    }
+    host.textContent = text;
   }
 
   async function putKeywords(path, arr) {
@@ -253,6 +344,131 @@
     }
   }
 
+  function safetyEscapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function showCrisisError(result, fallback) {
+    var host = document.getElementById('crisis-inline-error');
+    var errors = result && result.data && Array.isArray(result.data.errors)
+      ? result.data.errors
+      : [];
+    if (!errors.length) {
+      errors = [{
+        code: result && result.data && result.data.error_code
+          ? result.data.error_code
+          : 'CRISIS_KEYWORDS_REQUEST_FAILED',
+        message: result && result.message ? result.message : fallback
+      }];
+    }
+    host.innerHTML = '<strong>操作失败</strong><ul style="margin:8px 0 0 20px">' +
+      errors.map(function (item) {
+        return '<li>' + safetyEscapeHtml(item.code || 'ERROR') + '：' +
+          safetyEscapeHtml(item.message || fallback) + '</li>';
+      }).join('') + '</ul>';
+    host.classList.add('show');
+  }
+
+  function clearCrisisError() {
+    var host = document.getElementById('crisis-inline-error');
+    host.classList.remove('show');
+    host.textContent = '';
+  }
+
+  function crisisRequest(method, path, data) {
+    return adminRequest(method, path, data || null, false, {
+      silentErrorToast: true,
+      returnErrorResponse: true
+    });
+  }
+
+  async function saveCrisisKeywords() {
+    clearCrisisError();
+    if (!crisisKeywords.length) {
+      showCrisisError(null, '危机关键词不能为空，请至少保留一个词');
+      return;
+    }
+    var result = await crisisRequest(
+      'PUT',
+      '/api/admin/safety-rules/crisis-keywords',
+      { keywords: crisisKeywords }
+    );
+    if (!result || result.code !== 0) {
+      showCrisisError(result, '危机关键词发布失败');
+      return;
+    }
+    showToast('危机关键词已发布', 'success');
+    await loadSafetyRules();
+    await loadCrisisHistory();
+  }
+
+  async function loadCrisisHistory() {
+    var body = document.getElementById('crisis-history-body');
+    var result = await crisisRequest(
+      'GET',
+      '/api/admin/safety-rules/crisis-keywords/history?page=1&page_size=20'
+    );
+    if (!result || result.code !== 0 || !result.data) {
+      body.innerHTML = '<tr><td colspan="5" class="safety-history-empty">历史加载失败</td></tr>';
+      showCrisisError(result, '危机关键词历史加载失败');
+      return;
+    }
+    var rows = Array.isArray(result.data.list) ? result.data.list : [];
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" class="safety-history-empty">暂无历史版本</td></tr>';
+      return;
+    }
+    var mayRollback = getAdminRole() === 'super_admin' || getAdminRole() === 'ai_trainer';
+    body.innerHTML = rows.map(function (row) {
+      var rollback = mayRollback
+        ? '<button type="button" class="btn btn-danger btn-sm" data-write-action data-crisis-rollback="' +
+          safetyEscapeHtml(row.version) + '">回滚</button>'
+        : '';
+      return '<tr>' +
+        '<td>V' + safetyEscapeHtml(row.version) + '</td>' +
+        '<td><span class="tag ' + (row.is_active ? 'tag-success' : 'tag-default') + '">' +
+          (row.is_active ? '生效中' : '历史') + '</span></td>' +
+        '<td>' + safetyEscapeHtml(row.updated_by || '-') + '</td>' +
+        '<td>' + safetyEscapeHtml(row.updated_at || '-') + '</td>' +
+        '<td>' + rollback + '</td>' +
+      '</tr>';
+    }).join('');
+    body.querySelectorAll('[data-crisis-rollback]').forEach(function (button) {
+      button.onclick = function () {
+        rollbackCrisisKeywords(parseInt(button.getAttribute('data-crisis-rollback'), 10));
+      };
+    });
+    applyObserverReadOnly(body);
+  }
+
+  function rollbackCrisisKeywords(version) {
+    showConfirmInput(
+      '回滚危机关键词至 V' + version,
+      '回滚会把目标历史版本复制为新的生效版本，请确认已核对完整词表。',
+      '确认回滚',
+      async function () {
+        clearCrisisError();
+        var result = await crisisRequest(
+          'POST',
+          '/api/admin/safety-rules/crisis-keywords/rollback',
+          { version: version, confirm_text: 'CONFIRM' }
+        );
+        if (!result || result.code !== 0) {
+          showCrisisError(result, '危机关键词回滚失败');
+          return;
+        }
+        showToast('危机关键词已回滚并生成新版本', 'success');
+        await loadSafetyRules();
+        await loadCrisisHistory();
+      }
+    );
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (!checkAdminLogin()) return;
     if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
@@ -264,10 +480,14 @@
     document.getElementById('header-mount').innerHTML = renderHeader('内容安全规则');
 
     initTabs('safety-tabs');
+    if (window.location.hash === '#crisis') {
+      document.querySelector('[data-target="pane-crisis"]').click();
+    }
 
     bindEnterInput('input-banned', bannedKeywords, 'cloud-banned');
     bindEnterInput('input-persona', personaKeywords, 'cloud-persona');
     bindEnterInput('input-style', styleKeywords, 'cloud-style');
+    bindEnterInput('input-crisis', crisisKeywords, 'cloud-crisis');
 
     document.getElementById('btn-save-banned').onclick = function () {
       putKeywords('/api/admin/safety-rules/banned-keywords', bannedKeywords);
@@ -278,6 +498,9 @@
     document.getElementById('btn-save-style').onclick = function () {
       putKeywords('/api/admin/safety-rules/style-keywords', styleKeywords);
     };
+    document.getElementById('btn-save-crisis').onclick = saveCrisisKeywords;
+    document.getElementById('btn-refresh-crisis-history').onclick = loadCrisisHistory;
+    document.getElementById('btn-retry-safety-load').onclick = loadSafetyRules;
 
     document.getElementById('btn-import-excel').onclick = function () {
       function openFilePicker() {
@@ -306,6 +529,7 @@
     });
 
     loadSafetyRules();
+    loadCrisisHistory();
   });
 })();
 </script>

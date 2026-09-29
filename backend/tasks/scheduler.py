@@ -12,6 +12,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
+_voice_retention_cursors={'contents':0,'replays':0}
+_voice_daily_after=None
 
 
 async def _run_daily_diary_task() -> None:
@@ -22,7 +24,8 @@ async def _run_daily_diary_task() -> None:
     logger.info("[定时任务] 触发每日日记生成")
     try:
         async with async_session_maker() as db:
-            svc = DiaryService(db)
+            from backend.services.realtime_voice_metric_service import ApplicationVoiceMetrics
+            svc = DiaryService(db, voice_metrics=ApplicationVoiceMetrics())
             await svc.run_daily_diary_task()
     except Exception as e:
         logger.error("[定时任务] 日记生成任务异常: %s", str(e), exc_info=True)
@@ -33,7 +36,8 @@ async def _run_agent_scan() -> None:
     logger.info("[定时任务] 触发 Agent 主动消息扫描")
     try:
         from backend.services.agent_service import AgentService
-        await AgentService().run_agent_scan()
+        from backend.services.realtime_voice_metric_service import ApplicationVoiceMetrics
+        await AgentService(voice_metrics=ApplicationVoiceMetrics()).run_agent_scan()
     except Exception as e:
         logger.error("[定时任务] Agent 扫描任务异常: %s", str(e), exc_info=True)
 
@@ -269,6 +273,42 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
         replace_existing=True,
     )
 
+    scheduler.add_job(
+        _run_voice_reconcile, trigger=IntervalTrigger(seconds=5),
+        id="voice_reconcile_task", name="语音租约与结束清理", replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_crisis_expiry, trigger=IntervalTrigger(minutes=1),
+        id='voice_crisis_expiry_task', name='语音危机原文到期清理', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_memory, trigger=IntervalTrigger(seconds=1),
+        id='voice_memory_task', name='语音逐轮记忆任务', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_summary, trigger=IntervalTrigger(seconds=1),
+        id='voice_summary_task', name='语音通后摘要任务', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_followup, trigger=IntervalTrigger(seconds=1),
+        id='voice_followup_task', name='语音通后追加消息任务', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_retention, trigger=IntervalTrigger(minutes=1),
+        id='voice_retention_task', name='语音保留期清理', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_voice_daily_metrics, trigger=IntervalTrigger(minutes=1),
+        id='voice_daily_metrics_task', name='语音业务日指标聚合', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+
     scheduler.start()
     jobs = scheduler.get_jobs()
     logger.info("[定时任务] 调度器已启动，已注册 %d 个任务", len(jobs))
@@ -288,3 +328,84 @@ def shutdown_scheduler() -> None:
     if scheduler.running:
         scheduler.shutdown(wait=False)
         logger.info("[定时任务] 调度器已停止")
+
+
+async def _run_voice_reconcile():
+    from backend.redis_client import get_redis
+    from backend.database import async_session_maker
+    from backend.services.realtime_voice_ops_service import VoiceOpsService
+    try:
+        await VoiceOpsService(cache=await get_redis(), session_factory=async_session_maker).reconcile()
+    except Exception:
+        logger.warning('voice.ops_stop.reconcile_failed=1')
+
+
+async def _run_voice_crisis_expiry():
+    from backend.database import async_session_maker
+    from backend.services.realtime_voice_crisis_service import clear_expired_crisis
+    try:
+        async with async_session_maker() as db:
+            await clear_expired_crisis(db)
+            await db.commit()
+    except Exception:
+        logger.error('voice.crisis.expiry_failed')
+
+
+async def _run_voice_memory():
+    from backend.services.realtime_voice_memory_service import build_voice_memory_service
+    try:
+        service = await build_voice_memory_service()
+        await service.poll()
+        await service.poll_compensation()
+    except Exception:
+        logger.warning('voice.memory.poll_unavailable')
+
+
+async def _run_voice_summary():
+    from backend.services.realtime_voice_summary_runtime import build_voice_summary_service
+    try:
+        service = await build_voice_summary_service()
+        await service.purge_reasoning()
+        await service.poll()
+    except Exception:
+        logger.warning('voice.summary.poll_unavailable')
+
+
+async def _run_voice_followup():
+    from backend.services.realtime_voice_followup_runtime import build_voice_followup_service
+    try:
+        service = await build_voice_followup_service()
+        await service.poll()
+    except Exception:
+        logger.warning('voice.followup.poll_unavailable')
+
+
+async def _run_voice_retention():
+    from datetime import datetime
+    from backend.services.realtime_voice_retention_service import build_voice_retention_service
+    try:
+        service=await build_voice_retention_service()
+    except Exception:
+        logger.warning('voice.retention.build_unavailable')
+        return
+    now=datetime.utcnow()
+    for kind,operation in (('contents',service.purge_contents),('replays',service.purge_replays)):
+        try:
+            result=await operation(now=now,after_id=_voice_retention_cursors[kind],limit=100)
+            _voice_retention_cursors[kind]=result['next_cursor'] or 0
+        except Exception:
+            # Failed pages retain their cursor. A process restart starts a safe
+            # idempotent sweep from zero, with no persistent config changes.
+            logger.warning('voice.retention.%s_unavailable',kind)
+
+
+async def _run_voice_daily_metrics():
+    global _voice_daily_after
+    from backend.database import async_session_maker
+    from backend.services.realtime_voice_daily_schedule_service import run_daily_batch
+    try:
+        # Development pricing is explicitly isolated in its own metric dimension.
+        result=await run_daily_batch(async_session_maker,after_day=_voice_daily_after,include_simulated=True)
+        _voice_daily_after=result['next_day']
+    except Exception:
+        logger.warning('voice.metrics.daily_unavailable')

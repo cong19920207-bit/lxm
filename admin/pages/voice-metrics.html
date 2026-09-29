@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通话指标 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-list-pages.css?v=p1-metrics-tabs-20260927">
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="voice-list-page">
+    <section class="page-card voice-tabs-card" aria-label="通话指标模块">
+      <div class="voice-card-heading">
+        <div>
+          <h2 class="voice-card-title">指标模块</h2>
+          <p class="voice-page-note">选择需要查看的统计范围；每个模块会保留当前筛选条件。</p>
+        </div>
+      </div>
+      <div class="tabs voice-tabs" id="voice-metrics-tabs" role="tablist" aria-label="通话指标模块">
+        <button type="button" id="metrics-tab-daily" class="tab-item active" data-metrics-tab="daily" data-target="metrics-pane-daily" role="tab" aria-controls="metrics-pane-daily" aria-selected="true" tabindex="0">业务日统计</button>
+        <button type="button" id="metrics-tab-history" class="tab-item" data-metrics-tab="history" data-target="metrics-pane-history" role="tab" aria-controls="metrics-pane-history" aria-selected="false" tabindex="-1">历史日聚合</button>
+        <button type="button" id="metrics-tab-billing" class="tab-item" data-metrics-tab="billing" data-target="metrics-pane-billing" role="tab" aria-controls="metrics-pane-billing" aria-selected="false" tabindex="-1">成本与账单</button>
+        <button type="button" id="metrics-tab-observation" class="tab-item" data-metrics-tab="observation" data-target="metrics-pane-observation" role="tab" aria-controls="metrics-pane-observation" aria-selected="false" tabindex="-1">近期观测</button>
+      </div>
+    </section>
+
+    <section id="metrics-pane-daily" class="tab-pane active page-card voice-section-card voice-metrics-pane" data-metrics-panel="daily" role="tabpanel" aria-labelledby="metrics-tab-daily">
+      <div>
+        <h2 class="voice-card-title">业务日统计</h2>
+        <p class="voice-page-note">北京时间业务日；任务按唯一任务结果统计。重试或结算尚未完成的数据标为暂定，历史结果可能更新。成本为估算值。</p>
+      </div>
+      <form id="daily-form" class="voice-filter-grid">
+        <label class="voice-filter-field">业务日期
+          <input id="daily-date" class="form-control" type="date" required>
+        </label>
+        <label class="voice-check"><input id="daily-simulated" type="checkbox">模拟单价（CNY 0.06/分钟）</label>
+        <div class="voice-filter-actions"><button class="btn btn-primary" type="submit">查询业务日</button></div>
+      </form>
+      <p id="daily-status" class="voice-list-status" role="status"></p>
+      <div class="voice-table-wrap">
+        <table class="admin-table"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody id="daily-rows"></tbody></table>
+      </div>
+    </section>
+
+    <section id="metrics-pane-history" class="tab-pane page-card voice-section-card voice-metrics-pane" data-metrics-panel="history" role="tabpanel" aria-labelledby="metrics-tab-history" hidden>
+      <div>
+        <h2 class="voice-card-title">历史日聚合</h2>
+        <p class="voice-page-note">查询已落库的北京时间业务日结果，每次最多 31 天。数据由后台分批更新；空缺不等于零，请结合各行更新时间判断。金额为估算值。</p>
+      </div>
+      <form id="history-form" class="voice-filter-grid">
+        <label class="voice-filter-field">开始日期
+          <input id="history-start" class="form-control" type="date" required>
+        </label>
+        <label class="voice-filter-field">结束日期
+          <input id="history-end" class="form-control" type="date" required>
+        </label>
+        <label class="voice-filter-field">指标
+          <select id="history-metric" class="form-control"></select>
+        </label>
+        <label class="voice-check"><input id="history-simulated" type="checkbox">模拟单价（CNY 0.06/分钟）</label>
+        <div class="voice-filter-actions"><button class="btn btn-primary" type="submit">查询历史</button></div>
+      </form>
+      <p id="history-status" class="voice-list-status" role="status"></p>
+      <div class="voice-table-wrap">
+        <table class="admin-table"><thead><tr><th>北京时间业务日</th><th>数值</th><th>说明</th><th>聚合更新时间（UTC）</th></tr></thead><tbody id="history-rows"></tbody></table>
+      </div>
+    </section>
+
+    <section id="metrics-pane-billing" class="tab-pane page-card voice-section-card voice-metrics-pane" data-metrics-panel="billing" role="tabpanel" aria-labelledby="metrics-tab-billing" hidden>
+      <div>
+        <h2 class="voice-card-title">模拟成本与账单</h2>
+        <p class="voice-page-note">使用账本有效计费秒数，以及下方模拟单价和账单金额计算。仅用于开发核对，不代表实际支出，不保存输入。金额四舍五入至六位小数。</p>
+      </div>
+      <form id="billing-form" class="voice-filter-grid">
+        <label class="voice-filter-field">开始日期
+          <input id="billing-start" class="form-control" type="date" required>
+        </label>
+        <label class="voice-filter-field">结束日期
+          <input id="billing-end" class="form-control" type="date" required>
+        </label>
+        <label class="voice-filter-field">模拟单价
+          <input id="billing-price" class="form-control" type="number" min="0" step="any" value="0.06" required>
+        </label>
+        <label class="voice-filter-field">单位
+          <select id="billing-unit" class="form-control"><option value="minute">每分钟</option><option value="second">每秒</option></select>
+        </label>
+        <label class="voice-filter-field">币种
+          <select id="billing-currency" class="form-control"><option>CNY</option><option>USD</option></select>
+        </label>
+        <label class="voice-filter-field">同周期模拟账单金额
+          <input id="billing-amount" class="form-control" type="number" min="0" step="any" value="1.00" required>
+        </label>
+        <div class="voice-filter-actions"><button class="btn btn-primary" type="submit">计算模拟差额</button></div>
+      </form>
+      <p id="billing-status" class="voice-list-status" role="status"></p>
+      <div class="voice-table-wrap">
+        <table class="admin-table"><thead><tr><th>项目</th><th>模拟结果</th></tr></thead><tbody id="billing-rows"></tbody></table>
+      </div>
+    </section>
+
+    <section id="metrics-pane-observation" class="tab-pane page-card voice-section-card voice-metrics-pane" data-metrics-panel="observation" role="tabpanel" aria-labelledby="metrics-tab-observation" hidden>
+      <div>
+        <h2 class="voice-card-title">近期观测</h2>
+        <p class="voice-page-note">按 UTC 发送日统计，保留约 2 天。样本可能缺失，含重试，不代表业务日全量。耗时显示 P50 / P90 / P95。</p>
+      </div>
+      <form id="observation-form" class="voice-filter-grid">
+        <label class="voice-filter-field">UTC 观测日期
+          <input id="observation-date" class="form-control" type="date" required>
+        </label>
+        <div class="voice-filter-actions"><button class="btn btn-primary" type="submit">查询观测</button></div>
+      </form>
+      <p id="observation-status" class="voice-list-status" role="status"></p>
+      <div class="voice-table-wrap">
+        <table class="admin-table"><thead><tr><th>能力依赖指标</th><th>状态</th><th>说明</th></tr></thead><tbody id="capability-rows"></tbody></table>
+      </div>
+      <details class="voice-details">
+        <summary>事件累计值与耗时分布</summary>
+        <div class="voice-table-wrap">
+          <table class="admin-table"><thead><tr><th>事件</th><th>维度</th><th>数值或状态</th></tr></thead><tbody id="observation-rows"></tbody></table>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/voice-metrics-admin.js?v=p1-metrics-tabs-20260927"></script>
+</body>
+</html>

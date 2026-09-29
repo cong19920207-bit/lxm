@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>语音 Prompt - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-prompts.css?v=20260928-1">
+</head>
+<body class="voice-prompt-body">
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="vp-page">
+    <section class="vp-hero" aria-labelledby="vp-heading">
+      <div class="vp-hero-main">
+        <div class="vp-eyebrow"><span class="vp-dot"></span>语音通话 · 提示词参考</div>
+        <h1 id="vp-heading">语音 Prompt <span class="vp-readonly">只读</span></h1>
+        <p>查阅各个通话环节的固定规则与拼装模板。</p>
+      </div>
+      <div class="vp-hero-side" aria-label="展示范围">
+        <div><strong id="vp-group-count">—</strong><span>通话环节</span></div>
+        <div><strong id="vp-prompt-count">—</strong><span>提示词模板</span></div>
+        <svg class="vp-wave" width="64" height="44" viewBox="0 0 64 44" fill="none" aria-hidden="true"><path d="M4 18v8M13 10v24M22 15v14M31 3v38M40 10v24M49 16v12M58 20v4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+      </div>
+    </section>
+
+    <nav class="vp-navigation" aria-label="提示词环节">
+      <div class="vp-tabs" id="vp-tabs" role="tablist" aria-label="通话环节"></div>
+      <div class="vp-variants" id="vp-variants-wrap" hidden>
+        <span class="vp-variant-label">收尾场景</span>
+        <div id="vp-variants" role="tablist" aria-label="收尾场景"></div>
+      </div>
+    </nav>
+
+    <div class="vp-notice"><span class="vp-notice-icon" aria-hidden="true">i</span><p>与运行时代码同源。<code>{{占位符}}</code> 表示后台模板或通话数据，实际调用时会被替换。</p></div>
+
+    <div id="vp-status" class="vp-status" role="status" aria-live="polite">正在加载提示词…</div>
+    <div class="vp-error" id="vp-error" role="alert" hidden>
+      <strong>提示词暂时无法加载</strong><p id="vp-error-message">请稍后重试。</p>
+      <button type="button" id="vp-retry" class="btn btn-primary">重新加载</button>
+    </div>
+
+    <section id="vp-panel" class="vp-panel" role="tabpanel" tabindex="0" hidden>
+      <div class="vp-section-heading">
+        <div><div class="vp-stage" id="vp-stage"></div><h2 id="vp-title"></h2><p id="vp-description"></p></div>
+        <button type="button" id="vp-refresh" class="vp-button" aria-label="刷新当前提示词"><span aria-hidden="true">↻</span> 刷新</button>
+      </div>
+      <div class="vp-grid">
+        <article class="vp-reader" aria-label="提示词正文">
+          <div class="vp-reader-toolbar"><div><span class="vp-document-icon" aria-hidden="true">≡</span><strong>模板正文</strong><span class="vp-char-count" id="vp-char-count"></span></div><button type="button" id="vp-copy" class="vp-button vp-copy" disabled>复制全文</button></div>
+          <pre id="vp-content" class="vp-content" tabindex="0" aria-label="只读提示词正文"></pre>
+          <div class="vp-reader-footer"><span>只读模板预览</span><code id="vp-key"></code></div>
+        </article>
+
+        <aside class="vp-reference" aria-label="提示词说明">
+          <section class="vp-info-card"><h3><span class="vp-card-mark"></span>何时使用</h3><p id="vp-trigger"></p></section>
+          <section class="vp-info-card"><h3><span class="vp-card-mark"></span>输入变量</h3><dl id="vp-inputs" class="vp-inputs"></dl><p class="vp-empty-inputs" id="vp-empty-inputs" hidden>这条指令没有动态输入。</p></section>
+          <section class="vp-info-card"><h3><span class="vp-card-mark"></span>输出约定</h3><p id="vp-output"></p></section>
+        </aside>
+      </div>
+
+      <div class="vp-bottom-grid">
+        <section class="vp-notes" aria-label="使用说明"><h3>使用说明</h3><ul id="vp-notes"></ul></section>
+        <details class="vp-source"><summary>查看代码来源 <span aria-hidden="true">↗</span></summary><ul id="vp-sources"></ul><p>展示当前服务的代码模板；具体通话仍使用其配置快照。</p></details>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/admin/static/js/admin-api.js?v=voice-prompts-20260928"></script>
+<script src="/admin/static/js/voice-prompts.js?v=20260928-1"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ from backend.models.conversation_log import ConversationLog
 from backend.models.emotion_log import EmotionLog
 from backend.models.login_log import LoginLog
 from backend.models.relationship import Relationship
+from backend.models.realtime_voice import VoiceCall
 from backend.models.user import User
 from backend.redis_client import get_redis
 from backend.services.embedding_service import embedding_service
@@ -64,6 +65,9 @@ LEVEL_WEIGHTS = {0: 1, 1: 2, 2: 3, 3: 4}
 
 class AgentService:
     """主动消息服务：扫描用户、匹配触发条件、评分、生成消息"""
+
+    def __init__(self, *, voice_metrics=None):
+        self.voice_metrics = voice_metrics
 
     # ================================================================
     #  1. run_agent_scan —— 全量扫描入口
@@ -462,7 +466,7 @@ class AgentService:
         P0 情绪跟进触发：
         - 最新 emotion_log 的 label 在负面情绪中
         - 且该记录距今超过24小时
-        - 且这24小时内无新的 conversation_log
+        - 且这24小时内无新的文字对话或已接通通话
         """
         stmt = (
             select(EmotionLog)
@@ -497,7 +501,16 @@ class AgentService:
         conv_result = await db.execute(conv_stmt)
         conv_count = conv_result.scalar() or 0
 
-        return conv_count == 0
+        if conv_count:
+            return False
+        connected_call = await db.scalar(select(VoiceCall.id).where(
+            VoiceCall.user_id == user_id,
+            VoiceCall.connected_at >= twenty_four_hours_ago,
+            VoiceCall.connected_at <= now,
+        ).limit(1))
+        if connected_call is not None and self.voice_metrics is not None:
+            await self.voice_metrics.emit_many([('voice.cross_modal.p0_suppressed',{},1)])
+        return connected_call is None
 
     async def _check_p1(self, user_id: int, db: AsyncSession) -> bool:
         """
@@ -764,4 +777,5 @@ class AgentService:
 
 
 # 全局单例
-agent_service = AgentService()
+from backend.services.realtime_voice_metric_service import ApplicationVoiceMetrics
+agent_service = AgentService(voice_metrics=ApplicationVoiceMetrics())

@@ -14,6 +14,28 @@ logger = logging.getLogger(__name__)
 BANNED_KEYWORDS_KEY = "banned_keywords"
 
 
+def match_keyword(text: str, raw, *, legacy: bool = False):
+    """Side-effect-free matching; legacy parsing belongs to the text channel."""
+    if not text or not text.strip() or not raw:
+        return None
+    try:
+        keywords = json.loads(raw)
+    except json.JSONDecodeError:
+        if not legacy:
+            raise
+        keywords = [w.strip() for w in raw.split(",") if w.strip()]
+    if not legacy and (not isinstance(keywords, list) or
+                       any(not isinstance(word, str) for word in keywords)):
+        raise ValueError('invalid_keyword_list')
+    if not keywords:
+        return None
+    text_lower = text.lower()
+    for keyword in keywords:
+        if keyword and keyword.lower() in text_lower:
+            return keyword
+    return None
+
+
 async def check_content(text: str) -> dict:
     """
     检查文本是否命中违规关键词。
@@ -33,29 +55,11 @@ async def check_content(text: str) -> dict:
         r = await get_redis()
         raw = await r.get(BANNED_KEYWORDS_KEY)
 
-        if not raw:
-            return {"is_safe": True, "reason": ""}
-
-        try:
-            keywords = json.loads(raw)
-        except json.JSONDecodeError:
-            # 兼容逗号分隔的纯文本格式
-            keywords = [w.strip() for w in raw.split(",") if w.strip()]
-
-        if not keywords:
-            return {"is_safe": True, "reason": ""}
-
-        text_lower = text.lower()
-        for keyword in keywords:
-            if not keyword:
-                continue
-            if keyword.lower() in text_lower:
-                logger.warning("内容安全检测命中违规词: %s", keyword)
-                asyncio.create_task(_record_block())
-                return {
-                    "is_safe": False,
-                    "reason": f"命中违规词: {keyword}",
-                }
+        keyword = match_keyword(text, raw, legacy=True)
+        if keyword is not None:
+            logger.warning("内容安全检测命中违规词: %s", keyword)
+            asyncio.create_task(_record_block())
+            return {"is_safe": False, "reason": f"命中违规词: {keyword}"}
 
         return {"is_safe": True, "reason": ""}
 

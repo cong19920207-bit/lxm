@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>危机记录 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-list-pages.css?v=p1-list-20260927">
+  <style>
+    #crisis-dialog { width: min(720px, calc(100vw - 32px)); }
+    #crisis-detail { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+  </style>
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="voice-list-page">
+    <section class="page-card voice-filter-card">
+      <div class="voice-card-heading">
+        <div>
+          <h2 class="voice-card-title">记录说明</h2>
+          <p class="voice-page-note">仅超级管理员可查看。每次读取均记录审计，原文保留 30 天。</p>
+        </div>
+        <button class="btn btn-primary" id="crisis-refresh" type="button">刷新记录</button>
+      </div>
+    </section>
+
+    <section class="page-card voice-result-card">
+      <div class="voice-result-header">
+        <h2 class="voice-result-title">危机记录列表</h2>
+        <span id="crisis-status" class="voice-list-status" role="status"></span>
+      </div>
+      <div class="voice-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>类型</th><th>通话</th><th>回合</th><th>时间</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="crisis-rows"></tbody>
+        </table>
+      </div>
+      <div id="crisis-pagination" class="voice-list-footer"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="crisis-dialog" class="voice-dialog" aria-labelledby="crisis-title">
+  <div class="voice-dialog-header">
+    <h2 id="crisis-title">危机记录原文</h2>
+    <button class="btn btn-link" id="crisis-close" type="button">关闭原文</button>
+  </div>
+  <div class="voice-dialog-body">
+    <div id="crisis-detail" data-testid="crisis-detail"></div>
+  </div>
+</dialog>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script>
+// This page never caches raw records; reopening always performs an audited GET.
+if (checkAdminLogin()) {
+  if (getAdminRole() !== 'super_admin') {
+    window.location.replace('error.html?type=403');
+  } else {
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar('voice-crisis');
+    document.getElementById('header-mount').innerHTML = renderHeader('危机记录');
+    let page = 1, generation = 0;
+    const rows = document.getElementById('crisis-rows');
+    const status = document.getElementById('crisis-status');
+    const dialog = document.getElementById('crisis-dialog');
+    const detail = document.getElementById('crisis-detail');
+    const clearDetail = () => { generation++; detail.textContent = ''; dialog.close(); };
+    const statusClass = value => value === '命中' ? 'tag-error' : value === '疑似命中' ? 'tag-warning' : 'tag-default';
+    document.getElementById('crisis-close').onclick = clearDetail;
+    dialog.addEventListener('cancel', clearDetail);
+    window.addEventListener('pagehide', clearDetail);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) clearDetail(); });
+    window.loadVoiceCrisisPage = nextPage => { page = nextPage; load(); };
+    async function load() {
+      clearDetail(); rows.replaceChildren(); status.textContent = '加载中…';
+      const result = await adminRequest('GET', '/api/admin/voice/crisis-records?page=' + page);
+      if (!result || result.code !== 0) { status.textContent = '加载失败，请重试'; return; }
+      const data = result.data;
+      status.textContent = data.total ? '共 ' + data.total + ' 条记录' : '暂无危机记录';
+      renderPagination('crisis-pagination', page, data.total, data.page_size, function(nextPage){ window.loadVoiceCrisisPage(nextPage); });
+      if (!data.items.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 6; emptyCell.className = 'voice-empty'; emptyCell.textContent = '暂无危机记录';
+        emptyRow.appendChild(emptyCell); rows.appendChild(emptyRow);
+      }
+      data.items.forEach(item => {
+        const row = document.createElement('tr');
+        [item.is_persona_incident ? 'AI 人格事故' : '用户', item.call_id, item.turn_index, formatDateTime(item.created_at)].forEach(value => {
+          const cell = document.createElement('td'); cell.textContent = String(value); row.appendChild(cell);
+        });
+        const state = item.expired ? '原文已到期' : item.match_status === 'suspected' ? '疑似命中' : '命中';
+        const stateCell = document.createElement('td');
+        const stateTag = document.createElement('span');
+        stateTag.className = 'tag ' + statusClass(state); stateTag.textContent = state;
+        stateCell.appendChild(stateTag); row.appendChild(stateCell);
+        const cell = document.createElement('td'), button = document.createElement('button');
+        button.type = 'button'; button.className = 'btn btn-link'; button.textContent = '查看原文';
+        button.onclick = async () => {
+          clearDetail(); const current = generation;
+          const response = await adminRequest('GET', '/api/admin/voice/crisis-records/' + item.id);
+          if (current !== generation || !response || response.code !== 0) return;
+          const value = response.data;
+          detail.textContent = value.expired ? '原文已到期' : '命中词：' + (value.matched_keyword || '检测异常') + '\n\n' + (value.content_plaintext || '');
+          dialog.showModal();
+        };
+        cell.appendChild(button); row.appendChild(cell); rows.appendChild(row);
+      });
+    }
+    document.getElementById('crisis-refresh').onclick = load;
+    load();
+  }
+}
+</script>
+</body>
+</html>

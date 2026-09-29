@@ -1,0 +1,59 @@
+{
+  "suite": "r01-memory-quality-v1",
+  "synthetic_only": true,
+  "cases": [
+    {
+      "id": "assistant_unconfirmed_experience",
+      "user_text": "你是不是记错人了？我不记得和你一起去过京都。",
+      "assistant_text_effective": "我们去年夏天在京都散步，还一起看了烟火呀。",
+      "expectation": "不得记成用户确实去过京都或双方确有共同旅行；不得在角色私有记忆中把助手单方面说法固化为真实共同经历。可以不提取。"
+    },
+    {
+      "id": "uncertain_experience",
+      "user_text": "我好像小时候学过钢琴，但真的记不清，也可能没学过。",
+      "assistant_text_effective": "那就先别当作确定的经历，等你想起来再说。",
+      "expectation": "可不提取；如保留，必须保留不确定性，不得记成确定学过钢琴。不得把本次澄清的普通回应升级为长期角色规则。"
+    },
+    {
+      "id": "one_off_goodnight",
+      "user_text": "今天有点困，我先睡觉了，晚安。",
+      "assistant_text_effective": "晚安，抱抱，今晚好好休息。",
+      "expectation": "输出空数组；一次性睡觉、道别和安抚动作没有形成长期作息偏好或持续角色约定。"
+    },
+    {
+      "id": "stable_preference",
+      "user_text": "我一直喜欢喝不加糖的红茶，以后点茶都按这个口味。",
+      "assistant_text_effective": "记住了，以后按不加糖的红茶来。",
+      "expectation": "至少保留一条user记忆，包含红茶和不加糖的持续偏好；不得反转偏好或只输出空数组。"
+    },
+    {
+      "id": "plan_correction",
+      "user_text": "不是下周，是下个月去日本；我刚才把时间说错了。",
+      "assistant_text_effective": "好，是下个月去日本，不是下周。",
+      "previous_turn_summary": "用户上一回合说下周去日本。",
+      "short_term_candidates": ["用户计划下周去日本。"],
+      "expectation": "至少保留一条user记忆，包含下个月去日本，并保留不是下周的纠正；不得沿用旧候选中的错误日期。"
+    },
+    {
+      "id": "explicit_future_agreement",
+      "user_text": "以后每周日晚上，我们接着聊那本《海边笔记》，你记得问我新读到哪一章。",
+      "assistant_text_effective": "好，我们约定每周日晚上聊《海边笔记》，到时候我问你读到哪一章。",
+      "expectation": "至少保留一条明确约定，包含每周日晚上和继续聊海边笔记/阅读进度；允许user或character_private，不能全部过滤。"
+    },
+    {
+      "id": "lasting_emotional_context",
+      "user_text": "这三个月我一直因为换工作而焦虑，这件事反复影响我，之后聊起来你记得这个背景。",
+      "assistant_text_effective": "我记得，换工作带来的焦虑已经持续三个月了，我们以后聊时会考虑这个背景。",
+      "expectation": "至少保留一条user记忆，包含换工作、持续三个月和焦虑背景；不得仅因属于情绪就过滤，也不得擅自升级为医学诊断。"
+    },
+    {
+      "id": "background_is_not_new_fact",
+      "user_text": "今天突然下雨，出门带伞就好。",
+      "assistant_text_effective": "嗯，今天记得带伞，别淋着。",
+      "previous_turn_summary": "用户之前提过在青岛工作。",
+      "relationship_context": {"level": "friend", "description": "双方会谈论日常。"},
+      "short_term_candidates": ["用户以前说喜欢海边。"],
+      "expectation": "输出空数组；本轮仅一次性天气提醒，不得把背景中的工作地点或旧偏好作为本轮新增记忆，也不得把提醒升级为长期角色规则。"
+    }
+  ]
+}

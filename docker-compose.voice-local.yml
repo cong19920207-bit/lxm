@@ -1,0 +1,14 @@
+# 仅本机语音开发；Compose >= 2.24.4（ports !override 避免保留公开端口）。
+# 启动：docker compose -f docker-compose.yml -f docker-compose.voice-local.yml up -d --build backend nginx
+# 同域来源自动校验，无需填写 VOICE_ALLOWED_ORIGINS 或 Docker 网关 IP。
+# 显式来源白名单仍优先；此文件不用于线上，线上继续使用 HTTPS/WSS。
+# 绑定会限制此入口下所有页面的局域网访问，MySQL/Redis 配置不变。
+services:
+  backend:
+    environment:
+      VOICE_ALLOW_INSECURE_LOCAL: "1"
+    ports: !override
+      - "127.0.0.1:8000:8000"
+  nginx:
+    ports: !override
+      - "127.0.0.1:80:80"

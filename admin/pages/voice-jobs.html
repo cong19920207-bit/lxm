@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>语音任务 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/voice-list-pages.css?v=p1-list-20260927">
+</head>
+<body>
+<div id="sidebar-mount"></div>
+<div class="admin-content">
+  <div id="header-mount"></div>
+  <main class="voice-list-page">
+    <section class="page-card voice-filter-card">
+      <div class="voice-card-heading">
+        <div>
+          <h2 class="voice-card-title">任务查询</h2>
+          <p class="voice-page-note">仅展示任务状态，不提供通话正文。补跑只增加一次人工尝试，服务端会重新检查任务资格。</p>
+        </div>
+        <a href="voice-ops.html">查看进行中通话与强制挂断</a>
+      </div>
+      <form id="job-query" class="voice-filter-grid">
+        <label class="voice-filter-field">通话标识
+          <input id="job-call" class="form-control" required maxlength="64" placeholder="输入通话标识">
+        </label>
+        <label class="voice-filter-field">任务类型
+          <select id="job-kind" class="form-control">
+            <option value="memory">记忆提取</option>
+            <option value="postprocess">通后处理</option>
+            <option value="followup">追加消息</option>
+          </select>
+        </label>
+        <div class="voice-filter-actions">
+          <button class="btn btn-primary" type="submit">查询</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="page-card voice-result-card">
+      <div class="voice-result-header">
+        <h2 class="voice-result-title">任务列表</h2>
+        <span id="job-status" class="voice-list-status" role="status">请输入通话标识后查询</span>
+      </div>
+      <div class="voice-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>编号</th><th>类型</th><th>状态</th><th>尝试次数</th><th>失败分类</th><th>下次重试</th><th>操作</th></tr></thead>
+          <tbody id="job-rows"><tr><td colspan="7" class="voice-empty">暂无查询结果</td></tr></tbody>
+        </table>
+      </div>
+      <div class="voice-list-footer">
+        <button class="btn btn-default" id="job-more" type="button" disabled>加载更多</button>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/voice-jobs-admin.js?v=p1-list-20260927"></script>
+</body>
+</html>

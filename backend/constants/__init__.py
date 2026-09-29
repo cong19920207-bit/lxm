@@ -278,6 +278,16 @@ ADMIN_ERR_AGENT_AWARE_NOT_FOUND = 20068         # 感知队列记录不存在
 ADMIN_ERR_AGENT_AWARE_RETRY_INVALID = 20069     # 仅 failed 状态可重试
 ADMIN_ERR_RELATIONSHIP_NOT_FOUND = 20070        # 用户关系记录不存在（重置特殊档计数）
 
+# --- 实时语音配置控制面（P1 M1 STEP-005）---
+ADMIN_ERR_VOICE_CONFIG_INVALID = 20071          # schema、参数范围、禁字段或 Secret 边界失败
+ADMIN_ERR_VOICE_CONFIG_CONFLICT = 20072         # base_version / draft_revision 乐观锁冲突
+ADMIN_ERR_VOICE_CONFIG_NOT_FOUND = 20073        # 配置或历史版本不存在
+ADMIN_ERR_VOICE_CONFIG_NO_DRAFT = 20074         # 当前无语音配置草稿
+ADMIN_ERR_VOICE_CONFIG_CREDENTIAL_MISSING = 20075  # credential_ref 对应环境变量未配置
+ADMIN_ERR_VOICE_CRISIS_KEYWORDS_INVALID = 20076 # 危机词规范化后为空或历史非法
+ADMIN_ERR_VOICE_CONFIG_PUBLISH_FAILED = 20077   # DB/Redis 发布失败并已触发补偿
+ADMIN_ERR_VOICE_CONFIG_PERSONA_REQUIRED = 20078 # 规范初始化缺少已发布 persona
+
 # ============ 管理后台错误信息映射（供路由与前端统一展示）============
 ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_AUTH_LOGIN_FAILED: "账号或密码错误",
@@ -350,4 +360,12 @@ ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_AGENT_AWARE_NOT_FOUND: "感知队列记录不存在",
     ADMIN_ERR_AGENT_AWARE_RETRY_INVALID: "仅生成失败(failed)的记录可手动重试",
     ADMIN_ERR_RELATIONSHIP_NOT_FOUND: "用户关系记录不存在",
+    ADMIN_ERR_VOICE_CONFIG_INVALID: "语音配置参数或 schema 不合法",
+    ADMIN_ERR_VOICE_CONFIG_CONFLICT: "语音配置已被其他管理员修改，请重新加载",
+    ADMIN_ERR_VOICE_CONFIG_NOT_FOUND: "语音配置或目标历史版本不存在",
+    ADMIN_ERR_VOICE_CONFIG_NO_DRAFT: "无待处理的语音配置草稿",
+    ADMIN_ERR_VOICE_CONFIG_CREDENTIAL_MISSING: "语音凭据环境变量未配置",
+    ADMIN_ERR_VOICE_CRISIS_KEYWORDS_INVALID: "危机关键词规范化后不得为空",
+    ADMIN_ERR_VOICE_CONFIG_PUBLISH_FAILED: "语音配置发布失败，数据库与缓存已回滚",
+    ADMIN_ERR_VOICE_CONFIG_PERSONA_REQUIRED: "初始化语音配置前必须存在已发布人格",
 }

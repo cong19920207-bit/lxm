@@ -6,6 +6,7 @@
   <title>林小梦 - 聊天</title>
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
+  <link rel="stylesheet" href="/static/css/voice-call-cards.css">
   <style>
     html, body {
       height: 100%;
@@ -684,6 +685,7 @@
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/chat-time.js"></script>
+  <script src="/static/js/voice-call-cards.js"></script>
   <script>
     /** 全屏背景随 AI 情绪切换（与 AVATAR_MAP 同源；顶栏头像固定 default） */
     function updateChatBackgroundEmotion(emotionLabel) {
@@ -826,9 +828,9 @@
     /**
      * 解析消息时间：无时区后缀的 ISO 按 UTC（后端 utcnow naive），再供北京时间格式化
      */
-    function parseMessageTimestamp(isoOrMs) {
+    function parseMessageTimestamp(isoOrMs, fallback = Date.now()) {
       if (typeof isoOrMs === 'number' && Number.isFinite(isoOrMs)) return isoOrMs
-      if (!isoOrMs) return Date.now()
+      if (!isoOrMs) return fallback
       if (typeof isoOrMs === 'string') {
         var s = isoOrMs.trim()
         // 已有 Z / ±offset 则直接解析；否则按 UTC naive 补 Z
@@ -837,11 +839,11 @@
         }
         var d = new Date(s)
         var t = d.getTime()
-        return Number.isFinite(t) ? t : Date.now()
+        return Number.isFinite(t) ? t : fallback
       }
       var d2 = new Date(isoOrMs)
       var t2 = d2.getTime()
-      return Number.isFinite(t2) ? t2 : Date.now()
+      return Number.isFinite(t2) ? t2 : fallback
     }
 
     function getRowTimestamp(row) {
@@ -1411,6 +1413,27 @@
     })
 
     /* ====== 加载统一时间线 ====== */
+    VoiceCallCards.configureResourceRefresh(async callId => {
+      if (!isChatAuthenticated()) return null
+      const res = await request('GET', '/api/voice/calls/' + encodeURIComponent(callId), undefined, chatSilentAuthOptions())
+      return res.code === 0 && res.data ? res.data.crisis : null
+    })
+    const callCardRefresh = VoiceCallCards.pendingRefresh({
+      schedule: (callback, delay) => setTimeout(callback, delay),
+      cancel: timer => clearTimeout(timer),
+      active: () => isChatAuthenticated(),
+      fetch: async url => {
+        const response = await request('GET', url + (url.includes('?') ? '&' : '?') + 'pending_reload=true', undefined, chatSilentAuthOptions())
+        return response.code === 0 && response.data ? response.data.items || [] : []
+      },
+      update: items => {
+        const rows = Array.from(document.querySelectorAll('#chat-messages .voice-call-row'))
+        items.filter(item => item.source === 'call').forEach(item => {
+          const old = rows.find(row => row.dataset.callId === item.call_id)
+          if (old) old.replaceWith(renderTimelineItem(item))
+        })
+      }
+    })
     async function loadTimeline(isFirstPage) {
       if (!isChatAuthenticated() || loadingTimeline || noMoreTimeline) return
       loadingTimeline = true
@@ -1456,6 +1479,7 @@
           insertTimelineBatch(container, items, firstMsgNode || null)
           container.scrollTop = container.scrollHeight - oldScrollHeight
         }
+        callCardRefresh.observe(items, url)
       }
 
       loadingTimeline = false
@@ -1463,6 +1487,7 @@
 
     function renderTimelineItem(item, ts) {
       const createdTs = ts != null ? ts : parseMessageTimestamp(item.created_at)
+      if (item.source === 'call') return VoiceCallCards.render(item, createdTs, parseMessageTimestamp(item.created_at, null))
       const row = document.createElement('div')
       row.setAttribute('data-created-at', String(createdTs))
       if (item.source === 'user') {
@@ -1672,6 +1697,7 @@
     }
 
     function resetPrivateChatUi(options = {}) {
+      callCardRefresh.reset()
       timelineCursor = null
       loadingTimeline = false
       noMoreTimeline = false

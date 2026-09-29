@@ -518,6 +518,7 @@ async def upsert_step6_vectors(
             }
             if attach_user_id:
                 fields["user_id"] = user_id
+                fields["last_write_source"] = "text"
 
             success = await dashvector_client.upsert(
                 doc_id=doc_id,

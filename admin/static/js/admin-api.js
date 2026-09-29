@@ -135,7 +135,9 @@ function checkAdminLogin() {
 }
 
 // ─── 统一请求函数 ───
-// requestExtra：可选；{ silentErrorToast: true } 时不在此函数内对 code≠0 弹 Toast，由调用方处理（如按 20012/20013 定制文案）。
+// requestExtra：可选；
+// - silentErrorToast：不在此函数内弹业务错误 Toast，由页面就地展示；
+// - returnErrorResponse：HTTP 4xx/5xx 且响应体为 JSON 时仍返回响应体，供配置页展示字段级错误。
 
 async function adminRequest(method, path, data = null, isFile = false, requestExtra = null) {
   method = String(method || 'GET').toUpperCase();
@@ -144,6 +146,7 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
     return null;
   }
   const silentErrorToast = requestExtra && requestExtra.silentErrorToast;
+  const returnErrorResponse = requestExtra && requestExtra.returnErrorResponse;
   const fetchOpts = {
     method,
     headers: {
@@ -174,7 +177,25 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
     }
 
     if (!resp.ok) {
-      showToast('请求异常，请稍后重试', 'error');
+      var errorResult = null;
+      try {
+        errorResult = await resp.json();
+      } catch (parseError) {
+        errorResult = null;
+      }
+      if (!silentErrorToast) {
+        showToast(
+          errorResult && errorResult.message ? errorResult.message : '请求异常，请稍后重试',
+          'error'
+        );
+      }
+      if (returnErrorResponse) {
+        return errorResult || {
+          code: resp.status,
+          message: 'HTTP ' + resp.status,
+          data: null
+        };
+      }
       return null;
     }
 
@@ -318,7 +339,7 @@ function showConfirmInput(title, warningMessage, confirmBtnText, onConfirm) {
 
 // ─── 侧边栏菜单配置（按角色）───
 
-// 一级菜单顺序：运营总览 → AI 对话配置 → 对话流 Prompt → 生活流 Prompt → 系统与账号
+// 一级菜单顺序：运营总览 → AI 对话配置 → 语音通话 → 对话流 Prompt → 生活流 Prompt → 系统与账号
 // 占位项仅控制分组插入位置，不渲染为普通菜单项
 var MENU_CONFIG = {
   super_admin: [
@@ -327,6 +348,7 @@ var MENU_CONFIG = {
     { key: 'report',          label: '📈 数据报表',   href: 'data-report.html' },
     { key: 'diary-history',   label: '📜 AI 日记历史', href: 'diary-history.html' },
     { key: 'persona',         label: '🎭 人格管理',   href: 'persona.html' },
+    { key: 'voice-call-group', group: 'voice_call' },
     { key: 'chat-prompt-group', group: 'chat_prompt' },
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
@@ -347,12 +369,14 @@ var MENU_CONFIG = {
     { key: 'users',           label: '👥 用户管理',   href: 'users.html' },
     { key: 'report',          label: '📈 数据报表',   href: 'data-report.html' },
     { key: 'diary-history',   label: '📜 AI 日记历史', href: 'diary-history.html' },
+    { key: 'voice-call-group', group: 'voice_call' },
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'operation-logs',  label: '🗒️ 操作日志',  href: 'operation-logs.html' }
   ],
   ai_trainer: [
     { key: 'dashboard',       label: '📊 数据看板',   href: 'dashboard.html' },
     { key: 'persona',         label: '🎭 人格管理',   href: 'persona.html' },
+    { key: 'voice-call-group', group: 'voice_call' },
     { key: 'chat-prompt-group', group: 'chat_prompt' },
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
@@ -365,6 +389,7 @@ var MENU_CONFIG = {
   ],
   tech_ops: [
     { key: 'dashboard',       label: '📊 数据看板',   href: 'dashboard.html' },
+    { key: 'voice-call-group', group: 'voice_call' },
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'system',          label: '⚙️ 系统监控',  href: 'system-monitor.html' },
     { key: 'third-party',     label: '🔌 第三方服务', href: 'third-party.html' },
@@ -445,6 +470,35 @@ LIFE_FEED_MENU.observer = LIFE_FEED_MENU.super_admin.map(function (item) {
   return observerItem;
 });
 
+// 实时语音一级分组。Phase A 仅开放「语音设置」；通话记录留待 Phase D 接入。
+var VOICE_CALL_MENU = {
+  super_admin: [{ key: 'voice-config', label: '⚙️ 语音设置', href: 'voice-config.html' },
+    { key: 'voice-ops', label: '🛠️ 通话运维', href: 'voice-ops.html' },
+    { key: 'voice-calls', label: '📞 通话记录', href: 'voice-calls.html' },
+    { key: 'voice-jobs', label: '⏱️ 语音任务', href: 'voice-jobs.html' },
+    { key: 'voice-crisis', label: '🚨 危机记录', href: 'voice-crisis.html' }],
+  ai_trainer: [{ key: 'voice-config', label: '⚙️ 语音设置', href: 'voice-config.html' }],
+  tech_ops: [{ key: 'voice-config', label: '⚙️ 语音设置', href: 'voice-config.html' },
+    { key: 'voice-ops', label: '🛠️ 通话运维', href: 'voice-ops.html' },
+    { key: 'voice-jobs', label: '⏱️ 语音任务', href: 'voice-jobs.html' }],
+  ops_admin: [{ key: 'voice-config', label: '⚙️ 语音设置', href: 'voice-config.html', readonly: true },
+    { key: 'voice-calls', label: '📞 通话记录', href: 'voice-calls.html' }],
+  observer: [{ key: 'voice-config', label: '⚙️ 语音设置', href: 'voice-config.html', readonly: true },
+    { key: 'voice-ops', label: '🛠️ 通话运维', href: 'voice-ops.html', readonly: true },
+    { key: 'voice-calls', label: '📞 通话记录', href: 'voice-calls.html', readonly: true }]
+};
+
+Object.keys(VOICE_CALL_MENU).forEach(function(role) {
+  VOICE_CALL_MENU[role].unshift({key:'voice-master-switch',label:'🔘 总开关',href:'voice-master-switch.html',readonly:!['super_admin','tech_ops'].includes(role)});
+  VOICE_CALL_MENU[role].push({key:'voice-metrics',label:'📊 通话指标',href:'voice-metrics.html',readonly:true});
+});
+
+['super_admin', 'ai_trainer', 'observer'].forEach(function(role) {
+  var index = VOICE_CALL_MENU[role].findIndex(function(item) { return item.key === 'voice-config'; });
+  VOICE_CALL_MENU[role].splice(index + 1, 0,
+    {key:'voice-prompts',label:'📝 语音 Prompt',href:'voice-prompts.html',readonly:true});
+});
+
 /** 侧栏滚动位置记忆 key（仅左侧，不记右侧内容区） */
 var ADMIN_SIDEBAR_SCROLL_KEY = 'admin_sidebar_scroll';
 
@@ -485,6 +539,13 @@ function toggleChatPromptMenu(titleEl) {
   group.classList.toggle('expanded');
 }
 
+/** 实时语音分组标题：仅展开/收起。 */
+function toggleVoiceCallMenu(titleEl) {
+  var group = titleEl && titleEl.parentElement;
+  if (!group || !group.classList.contains('menu-group')) return;
+  group.classList.toggle('expanded');
+}
+
 /** 生活流页面是否只读（observer 全部；ops_admin / tech_ops 部分页） */
 function isLifeFeedReadOnly(activeKey) {
   var role = getAdminRole();
@@ -511,6 +572,34 @@ function isChatPromptKey(activeKey) {
     'prompt', 'step55switch'
   ];
   return all.indexOf(activeKey) >= 0;
+}
+
+function isVoiceCallKey(activeKey) {
+  if (activeKey === 'voice-prompts') return true;
+  return activeKey === 'voice-master-switch' || activeKey === 'voice-metrics' || activeKey === 'voice-config' || activeKey === 'voice-ops' || activeKey === 'voice-crisis' || activeKey === 'voice-calls' || activeKey === 'voice-jobs';
+}
+
+/** 渲染「语音通话」可折叠一级分组；Phase A 当前只有语音设置。 */
+function renderVoiceCallGroupHtml(activeKey, voiceMenus) {
+  if (!voiceMenus || voiceMenus.length === 0) return '';
+  var expanded = isVoiceCallKey(activeKey) ? ' expanded' : '';
+  var html = '<div class="menu-group' + expanded + '">';
+  html +=
+    '<div class="menu-group-title" onclick="toggleVoiceCallMenu(this)">' +
+      '<span class="menu-group-label">☎️ 语音通话</span>' +
+      '<span class="menu-group-arrow"></span>' +
+    '</div>';
+  html += '<div class="menu-group-body">';
+  for (var j = 0; j < voiceMenus.length; j++) {
+    var item = voiceMenus[j];
+    html +=
+      '<div class="menu-item menu-sub' + (activeKey === item.key ? ' active' : '') + '"' +
+      ' onclick="navigateAdminPage(\'' + item.href + '\')">' +
+      item.label +
+      '</div>';
+  }
+  html += '</div></div>';
+  return html;
 }
 
 /** 渲染「生活流 Prompt」可折叠分组 HTML */
@@ -573,9 +662,11 @@ function renderSidebar(activeKey) {
   var menus = MENU_CONFIG[role] || [];
   var lfMenus = LIFE_FEED_MENU[role] || [];
   var cpMenus = CHAT_PROMPT_MENU[role] || [];
+  var voiceMenus = VOICE_CALL_MENU[role] || [];
   var items = '';
   var lifeFeedInserted = false;
   var chatPromptInserted = false;
+  var voiceCallInserted = false;
 
   for (var i = 0; i < menus.length; i++) {
     var m = menus[i];
@@ -587,6 +678,11 @@ function renderSidebar(activeKey) {
     if (m.group === 'chat_prompt') {
       items += renderChatPromptGroupHtml(activeKey, cpMenus);
       chatPromptInserted = true;
+      continue;
+    }
+    if (m.group === 'voice_call') {
+      items += renderVoiceCallGroupHtml(activeKey, voiceMenus);
+      voiceCallInserted = true;
       continue;
     }
     items +=
@@ -602,6 +698,9 @@ function renderSidebar(activeKey) {
   if (!chatPromptInserted && cpMenus.length > 0) {
     items += renderChatPromptGroupHtml(activeKey, cpMenus);
   }
+  if (!voiceCallInserted && voiceMenus.length > 0) {
+    items += renderVoiceCallGroupHtml(activeKey, voiceMenus);
+  }
 
   // 注入完成后恢复侧栏滚动（不改各业务页调用方）
   setTimeout(restoreSidebarScroll, 0);
@@ -616,6 +715,15 @@ function renderSidebar(activeKey) {
 
 // ─── 顶栏渲染 ───
 
+function escapeAdminHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderHeader(pageTitle) {
   var roleLabels = {
     super_admin: '超级管理员',
@@ -628,10 +736,10 @@ function renderHeader(pageTitle) {
 
   return (
     '<div class="admin-header">' +
-      '<span style="font-size:18px;font-weight:bold;color:#333">' + pageTitle + '</span>' +
+      '<span style="font-size:18px;font-weight:bold;color:#333">' + escapeAdminHtml(pageTitle) + '</span>' +
       '<div style="display:flex;align-items:center;gap:12px">' +
-        '<span class="tag tag-blue">' + roleText + '</span>' +
-        '<span style="color:#333;font-size:14px">' + getAdminUsername() + '</span>' +
+        '<span class="tag tag-blue">' + escapeAdminHtml(roleText) + '</span>' +
+        '<span style="color:#333;font-size:14px">' + escapeAdminHtml(getAdminUsername()) + '</span>' +
         '<button type="button" class="btn btn-default" onclick="showChangePasswordModal()">修改密码</button>' +
         '<button type="button" class="btn btn-default" onclick="handleAdminLogout()">退出登录</button>' +
       '</div>' +

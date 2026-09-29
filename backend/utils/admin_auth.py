@@ -29,6 +29,12 @@ _OBSERVER_SELF_SERVICE_EXCEPTIONS = frozenset({
     ("POST", "/api/admin/auth/logout"),
     ("POST", "/api/admin/auth/change-password"),
 })
+_OBSERVER_AUDITED_DENIAL_EXCEPTIONS = frozenset({
+    (
+        "POST",
+        "/api/admin/voice/config/capabilities/{capability_key}/force-test",
+    ),
+})
 
 
 def create_admin_token(admin_user_id: int, role: str, token_version: int) -> str:
@@ -139,12 +145,33 @@ async def get_current_admin(
             detail="Token已失效，请重新登录",
         )
 
+    # Voice read/export auditing needs the verified identity even when the
+    # observer method gate below rejects the request. Never store the token.
+    if getattr(request.state, "voice_record_audit_enabled", False):
+        request.state.voice_record_admin = dict(
+            id=admin_user.id, username=admin_user.username, role=admin_user.role)
+        request.state.voice_record_db = db
+
     method = request.method.upper()
     method_path = (method, request.url.path)
+    # Dynamic include_router keeps the local APIRoute in scope["route"];
+    # only this matched effective context carries the complete route template.
+    fastapi_scope = request.scope.get("fastapi")
+    effective_route_context = (
+        fastapi_scope.get("effective_route_context")
+        if isinstance(fastapi_scope, dict)
+        else None
+    )
+    matched_route_path = getattr(effective_route_context, "path", None)
+    is_audited_denial_route = (
+        isinstance(matched_route_path, str)
+        and (method, matched_route_path) in _OBSERVER_AUDITED_DENIAL_EXCEPTIONS
+    )
     if (
         admin_user.role == "observer"
         and method in _OBSERVER_BLOCKED_METHODS
         and method_path not in _OBSERVER_SELF_SERVICE_EXCEPTIONS
+        and not is_audited_denial_route
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

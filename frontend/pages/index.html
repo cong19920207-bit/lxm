@@ -1471,6 +1471,10 @@
   </div>
 
   <script src="/static/js/api.js"></script>
+  <link rel="stylesheet" href="/static/css/voice-entry.css">
+  <script src="/static/js/voice-playback.js"></script>
+  <script src="/static/js/voice-audio-transport.js"></script>
+  <script src="/static/js/voice-entry.js?v=20260928-call-results"></script>
   <script>
     const LEVEL_NAMES = ['陌生', '朋友', '亲密', '知己']
     const DIARY_PLACEHOLDER = '今天记录点什么好呢...'
@@ -1990,6 +1994,10 @@
       }
       if (action === 'memory') {
         location.href = '/pages/memory.html'
+        return
+      }
+      if (action === 'voice') {
+        window.VoiceEntry.begin()
         return
       }
       showToast('敬请期待')

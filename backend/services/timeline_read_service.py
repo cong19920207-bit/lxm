@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.agent_message import AgentMessage
@@ -37,6 +37,10 @@ async def get_timeline(
     db: AsyncSession,
     cursor: int | None = None,
     limit: int = 20,
+    *,
+    include_calls: bool = False,
+    metrics=None,
+    pending_reload: bool = False,
 ) -> dict[str, Any]:
     """与 GET /api/chat/timeline 响应 data 结构一致。"""
     fetch_limit = limit + 1
@@ -81,6 +85,42 @@ async def get_timeline(
                 "skipped_in_prompt": None,
             }
         )
+
+    if include_calls:
+        from backend.models.realtime_voice import VoiceCall
+        from backend.services.realtime_voice_card_service import CALL_FIELDS, timeline_call_item
+        for item in merged:
+            item.update({field: None for field in CALL_FIELDS})
+        call_filter = (VoiceCall.user_id == user_id) & VoiceCall.sort_seq.is_not(None) & (
+            VoiceCall.status.in_(['ended','missed'])) & VoiceCall.deletion_fence_at.is_(None) & VoiceCall.deleted_at.is_(None)
+        call_scope = call_filter
+        if cursor is not None:
+            call_filter = call_filter & (VoiceCall.sort_seq < cursor)
+        calls = (await db.scalars(select(VoiceCall).where(call_filter)
+            .order_by(desc(VoiceCall.sort_seq)).limit(fetch_limit))).all()
+        from backend.services.realtime_voice_crisis_presentation_service import crisis_presentations
+        resources = await crisis_presentations(db, calls)
+        for row in calls:
+            item = timeline_call_item(row)
+            item['crisis_resource'] = resources.get(row.call_id)
+            merged.append(item)
+
+    if include_calls and metrics is not None:
+        events=[]
+        if pending_reload:events.append(('voice.timeline.pending_reload',{},1))
+        # Observe fetched rows and the requested anchor, never infer missing
+        # items from integer gaps (other users/transactions can leave gaps).
+        sequences=[item['sort_seq'] for item in merged]
+        duplicates=len(sequences)-len(set(sequences))
+        if duplicates:events.append(('voice.timeline.cursor_duplicate',{'scope':'page'},duplicates))
+        if cursor is not None:
+            anchors=0
+            for model,scope in ((ConversationLog,ConversationLog.user_id==user_id),
+                                (AgentMessage,AgentMessage.user_id==user_id),(VoiceCall,call_scope)):
+                anchors+=await db.scalar(select(func.count()).select_from(model).where(scope,model.sort_seq==cursor))
+            if anchors==0:events.append(('voice.timeline.cursor_missing',{'scope':'anchor'},1))
+            elif anchors>1:events.append(('voice.timeline.cursor_duplicate',{'scope':'anchor'},1))
+        await metrics.emit_many(events)
 
     merged.sort(key=lambda x: x["sort_seq"], reverse=True)
     has_more = len(merged) > limit

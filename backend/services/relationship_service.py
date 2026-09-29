@@ -3,7 +3,8 @@
 
 import json
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -70,6 +71,7 @@ GROWTH_ACTIONS = {
 
 # 成长值行为描述映射
 ACTION_LABELS = {
+    "voice_call": "语音通话",
     "dialog": "完成一轮对话",
     "long_session": "深度聊天奖励",
     "daily_login": "今日登录",
@@ -111,7 +113,11 @@ class RelationshipService:
 
     async def _get_or_create_relationship(self, user_id: int) -> Relationship:
         """获取关系记录，不存在则创建"""
-        stmt = select(Relationship).where(Relationship.user_id == user_id)
+        # 与通话终结事务保持 user → call → relationship 的锁顺序。
+        # 文字 add_growth 原文不变，但它的读后写也必须参与共享标量锁。
+        await self.db.scalar(select(User.id).where(User.id == user_id).with_for_update())
+        stmt = (select(Relationship).where(Relationship.user_id == user_id)
+                .with_for_update().execution_options(populate_existing=True))
         result = await self.db.execute(stmt)
         rel = result.scalar_one_or_none()
         if rel is None:
@@ -119,6 +125,80 @@ class RelationshipService:
             self.db.add(rel)
             await self.db.flush()
         return rel
+
+    async def add_voice_growth(self, user_id: int, eligible_seconds: int, call_id: str) -> dict:
+        """按已结束通话结算；调用方提交事务，方法内不写 Redis 或旧情绪域。"""
+        from backend.constants.realtime_voice_config import get_default_voice_call_config
+        from backend.models.realtime_voice import VoiceCall, VoiceCallTurn
+        from backend.services.realtime_voice_card_service import meaningful_user_text
+        from backend.services.realtime_voice_metric_service import stage_voice_metrics
+
+        if type(eligible_seconds) is not int or eligible_seconds < 0:
+            raise ValueError('voice_growth_seconds_invalid')
+        await self.db.scalar(select(User.id).where(User.id == user_id).with_for_update())
+        call = await self.db.scalar(select(VoiceCall).where(
+            VoiceCall.call_id == call_id, VoiceCall.user_id == user_id
+        ).with_for_update().execution_options(populate_existing=True))
+        if call is None or call.ended_at is None or call.status not in {'ended', 'failed', 'missed', 'cancelled'}:
+            raise ValueError('voice_growth_call_not_terminal')
+        rel = await self._get_or_create_relationship(user_id)
+        previous = await self.db.scalar(select(RelationshipGrowthLog.id).where(
+            RelationshipGrowthLog.source_type == 'voice_call',
+            RelationshipGrowthLog.source_id == call_id).with_for_update())
+        if previous is not None:
+            stage_voice_metrics(self.db,[('voice.growth.idempotent',{},1)])
+            return {'points': 0, 'leveled_up': False, 'current_growth': rel.growth_value, 'new_level': rel.level}
+        if eligible_seconds != call.growth_eligible_seconds:
+            raise ValueError('voice_growth_seconds_mismatch')
+        cfg = call.config_snapshot.get('resolved_config', {}).get('growth', get_default_voice_call_config({})['growth'])
+        segment, points, limit = (cfg[k] for k in ('segment_seconds', 'points_per_segment', 'daily_limit_points'))
+        if (any(type(v) is not int for v in (segment, points, limit))
+                or segment <= 0 or points <= 0 or limit < 0 or cfg.get('timezone') != 'Asia/Shanghai'):
+            raise ValueError('voice_growth_config_invalid')
+        business_date = call.ended_at.replace(tzinfo=timezone.utc).astimezone(ZoneInfo('Asia/Shanghai')).date()
+        awarded = (await self.db.scalars(select(RelationshipGrowthLog.points).where(
+            RelationshipGrowthLog.user_id == user_id,
+            RelationshipGrowthLog.source_type == 'voice_call',
+            RelationshipGrowthLog.business_date == business_date).with_for_update())).all()
+        texts = await self.db.scalars(select(VoiceCallTurn.user_text_final).where(
+            VoiceCallTurn.call_id == call_id,
+            VoiceCallTurn.turn_status.in_(['finalized', 'interrupted']),
+            VoiceCallTurn.effective_text_evidence != 'none',
+            VoiceCallTurn.assistant_text_effective.is_not(None),
+            VoiceCallTurn.assistant_text_effective != ''))
+        meaningful = any(meaningful_user_text(text) for text in texts)
+        qualifies = (call.connected_at is not None and call.status == 'ended'
+            and call.end_reason not in {'system_error', 'provider_error', 'reconnect_timeout'} and meaningful)
+        if not meaningful:
+            eligible_seconds = 0
+            call.growth_eligible_seconds = 0
+        actual_points = min((eligible_seconds // segment) * points, max(0, limit - sum(awarded))) if qualifies else 0
+        old_level = rel.level
+        rel.growth_value += actual_points
+        proactive_reset = call.connected_at is not None and rel.proactive_times > 0
+        if call.connected_at is not None:
+            rel.last_interaction_at = max(rel.last_interaction_at or call.ended_at, call.ended_at)
+            rel.proactive_times = 0
+        new_level = _calc_level(rel.growth_value)
+        if new_level > old_level:
+            rel.level = new_level
+            self.db.add(RelationshipLevelHistory(user_id=user_id, from_level=old_level,
+                to_level=new_level, achieved_at=datetime.utcnow()))
+        self.db.add(RelationshipGrowthLog(user_id=user_id, action_type='voice_call', points=actual_points,
+            source_type='voice_call', source_id=call_id, eligible_seconds=eligible_seconds,
+            business_date=business_date, created_at=datetime.utcnow()))
+        call.growth_points = actual_points
+        await self.db.flush()
+        events = [('voice.growth.result', {'result':'eligible' if qualifies else 'ineligible'},1),
+                  ('voice.growth.eligible_seconds',{},eligible_seconds if qualifies else 0),
+                  ('voice.growth.points',{},actual_points)]
+        if qualifies and (eligible_seconds // segment) * points > actual_points:
+            events.append(('voice.growth.daily_cap_hit',{},1))
+        if proactive_reset:
+            events.append(('voice.cross_modal.proactive_reset',{},1))
+        stage_voice_metrics(self.db,events)
+        return {'points': actual_points, 'leveled_up': new_level > old_level,
+                'current_growth': rel.growth_value, 'new_level': rel.level}
 
     async def add_growth(self, user_id: int, action_type: str) -> dict:
         """
@@ -391,7 +471,12 @@ class RelationshipService:
         today_login_points = int(today_login) if today_login else 0
         today_session_points = int(today_session) if today_session else 0
         today_reply_points = int(today_reply) if today_reply else 0
-        today_total_points = today_dialog_points + today_login_points + today_session_points + today_reply_points
+        voice_day = datetime.now(timezone.utc).astimezone(ZoneInfo('Asia/Shanghai')).date()
+        today_voice_points = await self.db.scalar(select(func.coalesce(func.sum(RelationshipGrowthLog.points), 0)).where(
+            RelationshipGrowthLog.user_id == user_id,
+            RelationshipGrowthLog.source_type == 'voice_call',
+            RelationshipGrowthLog.business_date == voice_day))
+        today_total_points = today_dialog_points + today_login_points + today_session_points + today_reply_points + today_voice_points
 
         today_growth = {
             "today_total_points": today_total_points,
@@ -399,8 +484,9 @@ class RelationshipService:
             "today_login_points": today_login_points,
             "today_session_points": today_session_points,
             "today_reply_points": today_reply_points,
-            "today_dialog_limit_reached": today_dialog_points >= 50,
-            "today_remaining_dialog": max(0, 50 - today_dialog_points),
+            "today_voice_points": today_voice_points,
+            "today_dialog_limit_reached": today_dialog_points >= GROWTH_ACTIONS['dialog']['daily_limit'],
+            "today_remaining_dialog": max(0, GROWTH_ACTIONS['dialog']['daily_limit'] - today_dialog_points),
         }
 
         # === 6. AI 当前情绪 ===

@@ -1140,6 +1140,76 @@ class TestStep019ObserverMethodGate:
         return probe_app, entered
 
     @staticmethod
+    def _build_audited_denial_probe_app():
+        from types import SimpleNamespace
+
+        from fastapi import APIRouter, Depends, FastAPI, Request
+
+        from backend.utils.admin_auth import get_current_admin
+
+        probe_app = FastAPI()
+        probe_app.dependency_overrides[get_db] = override_get_db
+        probe_router = APIRouter()
+        entered = {
+            "force-post": 0,
+            "force-put": 0,
+            "similar-post": 0,
+        }
+
+        async def corrupt_effective_route_context(request: Request):
+            mode = request.headers.get("x-effective-route-context")
+            if mode is None:
+                return
+            fastapi_scope = request.scope.get("fastapi")
+            if not isinstance(fastapi_scope, dict):
+                return
+            if mode == "missing":
+                fastapi_scope.pop("effective_route_context", None)
+            elif mode == "non-string":
+                fastapi_scope["effective_route_context"] = SimpleNamespace(path=None)
+            elif mode == "imprecise":
+                fastapi_scope["effective_route_context"] = SimpleNamespace(
+                    path=(
+                        "/api/admin/voice/config/capabilities/"
+                        "{capability_key}/force-test/extra"
+                    )
+                )
+
+        @probe_router.post(
+            "/config/capabilities/{capability_key}/force-test",
+            dependencies=[Depends(corrupt_effective_route_context)],
+        )
+        async def force_post_probe(
+            capability_key: str,
+            admin_user: AdminUser = Depends(get_current_admin),
+        ):
+            entered["force-post"] += 1
+            return {"role": admin_user.role, "capability_key": capability_key}
+
+        @probe_router.put(
+            "/config/capabilities/{capability_key}/force-test"
+        )
+        async def force_wrong_method_probe(
+            capability_key: str,
+            admin_user: AdminUser = Depends(get_current_admin),
+        ):
+            entered["force-put"] += 1
+            return {"role": admin_user.role, "capability_key": capability_key}
+
+        @probe_router.post(
+            "/config/capabilities/{capability_key}/force-test/extra"
+        )
+        async def similar_force_post_probe(
+            capability_key: str,
+            admin_user: AdminUser = Depends(get_current_admin),
+        ):
+            entered["similar-post"] += 1
+            return {"role": admin_user.role, "capability_key": capability_key}
+
+        probe_app.include_router(probe_router, prefix="/api/admin/voice")
+        return probe_app, entered
+
+    @staticmethod
     def _raw_observer_token(
         admin_id: int,
         *,
@@ -1231,6 +1301,143 @@ class TestStep019ObserverMethodGate:
             "change-password": 1,
             "similar": 0,
             "logout-put": 0,
+        }
+
+    @pytest.mark.asyncio
+    async def test_only_exact_force_post_route_template_enters_audited_denial_path(
+        self, client
+    ):
+        """捕获 audited-denial 例外被实现成 raw path、前缀或不限方法的放行。"""
+
+        await _create_admin(
+            username="observer-audited-force",
+            password="Observer@Audited123",
+            role="observer",
+        )
+        token = await _get_token(
+            client,
+            username="observer-audited-force",
+            password="Observer@Audited123",
+        )
+        probe_app, entered = self._build_audited_denial_probe_app()
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with AsyncClient(
+            transport=ASGITransport(app=probe_app),
+            base_url="http://probe",
+        ) as probe:
+            exact = await probe.post(
+                "/api/admin/voice/config/capabilities/supports_reply_cancel/force-test",
+                headers=headers,
+            )
+            wrong_method = await probe.put(
+                "/api/admin/voice/config/capabilities/supports_reply_cancel/force-test",
+                headers=headers,
+            )
+            similar = await probe.post(
+                "/api/admin/voice/config/capabilities/supports_reply_cancel/force-test/extra",
+                headers=headers,
+            )
+
+        assert exact.status_code == 200
+        assert exact.json() == {
+            "role": "observer",
+            "capability_key": "supports_reply_cancel",
+        }
+        assert wrong_method.status_code == 403
+        assert similar.status_code == 403
+        assert entered == {
+            "force-post": 1,
+            "force-put": 0,
+            "similar-post": 0,
+        }
+
+    @pytest.mark.asyncio
+    async def test_force_audited_denial_exception_still_checks_account_state_first(self):
+        """捕获精确路由例外绕过 token_version、锁定或禁用账号校验。"""
+
+        active_id = await _create_admin(
+            username="observer-force-active",
+            password="Observer@ForceActive123",
+            role="observer",
+        )
+        locked_id = await _create_admin(
+            username="observer-force-locked",
+            password="Observer@ForceLocked123",
+            role="observer",
+            is_locked=True,
+        )
+        inactive_id = await _create_admin(
+            username="observer-force-inactive",
+            password="Observer@ForceInactive123",
+            role="observer",
+            is_active=False,
+        )
+        invalid_tokens = [
+            self._raw_observer_token(active_id, token_version=1),
+            self._raw_observer_token(locked_id),
+            self._raw_observer_token(inactive_id),
+        ]
+        probe_app, entered = self._build_audited_denial_probe_app()
+
+        async with AsyncClient(
+            transport=ASGITransport(app=probe_app),
+            base_url="http://probe",
+        ) as probe:
+            responses = [
+                await probe.post(
+                    "/api/admin/voice/config/capabilities/supports_reply_cancel/force-test",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                for token in invalid_tokens
+            ]
+
+        assert [response.status_code for response in responses] == [401, 401, 401]
+        assert entered == {
+            "force-post": 0,
+            "force-put": 0,
+            "similar-post": 0,
+        }
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("context_mode", ["missing", "non-string", "imprecise"])
+    async def test_force_audited_denial_exception_fails_closed_without_exact_matched_template(
+        self,
+        client,
+        context_mode,
+    ):
+        """捕获 matched template 缺失/非法时 fallback 到 raw 或 local route path。"""
+
+        await _create_admin(
+            username=f"observer-force-{context_mode}",
+            password="Observer@ForceContext123",
+            role="observer",
+        )
+        token = await _get_token(
+            client,
+            username=f"observer-force-{context_mode}",
+            password="Observer@ForceContext123",
+        )
+        probe_app, entered = self._build_audited_denial_probe_app()
+
+        async with AsyncClient(
+            transport=ASGITransport(app=probe_app),
+            base_url="http://probe",
+        ) as probe:
+            response = await probe.post(
+                "/api/admin/voice/config/capabilities/supports_reply_cancel/force-test",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "x-effective-route-context": context_mode,
+                },
+            )
+
+        assert response.status_code == 403
+        assert response.json() == {"detail": "观察者仅允许只读操作"}
+        assert entered == {
+            "force-post": 0,
+            "force-put": 0,
+            "similar-post": 0,
         }
 
     @pytest.mark.asyncio

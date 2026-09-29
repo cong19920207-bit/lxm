@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 _CONFIG_CACHE_TTL = 3600
 _MAX_HISTORY_VERSIONS = 20
+_AUDIT_VALUE_UNSET = object()
 
 
 class AdminConfigService:
@@ -183,6 +184,8 @@ class AdminConfigService:
         before_value: str = None,
         request=None,
         target_description: str = None,
+        audit_after_value: str | None | object = _AUDIT_VALUE_UNSET,
+        audit_action: str = "publish",
     ) -> dict:
         """
         发布配置标准流程（原子性执行）：
@@ -264,10 +267,12 @@ class AdminConfigService:
             db=db,
             admin_user=admin_user,
             module="ai_config",
-            action="publish",
+            action=audit_action,
             target_description=desc,
             before_value=before_value,
-            after_value=config_value[:500] if config_value else None,
+            after_value=(
+                config_value[:500] if config_value else None
+            ) if audit_after_value is _AUDIT_VALUE_UNSET else audit_after_value,
             request=request,
         )
 
@@ -331,6 +336,8 @@ class AdminConfigService:
     async def rollback_config(
         self, db: AsyncSession, config_key: str,
         version: int, admin_user, request=None,
+        audit_before_value: str | None | object = _AUDIT_VALUE_UNSET,
+        audit_after_value: str | None | object = _AUDIT_VALUE_UNSET,
     ) -> dict:
         """回滚到指定版本：读取目标版本内容后调用 publish_config 发布"""
         stmt = select(AdminConfig).where(
@@ -353,9 +360,15 @@ class AdminConfigService:
             config_key=config_key,
             config_value=target.config_value,
             admin_user=admin_user,
-            before_value=before_value,
+            before_value=(
+                before_value
+                if audit_before_value is _AUDIT_VALUE_UNSET
+                else audit_before_value
+            ),
             request=request,
             target_description=f"回滚自版本V{version} 配置 {config_key}",
+            audit_after_value=audit_after_value,
+            audit_action="rollback",
         )
 
     # ──────────────────── 发布前测试 ────────────────────

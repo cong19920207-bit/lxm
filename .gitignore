@@ -56,3 +56,8 @@ htmlcov/
 *.db
 *.sqlite3
 data/
+
+# 本地试验与语音验收证据（体积大，不入库）
+tmp/
+.superpowers/
+docs/design/realtime_voice/P1/execution/

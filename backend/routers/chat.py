@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -824,6 +824,9 @@ async def chat_history(
 
 @router.get("/timeline")
 async def chat_timeline(
+    response: Response,
+    request: Request,
+    pending_reload: bool = Query(False, description="既有pending卡片的一次自动重拉标记"),
     cursor: int | None = Query(None, description="游标：上一页返回的 next_cursor（sort_seq 值），首屏不传"),
     limit: int = Query(20, ge=1, le=50, description="每页数量"),
     user_id: int = Depends(get_current_user),
@@ -834,5 +837,7 @@ async def chat_timeline(
         await chat_service.trigger_recovery_if_queue_stuck(
             user_id, db, _execute_llm_bundle
         )
-    data = await get_timeline(user_id, db, cursor=cursor, limit=limit)
+    response.headers['Cache-Control'] = 'no-store'
+    data = await get_timeline(user_id, db, cursor=cursor, limit=limit, include_calls=True,
+        metrics=getattr(request.app.state, "voice_metrics", None), pending_reload=pending_reload)
     return ApiResponse.ok(data=data)

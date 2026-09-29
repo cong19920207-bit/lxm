@@ -15,6 +15,7 @@ from backend.models.ai_diary import AiDiary
 from backend.models.conversation_log import ConversationLog
 from backend.models.emotion_log import EmotionLog
 from backend.models.relationship import Relationship
+from backend.models.realtime_voice import VoiceCall
 from backend.services.relationship_service import LEVEL_CONFIG
 from backend.utils.llm_client import llm_client
 from backend.services.diary_rules_loader import (
@@ -61,8 +62,9 @@ def _format_zh_covers_day(d: date) -> str:
 class DiaryService:
     """AI 日记生成服务"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, *, voice_metrics=None):
         self.db = db
+        self.voice_metrics = voice_metrics
 
     async def _generate_diary_llm_with_fallback(
         self,
@@ -260,7 +262,7 @@ class DiaryService:
             async with semaphore:
                 try:
                     async with async_session_maker() as session:
-                        svc = DiaryService(session)
+                        svc = DiaryService(session, voice_metrics=self.voice_metrics)
                         generated = await svc.generate_diary_for_user(
                             uid,
                             covers_beijing_date=covers_d,
@@ -317,15 +319,37 @@ class DiaryService:
         result = await self.db.execute(stmt)
         conversations = result.scalars().all()
 
-        if not conversations:
+        calls = (await self.db.scalars(select(VoiceCall).where(
+            VoiceCall.user_id == user_id,
+            VoiceCall.connected_at >= start_naive_utc,
+            VoiceCall.connected_at < end_naive_utc,
+        ).order_by(VoiceCall.connected_at.asc()).limit(10))).all()
+
+        if not conversations and not calls:
             return False, ""
 
         user_messages = [c.content for c in conversations if c.role == "user"][:5]
-        summary = "；".join(user_messages)
+        now = datetime.utcnow()
+        voice_summaries = []
+        ready_count = 0
+        for call in calls:
+            readable = (call.summary_status == 'ready'
+                and call.deleted_at is None and call.deletion_fence_at is None
+                and (call.transcript_expires_at is None or call.transcript_expires_at > now))
+            value = (call.call_summary or '').strip() if readable else ''
+            ready_count += int(bool(value))
+            voice_summaries.append(value or '用户与林小梦有过语音通话，具体聊天内容暂无可用摘要。')
+        # 保证纯语音互动的事实不会被前面的文字摘要长度预算截掉。
+        summary = "；".join(voice_summaries + user_messages)
 
         if len(summary) > 500:
             summary = summary[:500] + "..."
 
+        if calls and self.voice_metrics is not None:
+            await self.voice_metrics.emit_many([
+                ('voice.cross_modal.diary', {'result':'voice_interaction'},1),
+                ('voice.cross_modal.diary_summary', {'result':'ready'},ready_count),
+                ('voice.cross_modal.diary_summary', {'result':'fallback'},len(calls)-ready_count)])
         return True, summary
 
     async def _get_recent_emotion(self, user_id: int) -> str:

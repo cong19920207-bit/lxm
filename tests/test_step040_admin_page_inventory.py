@@ -1,4 +1,4 @@
-"""STEP-040 static inventory gate for all 35 admin pages."""
+"""STEP-040 static inventory gate for all 36 admin pages."""
 
 import re
 from pathlib import Path
@@ -19,19 +19,24 @@ EXPECTED_PAGES = {
     "safety-rules.html", "step5-5-switch.html", "system-logs.html",
     "system-monitor.html", "test-tool.html", "third-party.html",
     "user-detail.html", "users.html", "vector-token-config.html",
-    "worldview.html",
+    "voice-config.html", "voice-crisis.html", "worldview.html",
 }
 PUBLIC_PAGES = {"login.html", "error.html"}
 
 
 def _source(page: str) -> str:
-    return (PAGES_DIR / page).read_text(encoding="utf-8")
+    source = (PAGES_DIR / page).read_text(encoding="utf-8")
+    if page == "voice-config.html":
+        source += (ROOT / "admin/static/js/voice-config-admin.js").read_text(
+            encoding="utf-8"
+        )
+    return source
 
 
-def test_step040_exact_35_page_inventory_and_public_page_boundary():
+def test_step040_exact_36_page_inventory_and_public_page_boundary():
     actual = {path.name for path in PAGES_DIR.glob("*.html")}
     assert actual == EXPECTED_PAGES
-    assert len(actual) == 35
+    assert len(actual) == 37
 
     for page in actual - PUBLIC_PAGES:
         source = _source(page)
@@ -47,9 +52,16 @@ def test_step040_observer_accounts_denied_and_other_business_pages_readable():
     assert "if (getAdminRole() !== 'super_admin')" in accounts
     assert "error.html?type=403" in accounts
 
-    for page in EXPECTED_PAGES - PUBLIC_PAGES - {"accounts.html"}:
+    crisis = _source('voice-crisis.html')
+    assert "if (getAdminRole() !== 'super_admin')" in crisis
+    assert "error.html?type=403" in crisis
+    for page in EXPECTED_PAGES - PUBLIC_PAGES - {"accounts.html", "voice-crisis.html"}:
         source = _source(page)
-        assert "adminRequest('GET'" in source or page in {"dashboard.html", "test-tool.html"}, page
+        assert (
+            "adminRequest('GET'" in source
+            or "voiceRequest('GET'" in source
+            or page in {"dashboard.html", "test-tool.html"}
+        ), page
         restrictive_roles = re.findall(r"ALLOWED_ROLES\s*=\s*\[([^]]+)\]", source)
         for roles in restrictive_roles:
             assert "'observer'" in roles, page
@@ -58,16 +70,19 @@ def test_step040_observer_accounts_denied_and_other_business_pages_readable():
             assert "'observer'" in call, page
 
 
-def test_step040_all_25_non_account_write_pages_have_observer_markers():
+def test_step040_all_26_non_account_write_pages_have_observer_markers():
     write_pages = set()
     for page in EXPECTED_PAGES - PUBLIC_PAGES:
-        if re.search(r"adminRequest\('(POST|PUT|PATCH|DELETE)'", _source(page)):
+        if re.search(
+            r"(?:adminRequest|voiceRequest)\(\s*'(POST|PUT|PATCH|DELETE)'",
+            _source(page),
+        ):
             write_pages.add(page)
 
-    assert len(write_pages) == 26
+    assert len(write_pages) == 27
     assert "accounts.html" in write_pages
     business_write_pages = write_pages - {"accounts.html"}
-    assert len(business_write_pages) == 25
+    assert len(business_write_pages) == 26
     for page in business_write_pages:
         assert "data-write-action" in _source(page), page
 

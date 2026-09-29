@@ -1,8 +1,10 @@
 """STEP-039 aggregate backend permission gate for the five admin roles."""
 
+import inspect
 from pathlib import Path
 
 from backend.main import app
+from backend.utils import admin_auth
 from backend.utils.admin_auth import (
     _OBSERVER_BLOCKED_METHODS,
     _OBSERVER_SELF_SERVICE_EXCEPTIONS,
@@ -17,6 +19,79 @@ EXPORT_PATHS = {
     "/api/admin/operation-logs/export",
     "/api/admin/stats/report/export",
     "/api/admin/system/logs/export",
+}
+VOICE_CONFIG_ROUTE_ROLES = {
+    ('GET', '/api/admin/voice/crisis-records'): frozenset({'super_admin'}),
+    ('GET', '/api/admin/voice/crisis-records/{record_id}'): frozenset({'super_admin'}),
+    ("PUT", "/api/admin/safety-rules/crisis-keywords"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/safety-rules/crisis-keywords/history"): frozenset(
+        {"super_admin", "ai_trainer", "observer"}
+    ),
+    ("POST", "/api/admin/safety-rules/crisis-keywords/rollback"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("GET", "/api/admin/voice/capability-evidence/{evidence_report_id}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("PATCH", "/api/admin/voice/config/config/draft/{section}"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("PATCH", "/api/admin/voice/config/script/draft/{section}"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("DELETE", "/api/admin/voice/config/config/draft/{section}"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("DELETE", "/api/admin/voice/config/script/draft/{section}"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("DELETE", "/api/admin/voice/config/config/draft"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("DELETE", "/api/admin/voice/config/script/draft"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/validate"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/validate"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/publish"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/publish"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}/history"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("GET", "/api/admin/voice/config/{key}/history/{version}"): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
+    ("POST", "/api/admin/voice/config/config/rollback"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/script/rollback"): frozenset(
+        {"super_admin", "ai_trainer"}
+    ),
+    ("POST", "/api/admin/voice/config/test-connection"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    ("POST", "/api/admin/voice/config/test-capability"): frozenset(
+        {"super_admin", "tech_ops"}
+    ),
+    (
+        "POST",
+        "/api/admin/voice/config/capabilities/{capability_key}/force-test",
+    ): frozenset(
+        {"super_admin", "ai_trainer", "tech_ops", "ops_admin", "observer"}
+    ),
 }
 
 
@@ -39,6 +114,18 @@ def _dependency_calls(dependant) -> set:
     return calls
 
 
+def _declared_role_sets(dependant) -> set[frozenset[str]]:
+    role_sets = set()
+    for child in dependant.dependencies:
+        call = child.call
+        if getattr(call, "__name__", None) == "_role_checker":
+            roles = inspect.getclosurevars(call).nonlocals.get("roles")
+            if roles is not None:
+                role_sets.add(frozenset(roles))
+        role_sets.update(_declared_role_sets(child))
+    return role_sets
+
+
 def test_step039_route_inventory_auth_write_gate_and_exact_exceptions():
     routes = list(_admin_routes())
     methods = {
@@ -46,14 +133,26 @@ def test_step039_route_inventory_auth_write_gate_and_exact_exceptions():
         for path, route in routes
         for method in route.methods
     }
-    assert len(routes) == 159
-    assert len(methods & {(method, path) for method, path in methods if method in {"GET", "HEAD"}}) == 69
-    assert len(methods & {(method, path) for method, path in methods if method in WRITE_METHODS}) == 90
+    assert len(routes) == 183
+    assert sum(method in {"GET", "HEAD"} for method, _ in methods) == 74
+    assert sum(method in WRITE_METHODS for method, _ in methods) == 107
     assert _OBSERVER_BLOCKED_METHODS == frozenset(WRITE_METHODS)
     assert _OBSERVER_SELF_SERVICE_EXCEPTIONS == frozenset(
         {
             ("POST", "/api/admin/auth/logout"),
             ("POST", "/api/admin/auth/change-password"),
+        }
+    )
+    assert getattr(
+        admin_auth,
+        "_OBSERVER_AUDITED_DENIAL_EXCEPTIONS",
+        None,
+    ) == frozenset(
+        {
+            (
+                "POST",
+                "/api/admin/voice/config/capabilities/{capability_key}/force-test",
+            )
         }
     )
 
@@ -63,6 +162,24 @@ def test_step039_route_inventory_auth_write_gate_and_exact_exceptions():
             if (method, path) == ("POST", "/api/admin/auth/login"):
                 continue
             assert get_current_admin in calls, (method, path)
+
+
+def test_step039_voice_routes_have_exact_methods_and_role_boundaries():
+    actual = {}
+    for path, route in _admin_routes():
+        if not (
+            path.startswith("/api/admin/voice/")
+            or path.startswith("/api/admin/safety-rules/crisis-keywords")
+        ):
+            continue
+        for method in route.methods:
+            actual[(method, path)] = _declared_role_sets(route.dependant)
+
+    assert set(actual) == set(VOICE_CONFIG_ROUTE_ROLES)
+    assert actual == {
+        route: {roles}
+        for route, roles in VOICE_CONFIG_ROUTE_ROLES.items()
+    }
 
 
 def test_step039_all_and_only_builtin_exports_have_observer_denial():

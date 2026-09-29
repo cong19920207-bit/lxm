@@ -20,6 +20,11 @@ class AdminConfig(Base):
     config_value: Mapped[str] = mapped_column(Text, nullable=True)
 
     version: Mapped[int] = mapped_column(Integer, default=1)
+    draft_revision: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="语音配置草稿乐观锁修订号",
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_draft: Mapped[bool] = mapped_column(
         Boolean, default=False,

@@ -35,10 +35,10 @@ USER_LIST_TOPK = 500
 GLOBAL_LIST_TOPK_NO_USER = 300
 
 
-def _build_user_fields(key: str, content: str, user_id: int) -> dict:
+def _build_user_fields(key: str, content: str, user_id: int, *, last_write_source: str = "admin") -> dict:
     """
     组装写入 DashVector 的 fields（用户级须额外写 user_id），
-    与 upsert_step6_vectors 写入字段保持一致：content / stable_key / key_l1 / key_l2 / user_id。
+    与 upsert_step6_vectors 写入字段保持一致；last_write_source 只用于最后写入溯源。
 
     key 已由 validate_key 保证为三层 XXX-XXX-XXX，segments 必有 ≥3 段。
     """
@@ -49,6 +49,7 @@ def _build_user_fields(key: str, content: str, user_id: int) -> dict:
         "key_l1": segments[0],
         "key_l2": segments[0] + "-" + segments[1],
         "user_id": user_id,
+        "last_write_source": last_write_source,
     }
 
 

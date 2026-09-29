@@ -76,6 +76,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="林小梦 AI 虚拟人", lifespan=lifespan)
+from backend.services.realtime_voice_metric_service import ApplicationVoiceMetrics
+app.state.voice_metrics = ApplicationVoiceMetrics()
 
 # CORS 中间件
 _cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
@@ -137,6 +139,7 @@ from backend.routers.admin import feed_mgmt as admin_feed_mgmt  # noqa: E402
 from backend.routers.admin import feed_comment_mgmt as admin_feed_comment  # noqa: E402
 from backend.routers.admin import agent_aware_mgmt as admin_agent_aware  # noqa: E402
 from backend.routers.admin import life_config_mgmt as admin_life_config  # noqa: E402
+from backend.routers.admin import voice_config as admin_voice_config  # noqa: E402
 
 app.include_router(admin_auth.router,
     prefix="/api/admin/auth", tags=["admin-auth"])
@@ -186,6 +189,26 @@ app.include_router(admin_agent_aware.router,
     prefix="/api/admin", tags=["admin-agent-aware"])
 app.include_router(admin_life_config.router,
     prefix="/api/admin", tags=["admin-life-config"])
+app.include_router(admin_voice_config.router,
+    prefix="/api/admin/voice", tags=["admin-voice-config"])
+from backend.routers.admin import voice_prompt_view
+app.include_router(voice_prompt_view.router, prefix="/api/admin/voice", tags=["admin-voice-prompt-view"])
+from backend.routers.admin import voice_master_switch
+app.include_router(voice_master_switch.router, prefix="/api/admin/voice", tags=["管理后台-语音总开关"])
+from backend.routers.admin import voice_ops as admin_voice_ops
+from backend.routers.admin import voice_quota as admin_voice_quota
+from backend.routers import realtime_voice
+app.include_router(admin_voice_ops.router, prefix="/api/admin/voice", tags=["admin-voice-ops"])
+app.include_router(admin_voice_quota.router, prefix="/api/admin/voice", tags=["admin-voice-quota"])
+from backend.routers.admin import voice_crisis as admin_voice_crisis
+app.include_router(admin_voice_crisis.router, prefix="/api/admin/voice", tags=["admin-voice-crisis"])
+from backend.routers.admin import voice_playback as admin_voice_playback
+app.include_router(admin_voice_playback.router, prefix="/api/admin/voice", tags=["admin-voice-playback"])
+from backend.routers.admin import voice_records as admin_voice_records
+app.include_router(admin_voice_records.router, prefix="/api/admin/voice", tags=["admin-voice-records"])
+from backend.routers.admin import voice_metrics as admin_voice_metrics
+app.include_router(admin_voice_metrics.router, prefix="/api/admin/voice", tags=["admin-voice-metrics"])
+app.include_router(realtime_voice.router)
 
 # ============ 静态资源 & 页面路由（必须放在所有API路由之后） ============
 

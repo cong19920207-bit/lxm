@@ -57,7 +57,8 @@ def test_prompt_and_switch_mark_all_draft_test_publish_and_dynamic_controls():
 
 def test_safety_marks_inputs_file_import_save_and_dynamic_delete():
     page = _read("safety-rules.html")
-    for cid in ["input-banned", "btn-save-banned", "btn-import-excel", "file-import-excel", "input-persona", "btn-save-persona", "input-style", "btn-save-style"]:
+    for cid in ["input-banned", "btn-save-banned", "btn-import-excel", "file-import-excel", "input-persona", "btn-save-persona", "input-style", "btn-save-style", "input-crisis", "btn-save-crisis"]:
         assert f'id="{cid}" data-write-action' in page
     assert "btn.setAttribute('data-write-action', '')" in page
-
+    assert "data-crisis-rollback" in page
+    assert "data-write-action data-crisis-rollback" in page
