@@ -4,8 +4,8 @@
 
 ## 默认读取边界
 
-- 默认扫描：本索引、[contract.md](contract.md)、`contract/current/`、[contract/known-gaps.md](contract/known-gaps.md)、[tech-debt.md](tech-debt.md)、`tech-debt/active/`。
-- 默认排除：`.doc-migration-baseline/`、`contract/history/`、`contract/drafts/`、`tech-debt/archive/`。
+- 默认扫描：本索引、[contract.md](contract.md)、`contract/current/`、[contract/known-gaps.md](contract/known-gaps.md)、[tech-debt.md](tech-debt.md)、`tech-debt/active/`、`requirement-pool/`。
+- 默认排除：`.doc-migration-baseline/`、`contract/history/`、`design/realtime_voice/P1/history/`、`contract/drafts/`、`tech-debt/archive/`。
 - 基线、历史、草案和归档只有在用户明确要求对应操作时才读取，不作为当前权威依据。
 
 ## 功能 / 任务 → 必读契约
@@ -17,6 +17,10 @@
 | 用户、登录、设置、密码 | [接口](contract/current/core-user-auth/api.md) · [数据](contract/current/core-user-auth/data.md) | [账号与认证](tech-debt/active/core-user-auth.md) |
 | 未登录开放、登录弹窗、访客态 | [H5 页面策略](contract/current/h5-app/api.md) · [Feed 可选鉴权](contract/current/life-feed/api.md) | [总索引](tech-debt.md) |
 | H5 应用入口 | [接口](contract/current/h5-app/api.md) | [总索引](tech-debt.md) |
+| 实时语音、结束、占用残留、异常结算恢复 | [接口](contract/current/realtime-voice/api.md) · [数据](contract/current/realtime-voice/data.md) · [后台](contract/current/realtime-voice/admin-ui.md) | [实时语音 TD-038](tech-debt/active/realtime-voice.md#td-038) |
+| 实时语音配置发布、测试能力与后台音色筛选的 P1 延期问题 | [后台契约](contract/current/realtime-voice/admin-ui.md)；原 P1 延期目标保留 | [TD-041](tech-debt/active/realtime-voice.md#td-041) · [TD-042](tech-debt/active/realtime-voice.md#td-042) · [TD-043](tech-debt/active/realtime-voice.md#td-043) |
+| 实时语音收尾体验候选需求 | [需求池索引](requirement-pool/README.md) · [RP-001](requirement-pool/active/realtime-voice-ending-grace/RP-001.md#rp-001)（待评估，非 PRD/契约） | — |
+| 实时语音记忆抽取质量候选需求 | [需求池索引](requirement-pool/README.md) · [RP-002](requirement-pool/active/realtime-voice-memory-extraction/RP-002.md#rp-002)（待评估，非 PRD/契约） | — |
 | 聊天、SSE、情绪 | [接口](contract/current/chat-emotion/api.md) · [数据](contract/current/chat-emotion/data.md) | [聊天与情绪](tech-debt/active/chat-emotion.md) |
 | 记忆、知识库、Step6、向量 | [接口](contract/current/memory-knowledge/api.md) · [数据](contract/current/memory-knowledge/data.md) · [后台](contract/current/memory-knowledge/admin-ui.md) | [记忆与知识](tech-debt/active/memory-knowledge.md) |
 | 日记与时区 | [接口](contract/current/diary/api.md) · [数据](contract/current/diary/data.md) · [后台](contract/current/diary/admin-ui.md) | [日记](tech-debt/active/diary.md) |
@@ -32,6 +36,7 @@
 
 | 检索信号 | 必读文档 |
 |---|---|
+| `/api/voice`、`/api/admin/voice`、`voice_*`、`realtime_voice_*` | [语音接口](contract/current/realtime-voice/api.md) · [语音数据](contract/current/realtime-voice/data.md) · [语音后台](contract/current/realtime-voice/admin-ui.md) |
 | `/api/chat`、`conversation_log`、`emotion_log`、`backend/routers/chat.py` | [聊天接口](contract/current/chat-emotion/api.md) · [聊天数据](contract/current/chat-emotion/data.md) |
 | `/api/memory`、`memory`、`step6_orchestrator.py` | [记忆接口](contract/current/memory-knowledge/api.md) · [记忆数据](contract/current/memory-knowledge/data.md) |
 | `/api/diary`、`ai_diary`、`ai_diary_task.py` | [日记接口](contract/current/diary/api.md) · [日记数据](contract/current/diary/data.md) |

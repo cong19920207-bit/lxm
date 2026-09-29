@@ -77,3 +77,8 @@
 - **状态**：已实现（长记忆第一套下线改造）
 
 ---
+
+<a id="last-write-source"></a>
+### 向量最后写入来源
+
+user / character_private向量文档增加内部溯源字段`last_write_source`，值为`voice|text|admin|unknown`，表示当前版本的最后写入渠道。语音/文字/管理写入分别写对应值；缺失或非法值读取为unknown，**不把旧数据一律补成text**。该字段保存在向量库，不是MySQL列，不修改Stable Key、doc_id、相似度排名或四路检索配额，也不代表这条记忆全部历史事实都来自最后一次渠道。仅溯源，不扩展本页既有H5公开响应字段；逐轮语音任务与trace见[语音数据](../realtime-voice/data.md#memory)。

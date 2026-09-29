@@ -66,3 +66,8 @@
 三者至少满足：**双 Prompt 同时填写** 或 **仅 `generation_prompt`**，否则 `ADMIN_ERR_DIARY_RULE_PARAM_INVALID`。
 
 ---
+
+<a id="voice-growth"></a>
+### 语音成长增量
+
+`GET /api/relationship/detail`的`today_growth`增加`today_voice_points`并计入今日总值，语音独立使用当前语音成长规则的日上限。内部add_voice_growth仅对合格有效秒数按北京时间结束业务日计分，默认30秒/5分、日100分，与通话终结同事务并按call来源幂等。文字成长和旧history读取语义保留；字段唯一来源见[成长记录](data.md#voice-growth-shared)。

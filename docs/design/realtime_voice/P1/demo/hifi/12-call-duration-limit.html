@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 今日通话时长已用完</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .limit {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      overflow: hidden;
+      background: #0a0711;
+    }
+    .artwork,
+    .artwork::after { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -2;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.72) saturate(.7);
+    }
+    .artwork::after {
+      content: "";
+      background: linear-gradient(180deg, rgba(5, 4, 12, .23) 0%, rgba(5, 4, 12, .08) 40%, rgba(5, 4, 12, .22) 57%, rgba(5, 4, 12, .91) 100%);
+    }
+    .content {
+      position: absolute;
+      right: 0;
+      bottom: max(33px, calc(env(safe-area-inset-bottom) + 16px));
+      left: 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: rgba(223, 211, 249, .58);
+      font-size: 14px;
+      line-height: 19px;
+      letter-spacing: .07em;
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1.28; font-weight: 630; letter-spacing: .01em; }
+    p { margin: 10px 8px 0; color: rgba(239, 233, 251, .67); font-size: 14px; line-height: 21px; }
+    .back-chat {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 25px;
+      overflow: hidden;
+      border: 1px solid rgba(231, 224, 255, .5);
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(108deg, rgba(79, 119, 237, .54), rgba(128, 83, 235, .56) 53%, rgba(173, 64, 222, .52));
+      box-shadow: 0 12px 27px rgba(58, 31, 133, .28), inset 0 1px 0 rgba(255, 255, 255, .36), inset 0 -1px 0 rgba(50, 24, 120, .18);
+      backdrop-filter: blur(22px) saturate(1.22);
+      -webkit-backdrop-filter: blur(22px) saturate(1.22);
+      font-size: 17px;
+      font-weight: 620;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .18s ease, filter .18s ease;
+    }
+    .back-chat::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 48%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .27), transparent);
+    }
+    .back-chat span { position: relative; }
+    .back-chat:active { transform: scale(.98); filter: brightness(.96); }
+    .later {
+      margin-top: 14px;
+      padding: 5px 12px;
+      border: 0;
+      color: rgba(255, 255, 255, .59);
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .is-leaving { opacity: .58; transition: opacity .16s ease; }
+    .is-leaving button { pointer-events: none; }
+    button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (min-width: 403px) { .limit { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .content { bottom: 20px; }
+      .eyebrow { margin-bottom: 7px; }
+      h1 { font-size: 23px; }
+      .back-chat { margin-top: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="limit" aria-label="今日可用的通话时长已经用完">
+    <div class="artwork" aria-hidden="true"></div>
+    <section class="content">
+      <p class="eyebrow">今日时长已用完</p>
+      <h1>今天先用文字陪她吧</h1>
+      <p>当前可用通话时长已经用完。<br />0 点后会恢复今日免费时长。</p>
+      <button class="back-chat" type="button"><span>回聊天找她</span></button>
+      <button class="later" type="button">稍后再说</button>
+    </section>
+  </main>
+  <script>
+    const limit = document.querySelector('.limit');
+    const leave = (destination) => {
+      if (limit.classList.contains('is-leaving')) return;
+      limit.classList.add('is-leaving');
+      window.setTimeout(destination, 160);
+    };
+    document.querySelector('.back-chat').addEventListener('click', () => {
+      leave(() => { window.location.href = '06-chat-record.html?no-call=1'; });
+    });
+    document.querySelector('.later').addEventListener('click', () => {
+      leave(() => {
+        if (document.referrer && window.history.length > 1) window.history.back();
+        else window.location.href = '06-chat-record.html?no-call=1';
+      });
+    });
+  </script>
+</body>
+</html>

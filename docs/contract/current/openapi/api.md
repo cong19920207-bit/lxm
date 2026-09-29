@@ -20,7 +20,7 @@
 
 ### GET `/api/open/v1/chat/timeline`
 
-- Query：`cursor`、`limit`；`data` 与 H5 timeline 一致（`timeline_read_service`）
+- Query：`cursor`、`limit`；`data`沿用Open v1原十字段/三来源投影（`timeline_read_service`），不继承H5语音扩展，见下方兼容边界。
 
 ### GET `/api/open/v1/agent/messages` · GET `/api/open/v1/agent/unread-count` · POST `/api/open/v1/agent/messages/{message_id}/read`
 
@@ -35,3 +35,8 @@
 ---
 
 #
+
+<a id="voice-compatibility"></a>
+### 与H5语音时间线的兼容边界
+
+Open v1 timeline保持`items/next_cursor/has_more`、原cursor/limit语义，item仅有`source,sort_seq,id,content,created_at,emotion_label,delivery_status,skipped_in_prompt,is_read,trigger_type`十字段，source仅user/assistant/agent。不包含source=call、call_id/duration_seconds/call_status/summary_status/call_summary或crisis_resource。H5语音卡片占用全局sort_seq可形成序号空隙，不改变Open分页行为。未知第三方消费者按可能存在保护原协议；不新增v2。

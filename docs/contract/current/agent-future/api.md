@@ -49,3 +49,8 @@
 - **状态**：已实现
 
 ---
+
+<a id="voice-followup"></a>
+### 语音后续消息
+
+VOICE_FOLLOWUP由独立voice_followup_job产生，通过既有agent_message未读与timeline接口读取；不创建Future槽，不替换P0～P4任务。按用户已确认口径，语音发送不套旧8条/30分钟门禁，但成功仍计入UTC日主动消息计数；sent后的计数补偿不重发。调用的消息处理子链不等于整个语音通话主链，具体状态见[语音内部处理](../realtime-voice/data.md#postprocess)。

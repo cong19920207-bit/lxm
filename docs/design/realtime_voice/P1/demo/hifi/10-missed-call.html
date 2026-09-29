@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 暂时没接到</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .missed {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      overflow: hidden;
+      background: #0a0711;
+    }
+    .artwork,
+    .artwork::after { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -2;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.7) saturate(.62);
+      transform: scale(1.02);
+    }
+    .artwork::after {
+      content: "";
+      background: linear-gradient(180deg, rgba(5, 4, 12, .3) 0%, rgba(5, 4, 12, .11) 42%, rgba(5, 4, 12, .28) 60%, rgba(5, 4, 12, .9) 100%);
+    }
+    .content {
+      position: absolute;
+      right: 0;
+      bottom: max(33px, calc(env(safe-area-inset-bottom) + 16px));
+      left: 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .quiet-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 17px;
+      border: 1px solid rgba(226, 217, 255, .32);
+      border-radius: 15px;
+      background: rgba(52, 37, 78, .38);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .quiet-mark svg { width: 20px; height: 20px; fill: none; stroke: rgba(244, 238, 255, .88); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.65; }
+    h1 { margin: 0; font-size: 25px; line-height: 1.26; font-weight: 630; letter-spacing: .01em; }
+    p { margin: 9px 11px 0; color: rgba(239, 233, 251, .67); font-size: 14px; line-height: 21px; }
+    .back-chat {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 25px;
+      overflow: hidden;
+      border: 1px solid rgba(231, 224, 255, .36);
+      border-radius: 17px;
+      color: #fff;
+      background: rgba(102, 77, 156, .32);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 8px 22px rgba(16, 7, 35, .2);
+      backdrop-filter: blur(20px) saturate(1.15);
+      -webkit-backdrop-filter: blur(20px) saturate(1.15);
+      font-size: 17px;
+      font-weight: 590;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .18s ease, background .18s ease;
+    }
+    .back-chat::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 46%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .15), transparent);
+      pointer-events: none;
+    }
+    .back-chat span { position: relative; }
+    .back-chat:active { transform: scale(.98); background: rgba(121, 91, 184, .4); }
+    .back-chat:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (min-width: 403px) { .missed { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .content { bottom: 20px; }
+      .quiet-mark { margin-bottom: 10px; transform: scale(.9); }
+      h1 { font-size: 23px; }
+      .back-chat { margin-top: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="missed" aria-label="林小梦暂时没有接到通话">
+    <div class="artwork" aria-hidden="true"></div>
+    <section class="content">
+      <div class="quiet-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4"/><path d="M12 8.2v4.2l2.8 1.7"/></svg></div>
+      <h1>她现在可能不方便</h1>
+      <p>过一会儿再打给她吧，这次不会打扰到她。</p>
+      <button class="back-chat" type="button"><span>回到聊天</span></button>
+    </section>
+  </main>
+  <script>
+    document.querySelector('.back-chat').addEventListener('click', () => { window.location.href = '18-missed-call-record.html'; });
+  </script>
+</body>
+</html>

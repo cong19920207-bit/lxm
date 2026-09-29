@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 当前浏览器暂不支持通话</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .unsupported {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      min-height: 640px;
+      overflow: hidden;
+      background: #090711;
+    }
+    .artwork,
+    .artwork::after,
+    .atmosphere { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.61) saturate(.61);
+      transform: scale(1.018);
+    }
+    .artwork::after {
+      content: "";
+      background:
+        linear-gradient(180deg, rgba(5, 4, 12, .22) 0%, rgba(5, 4, 12, .08) 37%, rgba(5, 4, 12, .27) 57%, rgba(5, 4, 12, .93) 100%),
+        linear-gradient(90deg, rgba(7, 5, 16, .28), transparent 44%, rgba(7, 5, 16, .2));
+    }
+    .atmosphere {
+      z-index: -2;
+      background:
+        radial-gradient(52% 23% at 51% 65%, rgba(116, 159, 255, .13), transparent 73%),
+        radial-gradient(35% 18% at 49% 34%, rgba(185, 130, 255, .06), transparent 74%);
+      pointer-events: none;
+    }
+    .close {
+      position: absolute;
+      z-index: 2;
+      top: max(16px, env(safe-area-inset-top));
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, .82);
+      background: rgba(18, 12, 31, .3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.8; }
+    .content {
+      position: absolute;
+      right: 12px;
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+      left: 12px;
+      padding: 23px 20px 18px;
+      overflow: hidden;
+      border: 1px solid rgba(232, 225, 255, .19);
+      border-radius: 29px 29px 23px 23px;
+      background:
+        linear-gradient(145deg, rgba(34, 27, 54, .75), rgba(14, 10, 28, .83) 68%),
+        rgba(21, 15, 37, .72);
+      box-shadow: 0 20px 54px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .14);
+      backdrop-filter: blur(30px) saturate(1.24);
+      -webkit-backdrop-filter: blur(30px) saturate(1.24);
+      text-align: center;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .content::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 46%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .1), transparent);
+      pointer-events: none;
+    }
+    .content-inner { position: relative; }
+    .signal {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border: 1px solid rgba(206, 218, 255, .33);
+      border-radius: 24px;
+      color: rgba(248, 248, 255, .96);
+      background:
+        radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .26), transparent 38%),
+        linear-gradient(145deg, rgba(130, 176, 255, .35), rgba(151, 93, 231, .23));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .29), 0 10px 25px rgba(41, 32, 105, .22);
+    }
+    .signal::after {
+      content: "";
+      position: absolute;
+      width: 84px;
+      height: 84px;
+      border: 1px solid rgba(189, 205, 255, .15);
+      border-radius: 30px;
+      transform: rotate(10deg);
+      pointer-events: none;
+    }
+    .signal svg { position: relative; z-index: 1; width: 36px; height: 36px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.75; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: rgba(219, 214, 245, .58);
+      font-size: 12px;
+      font-weight: 560;
+      letter-spacing: .08em;
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1.27; font-weight: 640; letter-spacing: .01em; }
+    .description { margin: 10px 9px 0; color: rgba(239, 233, 251, .68); font-size: 14px; line-height: 21px; }
+    .back-chat {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(231, 224, 255, .51);
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(108deg, rgba(76, 116, 234, .57), rgba(128, 83, 235, .59) 53%, rgba(172, 65, 222, .55));
+      box-shadow: 0 12px 27px rgba(58, 31, 133, .29), inset 0 1px 0 rgba(255, 255, 255, .38), inset 0 -1px 0 rgba(50, 24, 120, .18);
+      backdrop-filter: blur(22px) saturate(1.28);
+      -webkit-backdrop-filter: blur(22px) saturate(1.28);
+      font-size: 17px;
+      font-weight: 620;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-chat::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 48%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .28), transparent);
+      pointer-events: none;
+    }
+    .back-chat span { position: relative; }
+    .back-chat:active { transform: scale(.98); filter: brightness(.96); }
+    .footnote { margin: 13px 0 -1px; color: rgba(222, 215, 239, .48); font-size: 12px; line-height: 18px; }
+    .is-returning .content,
+    .is-returning .close { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    .is-returning .back-chat { opacity: .66; }
+    button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .content, .back-chat { transition: none; }
+    }
+    @media (min-width: 403px) { .unsupported { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .content { padding-top: 16px; }
+      .signal { width: 58px; height: 58px; margin-bottom: 10px; border-radius: 20px; }
+      .signal::after { width: 69px; height: 69px; border-radius: 25px; }
+      .signal svg { width: 30px; height: 30px; }
+      .eyebrow { margin-bottom: 5px; }
+      h1 { font-size: 23px; }
+      .description { margin-top: 5px; }
+      .back-chat { height: 48px; margin-top: 16px; }
+      .footnote { margin-top: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="unsupported" aria-label="当前浏览器暂不支持语音通话">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <button class="close" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+    <section class="content" aria-live="polite">
+      <div class="content-inner">
+        <div class="signal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 9v6M12 6v12M16 8v8M4 4l16 16"/></svg></div>
+        <p class="eyebrow">当前浏览器暂不支持</p>
+        <h1>换个浏览器，再和她说话</h1>
+        <p class="description">语音通话需要实时音频能力。切换到支持的浏览器后，再回来试试吧。</p>
+        <button class="back-chat" type="button"><span>回聊天找她</span></button>
+        <p class="footnote">本次未发起通话，不会占用今日时长。</p>
+      </div>
+    </section>
+  </main>
+  <script>
+    const page = document.querySelector('.unsupported');
+    function returnToChat() {
+      if (page.classList.contains('is-returning')) return;
+      page.classList.add('is-returning');
+      window.setTimeout(() => { window.location.href = '06-chat-record.html?no-call=1'; }, 240);
+    }
+    document.querySelector('.close').addEventListener('click', returnToChat);
+    document.querySelector('.back-chat').addEventListener('click', returnToChat);
+  </script>
+</body>
+</html>

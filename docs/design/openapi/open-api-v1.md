@@ -2,7 +2,7 @@
 
 > 面向第三方客户端（桌面宠物等）。鉴权：**API Key**；响应：**同步 JSON**（非 SSE）。  
 > 生产 Base URL（已确认）：**`http://cllxm.com`**  
-> **对外完整接入指南（含流程图、字段表、联调清单）**：[`docs/partner/林小梦-OpenAPI-宠物端接入指南.md`](../partner/林小梦-OpenAPI-宠物端接入指南.md)
+> **对外完整接入指南（含流程图、字段表、联调清单）**：[`docs/partner/林小梦-OpenAPI-宠物端接入指南.md`](../../partner/林小梦-OpenAPI-宠物端接入指南.md)
 
 ---
 
@@ -89,7 +89,7 @@ Body：`{"content":"1-2000字"}`
 ### GET `/api/open/v1/chat/timeline`
 
 Query：`cursor`（可选）、`limit`（1–50，默认 20）。  
-响应与 H5 `GET /api/chat/timeline` 的 `data` 一致。
+响应沿用 Open v1 原 `items/next_cursor/has_more` 和十字段、user/assistant/agent 三来源投影，不再泛称与 H5 一致。H5新增语音卡片/危机资源字段不进入 v1；sort_seq空隙合法。唯一协议定义见[OpenAPI 当前契约](../../contract/current/openapi/api.md#voice-compatibility)。
 
 ### GET `/api/open/v1/agent/messages`
 

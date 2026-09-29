@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 通话中（想一下）</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+
+    .voice-call {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      min-height: 640px;
+      overflow: hidden;
+      background: #0a0711;
+    }
+    .artwork,
+    .artwork::after,
+    .atmosphere { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.84) saturate(.79);
+      transform: scale(1.014);
+      animation: artwork-breathe 11s ease-in-out infinite alternate;
+    }
+    .artwork::after {
+      content: "";
+      background:
+        linear-gradient(180deg, rgba(5, 4, 12, .33) 0%, rgba(5, 4, 12, .11) 39%, rgba(5, 4, 12, .26) 55%, rgba(5, 4, 12, .9) 100%),
+        radial-gradient(100% 38% at 50% 95%, rgba(10, 11, 33, .62), transparent 70%);
+    }
+    .atmosphere {
+      z-index: -2;
+      background: radial-gradient(38% 22% at 49% 61%, rgba(117, 168, 255, .22), transparent 70%);
+      pointer-events: none;
+      animation: thought-light 3.4s ease-in-out infinite;
+    }
+
+    .call-meta {
+      position: absolute;
+      top: max(22px, env(safe-area-inset-top));
+      left: 0;
+      right: 0;
+      text-align: center;
+      text-shadow: 0 2px 18px rgba(0, 0, 0, .55);
+    }
+    .call-meta time {
+      display: block;
+      font-size: 15px;
+      font-weight: 510;
+      letter-spacing: .1em;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, .82);
+    }
+
+    .presence {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: max(177px, calc(env(safe-area-inset-bottom) + 142px));
+      text-align: center;
+      text-shadow: 0 5px 20px rgba(0, 0, 0, .5);
+    }
+    .presence h1 {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.2;
+      font-weight: 590;
+      letter-spacing: .025em;
+    }
+    .state {
+      margin: 9px 0 0;
+      color: rgba(205, 225, 255, .82);
+      font-size: 14px;
+      line-height: 20px;
+      letter-spacing: .025em;
+    }
+    .state::after {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 1px;
+      margin: 8px auto 0;
+      border-radius: 999px;
+      background: rgba(173, 213, 255, .88);
+      box-shadow: 0 0 10px rgba(112, 186, 255, .7);
+      animation: thought-line 2.2s ease-in-out infinite;
+    }
+
+    .controls {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: max(43px, calc(env(safe-area-inset-bottom) + 24px));
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      justify-content: center;
+      column-gap: 37px;
+    }
+    .control {
+      width: 60px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, .84);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .control-surface {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 50%;
+      background: rgba(18, 17, 34, .5);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 24px rgba(0, 0, 0, .24);
+      backdrop-filter: blur(20px) saturate(1.12);
+      -webkit-backdrop-filter: blur(20px) saturate(1.12);
+      transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .control-label {
+      display: block;
+      margin-top: 9px;
+      color: rgba(255, 255, 255, .78);
+      font-size: 12px;
+      line-height: 16px;
+      letter-spacing: .01em;
+      white-space: nowrap;
+    }
+    .control svg { width: 22px; height: 22px; fill: currentColor; }
+    .control.hangup .control-surface {
+      border-color: rgba(255, 132, 138, .42);
+      background: #ee5965;
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(170, 33, 53, .32), inset 0 1px 0 rgba(255, 255, 255, .2);
+    }
+    .control.hangup svg { width: 24px; height: 24px; }
+    .control[aria-pressed="true"] .control-surface {
+      border-color: rgba(255, 255, 255, .96);
+      background: rgba(250, 247, 255, .96);
+      color: #181224;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+    }
+    .control:active .control-surface { transform: scale(.93); }
+    .control:focus-visible .control-surface { outline: 2px solid #fff; outline-offset: 3px; }
+
+    @keyframes artwork-breathe { to { transform: scale(1.03); } }
+    @keyframes thought-light { 50% { opacity: .42; } }
+    @keyframes thought-line { 50% { width: 38px; opacity: .55; } }
+    @media (prefers-reduced-motion: reduce) {
+      .artwork, .atmosphere, .state::after { animation: none; }
+      .control-surface { transition: none; }
+    }
+    @media (min-width: 403px) { .voice-call { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .presence { bottom: 160px; }
+      .controls { bottom: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="voice-call" aria-label="与林小梦的语音通话，林小梦正在思考">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <header class="call-meta"><time datetime="PT1M12S">01:12</time></header>
+
+    <section class="presence" aria-live="polite">
+      <h1>林小梦</h1>
+      <p class="state">想一下</p>
+    </section>
+
+    <nav class="controls" aria-label="通话控制">
+      <button class="control" type="button" data-control="mute" aria-pressed="false">
+        <span class="control-surface"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2Z"/></svg></span>
+        <span class="control-label" data-label>静音</span>
+      </button>
+      <button class="control hangup" type="button" data-control="hangup">
+        <span class="control-surface"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9Z"/></svg></span>
+        <span class="control-label">挂断</span>
+      </button>
+      <button class="control" type="button" data-control="speaker" aria-pressed="false">
+        <span class="control-surface"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h2.2L9 18V6L5.2 10H3Zm10 2a3 3 0 0 0-1.7-2.7v5.4A3 3 0 0 0 13 12Zm-1.7-7v1.7A6.3 6.3 0 0 1 16.5 12a6.3 6.3 0 0 1-5.2 6.3V20A8 8 0 0 0 18.2 12a8 8 0 0 0-6.9-7Z"/></svg></span>
+        <span class="control-label" data-label>扬声器</span>
+      </button>
+    </nav>
+  </main>
+  <script>
+    document.querySelectorAll('[data-control="mute"], [data-control="speaker"]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const pressed = button.getAttribute('aria-pressed') === 'true';
+        button.setAttribute('aria-pressed', String(!pressed));
+        const label = button.querySelector('[data-label]');
+        if (button.dataset.control === 'mute') label.textContent = pressed ? '静音' : '已静音';
+        if (button.dataset.control === 'speaker') label.textContent = pressed ? '扬声器' : '扬声器开';
+      });
+    });
+    document.querySelector('[data-control="hangup"]').addEventListener('click', () => { window.location.href = '05-call-ended.html'; });
+  </script>
+</body>
+</html>

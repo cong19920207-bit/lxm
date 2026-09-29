@@ -70,14 +70,16 @@
 ### `admin/pages/safety-rules.html`（内容安全规则）
 
 - **实现状态**：已实现。`activeKey='safety'`，顶栏标题「内容安全规则」。`super_admin` / `ai_trainer` 可修改，`observer` 仅读规则。
-- **首屏**：`GET /api/admin/safety-rules`，将 `banned_keywords`、`persona_boundary_keywords`、`style_violation_keywords` 写入**三个可变的同一数组引用**（加载时原地 `replaceInPlace`，避免 Enter 添加与刷新后闭包指向旧数组）。
-- **Tab**：`initTabs('safety-tabs')` — 违规关键词 | 人格禁区关键词 | 语言风格禁忌词。
+- **首屏**：`GET /api/admin/safety-rules`，将 `banned_keywords`、`persona_boundary_keywords`、`style_violation_keywords`、`crisis_keywords` 分别写入**四个保持引用不变的可变数组**（加载时原地 `replaceInPlace`，避免 Enter 添加与刷新后闭包指向旧数组），并展示 `crisis_keywords_status`。
+- **Tab**：`initTabs('safety-tabs')` — 违规关键词 | 人格禁区关键词 | 语言风格禁忌词 | 危机干预关键词；`#crisis` 可直接定位第四个 Tab。
 - **标签云**：`min-height:120px` + `border:1px solid var(--border)` 容器；词条为 `span.safety-kw-tag`，`×` 仅从本地数组 `splice` 并重新渲染，**不立即请求**。
 - **输入**：各 Tab `input` 宽 240px，`Enter` → `trim` 后非空且不重复则 `push` 并清空输入框。
-- **保存**：对应 **PUT** `/api/admin/safety-rules/banned-keywords`、`.../persona-keywords`、`.../style-keywords`，Body `{ keywords }`；若当前数组为空则前端 Toast 提示（与后端 **`keywords` 至少 1 项** 一致），成功 Toast「保存成功」。
+- **保存**：对应 **PUT** `/api/admin/safety-rules/banned-keywords`、`.../persona-keywords`、`.../style-keywords`，Body `{ keywords }`；当前数组为空时页面先以 Toast 阻止提交（这三个旧接口的请求模型本身没有最少词数限制），成功 Toast「保存成功」。
 - **违禁词 Tab**：「批量导入 Excel」触发隐藏 `file`，`accept=".xlsx,.xls"`；`FormData` 字段名 **`file`** + `adminRequest('POST','/api/admin/safety-rules/banned-keywords/import', formData, true)`；成功 Toast「成功导入{imported_count}个关键词，当前共{total_count}个」并 **GET 刷新**。
-- **首屏竞态**：首次 `GET /api/admin/safety-rules` 请求期间禁用三个输入框、三个「保存更新」与「批量导入 Excel」；待响应返回且（若成功）已 `replaceInPlace` + `renderAllClouds` 后再解除 `is-loading` 并启用控件（失败时仍启用，避免永久锁死）。
-- **导入与未保存**：维护 `lastSyncedSnapshot`（成功 GET 或任意一次保存成功后对三数组的 `JSON.stringify`）；`isDirty()` 为真时点「批量导入 Excel」先 `showConfirm`（文案：将重新加载全部关键词，未保存的修改会丢失…），确认后再打开文件选择；取消则不发起导入。
+- **首屏竞态**：首次 `GET /api/admin/safety-rules` 请求期间禁用四个输入框、四个发布或保存按钮与「批量导入 Excel」；成功加载并渲染四组词后启用，首次加载失败则锁定编辑并显示重试入口，避免不完整词表覆盖生效配置。
+- **导入与未保存**：维护 `lastSyncedSnapshot`（成功 GET 或任意一次保存成功后对四数组的 `JSON.stringify`）；`isDirty()` 为真时点「批量导入 Excel」先 `showConfirm`（文案：将重新加载全部关键词，未保存的修改会丢失…），确认后再打开文件选择；取消则不发起导入。
+- **危机词 Tab**：独立的「发布危机词」将非空列表提交 `PUT /api/admin/safety-rules/crisis-keywords`，成功后刷新规则和版本历史；历史由 `GET .../crisis-keywords/history?page=1&page_size=20` 读取，回滚提交 `POST .../crisis-keywords/rollback` 并精确填写 `CONFIRM`。写操作仅 `super_admin` / `ai_trainer` 可用，`observer` 仅读；失败在页内展示错误码与说明。
+- **危机词状态**：显示发布状态、生效版本、词数及缓存健康状态。无有效已发布配置时提示新通话会被阻止；缓存缺失、无效或不可用且存在有效已发布版本时，说明危机检测可回退读取数据库，但不承诺其他通话依赖可用；缓存与数据库不一致时提示检查发布或回滚结果。
 
 ### `admin/pages/knowledge.html`（角色知识库）
 

@@ -8,6 +8,7 @@
 | [admin-observer-security/](admin-observer-security/) | 管理后台观察者角色与安全加固 PRD、开发步骤、审查与实施计划 |
 | [home-redesign/](home-redesign/) | 林小梦主页改版 PRD、开发步骤与审查记录 |
 | [openapi/](openapi/) | Open API / API Key PRD、开发步骤与第三方集成说明 |
+| [realtime_voice/P1/](realtime_voice/P1/) | [实时语音通话 PRD v2.1](realtime_voice/P1/PRD-LXM语音通话仿真交互设计-v2.md)、[后台配置与管理设计 v1](realtime_voice/P1/DESIGN-LXM语音通话后台配置与管理-v1.md)、高保真状态 Demo 与交互规格映射；[当前接口契约](../contract/current/realtime-voice/api.md) · [数据](../contract/current/realtime-voice/data.md) · [后台](../contract/current/realtime-voice/admin-ui.md) |
 
 ## 共享参考
 

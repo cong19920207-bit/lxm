@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 通话暂不可用</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .blocked {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      min-height: 640px;
+      overflow: hidden;
+      background: #090711;
+    }
+    .artwork,
+    .artwork::after,
+    .atmosphere { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.6) saturate(.69);
+      transform: scale(1.018);
+    }
+    .artwork::after {
+      content: "";
+      background:
+        linear-gradient(180deg, rgba(5, 4, 12, .2) 0%, rgba(5, 4, 12, .07) 38%, rgba(5, 4, 12, .29) 57%, rgba(5, 4, 12, .94) 100%),
+        linear-gradient(90deg, rgba(7, 5, 16, .27), transparent 45%, rgba(7, 5, 16, .21));
+    }
+    .atmosphere {
+      z-index: -2;
+      background:
+        radial-gradient(50% 23% at 50% 67%, rgba(118, 158, 255, .15), transparent 72%),
+        radial-gradient(33% 19% at 44% 34%, rgba(210, 142, 255, .07), transparent 72%);
+      pointer-events: none;
+    }
+    .close {
+      position: absolute;
+      z-index: 2;
+      top: max(16px, env(safe-area-inset-top));
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, .82);
+      background: rgba(18, 12, 31, .3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.8; }
+    .content {
+      position: absolute;
+      right: 12px;
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+      left: 12px;
+      padding: 23px 20px 18px;
+      overflow: hidden;
+      border: 1px solid rgba(232, 225, 255, .19);
+      border-radius: 29px 29px 23px 23px;
+      background:
+        linear-gradient(145deg, rgba(35, 27, 55, .76), rgba(14, 10, 28, .84) 68%),
+        rgba(21, 15, 37, .72);
+      box-shadow: 0 20px 54px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .14);
+      backdrop-filter: blur(30px) saturate(1.24);
+      -webkit-backdrop-filter: blur(30px) saturate(1.24);
+      text-align: center;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .content::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 46%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .1), transparent);
+      pointer-events: none;
+    }
+    .content-inner { position: relative; }
+    .connection {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border: 1px solid rgba(212, 203, 255, .33);
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, .25), transparent 37%),
+        linear-gradient(145deg, rgba(145, 175, 255, .34), rgba(159, 93, 230, .25));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .29), 0 10px 25px rgba(45, 27, 107, .22);
+    }
+    .connection::after {
+      content: "";
+      position: absolute;
+      width: 84px;
+      height: 84px;
+      border: 1px solid rgba(203, 193, 255, .14);
+      border-radius: 30px;
+      transform: rotate(-9deg);
+      pointer-events: none;
+    }
+    .connection svg { position: relative; z-index: 1; width: 38px; height: 38px; fill: none; stroke: rgba(252, 251, 255, .98); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.65; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: rgba(220, 214, 247, .59);
+      font-size: 12px;
+      font-weight: 560;
+      letter-spacing: .08em;
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1.27; font-weight: 640; letter-spacing: .01em; }
+    .description { margin: 10px 8px 0; color: rgba(239, 233, 251, .68); font-size: 14px; line-height: 21px; }
+    .primary {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(231, 224, 255, .51);
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(108deg, rgba(77, 117, 236, .58), rgba(128, 83, 235, .61) 53%, rgba(172, 65, 222, .56));
+      box-shadow: 0 12px 27px rgba(58, 31, 133, .29), inset 0 1px 0 rgba(255, 255, 255, .39), inset 0 -1px 0 rgba(50, 24, 120, .18);
+      backdrop-filter: blur(22px) saturate(1.28);
+      -webkit-backdrop-filter: blur(22px) saturate(1.28);
+      font-size: 17px;
+      font-weight: 620;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .primary::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 48%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .28), transparent);
+      pointer-events: none;
+    }
+    .primary span { position: relative; }
+    .primary:active { transform: scale(.98); filter: brightness(.96); }
+    .secondary {
+      margin-top: 11px;
+      padding: 5px 12px;
+      border: 0;
+      color: rgba(255, 255, 255, .6);
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .status {
+      min-height: 18px;
+      margin: 8px 0 -3px;
+      color: rgba(229, 220, 255, 0);
+      font-size: 12px;
+      line-height: 18px;
+      transition: color .2s ease;
+    }
+    .has-result .status { color: rgba(229, 220, 255, .68); }
+    .is-checking .primary { opacity: .64; pointer-events: none; }
+    .is-returning .content,
+    .is-returning .close { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .content, .primary, .status { transition: none; }
+    }
+    @media (min-width: 403px) { .blocked { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .content { padding-top: 16px; }
+      .connection { width: 58px; height: 58px; margin-bottom: 10px; border-radius: 20px; }
+      .connection::after { width: 69px; height: 69px; border-radius: 25px; }
+      .connection svg { width: 31px; height: 31px; }
+      .eyebrow { margin-bottom: 5px; }
+      h1 { font-size: 23px; }
+      .description { margin-top: 5px; }
+      .primary { height: 48px; margin-top: 16px; }
+      .status { margin-top: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="blocked" aria-label="语音通话暂不可用">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <button class="close" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+    <section class="content" aria-live="polite">
+      <div class="content-inner">
+        <div class="connection" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8.1" cy="9" r="3.35"/><circle cx="15.9" cy="9" r="3.35"/><path d="M2.8 18.3c.7-2.4 2.72-3.9 5.3-3.9 1.12 0 2.1.28 2.9.78M13 15.18c.86-.5 1.86-.78 2.9-.78 2.58 0 4.6 1.5 5.3 3.9M12 5.2v5.6M9.2 8h5.6"/></svg></div>
+        <p class="eyebrow" data-eyebrow>通话正在进行</p>
+        <h1 data-title>先结束另一通通话吧</h1>
+        <p class="description" data-description>你的另一台设备正在和林小梦通话。为了不打断对话，请结束后再回来试试。</p>
+        <button class="primary" type="button"><span data-primary>重新检查</span></button>
+        <button class="secondary" type="button" data-secondary>回聊天找她</button>
+        <p class="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+  <script>
+    const page = document.querySelector('.blocked');
+    const reason = new URLSearchParams(window.location.search).get('reason') || 'active';
+    const content = {
+      active: {
+        eyebrow: '通话正在进行',
+        title: '先结束另一通通话吧',
+        description: '你的另一台设备正在和林小梦通话。为了不打断对话，请结束后再回来试试。',
+        primary: '重新检查',
+        secondary: '回聊天找她',
+        retryable: true
+      },
+      maintenance: {
+        eyebrow: '语音通话暂时维护中',
+        title: '她晚一点再接电话',
+        description: '语音通话正在做短暂维护。你可以先在聊天里陪她一会儿。',
+        primary: '回聊天找她',
+        secondary: '稍后再说',
+        retryable: false
+      },
+      capacity: {
+        eyebrow: '现在有点拥挤',
+        title: '等一会儿再拨给她',
+        description: '现在的通话请求较多，稍后再试会更顺畅。',
+        primary: '回聊天找她',
+        secondary: '稍后再说',
+        retryable: false
+      }
+    }[reason] || content.active;
+
+    document.querySelector('[data-eyebrow]').textContent = content.eyebrow;
+    document.querySelector('[data-title]').textContent = content.title;
+    document.querySelector('[data-description]').textContent = content.description;
+    document.querySelector('[data-primary]').textContent = content.primary;
+    document.querySelector('[data-secondary]').textContent = content.secondary;
+
+    function returnToChat() {
+      if (page.classList.contains('is-returning')) return;
+      page.classList.add('is-returning');
+      window.setTimeout(() => { window.location.href = '06-chat-record.html?no-call=1'; }, 240);
+    }
+    document.querySelector('.close').addEventListener('click', returnToChat);
+    document.querySelector('.secondary').addEventListener('click', returnToChat);
+    document.querySelector('.primary').addEventListener('click', (event) => {
+      if (!content.retryable) {
+        returnToChat();
+        return;
+      }
+      page.classList.add('is-checking');
+      event.currentTarget.querySelector('[data-primary]').textContent = '正在检查…';
+      window.setTimeout(() => {
+        const available = new URLSearchParams(window.location.search).get('available') === '1';
+        if (available) {
+          window.location.href = '08-calling.html?flow=1';
+          return;
+        }
+        page.classList.remove('is-checking');
+        event.currentTarget.querySelector('[data-primary]').textContent = '重新检查';
+        page.classList.add('has-result');
+        document.querySelector('.status').textContent = '另一通通话还没有结束。';
+      }, 520);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 麦克风权限已关闭</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .denied {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      min-height: 640px;
+      overflow: hidden;
+      background: #090711;
+    }
+    .artwork,
+    .artwork::after,
+    .atmosphere { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.58) saturate(.68);
+      transform: scale(1.018);
+    }
+    .artwork::after {
+      content: "";
+      background:
+        linear-gradient(180deg, rgba(6, 4, 13, .25) 0%, rgba(5, 4, 12, .05) 32%, rgba(5, 4, 12, .38) 57%, rgba(5, 4, 12, .94) 100%),
+        linear-gradient(90deg, rgba(7, 5, 16, .35), transparent 42%, rgba(10, 6, 18, .22));
+    }
+    .atmosphere {
+      z-index: -2;
+      background:
+        radial-gradient(56% 28% at 50% 67%, rgba(137, 105, 255, .17), transparent 72%),
+        radial-gradient(50% 22% at 77% 21%, rgba(142, 179, 255, .08), transparent 72%);
+      pointer-events: none;
+    }
+    .close {
+      position: absolute;
+      z-index: 2;
+      top: max(16px, env(safe-area-inset-top));
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, .82);
+      background: rgba(18, 12, 31, .3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.8; }
+    .permission-card {
+      position: absolute;
+      z-index: 1;
+      right: 12px;
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+      left: 12px;
+      padding: 22px 20px 17px;
+      overflow: hidden;
+      border: 1px solid rgba(232, 225, 255, .19);
+      border-radius: 29px 29px 23px 23px;
+      background:
+        linear-gradient(145deg, rgba(35, 27, 54, .76), rgba(14, 10, 27, .82) 68%),
+        rgba(21, 15, 37, .72);
+      box-shadow: 0 20px 54px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .14);
+      backdrop-filter: blur(30px) saturate(1.24);
+      -webkit-backdrop-filter: blur(30px) saturate(1.24);
+      text-align: center;
+      transition: opacity .28s ease, transform .32s cubic-bezier(.2, .8, .2, 1), filter .28s ease;
+    }
+    .permission-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 45%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .1), transparent);
+      pointer-events: none;
+    }
+    .card-content { position: relative; }
+    .icon {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      border: 1px solid rgba(215, 206, 255, .36);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(162, 190, 255, .35), rgba(153, 91, 230, .28));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 20px rgba(49, 24, 106, .2);
+    }
+    .icon svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: rgba(221, 213, 250, .59);
+      font-size: 12px;
+      font-weight: 560;
+      letter-spacing: .08em;
+    }
+    h1 { margin: 0; font-size: 26px; line-height: 1.25; font-weight: 640; letter-spacing: .01em; }
+    .description { margin: 9px 10px 0; color: rgba(239, 233, 251, .68); font-size: 14px; line-height: 21px; }
+    .primary {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 21px;
+      overflow: hidden;
+      border: 1px solid rgba(232, 225, 255, .54);
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(108deg, rgba(81, 119, 237, .62), rgba(133, 83, 235, .64) 53%, rgba(172, 67, 223, .6));
+      box-shadow: 0 12px 28px rgba(58, 31, 133, .31), inset 0 1px 0 rgba(255, 255, 255, .42), inset 0 -1px 0 rgba(49, 24, 119, .18);
+      backdrop-filter: blur(22px) saturate(1.28);
+      -webkit-backdrop-filter: blur(22px) saturate(1.28);
+      font-size: 17px;
+      font-weight: 620;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .primary::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 48%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .29), transparent);
+      pointer-events: none;
+    }
+    .primary span { position: relative; }
+    .primary:active { transform: scale(.98); filter: brightness(.96); }
+    .secondary {
+      margin-top: 11px;
+      padding: 5px 12px;
+      border: 0;
+      color: rgba(255, 255, 255, .6);
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .status {
+      min-height: 18px;
+      margin: 8px 0 -3px;
+      color: rgba(229, 220, 255, 0);
+      font-size: 12px;
+      line-height: 18px;
+      transition: color .2s ease;
+    }
+    .has-check-result .status { color: rgba(229, 220, 255, .68); }
+    .scrim {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      background: rgba(3, 2, 8, .42);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      transition: opacity .28s ease, visibility .28s ease;
+    }
+    .guide {
+      position: absolute;
+      z-index: 4;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 11px 20px max(18px, calc(env(safe-area-inset-bottom) + 9px));
+      border: 1px solid rgba(244, 239, 255, .2);
+      border-bottom: 0;
+      border-radius: 31px 31px 0 0;
+      background: linear-gradient(155deg, rgba(39, 30, 61, .94), rgba(15, 11, 29, .97) 64%);
+      box-shadow: 0 -16px 44px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .17);
+      backdrop-filter: blur(35px) saturate(1.32);
+      -webkit-backdrop-filter: blur(35px) saturate(1.32);
+      transform: translateY(108%);
+      transition: transform .38s cubic-bezier(.2, .85, .2, 1);
+    }
+    .guide-handle {
+      width: 34px;
+      height: 4px;
+      margin: 0 auto 19px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, .26);
+    }
+    .guide-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .guide h2 { margin: 0; font-size: 20px; line-height: 1.32; font-weight: 640; letter-spacing: .01em; }
+    .guide-close {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      flex: none;
+      place-items: center;
+      margin-top: -4px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, .72);
+      background: rgba(255, 255, 255, .07);
+      cursor: pointer;
+    }
+    .guide-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.8; }
+    .guide-intro { margin: 6px 0 0; color: rgba(236, 230, 249, .63); font-size: 13px; line-height: 20px; }
+    .steps { display: grid; gap: 11px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .steps li { display: flex; align-items: flex-start; gap: 10px; color: rgba(248, 245, 255, .84); font-size: 14px; line-height: 20px; text-align: left; }
+    .step-index {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      flex: none;
+      place-items: center;
+      border: 1px solid rgba(210, 198, 255, .27);
+      border-radius: 50%;
+      color: rgba(226, 217, 255, .82);
+      background: rgba(137, 110, 213, .14);
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .retry {
+      position: relative;
+      width: 100%;
+      height: 50px;
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(225, 217, 255, .44);
+      border-radius: 16px;
+      color: rgba(255, 255, 255, .96);
+      background: rgba(255, 255, 255, .1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .19);
+      font-size: 16px;
+      font-weight: 620;
+      cursor: pointer;
+      transition: transform .18s ease, opacity .2s ease, background .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .retry::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 46%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .13), transparent);
+    }
+    .retry span { position: relative; }
+    .retry:active { transform: scale(.98); }
+    .guide-note { margin: 10px 4px 0; color: rgba(222, 215, 239, .46); font-size: 11px; line-height: 17px; text-align: center; }
+    .is-guide-open .scrim { opacity: 1; visibility: visible; }
+    .is-guide-open .guide { transform: translateY(0); }
+    .is-guide-open .permission-card { opacity: .34; filter: blur(2px); transform: translateY(12px) scale(.99); pointer-events: none; }
+    .is-closing .denied-content { opacity: 0; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
+    .is-checking .retry { opacity: .64; pointer-events: none; }
+    button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .artwork, .permission-card, .scrim, .guide, .status, .retry { transition: none; }
+    }
+    @media (min-width: 403px) { .denied { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .permission-card { padding-top: 16px; }
+      .icon { width: 44px; height: 44px; margin-bottom: 9px; border-radius: 16px; }
+      .icon svg { width: 23px; height: 23px; }
+      .eyebrow { margin-bottom: 5px; }
+      h1 { font-size: 23px; }
+      .description { margin-top: 5px; }
+      .primary { height: 48px; margin-top: 15px; }
+      .guide { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+      .guide-handle { margin-bottom: 12px; }
+      .steps { gap: 7px; margin-top: 12px; }
+      .retry { height: 46px; margin-top: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="denied" aria-label="麦克风权限已关闭">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <button class="close denied-content" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+
+    <section class="permission-card denied-content" aria-live="polite">
+      <div class="card-content">
+        <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M6.5 10a5.5 5.5 0 0 0 9.84 3.37M17.5 10a5.49 5.49 0 0 1-.92 3.05M12 18v3M9 21h6M4 4l16 16"/></svg></div>
+        <p class="eyebrow">麦克风权限已关闭</p>
+        <h1>还听不见你的声音</h1>
+        <p class="description">允许麦克风后，才能继续和她通话。</p>
+        <button class="primary" type="button" aria-controls="permission-guide" aria-expanded="false"><span>查看开启方法</span></button>
+        <button class="secondary" type="button">暂时不用</button>
+        <p class="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="guide" id="permission-guide" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-hidden="true">
+      <div class="guide-handle" aria-hidden="true"></div>
+      <div class="guide-head">
+        <div>
+          <h2 id="guide-title">在浏览器里开启麦克风</h2>
+          <p class="guide-intro">不同浏览器入口略有不同，找到当前网站的权限设置即可。</p>
+        </div>
+        <button class="guide-close" type="button" aria-label="收起开启方法"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+      </div>
+      <ol class="steps">
+        <li><span class="step-index">1</span><span>打开当前网页的浏览器菜单或网站设置。</span></li>
+        <li><span class="step-index">2</span><span>将“麦克风”设为“允许”。</span></li>
+        <li><span class="step-index">3</span><span>回到这里，重新检测权限。</span></li>
+      </ol>
+      <button class="retry" type="button"><span>我已开启，重新检测</span></button>
+      <p class="guide-note">此页面不会读取或保存你的录音内容。</p>
+    </section>
+  </main>
+  <script>
+    const page = document.querySelector('.denied');
+    const openGuide = document.querySelector('.primary');
+    const guide = document.querySelector('.guide');
+    const closeGuide = document.querySelector('.guide-close');
+    const scrim = document.querySelector('.scrim');
+    const status = document.querySelector('.status');
+    const retry = document.querySelector('.retry');
+
+    function closeFlow() {
+      page.classList.add('is-closing');
+      window.setTimeout(() => { window.location.href = '06-chat-record.html?no-call=1'; }, 220);
+    }
+    function setGuide(open) {
+      page.classList.toggle('is-guide-open', open);
+      guide.setAttribute('aria-hidden', String(!open));
+      openGuide.setAttribute('aria-expanded', String(open));
+      if (open) window.setTimeout(() => closeGuide.focus(), 220);
+      else openGuide.focus();
+    }
+
+    document.querySelector('.close').addEventListener('click', closeFlow);
+    document.querySelector('.secondary').addEventListener('click', closeFlow);
+    openGuide.addEventListener('click', () => setGuide(true));
+    closeGuide.addEventListener('click', () => setGuide(false));
+    scrim.addEventListener('click', () => setGuide(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && page.classList.contains('is-guide-open')) setGuide(false);
+    });
+    retry.addEventListener('click', (event) => {
+      page.classList.add('is-checking');
+      event.currentTarget.querySelector('span').textContent = '正在重新检测…';
+      window.setTimeout(() => {
+        const canContinue = new URLSearchParams(window.location.search).get('granted') === '1';
+        if (canContinue) {
+          window.location.href = '08-calling.html?flow=1';
+          return;
+        }
+        page.classList.remove('is-checking');
+        event.currentTarget.querySelector('span').textContent = '我已开启，重新检测';
+        page.classList.add('has-check-result');
+        status.textContent = '还没有检测到权限，完成设置后再试。';
+      }, 520);
+    });
+  </script>
+</body>
+</html>

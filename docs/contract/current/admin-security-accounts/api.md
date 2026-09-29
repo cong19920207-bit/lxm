@@ -74,6 +74,9 @@
   - **`private-settings`（type=`character_private`）**：路径与字段同上，固定 `expected_type="character_private"`；页内说明「角色对该用户的私有设定，非用户自传事实」（§7.6）。
 - **PUT** `/users/{user_id}/status` — Body `{ "action": "ban"|"unban" }`
 - **POST** `/users/{user_id}/reset-password` — `data.new_password`
+- **GET** `/voice/users/{user_id}/quota` — `super_admin` / `ops_admin` / `observer` 只读；返回当前上海日期、当前生效的每日免费秒数、今日免费剩余、额外剩余、总剩余和账户 `version`。无账户时只读返回免费余额和版本 0。
+- **POST** `/voice/users/{user_id}/quota/extra` — 仅 `super_admin` / `ops_admin`；Body `{seconds, expected_version}`，`seconds` 为 1–86400 的整数。按用户行锁串行化，仅增加 `voice_quota_account.extra_remaining_seconds`，`version` 递增；不修改今日免费余额或通话用量账本。版本不匹配返回 409，重复提交旧版本不会重复补时；首次建户且用户正在通话时返回 409，待通话结算后重试。额度变更与 `admin_operation_logs`（模块「用户管理」、操作 `edit`）同一事务提交。
+- **管理端详情页「账号管理」Tab** 展示上述分池余额；有写权限的管理员输入秒数并确认后补充，观察者仅查看。额外秒数跨上海自然日保留；每日免费池仍按已发布配额自动恢复。
 - **管理端页面**：`admin/pages/user-detail.html` 含「账号管理」Tab 与顶栏按钮，对接上述 PUT/POST；逻辑上 `**userData.status === 'banned'`** 与 `**basic.status`** 及用户列表 `list[].status` 一致（见错误码 20012、20013）；展示与操作均基于展平后的 `userData`（见上条）。
 - **关联表**：users, **relationship**, conversation_log, memory, agent_message 等
 - **状态**：已实现

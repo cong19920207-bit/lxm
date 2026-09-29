@@ -8,9 +8,10 @@
 
 > 状态完全沿用迁移源；本次迁移不确认清偿、不执行归档。
 
-### [TD-015] H5 对话调度与持久化：单路 SSE、落库时机 vs「历史 / 新消息」队列体验（**部分清偿 · 2026-05-11：主链 + H5 连发（无 `sending`、300ms 防抖 + IME）+ 契约已同步**）
+### [TD-015] H5 对话调度与持久化：单路 SSE、落库时机 vs「历史 / 新消息」队列体验（**部分清偿 · 2026-05-11：主链 + H5 连发（无 `sending`、300ms 防抖 + IME）+ 契约已同步；2026-08-21：再进页接上 `pending_llm` 仍待后续排期**）
 
 > **记录策略**：本条保留**定稿表、术语与排期边界**；**`docs/contract.md`** 已随主链与 **H5 发送策略（`Abort`/`chatSendSession`、队列预判、`lastSendOrResendAt`+300ms、`compositionend`）** 同步。后续体验工单若再改 H5，**优先改契约 + 本节「首版主链 vs 后续排期」**，避免与代码脱钩。  
+> **2026-08-21**：关页再进时接上进行中回复已收口进「仍待后续排期」（见 **「再进页接上 `pending_llm`」**），**不**新开 TD、**不**把 IM 改成 WebSocket。契约等代码落地后再补。  
 > **详细实施步骤（阶段、迁移、接口、文件清单）**：见 **`docs/chat-refactor-implementation-plan.md`**。  
 > **产品开发方案（两大目标、范围 Must/Should、旅程与规则表）**：见 **`docs/product-development-plan-h5-chat.md`**。
 
@@ -58,7 +59,7 @@
 | **Q17=B** | **`POST /api/chat/send` 与重发接口**均支持幂等键（如 `client_message_id` / `Idempotency-Key`），防重复入队。 |
 | **Q18=A** | 每次用户点击发送生成**新** UUID；**重发不新建 user 行**，走专用重发语义。 |
 | **新发送是否带上轮失败 user** | **是**（在 **Q15=B** 下）：下一次调度对**整个未闭环窗口**打包，**包含**此前超时/失败仍带叹号的 user 行 + **新**入队行（仍受 **10 条窗口 + Q14 裁剪**约束）。用户**仅点重发、未发新句**时，同样是对当前未闭环窗口重调度（与上一致）。 |
-| **叹号与落库** | **user 正文在入队成功时即落库**；**叹号**依赖行上**失败/待重试状态字段**（或等价），**非**仅存内存。故：**退出再进 H5**，只要拉 `timeline`/历史且接口带出状态，**可恢复叹号**。**管理后台** `GET .../conversations` 已能看**文本**；是否展示「失败/叹号」图标或列属**可选增强**，非「看不见落库内容」。 |
+| **叹号与落库** | **user 正文在入队成功时即落库**；**叹号**依赖行上**失败/待重试状态字段**（或等价），**非**仅存内存。故：**退出再进 H5**，只要拉 `timeline`/历史且接口带出状态，**可恢复叹号**。**管理后台** `GET .../conversations` 已能看**文本**；是否展示「失败/叹号」图标或列属**可选增强**，非「看不见落库内容」。**（2026-08-21 勘误）**本行覆盖「失败叹号可随 timeline 恢复」与「服务端**已闭环**则再进页可见完整轮次」。**进行中** `pending_llm` 的接上**不在**首版交付范围内，见下文 **「再进页接上 `pending_llm`」**。 |
 | **失败 UI** | 参与该代的每条 user 左侧红叹号可点重发；**不走**「走神」助手入库；假 AI 话**不进**统计与记忆链路。 |
 | **5 条与叹号例外** | 无叹号时 enforce ≤5；有叹号时可继续输入并突破 5。 |
 | **内容安全** | 未通过 → 不入队、无叹号。 |
@@ -103,19 +104,46 @@
 
 | 类别 | 说明 |
 |------|------|
-| **已在首版 TD-015 任务 1–8 范围交付（代码侧，勿重做）** | 聊天 **45s**、**`CHAT_DEBOUNCE_MS`**、**`delivery_status` / `skipped_in_prompt`**（库须已迁移）、**入队即 INSERT user**、Redis **`generation_id`** 与作废、**防抖打包**、**未闭环窗口 ≤10 + Q14**、**叹号 + `POST /api/chat/resend` + 2 次/分钟**、**幂等键**、**`GET /api/chat/timeline`** / **Admin `GET .../conversations`** 字段对齐、H5 **Abort + `meta.generation_id` + ≤5/叹号例外**、`docs/contract.md` **主文**已多轮同步等。 |
+| **已在首版 TD-015 任务 1–8 范围交付（代码侧，勿重做）** | 聊天 **45s**、**`CHAT_DEBOUNCE_MS`**、**`delivery_status` / `skipped_in_prompt`**（库须已迁移）、**入队即 INSERT user**、Redis **`generation_id`** 与作废、**防抖打包**、**未闭环窗口 ≤10 + Q14**、**叹号 + `POST /api/chat/resend` + 2 次/分钟**、**幂等键**、**`GET /api/chat/timeline`** / **Admin `GET .../conversations`** 字段对齐、H5 **Abort + `meta.generation_id` + ≤5/叹号例外**、`docs/contract.md` **主文**已多轮同步等。**关页再进**：服务端**已闭环**的 assistant、以及失败叹号，可随首屏 timeline 恢复（进行中 `pending_llm` 见下行）。 |
+| **仍待后续排期：再进页接上 `pending_llm`（2026-08-21 收口 · 未交付）** | 离开聊天页丢掉的是**这一路 SSE**，不是库内消息。再进页照旧拉 timeline；若**未闭环窗口**（与 `getOpenWindowUserRows()` 对齐）仍有 `pending_llm`：短轮询无 cursor 的 **`GET /api/chat/timeline`**，好了直接渲染气泡（可多条 assistant），**禁止**再开 `POST /api/chat/send` / 对仍 pending 调 resend。已失败继续叹号。细则见下节。**勿**与 **TD-019**（多 Tab）混为 IM 长连接。 |
 | **仍待后续排期（产品工单驱动，非主链阻塞）** | **H5 连发与防抖已演进（2026-05-11）**：**无 `sending`**，**300ms** 静默防抖 + **IME** 同步发送钮 + **`Abort`/`chatSendSession`**（见 `frontend/pages/chat.html`、`docs/contract.md`「H5 实现说明」）。**S4 回归清单**须按清单内 **2026-05-11 勘误** 更新用例表述。**S4**、气泡/叹号边角体验等见 **`docs/chat-refactor-agent-tasks.md` →「后续里程碑」**、**`docs/chat-refactor-implementation-plan.md` →「十三、后续增量」**；**勿**重复实现后端入队/作废/防抖。 |
 | **与 TD-016 / TD-020 边界** | **TD-016**：`round_id`、按轮 `emotion_log`、**Admin「情绪日志」只读 Tab**（V2-C）**已交付**。**TD-020**：**广义后台情绪**（短期属性 Admin 写入/修订、Agent/统计读边、产品文案）**仍进行中**（V3-A 基座已落地）。H5 连发与 **TD-020** **互不阻塞**。 |
+
+#### 再进页接上 `pending_llm`（后续排期 · 2026-08-21 收口 · **未交付**）
+
+离开聊天页丢掉的是**这一路请求级 SSE**，不是库内 user 行。`enqueue_send` 后 LLM 在后台跑，不依赖页面一直开着；再进页 `resumeAuthenticatedChat` 会 `resetPrivateChatUi` + `loadTimeline(true)`。若助手**已落库**则首屏可见；若未闭环窗口仍有 `pending_llm`，现网只画出普通 user 气泡（**无 thinking、无后续刷新**）。`visibilitychange` 现网只刷朋友圈角标。
+
+**明确不做**
+
+- 整条 IM 改 WebSocket；新开 TD 或「IM 长连接」需求。
+- 再 `POST /api/chat/send`「续流」（会再 INSERT 一条 user）。
+- 对仍为 `pending_llm` 调 `POST /api/chat/resend`（会 `new_generation`、作废当前代）。已是 `failed_timeout` / `failed_error` 继续现有叹号 + resend。
+- 新开「这一代好了没」查询接口：`generation_id` 在 Redis，等待结果在进程内 Future；默认复用已带 `delivery_status` 的 **`GET /api/chat/timeline`**。
+- 与 **TD-019** 混谈：TD-019 是**多 Tab** 各吃各的 SSE；本项是**同一会话关页再进**（或同页回前台）把进行中那一轮接上。
+
+**要做（H5；默认不改发送主链）**
+
+1. **触发**：`resumeAuthenticatedChat` 首屏 timeline 之后；同页 `visibilitychange → visible` 时若仍待接上也走同一套。
+2. **守卫**：无进行中的 `chatSendAbort` / SSE、且无 `data-ai-in-flight="1"`，才轮询（避免与仍活着的 SSE 各画一套助手气泡）。
+3. **条件**：未闭环窗口存在 `pending_llm`（与 `getOpenWindowUserRows()` 对齐：最后一条已落库、非 agent、非 in-flight 的 assistant 之后的 user）。**不是**「时间线最后一条消息」——末条可能是 agent，窗口里仍可能 pending。窗口内已有 `failed_*` 的继续显示叹号；只要还有 pending 就仍轮询。
+4. **动作**：无 cursor 重拉 `GET /api/chat/timeline` 最新页，或按消息 id 回写状态 / 插入新助手行。**禁止**复用现有 `loadTimeline`：即使 `isFirstPage === true` 也会带上已有 `timelineCursor`（拉更早历史）；首屏 `has_more === false` 后 `noMoreTimeline` 会让后续调用直接 return；`renderTimelineItem` 目前未把 `item.id` 写到 DOM。
+5. **等待 UI**：窗口有 `pending_llm` 且无 SSE 时，补一个 in-flight thinking（现有 `appendAIThinkingBubble`），结果到了再撤掉/定稿。
+6. **成功**：插入助手行（一轮可多条）、窗口 user 标 `delivered`、可按新助手 `emotion_label` 更新头像情绪。
+7. **停止**：窗口不再有 `pending_llm`（变为 `delivered` 或 `failed_*`），或约 **120s**（对齐 `CHAT_CLIENT_ABORT_MS` / bundle 等待上限，**不要**只等到聊天 LLM 45s）。超时仍 pending：**不**自动 resend。
+8. **轮询期间用户又发送**：停轮询，走现有打断 / 作废。
+9. **顺手（同一函数族，仍只动 `chat.html`）**：抽出「无 cursor 重拉最新页」，供 10104 / 满队预判替换现有 `loadTimeline(true)`（契约 known-gaps 已记该入口无法自愈）。
+
+**主落点**：`frontend/pages/chat.html`。`GET /api/chat/timeline` 已带 `delivery_status`。**不改** `POST /api/chat/send` 主链。进程挂掉导致 1～4 条 pending 无人跑 bundle（首屏恢复仅满 5 条且全 pending 才补跑）不在本项范围。
 
 #### 清偿 TD-015 时建议改动的页面/接口清单（简表，与上表互补）
 
 | 类型 | 位置 |
 |------|------|
-| H5 | `frontend/pages/chat.html` |
-| API | `POST /api/chat/send`、重发路由、`GET /api/chat/timeline` |
+| H5 | `frontend/pages/chat.html`（**再进页接上**仅此文件：抽出无 cursor 重拉、短轮询、thinking、visibility 守卫；10104/满队预判改走同一刷新） |
+| API | `POST /api/chat/send`、重发路由、`GET /api/chat/timeline`（接上增量**不改** send；timeline 已有 `delivery_status`，默认不新增查询接口） |
 | Admin | `admin/pages/user-detail.html` → `#conversations-list`；`GET /api/admin/users/{user_id}/conversations` |
-| 后端核心 | `chat.py`、`prompt_builder.py`、`llm_service.py`、`llm_client` / `config`、`conversation_log`、Redis |
-| 契约 | `docs/contract.md` |
+| 后端核心 | `chat.py`、`prompt_builder.py`、`llm_service.py`、`llm_client` / `config`、`conversation_log`、Redis（接上增量**勿重做**入队/打包/作废） |
+| 契约 | `docs/contract.md`（接上落地后再补 H5 实现说明；本期只改技术债文档） |
 
 ### [TD-016] 按轮情绪（`round_id`）与后台「情绪日志」只读展示（**V2-A/B/C 已交付；广义后台情绪运营见 TD-020**）
 
@@ -138,7 +166,7 @@
 - **待处理（可选）**：收集反馈 → 产品确认是否升级为「多 Tab 仅认一条活跃代」→ 选型与排期。
 - **触发时机**：明确投诉、或需与竞品「单会话多端同步」对齐时。
 - **风险等级**：**低**（体验口径，非安全/计费核心路径）
-- **关联**：`docs/contract.md` → H5 `POST /api/chat/send` 节「H5 实现说明」；`docs/product-development-plan-h5-chat.md`（真相在服务端）；集成脚本 **`scripts/test_chat_e2e.py`** 仍以 **HTTP+SSE 手工长测** 为主、**不**纳入默认 CI（见根目录 **README**「开发与测试」）。
+- **关联**：`docs/contract.md` → H5 `POST /api/chat/send` 节「H5 实现说明」；`docs/product-development-plan-h5-chat.md`（真相在服务端）；集成脚本 **`scripts/test_chat_e2e.py`** 仍以 **HTTP+SSE 手工长测** 为主、**不**纳入默认 CI（见根目录 **README**「开发与测试」）。**同一会话关页再进、接上 `pending_llm`** 归 **TD-015**「再进页接上」，**勿**与本条多 Tab 混为「IM 长连接」需求。
 
 ### [TD-020] 用户短期情绪属性：与句级 / 轮级情绪分层及展示「真相源」（**进行中 · V3-A，2026-04-15**）
 

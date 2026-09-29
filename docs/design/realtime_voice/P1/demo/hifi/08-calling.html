@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 正在呼叫</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .calling {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      overflow: hidden;
+      background: #0a0711;
+    }
+    .artwork,
+    .artwork::after,
+    .presence-light { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.74) saturate(.76);
+      transform: scale(1.025);
+      animation: breathe 6s ease-in-out infinite alternate;
+    }
+    .artwork::after {
+      content: "";
+      background: linear-gradient(180deg, rgba(5, 4, 12, .28) 0%, rgba(5, 4, 12, .11) 42%, rgba(5, 4, 12, .32) 63%, rgba(5, 4, 12, .91) 100%);
+    }
+    .presence-light {
+      z-index: -2;
+      background: radial-gradient(42% 24% at 50% 61%, rgba(185, 138, 255, .24), transparent 70%);
+      animation: calling-light 2.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .presence {
+      position: absolute;
+      right: 20px;
+      bottom: max(145px, calc(env(safe-area-inset-bottom) + 121px));
+      left: 20px;
+      text-align: center;
+      text-shadow: 0 5px 20px rgba(0, 0, 0, .54);
+    }
+    h1 { margin: 0; font-size: 26px; line-height: 1.24; font-weight: 620; letter-spacing: .025em; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin: 10px 0 0;
+      color: rgba(238, 229, 255, .76);
+      font-size: 14px;
+      line-height: 20px;
+      letter-spacing: .02em;
+    }
+    .status i {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: dot 1.2s ease-in-out infinite;
+    }
+    .status i:nth-child(2) { animation-delay: .16s; }
+    .status i:nth-child(3) { animation-delay: .32s; }
+    .controls {
+      position: absolute;
+      right: 0;
+      bottom: max(43px, calc(env(safe-area-inset-bottom) + 24px));
+      left: 0;
+      display: grid;
+      justify-content: center;
+    }
+    .hangup {
+      width: 60px;
+      padding: 0;
+      border: 0;
+      color: #fff;
+      background: transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hangup-surface {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 132, 138, .42);
+      border-radius: 50%;
+      background: #ee5965;
+      box-shadow: 0 10px 24px rgba(170, 33, 53, .32), inset 0 1px 0 rgba(255, 255, 255, .2);
+      transition: transform .18s ease, opacity .2s ease;
+    }
+    .hangup svg { width: 24px; height: 24px; fill: currentColor; }
+    .hangup span { display: block; margin-top: 9px; color: rgba(255, 255, 255, .78); font-size: 12px; line-height: 16px; }
+    .hangup:active .hangup-surface { transform: scale(.93); }
+    .hangup:focus-visible .hangup-surface { outline: 2px solid #fff; outline-offset: 3px; }
+    .is-cancelled .presence { opacity: .55; }
+    .is-cancelled .hangup-surface { opacity: .58; }
+    @keyframes breathe { to { transform: scale(1.05); } }
+    @keyframes calling-light { 50% { opacity: .38; } }
+    @keyframes dot { 0%, 100% { opacity: .2; transform: translateY(1px); } 50% { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .artwork, .presence-light, .status i { animation: none; }
+      .hangup-surface { transition: none; }
+    }
+    @media (min-width: 403px) { .calling { border-radius: 0; } }
+    @media (max-height: 720px) { .presence { bottom: 160px; } .controls { bottom: 18px; } }
+  </style>
+</head>
+<body>
+  <main class="calling" aria-label="正在呼叫林小梦">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="presence-light" aria-hidden="true"></div>
+    <section class="presence" aria-live="polite">
+      <h1>林小梦</h1>
+      <p class="status"><span>正在呼叫</span><i></i><i></i><i></i></p>
+    </section>
+    <nav class="controls" aria-label="通话控制">
+      <button class="hangup" type="button" aria-label="取消呼叫">
+        <span class="hangup-surface"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9Z"/></svg></span>
+        <span>取消</span>
+      </button>
+    </nav>
+  </main>
+  <script>
+    let connectionTimer;
+    if (new URLSearchParams(window.location.search).get('flow') === '1') {
+      connectionTimer = window.setTimeout(() => { window.location.href = '09-connecting.html?flow=1'; }, 1600);
+    }
+    document.querySelector('.hangup').addEventListener('click', () => {
+      window.clearTimeout(connectionTimer);
+      document.querySelector('.calling').classList.add('is-cancelled');
+      document.querySelector('.status span').textContent = '已取消呼叫';
+      window.setTimeout(() => { window.location.href = '06-chat-record.html?no-call=1'; }, 260);
+    });
+  </script>
+</body>
+</html>

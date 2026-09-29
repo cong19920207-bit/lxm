@@ -61,13 +61,20 @@
 
 - **所属端**：H5
 - **鉴权**：Bearer
-- **Query**：`cursor` int 可选；`limit` int 1–50 默认 20
+- **Query**：`cursor` int 可选；`limit` int 1–50 默认 20；`pending_reload` bool 默认 false
 - **响应**：`ApiResponse`；`data`: `{ items: [...], next_cursor, has_more }`
 - **`items[]`（conversation_log 来源）**：`source`, `sort_seq`, `id`, `content`, `created_at`, `emotion_label`, **`delivery_status`**, **`skipped_in_prompt`**, `is_read`, `trigger_type`（后两者对 agent 有值）；**`delivery_status` 取值**与 **`backend/constants.py`** 中单点常量一致（示例：`delivered`、`pending_llm`、`failed_timeout`、`failed_error`、`failed_blocked`），**不在**契约全文复制枚举表（J2）；**多气泡**：同一 `round_id` 下可有 **多条** `source=assistant` 行，按 `sort_seq` **升序**即为气泡展示顺序（与 SSE `done.messages` 下标一致，STEP-011）
 - **首屏恢复（2026-06-04）**：**无 `cursor`** 时，若满足 **10104** 同等条件（满队且全 `pending_llm`），服务端在返回 `items` 前 **异步** 调度 bundle 恢复（与 **POST /api/chat/send** 10104 路径共用 `chat_service.trigger_recovery_if_queue_stuck`）
 - **assistant / agent 行**：`delivery_status`、`skipped_in_prompt` **键存在且值为 `null`**（A1）
 - **关联表**：conversation_log, agent_message
 - **状态**：已实现
+
+<a id="voice-timeline"></a>
+#### H5语音时间线扩展
+
+H5调用内部get_timeline时固定`include_calls=True`；**include_calls不是公开Query参数**。增加source=call，复用同一sort_seq排序，item增加`call_id,duration_seconds,call_status,summary_status,call_summary`；其他来源这五字段为null。call_summary仅在ready、未过期、未删除时可读；摘要稍后完成只更新原卡片，不新增sort_seq。危机资源以`crisis_resource`安全投影加入，不泄露隔离原文；其他项目为null。
+
+响应no-store。首次拉取含pending摘要时前端3秒后只补拉一次，使用pending_reload标记；用户后续滚动按正常cursor分页，不无限轮询。通话卡片和资源卡为H5扩展，Open v1另按[其原十字段协议](../openapi/api.md#voice-compatibility)投影。语音接口与状态见[语音契约](../realtime-voice/api.md#h5-ui)。
 
 #### 部署与网关（对话 SSE）
 

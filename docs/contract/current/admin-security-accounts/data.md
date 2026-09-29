@@ -45,6 +45,7 @@
 | config_key | String(100) | 是   | -      | **非唯一**索引（`index=True`）；同一 key 多行见下 |
 | config_value | Text      | 否   | NULL   | JSON 字符串等（`nullable=True`） |
 | version    | Integer     | 是   | 1      | ORM `default=1` |
+| draft_revision | Integer | 否 | NULL | 语音草稿乐观锁版本；v8a新增，旧行不回填 |
 | is_active  | Boolean     | 是   | True   | ORM `default=True` |
 | is_draft   | Boolean     | 是   | False  | ORM `default=False`；`comment`：True=草稿 / False=正式或历史 |
 | updated_by | String(50)  | 否   | NULL   |           |
@@ -72,3 +73,8 @@
 
 
 ---
+
+<a id="voice-config-shared"></a>
+### 语音配置共用表增量
+
+`voice_call_config`、`voice_call_script`、`voice_call_master_switch`继续使用上面的admin_config，同key保留草稿/当前/历史多行，不加单列唯一约束。前两者草稿采用base_version与nullable draft_revision乐观锁；总开关使用独立版本发布。业务语义见[语音配置](../realtime-voice/data.md#configuration)，不新增平行配置表。

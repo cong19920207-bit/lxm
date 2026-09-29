@@ -42,6 +42,18 @@
 | points      | Integer    | 是   | -      | 本次得分     |
 | created_at  | DateTime   | 是   | utcnow |          |
 
+<a id="voice-growth-shared"></a>
+语音来源增量（v8b，原表新增，历史行允许NULL）：
+
+| 字段 | 类型 | 可空 | 默认 | 说明 |
+|---|---|---|---|---|
+| source_type | String(64) | 是 | NULL | 来源类型 |
+| source_id | String(64) | 是 | NULL | 来源幂等ID |
+| eligible_seconds | Integer | 是 | NULL | 合格成长秒数 |
+| business_date | Date | 是 | NULL | 北京时间业务日 |
+
+`uk_growth_source`为(source_type, source_id)唯一索引；历史NULL可并存。语音按call来源去重，结算见[语音数据](../realtime-voice/data.md#lifecycle)，文字成长不据此补造source值。
+
 ### 表名：relationship_level_history
 
 

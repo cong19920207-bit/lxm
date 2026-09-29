@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>林小梦 · 暂时无法接通</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      background: #08070c;
+      color: #faf7ff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    button { font: inherit; }
+    .failed {
+      position: relative;
+      isolation: isolate;
+      width: min(100vw, 402px);
+      height: min(100dvh, 874px);
+      overflow: hidden;
+      background: #0a0711;
+    }
+    .artwork,
+    .artwork::after,
+    .network-light { position: absolute; inset: 0; }
+    .artwork {
+      z-index: -3;
+      background: url('../../../../../../frontend/static/images/Index/Index.png') center top / cover no-repeat;
+      filter: brightness(.62) saturate(.4);
+      transform: scale(1.02);
+    }
+    .artwork::after {
+      content: "";
+      background: linear-gradient(180deg, rgba(5, 4, 12, .36) 0%, rgba(5, 4, 12, .16) 42%, rgba(5, 4, 12, .35) 60%, rgba(5, 4, 12, .92) 100%);
+    }
+    .network-light {
+      z-index: -2;
+      background: radial-gradient(38% 22% at 50% 63%, rgba(113, 168, 255, .12), transparent 70%);
+      pointer-events: none;
+    }
+    .content {
+      position: absolute;
+      right: 0;
+      bottom: max(32px, calc(env(safe-area-inset-bottom) + 15px));
+      left: 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .signal {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 38px;
+      margin: 0 auto 18px;
+    }
+    .signal i {
+      width: 4px;
+      border-radius: 99px;
+      background: rgba(195, 219, 255, .68);
+      box-shadow: 0 0 8px rgba(146, 192, 255, .32);
+    }
+    .signal i:nth-child(1) { height: 10px; opacity: .48; }
+    .signal i:nth-child(2) { height: 18px; opacity: .62; }
+    .signal i:nth-child(3) { height: 28px; opacity: .78; }
+    .signal i:nth-child(4) { height: 38px; opacity: .22; }
+    h1 { margin: 0; font-size: 25px; line-height: 1.26; font-weight: 630; letter-spacing: .01em; }
+    p { margin: 9px 8px 0; color: rgba(231, 238, 255, .64); font-size: 14px; line-height: 21px; }
+    .retry {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      margin-top: 25px;
+      overflow: hidden;
+      border: 1px solid rgba(218, 224, 255, .48);
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(108deg, rgba(78, 123, 232, .52), rgba(102, 91, 210, .54) 56%, rgba(139, 93, 206, .5));
+      box-shadow: 0 12px 27px rgba(31, 47, 124, .25), inset 0 1px 0 rgba(255, 255, 255, .34), inset 0 -1px 0 rgba(42, 42, 106, .18);
+      backdrop-filter: blur(22px) saturate(1.2);
+      -webkit-backdrop-filter: blur(22px) saturate(1.2);
+      font-size: 17px;
+      font-weight: 620;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .18s ease, opacity .2s ease;
+    }
+    .retry::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 48%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .24), transparent);
+    }
+    .retry span { position: relative; }
+    .retry:active { transform: scale(.98); }
+    .back-chat {
+      margin-top: 14px;
+      padding: 5px 12px;
+      border: 0;
+      color: rgba(255, 255, 255, .6);
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .is-retrying .retry { opacity: .64; pointer-events: none; }
+    .is-retrying .back-chat { visibility: hidden; }
+    button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    @media (min-width: 403px) { .failed { border-radius: 0; } }
+    @media (max-height: 720px) {
+      .content { bottom: 20px; }
+      .signal { transform: scale(.85); margin-bottom: 10px; }
+      h1 { font-size: 23px; }
+      .retry { margin-top: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="failed" aria-label="暂时无法接通林小梦">
+    <div class="artwork" aria-hidden="true"></div>
+    <div class="network-light" aria-hidden="true"></div>
+    <section class="content" aria-live="polite">
+      <div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <h1>暂时无法接通</h1>
+      <p>网络似乎不太稳定，恢复后再试一次吧。</p>
+      <button class="retry" type="button"><span>重新尝试</span></button>
+      <button class="back-chat" type="button">回到聊天</button>
+    </section>
+  </main>
+  <script>
+    document.querySelector('.retry').addEventListener('click', (event) => {
+      document.querySelector('.failed').classList.add('is-retrying');
+      event.currentTarget.querySelector('span').textContent = '正在重新连接…';
+      window.setTimeout(() => { window.location.href = '08-calling.html?flow=1'; }, 320);
+    });
+    document.querySelector('.back-chat').addEventListener('click', () => { window.location.href = '06-chat-record.html?no-call=1'; });
+  </script>
+</body>
+</html>

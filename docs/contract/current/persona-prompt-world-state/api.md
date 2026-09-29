@@ -49,11 +49,13 @@
   - **GET** `/api/admin/chat-prompt-view/agent` — Agent P0～P4 任务指令；`data.triggers[]`（`key`/`task_instruction`/`full_task_block`）与 `ACTIVE_TRIGGER_INSTRUCTIONS` + `AGENT_TASK_OUTPUT_SUFFIX` 一致。
   - **页面**：`chat-prompt-step15.html` / `chat-prompt-step3.html` / `chat-prompt-step8.html` / `chat-prompt-agent.html`；侧栏 `CHAT_PROMPT_MENU`（见管理端页面节）。
 - **安全**（`backend/routers/admin/safety_rules.py`，前缀 `/api/admin`）：
-  - **GET** `/safety-rules` — 成功 `data`：`banned_keywords`、`persona_boundary_keywords`、`style_violation_keywords`（均为 `string[]`，无生效配置时为空数组）。
-  - **PUT** `/safety-rules/banned-keywords` — Body：`{ "keywords": string[] }`（Pydantic `KeywordsUpdateRequest`：**`keywords` 至少 1 个元素**）。
+  - **GET** `/safety-rules` — 成功 `data`：`banned_keywords`、`persona_boundary_keywords`、`style_violation_keywords`、`crisis_keywords`（均为 `string[]`，无对应有效配置时为空数组）；`crisis_keywords` 取已发布数据库配置。另返回只读 `crisis_keywords_status`：`publication_status`（`published` / `unpublished` / `invalid` / `unavailable`）、`active_version`（可空）、`keyword_count`、`cache_status`（`healthy` / `missing` / `invalid` / `unavailable` / `out_of_sync`）、`fallback_ready`。状态检查不写入缓存；`fallback_ready` 仅表示存在有效已发布危机词，不能代表语音通话的其他依赖均可用。
+  - **PUT** `/safety-rules/banned-keywords` — Body：`{ "keywords": string[] }`（Pydantic `KeywordsUpdateRequest` 只校验为字符串数组；页面另阻止提交空列表）。
   - **PUT** `/safety-rules/persona-keywords` — 同上。
   - **PUT** `/safety-rules/style-keywords` — 同上。
   - **POST** `/safety-rules/banned-keywords/import` — `multipart/form-data`，字段名 **`file`**（`.xlsx` / `.xls`）；与现有违禁词合并去重后发布。成功 `data`：`imported_count`（本次从表格读取到的非空行数）、`total_count`（合并去重后的词库总数）。
+  - **PUT** `/safety-rules/crisis-keywords` — Body `{ "keywords": string[] }`；危机词须通过规范化校验且发布结果非空，成功即生成生效版本。**GET** `/safety-rules/crisis-keywords/history` — `page`（默认 1）、`page_size`（默认 20，1–100）查看版本。**POST** `/safety-rules/crisis-keywords/rollback` — Body `{ "version": 正整数, "confirm_text": "CONFIRM" }`，将所选历史内容发布为新版本。三接口分别返回 `ApiResponse`；发布和回滚失败按服务端错误码返回。
+  - **权限**：安全规则读取及危机词历史允许 `super_admin`、`ai_trainer`、`observer`；写入、发布与回滚只允许 `super_admin`、`ai_trainer`。语音通话对危机词的运行时读取及无有效配置时的新建门禁，见[语音当前契约](../realtime-voice/data.md#safety)。
 - **测试用例**：`GET|POST /test-cases/{config_key}`；`DELETE /test-cases/{config_key}/{case_id}`。**POST Body**（`TestCaseCreateRequest`）：`input`（必填）、`expected_pass_criteria`（必填）、`emotion_label`（默认 `平静`）、`relationship_level`（默认 `1`，0–3）。成功 `data`：`case`、`total_count`，并与 `publish_config` 成功回执字段合并返回。
 - **响应**：`ApiResponse`
 - **关联表**：admin_config（及部分 Redis）

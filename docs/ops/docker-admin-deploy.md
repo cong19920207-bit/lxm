@@ -111,3 +111,31 @@ python3 scripts/init_admin.py
 | MySQL / Redis | **不必**为常规业务发版重建；数据在命名卷中。仅调整 compose 中 MySQL 配置或换大版本时再处理，且须备份。 |
 
 查看当前栈：`docker compose ps`；看后端日志：`docker compose logs -f backend`。
+
+## 十、P1 实时语音在本地 Docker 的凭据与后台入口
+
+P1 后端从容器环境读取 `DOUBAO_S2S_APP_ID` 和 `DOUBAO_S2S_ACCESS_KEY`；`DOUBAO_S2S_APP_KEY` 可留空，代码会使用协议默认值。将实际值填写到项目 `.env`，不要写入后台语音配置、文档或仓库。`.env.example` 只是模板，不会自行向已运行容器注入新值；其他文本 LLM 凭据变量也不能替代这两个 P1 变量。
+
+仅修改 `.env` 后，重建后端容器使环境变量生效：
+
+```bash
+docker compose up -d --no-deps --force-recreate backend
+docker compose exec -T backend sh -c 'test -n "$DOUBAO_S2S_APP_ID" && test -n "$DOUBAO_S2S_ACCESS_KEY"'
+```
+
+第二条命令只检查非空，不打印密钥。若还修改了 `backend/` 代码，先按「九、日常更新」构建后端镜像；单纯补凭据不需要数据库迁移。
+
+语音总开关的后台入口为 **语音通话 → 总开关**。开关独立生效，不发布“语音设置”中的其他草稿；开启前会检查已发布语音设置及其 `credential_ref` 指向的环境变量。开启后仍按已发布的维护、软停止、开放范围配置决定是否接受新通话。相关已完成行为记录在 [P1 人工验收临时契约增量](../design/realtime_voice/P1/execution/contract-drafts/P1-本地Docker人工验收已完成变更增量-20260927.md)。
+
+### 本机语音 WebSocket 联调
+
+仅在开发机本机人工验收语音时，叠加 `docker-compose.voice-local.yml` 启动；该文件要求 Docker Compose **2.24.4 或更新版本**，使用 `ports: !override` 将 **nginx 的 80 端口和 backend 的 8000 端口**绑定到 `127.0.0.1`，并为 backend 设置 `VOICE_ALLOW_INSECURE_LOCAL=1`。MySQL、Redis 的端口映射不受此叠加文件影响。页面从 `http://127.0.0.1/` 访问；`nginx/nginx.conf` 的 `/api/voice/` 入口将语音 HTTP、首次连接与重连的 WebSocket 一并转发到同一个 backend，并保留浏览器访问的 Host 及 WebSocket Upgrade 头。
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.voice-local.yml up -d --build backend nginx
+docker compose -f docker-compose.yml -f docker-compose.voice-local.yml ps
+```
+
+本机同源访问时，未设置 `VOICE_ALLOWED_ORIGINS` 也会按浏览器 Origin 与请求 Host 校验；若显式设置该白名单，则以白名单为准。改动叠加文件、端口映射或 `VOICE_ALLOW_INSECURE_LOCAL` 后，仍须同时指定两个 compose 文件并重建对应容器，例如 `docker compose -f docker-compose.yml -f docker-compose.voice-local.yml up -d --force-recreate backend nginx`；`docker compose start` 不会应用新配置。上文单文件 compose 命令只适用于未启用本机语音叠加文件的部署。
+
+`VOICE_ALLOW_INSECURE_LOCAL=1` 只供回环地址上的本机联调，不适用于云服务器。云端入口需由 HTTPS/WSS 反向代理提供，并让后端从可信代理正确识别 WebSocket 协议；当前仓库内的 nginx 配置只监听 HTTP 80，不能直接作为云端 TLS 入口。不要将本机叠加文件用于线上部署。

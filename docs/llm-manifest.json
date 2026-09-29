@@ -7,11 +7,13 @@
     "docs/contract/current",
     "docs/contract/known-gaps.md",
     "docs/tech-debt.md",
-    "docs/tech-debt/active"
+    "docs/tech-debt/active",
+    "docs/requirement-pool"
   ],
   "exclude_roots": [
     ".doc-migration-baseline",
     "docs/contract/history",
+    "docs/design/realtime_voice/P1/history",
     "docs/contract/drafts",
     "docs/tech-debt/archive",
     "docs/tech-debt/audit-2026-07-19.md"
@@ -292,7 +294,11 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-015",
         "TD-016",
@@ -366,7 +372,11 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-017",
         "TD-022",
@@ -473,7 +483,11 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-006",
         "TD-007",
@@ -569,7 +583,11 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-005"
       ],
@@ -659,7 +677,11 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-004",
         "TD-015"
@@ -1111,7 +1133,11 @@
         "contract-chat-emotion-api",
         "contract-agent-future-api"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
       "related_td": [
         "TD-030",
         "TD-031"
@@ -1444,7 +1470,13 @@
         "TD-034",
         "TD-035",
         "TD-036",
-        "TD-037"
+        "TD-037",
+        "TD-038",
+        "TD-039",
+        "TD-040",
+        "TD-041",
+        "TD-042",
+        "TD-043"
       ],
       "max_lines": 150,
       "legacy_order": -1
@@ -1822,6 +1854,159 @@
       "legacy_order": 1056
     },
     {
+      "id": "tech-debt-realtime-voice",
+      "path": "docs/tech-debt/active/realtime-voice.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "通话占用",
+        "结算补偿",
+        "人工修复",
+        "语气说明",
+        "tone_instruction",
+        "显式结束分类器",
+        "explicit_exit",
+        "配置发布连接预检",
+        "强制 test 能力",
+        "voice_id 筛选",
+        "技术债"
+      ],
+      "code_paths": [
+        "backend/services/realtime_voice_ops_service.py",
+        "backend/services/realtime_voice_quota_service.py",
+        "backend/routers/admin/voice_ops.py",
+        "admin/static/js/voice-ops-admin.js",
+        "backend/services/realtime_voice_provider_service.py",
+        "backend/services/realtime_voice_context_pack_service.py",
+        "backend/services/realtime_voice_config_service.py",
+        "backend/constants/realtime_voice_config.py",
+        "admin/static/js/voice-config-admin.js",
+        "backend/services/realtime_voice_ending_service.py",
+        "backend/services/realtime_voice_gateway_service.py",
+        "backend/services/realtime_voice_admin_test_service.py",
+        "backend/services/realtime_voice_runtime_config_service.py",
+        "backend/routers/admin/voice_config.py",
+        "backend/routers/admin/voice_records.py",
+        "backend/services/realtime_voice_record_metric_service.py",
+        "admin/static/js/voice-records-admin.js"
+      ],
+      "route_prefixes": [
+        "/api/voice/calls",
+        "/api/admin/voice/ops",
+        "/api/admin/voice/calls",
+        "/api/admin/voice/config"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "tech-debt-index",
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui"
+      ],
+      "related_td": [
+        "TD-038",
+        "TD-039",
+        "TD-040",
+        "TD-041",
+        "TD-042",
+        "TD-043"
+      ],
+      "max_lines": 700,
+      "legacy_order": 1057
+    },
+    {
+      "id": "requirement-pool-index",
+      "path": "docs/requirement-pool/README.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "requirement-pool"
+      ],
+      "keywords": [
+        "需求池",
+        "候选需求",
+        "RP"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [],
+      "related_td": [],
+      "max_lines": 150,
+      "legacy_order": 0
+    },
+    {
+      "id": "requirement-realtime-voice-ending-grace",
+      "path": "docs/requirement-pool/active/realtime-voice-ending-grace/RP-001.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "requirement-pool",
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "收尾审核",
+        "宽限期",
+        "静默结束",
+        "候选需求"
+      ],
+      "code_paths": [
+        "backend/services/realtime_voice_ending_service.py",
+        "backend/services/realtime_voice_gateway_service.py",
+        "backend/services/realtime_voice_quota_service.py"
+      ],
+      "route_prefixes": [
+        "/api/voice/calls"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "requirement-pool-index"
+      ],
+      "related_td": [],
+      "max_lines": 700,
+      "legacy_order": 0
+    },
+    {
+      "id": "requirement-realtime-voice-memory-extraction",
+      "path": "docs/requirement-pool/active/realtime-voice-memory-extraction/RP-002.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "requirement-pool",
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "记忆抽取",
+        "提示词配置",
+        "事实来源",
+        "长期价值",
+        "候选需求"
+      ],
+      "code_paths": [
+        "backend/services/realtime_voice_memory_service.py",
+        "backend/services/realtime_voice_runtime_config_service.py",
+        "backend/services/realtime_voice_config_service.py",
+        "admin/static/js/voice-config-admin.js"
+      ],
+      "route_prefixes": [
+        "/api/admin/voice",
+        "/api/voice/calls"
+      ],
+      "depends_on": [],
+      "related_documents": [
+        "requirement-pool-index"
+      ],
+      "related_td": [],
+      "max_lines": 700,
+      "legacy_order": 1
+    },
+    {
       "id": "tech-debt-archive",
       "path": "docs/tech-debt/archive/README.md",
       "status": "archive",
@@ -1920,6 +2105,274 @@
       "related_td": [],
       "max_lines": 400,
       "legacy_order": 950
+    },
+    {
+      "id": "contract-realtime-voice-api",
+      "path": "docs/contract/current/realtime-voice/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "P1",
+        "通话",
+        "502",
+        "配额",
+        "危机",
+        "语音记忆",
+        "CALL-01",
+        "VOICE-MEM-01",
+        "VOICE-RECALL-01"
+      ],
+      "code_paths": [
+        "backend/routers/realtime_voice.py",
+        "backend/models/realtime_voice.py",
+        "backend/tasks/scheduler.py",
+        "backend/routers/admin/voice_config.py",
+        "backend/routers/admin/voice_crisis.py",
+        "backend/routers/admin/voice_master_switch.py",
+        "backend/routers/admin/voice_metrics.py",
+        "backend/routers/admin/voice_ops.py",
+        "backend/routers/admin/voice_playback.py",
+        "backend/routers/admin/voice_prompt_view.py",
+        "backend/routers/admin/voice_quota.py",
+        "backend/routers/admin/voice_records.py"
+      ],
+      "route_prefixes": [
+        "/api/voice",
+        "/api/admin/voice"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-shared-auth-rbac",
+        "contract-realtime-voice-data"
+      ],
+      "related_documents": [
+        "contract-realtime-voice-data",
+        "contract-realtime-voice-admin-ui",
+        "contract-chat-emotion-api",
+        "contract-openapi-api",
+        "contract-memory-knowledge-api",
+        "contract-diary-api",
+        "contract-relationship-api",
+        "contract-agent-future-api",
+        "tech-debt-realtime-voice"
+      ],
+      "related_td": [
+        "TD-038",
+        "TD-039",
+        "TD-040",
+        "TD-041",
+        "TD-042",
+        "TD-043"
+      ],
+      "max_lines": 400,
+      "legacy_order": 200
+    },
+    {
+      "id": "contract-realtime-voice-data",
+      "path": "docs/contract/current/realtime-voice/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "P1",
+        "通话",
+        "502",
+        "配额",
+        "危机",
+        "语音记忆",
+        "CALL-01",
+        "VOICE-MEM-01",
+        "VOICE-RECALL-01"
+      ],
+      "code_paths": [
+        "backend/routers/realtime_voice.py",
+        "backend/models/realtime_voice.py",
+        "backend/tasks/scheduler.py",
+        "backend/routers/admin/voice_config.py",
+        "backend/routers/admin/voice_crisis.py",
+        "backend/routers/admin/voice_master_switch.py",
+        "backend/routers/admin/voice_metrics.py",
+        "backend/routers/admin/voice_ops.py",
+        "backend/routers/admin/voice_playback.py",
+        "backend/routers/admin/voice_prompt_view.py",
+        "backend/routers/admin/voice_quota.py",
+        "backend/routers/admin/voice_records.py",
+        "backend/services/realtime_voice_admin_capability_probe.py",
+        "backend/services/realtime_voice_admin_playback_review_service.py",
+        "backend/services/realtime_voice_admin_playback_transport.py",
+        "backend/services/realtime_voice_admin_test_service.py",
+        "backend/services/realtime_voice_backchannel_service.py",
+        "backend/services/realtime_voice_barge_in_service.py",
+        "backend/services/realtime_voice_billing_metric_service.py",
+        "backend/services/realtime_voice_capability_service.py",
+        "backend/services/realtime_voice_card_service.py",
+        "backend/services/realtime_voice_config_service.py",
+        "backend/services/realtime_voice_context_pack_service.py",
+        "backend/services/realtime_voice_context_source_service.py",
+        "backend/services/realtime_voice_cost_preview_service.py",
+        "backend/services/realtime_voice_create_service.py",
+        "backend/services/realtime_voice_crisis_config_service.py",
+        "backend/services/realtime_voice_crisis_presentation_service.py",
+        "backend/services/realtime_voice_crisis_service.py",
+        "backend/services/realtime_voice_daily_aggregate_service.py",
+        "backend/services/realtime_voice_daily_metric_service.py",
+        "backend/services/realtime_voice_daily_schedule_service.py",
+        "backend/services/realtime_voice_decision_service.py",
+        "backend/services/realtime_voice_ending_service.py",
+        "backend/services/realtime_voice_followup_counter_service.py",
+        "backend/services/realtime_voice_followup_job_service.py",
+        "backend/services/realtime_voice_followup_runtime.py",
+        "backend/services/realtime_voice_followup_topic_service.py",
+        "backend/services/realtime_voice_gateway_service.py",
+        "backend/services/realtime_voice_job_service.py",
+        "backend/services/realtime_voice_lease_service.py",
+        "backend/services/realtime_voice_local_runtime.py",
+        "backend/services/realtime_voice_master_switch_service.py",
+        "backend/services/realtime_voice_memory_service.py",
+        "backend/services/realtime_voice_metric_history_service.py",
+        "backend/services/realtime_voice_metric_read_service.py",
+        "backend/services/realtime_voice_metric_service.py",
+        "backend/services/realtime_voice_observation_service.py",
+        "backend/services/realtime_voice_ops_service.py",
+        "backend/services/realtime_voice_playback_service.py",
+        "backend/services/realtime_voice_presentation_service.py",
+        "backend/services/realtime_voice_pricing.py",
+        "backend/services/realtime_voice_prompt_templates.py",
+        "backend/services/realtime_voice_prompt_view_service.py",
+        "backend/services/realtime_voice_provider_service.py",
+        "backend/services/realtime_voice_quota_service.py",
+        "backend/services/realtime_voice_recall_service.py",
+        "backend/services/realtime_voice_reconnect_service.py",
+        "backend/services/realtime_voice_record_metric_service.py",
+        "backend/services/realtime_voice_record_service.py",
+        "backend/services/realtime_voice_retention_service.py",
+        "backend/services/realtime_voice_runtime_config_service.py",
+        "backend/services/realtime_voice_safety_service.py",
+        "backend/services/realtime_voice_session_context_service.py",
+        "backend/services/realtime_voice_state_service.py",
+        "backend/services/realtime_voice_summary_followup_service.py",
+        "backend/services/realtime_voice_summary_job_service.py",
+        "backend/services/realtime_voice_summary_runtime.py",
+        "backend/services/realtime_voice_summary_service.py",
+        "backend/services/realtime_voice_ticket_service.py",
+        "backend/services/realtime_voice_turn_service.py",
+        "backend/services/realtime_voice_ws_metric_service.py",
+        "alembic/versions/v8a_voice_admin_config_draft_revision.py",
+        "alembic/versions/v8b_voice_relationship_growth_source.py",
+        "alembic/versions/v8c_voice_schema_baseline.py",
+        "alembic/versions/v8d_voice_usage_slices.py",
+        "alembic/versions/v8e_voice_memory_snapshot.py",
+        "alembic/versions/v8f_voice_call01_fact.py",
+        "alembic/versions/v8g_voice_evidence_time_precision.py",
+        "alembic/versions/v8h_voice_master_switch.py"
+      ],
+      "route_prefixes": [
+        "/api/voice",
+        "/api/admin/voice"
+      ],
+      "depends_on": [
+        "contract-shared-conventions",
+        "contract-admin-security-data",
+        "contract-relationship-data",
+        "contract-agent-future-data"
+      ],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-admin-ui",
+        "contract-chat-emotion-api",
+        "contract-openapi-api",
+        "contract-memory-knowledge-api",
+        "contract-diary-api",
+        "contract-relationship-api",
+        "contract-agent-future-api",
+        "tech-debt-realtime-voice"
+      ],
+      "related_td": [
+        "TD-038",
+        "TD-039",
+        "TD-040",
+        "TD-041",
+        "TD-042",
+        "TD-043"
+      ],
+      "max_lines": 650,
+      "legacy_order": 201
+    },
+    {
+      "id": "contract-realtime-voice-admin-ui",
+      "path": "docs/contract/current/realtime-voice/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "realtime-voice"
+      ],
+      "keywords": [
+        "实时语音",
+        "P1",
+        "通话",
+        "502",
+        "配额",
+        "危机",
+        "语音记忆",
+        "CALL-01",
+        "VOICE-MEM-01",
+        "VOICE-RECALL-01"
+      ],
+      "code_paths": [
+        "admin/pages/voice-calls.html",
+        "admin/pages/voice-config.html",
+        "admin/pages/voice-crisis.html",
+        "admin/pages/voice-jobs.html",
+        "admin/pages/voice-master-switch.html",
+        "admin/pages/voice-metrics.html",
+        "admin/pages/voice-ops.html",
+        "admin/pages/voice-prompts.html",
+        "admin/static/js/voice-config-admin.js",
+        "admin/static/js/voice-jobs-admin.js",
+        "admin/static/js/voice-master-switch-admin.js",
+        "admin/static/js/voice-metrics-admin.js",
+        "admin/static/js/voice-ops-admin.js",
+        "admin/static/js/voice-playback-admin.js",
+        "admin/static/js/voice-prompts.js",
+        "admin/static/js/voice-records-admin.js"
+      ],
+      "route_prefixes": [
+        "/api/voice",
+        "/api/admin/voice"
+      ],
+      "depends_on": [
+        "contract-shared-auth-rbac",
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data"
+      ],
+      "related_documents": [
+        "contract-realtime-voice-api",
+        "contract-realtime-voice-data",
+        "contract-chat-emotion-api",
+        "contract-openapi-api",
+        "contract-memory-knowledge-api",
+        "contract-diary-api",
+        "contract-relationship-api",
+        "contract-agent-future-api",
+        "tech-debt-realtime-voice"
+      ],
+      "related_td": [
+        "TD-038",
+        "TD-039",
+        "TD-040",
+        "TD-041",
+        "TD-042",
+        "TD-043"
+      ],
+      "max_lines": 400,
+      "legacy_order": 202
     }
   ],
   "relations": [
@@ -1947,6 +2400,91 @@
       "from": "tech-debt-cross-cutting",
       "type": "extends",
       "to": "contract-openapi-api"
+    },
+    {
+      "from": "contract-realtime-voice-api",
+      "type": "depends_on",
+      "to": "contract-shared-conventions"
+    },
+    {
+      "from": "contract-realtime-voice-api",
+      "type": "depends_on",
+      "to": "contract-shared-auth-rbac"
+    },
+    {
+      "from": "contract-realtime-voice-api",
+      "type": "depends_on",
+      "to": "contract-realtime-voice-data"
+    },
+    {
+      "from": "contract-realtime-voice-data",
+      "type": "depends_on",
+      "to": "contract-shared-conventions"
+    },
+    {
+      "from": "contract-realtime-voice-data",
+      "type": "depends_on",
+      "to": "contract-admin-security-data"
+    },
+    {
+      "from": "contract-realtime-voice-data",
+      "type": "depends_on",
+      "to": "contract-relationship-data"
+    },
+    {
+      "from": "contract-realtime-voice-data",
+      "type": "depends_on",
+      "to": "contract-agent-future-data"
+    },
+    {
+      "from": "contract-realtime-voice-admin-ui",
+      "type": "depends_on",
+      "to": "contract-shared-auth-rbac"
+    },
+    {
+      "from": "contract-realtime-voice-admin-ui",
+      "type": "depends_on",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-realtime-voice-admin-ui",
+      "type": "depends_on",
+      "to": "contract-realtime-voice-data"
+    },
+    {
+      "from": "contract-chat-emotion-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-memory-knowledge-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-diary-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-relationship-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-agent-future-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-openapi-api",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "tech-debt-realtime-voice",
+      "type": "related_to",
+      "to": "contract-realtime-voice-api"
     }
   ],
   "coverage": {
@@ -2087,7 +2625,13 @@
       "TD-034",
       "TD-035",
       "TD-036",
-      "TD-037"
+      "TD-037",
+      "TD-038",
+      "TD-039",
+      "TD-040",
+      "TD-041",
+      "TD-042",
+      "TD-043"
     ]
   },
   "migration_coverage": {
@@ -3646,17 +4190,729 @@
   ],
   "code_surface_coverage": {
     "counts": {
-      "route": 199,
-      "model": 26,
-      "admin-page": 35,
+      "admin-page": 43,
       "h5-page": 8,
-      "scheduled-job": 13
+      "model": 38,
+      "route": 258,
+      "scheduled-job": 20
     },
     "entries": [
       {
+        "kind": "admin-page",
+        "path": "admin/pages/accounts.html",
+        "line": 1,
+        "symbol": "accounts.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/agent-aware.html",
+        "line": 1,
+        "symbol": "agent-aware.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/agent-rules.html",
+        "line": 1,
+        "symbol": "agent-rules.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-agent.html",
+        "line": 1,
+        "symbol": "chat-prompt-agent.html",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step15.html",
+        "line": 1,
+        "symbol": "chat-prompt-step15.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step3.html",
+        "line": 1,
+        "symbol": "chat-prompt-step3.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/chat-prompt-step8.html",
+        "line": 1,
+        "symbol": "chat-prompt-step8.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/dashboard.html",
+        "line": 1,
+        "symbol": "dashboard.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/data-report.html",
+        "line": 1,
+        "symbol": "data-report.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/diary-history.html",
+        "line": 1,
+        "symbol": "diary-history.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/diary-rules.html",
+        "line": 1,
+        "symbol": "diary-rules.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/error.html",
+        "line": 1,
+        "symbol": "error.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/feed-comments.html",
+        "line": 1,
+        "symbol": "feed-comments.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/feed-posts.html",
+        "line": 1,
+        "symbol": "feed-posts.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/knowledge.html",
+        "line": 1,
+        "symbol": "knowledge.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-global.html",
+        "line": 1,
+        "symbol": "life-feed-global.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-prompts.html",
+        "line": 1,
+        "symbol": "life-feed-prompts.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-feed-system.html",
+        "line": 1,
+        "symbol": "life-feed-system.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/life-plan.html",
+        "line": 1,
+        "symbol": "life-plan.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/login.html",
+        "line": 1,
+        "symbol": "login.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/memory-rules.html",
+        "line": 1,
+        "symbol": "memory-rules.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/operation-logs.html",
+        "line": 1,
+        "symbol": "operation-logs.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/persona.html",
+        "line": 1,
+        "symbol": "persona.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/prompt.html",
+        "line": 1,
+        "symbol": "prompt.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/relationship-rules.html",
+        "line": 1,
+        "symbol": "relationship-rules.html",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/safety-rules.html",
+        "line": 1,
+        "symbol": "safety-rules.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/step5-5-switch.html",
+        "line": 1,
+        "symbol": "step5-5-switch.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/system-logs.html",
+        "line": 1,
+        "symbol": "system-logs.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/system-monitor.html",
+        "line": 1,
+        "symbol": "system-monitor.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/test-tool.html",
+        "line": 1,
+        "symbol": "test-tool.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/third-party.html",
+        "line": 1,
+        "symbol": "third-party.html",
+        "scope": "observability-third-party",
+        "contract_document": "contract-observability-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/user-detail.html",
+        "line": 1,
+        "symbol": "user-detail.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/users.html",
+        "line": 1,
+        "symbol": "users.html",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-api"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/vector-token-config.html",
+        "line": 1,
+        "symbol": "vector-token-config.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-admin"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-calls.html",
+        "line": 1,
+        "symbol": "voice-calls.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-config.html",
+        "line": 1,
+        "symbol": "voice-config.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-crisis.html",
+        "line": 1,
+        "symbol": "voice-crisis.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-jobs.html",
+        "line": 1,
+        "symbol": "voice-jobs.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-master-switch.html",
+        "line": 1,
+        "symbol": "voice-master-switch.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-metrics.html",
+        "line": 1,
+        "symbol": "voice-metrics.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-ops.html",
+        "line": 1,
+        "symbol": "voice-ops.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/voice-prompts.html",
+        "line": 1,
+        "symbol": "voice-prompts.html",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-admin-ui"
+      },
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/worldview.html",
+        "line": 1,
+        "symbol": "worldview.html",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-admin"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/chat.html",
+        "line": 1,
+        "symbol": "chat.html",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/diary.html",
+        "line": 1,
+        "symbol": "diary.html",
+        "scope": "diary",
+        "contract_document": "contract-diary-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/feed.html",
+        "line": 1,
+        "symbol": "feed.html",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/index.html",
+        "line": 1,
+        "symbol": "index.html",
+        "scope": "h5-app",
+        "contract_document": "contract-h5-app-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/login.html",
+        "line": 1,
+        "symbol": "login.html",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/memory.html",
+        "line": 1,
+        "symbol": "memory.html",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/relationship.html",
+        "line": 1,
+        "symbol": "relationship.html",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-api"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/settings.html",
+        "line": 1,
+        "symbol": "settings.html",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-api"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_config.py",
+        "line": 12,
+        "symbol": "class AdminConfig(Base):",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_operation_log.py",
+        "line": 13,
+        "symbol": "class AdminOperationLog(Base):",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/admin_user.py",
+        "line": 12,
+        "symbol": "class AdminUser(Base):",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/agent_aware_queue.py",
+        "line": 20,
+        "symbol": "class AgentAwareQueue(Base):",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/agent_message.py",
+        "line": 32,
+        "symbol": "class AgentMessage(Base):",
+        "scope": "agent-future",
+        "contract_document": "contract-agent-future-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/ai_diary.py",
+        "line": 12,
+        "symbol": "class AiDiary(Base):",
+        "scope": "diary",
+        "contract_document": "contract-diary-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/conversation_log.py",
+        "line": 13,
+        "symbol": "class ConversationLog(Base):",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/emotion_log.py",
+        "line": 12,
+        "symbol": "class EmotionLog(Base):",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_comment.py",
+        "line": 16,
+        "symbol": "class FeedComment(Base):",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_like.py",
+        "line": 14,
+        "symbol": "class FeedLike(Base):",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/feed_post.py",
+        "line": 17,
+        "symbol": "class FeedPost(Base):",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/life_plan.py",
+        "line": 12,
+        "symbol": "class LifePlan(Base):",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/life_plan_outline.py",
+        "line": 15,
+        "symbol": "class LifePlanOutline(Base):",
+        "scope": "life-feed",
+        "contract_document": "contract-life-feed-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/login_log.py",
+        "line": 12,
+        "symbol": "class LoginLog(Base):",
+        "scope": "admin-security-accounts",
+        "contract_document": "contract-admin-security-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/memory.py",
+        "line": 12,
+        "symbol": "class Memory(Base):",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 126,
+        "symbol": "class VoiceCall(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 198,
+        "symbol": "class VoiceCallCreateIdempotency(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 229,
+        "symbol": "class VoiceCallTurn(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 298,
+        "symbol": "class VoiceQuotaAccount(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 324,
+        "symbol": "class VoiceUsageLedger(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 349,
+        "symbol": "class VoiceMemoryJob(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 394,
+        "symbol": "class VoicePostprocessJob(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 423,
+        "symbol": "class VoiceFollowupJob(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 478,
+        "symbol": "class VoiceMemoryTrace(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 513,
+        "symbol": "class VoiceCapabilityEvidence(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 577,
+        "symbol": "class VoiceCrisisRecord(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/realtime_voice.py",
+        "line": 609,
+        "symbol": "class VoiceMetricDaily(Base):",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship.py",
+        "line": 13,
+        "symbol": "class Relationship(Base):",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_change_history.py",
+        "line": 14,
+        "symbol": "class RelationshipChangeHistory(Base):",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_growth_log.py",
+        "line": 12,
+        "symbol": "class RelationshipGrowthLog(Base):",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/relationship_level_history.py",
+        "line": 12,
+        "symbol": "class RelationshipLevelHistory(Base):",
+        "scope": "relationship",
+        "contract_document": "contract-relationship-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user.py",
+        "line": 12,
+        "symbol": "class User(Base):",
+        "scope": "core-user-auth",
+        "contract_document": "contract-core-user-auth-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_api_key.py",
+        "line": 12,
+        "symbol": "class UserApiKey(Base):",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_short_term_emotion.py",
+        "line": 12,
+        "symbol": "class UserShortTermEmotion(Base):",
+        "scope": "chat-emotion",
+        "contract_document": "contract-chat-emotion-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/user_timeline_seq.py",
+        "line": 11,
+        "symbol": "class UserTimelineSeq(Base):",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/world_state.py",
+        "line": 12,
+        "symbol": "class WorldState(Base):",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/worldview_event.py",
+        "line": 16,
+        "symbol": "class WorldviewEvent(Base):",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/worldview_snapshot.py",
+        "line": 15,
+        "symbol": "class WorldviewSnapshot(Base):",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-data"
+      },
+      {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 202,
+        "line": 225,
         "symbol": "@app.get(\"/\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -3664,7 +4920,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 207,
+        "line": 230,
         "symbol": "@app.get(\"/pages/{page_name}.html\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -3672,7 +4928,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 216,
+        "line": 239,
         "symbol": "@app.get(\"/admin\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -3680,7 +4936,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 221,
+        "line": 244,
         "symbol": "@app.get(\"/admin/pages/{page_name}.html\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -3688,7 +4944,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 230,
+        "line": 253,
         "symbol": "@app.get(\"/static/images/avatar/{filename}\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -4560,7 +5816,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/safety_rules.py",
-        "line": 73,
+        "line": 95,
         "symbol": "@router.get(",
         "scope": "persona-prompt-world-state",
         "contract_document": "contract-persona-api"
@@ -4568,7 +5824,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/safety_rules.py",
-        "line": 92,
+        "line": 119,
         "symbol": "@router.put(",
         "scope": "persona-prompt-world-state",
         "contract_document": "contract-persona-api"
@@ -4576,7 +5832,23 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/safety_rules.py",
-        "line": 107,
+        "line": 151,
+        "symbol": "@router.get(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 167,
+        "symbol": "@router.post(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 218,
         "symbol": "@router.put(",
         "scope": "persona-prompt-world-state",
         "contract_document": "contract-persona-api"
@@ -4584,7 +5856,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/safety_rules.py",
-        "line": 122,
+        "line": 233,
         "symbol": "@router.put(",
         "scope": "persona-prompt-world-state",
         "contract_document": "contract-persona-api"
@@ -4592,7 +5864,15 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/safety_rules.py",
-        "line": 137,
+        "line": 248,
+        "symbol": "@router.put(",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/safety_rules.py",
+        "line": 263,
         "symbol": "@router.post(",
         "scope": "persona-prompt-world-state",
         "contract_document": "contract-persona-api"
@@ -4876,6 +6156,414 @@
         "symbol": "@router.put(",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 276,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 299,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 325,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 351,
+        "symbol": "@router.get(\"/config/{key}\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 364,
+        "symbol": "@router.get(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 391,
+        "symbol": "@router.patch(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 412,
+        "symbol": "@router.patch(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 433,
+        "symbol": "@router.delete(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 452,
+        "symbol": "@router.delete(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 471,
+        "symbol": "@router.delete(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 488,
+        "symbol": "@router.delete(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 505,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 524,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 543,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 562,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 581,
+        "symbol": "@router.get(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 605,
+        "symbol": "@router.get(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 628,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_config.py",
+        "line": 647,
+        "symbol": "@router.post(",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_crisis.py",
+        "line": 50,
+        "symbol": "@router.get('/crisis-records')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_crisis.py",
+        "line": 61,
+        "symbol": "@router.get('/crisis-records/{record_id}')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_master_switch.py",
+        "line": 34,
+        "symbol": "@router.get('/master-switch')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_master_switch.py",
+        "line": 43,
+        "symbol": "@router.post('/master-switch/publish')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_metrics.py",
+        "line": 19,
+        "symbol": "@router.get('/metrics/dictionary')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_metrics.py",
+        "line": 24,
+        "symbol": "@router.get('/metrics/daily')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_metrics.py",
+        "line": 48,
+        "symbol": "@router.get('/metrics/observations')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_metrics.py",
+        "line": 55,
+        "symbol": "@router.get('/metrics/history')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_metrics.py",
+        "line": 68,
+        "symbol": "@router.get('/metrics/billing-preview')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_ops.py",
+        "line": 19,
+        "symbol": "@router.post('/jobs/{job_id}/retry')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_ops.py",
+        "line": 50,
+        "symbol": "@router.get('/ops/active-calls')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_ops.py",
+        "line": 55,
+        "symbol": "@router.post('/ops/soft-stop')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_ops.py",
+        "line": 63,
+        "symbol": "@router.post('/ops/hard-stop')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_ops.py",
+        "line": 75,
+        "symbol": "@router.post('/calls/{call_id}/force-end')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_playback.py",
+        "line": 43,
+        "symbol": "@router.post('/config/test-playback')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_playback.py",
+        "line": 119,
+        "symbol": "@router.post('/config/test-playback/{test_id}/ack')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_playback.py",
+        "line": 140,
+        "symbol": "@router.post('/config/test-playback/{test_id}/stop-ack')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_prompt_view.py",
+        "line": 11,
+        "symbol": "@router.get('/prompt-view')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_prompt_view.py",
+        "line": 17,
+        "symbol": "@router.get('/prompt-view/{prompt_key}')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_quota.py",
+        "line": 54,
+        "symbol": "@router.get(\"/users/{user_id}/quota\", dependencies=[require_role(*_READ_ROLES)])",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_quota.py",
+        "line": 72,
+        "symbol": "@router.post(\"/users/{user_id}/quota/extra\")",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 24,
+        "symbol": "@router.delete('/calls/{call_id}')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 47,
+        "symbol": "@router.get('/calls')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 99,
+        "symbol": "@router.post('/calls/export', dependencies=[Depends(deny_observer_export)], response_model=EffectiveExportResponse)",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 136,
+        "symbol": "@router.get('/calls/{call_id}/turns')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 151,
+        "symbol": "@router.get('/calls/{call_id}')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 163,
+        "symbol": "@router.get('/calls/{call_id}/debug')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 191,
+        "symbol": "@router.get('/calls/{call_id}/jobs')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 216,
+        "symbol": "@router.post('/summary-jobs/{job_id}/retry')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 228,
+        "symbol": "@router.get('/calls/{call_id}/usage')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 250,
+        "symbol": "@router.get('/calls/{call_id}/config')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_records.py",
+        "line": 267,
+        "symbol": "@router.get('/calls/{call_id}/audit')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
       },
       {
         "kind": "route",
@@ -5215,6 +6903,46 @@
       },
       {
         "kind": "route",
+        "path": "backend/routers/realtime_voice.py",
+        "line": 58,
+        "symbol": "@router.post('/calls')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/realtime_voice.py",
+        "line": 67,
+        "symbol": "@router.get('/quota')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/realtime_voice.py",
+        "line": 77,
+        "symbol": "@router.get('/calls/{call_id}')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/realtime_voice.py",
+        "line": 89,
+        "symbol": "@router.post('/calls/{call_id}/end')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/realtime_voice.py",
+        "line": 121,
+        "symbol": "@router.post('/calls/{call_id}/reconnect')",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
         "path": "backend/routers/relationship.py",
         "line": 15,
         "symbol": "@router.get(\"/status\", response_model=ApiResponse)",
@@ -5246,561 +6974,9 @@
         "contract_document": "contract-relationship-api"
       },
       {
-        "kind": "model",
-        "path": "backend/models/admin_config.py",
-        "line": 12,
-        "symbol": "AdminConfig",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/admin_operation_log.py",
-        "line": 13,
-        "symbol": "AdminOperationLog",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/admin_user.py",
-        "line": 12,
-        "symbol": "AdminUser",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/agent_aware_queue.py",
-        "line": 20,
-        "symbol": "AgentAwareQueue",
-        "scope": "agent-future",
-        "contract_document": "contract-agent-future-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/agent_message.py",
-        "line": 32,
-        "symbol": "AgentMessage",
-        "scope": "agent-future",
-        "contract_document": "contract-agent-future-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/ai_diary.py",
-        "line": 12,
-        "symbol": "AiDiary",
-        "scope": "diary",
-        "contract_document": "contract-diary-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/conversation_log.py",
-        "line": 13,
-        "symbol": "ConversationLog",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/emotion_log.py",
-        "line": 12,
-        "symbol": "EmotionLog",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/feed_comment.py",
-        "line": 16,
-        "symbol": "FeedComment",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/feed_like.py",
-        "line": 14,
-        "symbol": "FeedLike",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/feed_post.py",
-        "line": 17,
-        "symbol": "FeedPost",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/life_plan.py",
-        "line": 12,
-        "symbol": "LifePlan",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/life_plan_outline.py",
-        "line": 15,
-        "symbol": "LifePlanOutline",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/login_log.py",
-        "line": 12,
-        "symbol": "LoginLog",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/memory.py",
-        "line": 12,
-        "symbol": "Memory",
-        "scope": "memory-knowledge",
-        "contract_document": "contract-memory-knowledge-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/relationship.py",
-        "line": 13,
-        "symbol": "Relationship",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/relationship_change_history.py",
-        "line": 14,
-        "symbol": "RelationshipChangeHistory",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/relationship_growth_log.py",
-        "line": 12,
-        "symbol": "RelationshipGrowthLog",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/relationship_level_history.py",
-        "line": 12,
-        "symbol": "RelationshipLevelHistory",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/user.py",
-        "line": 12,
-        "symbol": "User",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/user_api_key.py",
-        "line": 12,
-        "symbol": "UserApiKey",
-        "scope": "openapi",
-        "contract_document": "contract-openapi-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/user_short_term_emotion.py",
-        "line": 12,
-        "symbol": "UserShortTermEmotion",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/user_timeline_seq.py",
-        "line": 11,
-        "symbol": "UserTimelineSeq",
-        "scope": "openapi",
-        "contract_document": "contract-openapi-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/world_state.py",
-        "line": 12,
-        "symbol": "WorldState",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/worldview_event.py",
-        "line": 16,
-        "symbol": "WorldviewEvent",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-data"
-      },
-      {
-        "kind": "model",
-        "path": "backend/models/worldview_snapshot.py",
-        "line": 15,
-        "symbol": "WorldviewSnapshot",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-data"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/accounts.html",
-        "line": 1,
-        "symbol": "accounts.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/agent-aware.html",
-        "line": 1,
-        "symbol": "agent-aware.html",
-        "scope": "agent-future",
-        "contract_document": "contract-agent-future-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/agent-rules.html",
-        "line": 1,
-        "symbol": "agent-rules.html",
-        "scope": "agent-future",
-        "contract_document": "contract-agent-future-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/chat-prompt-agent.html",
-        "line": 1,
-        "symbol": "chat-prompt-agent.html",
-        "scope": "agent-future",
-        "contract_document": "contract-agent-future-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/chat-prompt-step15.html",
-        "line": 1,
-        "symbol": "chat-prompt-step15.html",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/chat-prompt-step3.html",
-        "line": 1,
-        "symbol": "chat-prompt-step3.html",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/chat-prompt-step8.html",
-        "line": 1,
-        "symbol": "chat-prompt-step8.html",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/dashboard.html",
-        "line": 1,
-        "symbol": "dashboard.html",
-        "scope": "observability-third-party",
-        "contract_document": "contract-observability-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/data-report.html",
-        "line": 1,
-        "symbol": "data-report.html",
-        "scope": "observability-third-party",
-        "contract_document": "contract-observability-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/diary-history.html",
-        "line": 1,
-        "symbol": "diary-history.html",
-        "scope": "diary",
-        "contract_document": "contract-diary-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/diary-rules.html",
-        "line": 1,
-        "symbol": "diary-rules.html",
-        "scope": "diary",
-        "contract_document": "contract-diary-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/error.html",
-        "line": 1,
-        "symbol": "error.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/feed-comments.html",
-        "line": 1,
-        "symbol": "feed-comments.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/feed-posts.html",
-        "line": 1,
-        "symbol": "feed-posts.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/knowledge.html",
-        "line": 1,
-        "symbol": "knowledge.html",
-        "scope": "memory-knowledge",
-        "contract_document": "contract-memory-knowledge-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/life-feed-global.html",
-        "line": 1,
-        "symbol": "life-feed-global.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/life-feed-prompts.html",
-        "line": 1,
-        "symbol": "life-feed-prompts.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/life-feed-system.html",
-        "line": 1,
-        "symbol": "life-feed-system.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/life-plan.html",
-        "line": 1,
-        "symbol": "life-plan.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/login.html",
-        "line": 1,
-        "symbol": "login.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/memory-rules.html",
-        "line": 1,
-        "symbol": "memory-rules.html",
-        "scope": "memory-knowledge",
-        "contract_document": "contract-memory-knowledge-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/operation-logs.html",
-        "line": 1,
-        "symbol": "operation-logs.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/persona.html",
-        "line": 1,
-        "symbol": "persona.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/prompt.html",
-        "line": 1,
-        "symbol": "prompt.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/relationship-rules.html",
-        "line": 1,
-        "symbol": "relationship-rules.html",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/safety-rules.html",
-        "line": 1,
-        "symbol": "safety-rules.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/step5-5-switch.html",
-        "line": 1,
-        "symbol": "step5-5-switch.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/system-logs.html",
-        "line": 1,
-        "symbol": "system-logs.html",
-        "scope": "observability-third-party",
-        "contract_document": "contract-observability-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/system-monitor.html",
-        "line": 1,
-        "symbol": "system-monitor.html",
-        "scope": "observability-third-party",
-        "contract_document": "contract-observability-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/test-tool.html",
-        "line": 1,
-        "symbol": "test-tool.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/third-party.html",
-        "line": 1,
-        "symbol": "third-party.html",
-        "scope": "observability-third-party",
-        "contract_document": "contract-observability-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/user-detail.html",
-        "line": 1,
-        "symbol": "user-detail.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/users.html",
-        "line": 1,
-        "symbol": "users.html",
-        "scope": "admin-security-accounts",
-        "contract_document": "contract-admin-security-api"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/vector-token-config.html",
-        "line": 1,
-        "symbol": "vector-token-config.html",
-        "scope": "memory-knowledge",
-        "contract_document": "contract-memory-knowledge-admin"
-      },
-      {
-        "kind": "admin-page",
-        "path": "admin/pages/worldview.html",
-        "line": 1,
-        "symbol": "worldview.html",
-        "scope": "persona-prompt-world-state",
-        "contract_document": "contract-persona-admin"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/chat.html",
-        "line": 1,
-        "symbol": "chat.html",
-        "scope": "chat-emotion",
-        "contract_document": "contract-chat-emotion-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/diary.html",
-        "line": 1,
-        "symbol": "diary.html",
-        "scope": "diary",
-        "contract_document": "contract-diary-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/feed.html",
-        "line": 1,
-        "symbol": "feed.html",
-        "scope": "life-feed",
-        "contract_document": "contract-life-feed-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/index.html",
-        "line": 1,
-        "symbol": "index.html",
-        "scope": "h5-app",
-        "contract_document": "contract-h5-app-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/login.html",
-        "line": 1,
-        "symbol": "login.html",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/memory.html",
-        "line": 1,
-        "symbol": "memory.html",
-        "scope": "memory-knowledge",
-        "contract_document": "contract-memory-knowledge-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/relationship.html",
-        "line": 1,
-        "symbol": "relationship.html",
-        "scope": "relationship",
-        "contract_document": "contract-relationship-api"
-      },
-      {
-        "kind": "h5-page",
-        "path": "frontend/pages/settings.html",
-        "line": 1,
-        "symbol": "settings.html",
-        "scope": "core-user-auth",
-        "contract_document": "contract-core-user-auth-api"
-      },
-      {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 152,
+        "line": 156,
         "symbol": "daily_diary_task",
         "scope": "diary",
         "contract_document": "contract-diary-api"
@@ -5808,7 +6984,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 165,
+        "line": 169,
         "symbol": "agent_scan_task",
         "scope": "agent-future",
         "contract_document": "contract-agent-future-api"
@@ -5816,7 +6992,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 174,
+        "line": 178,
         "symbol": "future_slot_scan_task",
         "scope": "agent-future",
         "contract_document": "contract-agent-future-api"
@@ -5824,7 +7000,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 183,
+        "line": 187,
         "symbol": "inactive_proactive_reset_task",
         "scope": "agent-future",
         "contract_document": "contract-agent-future-api"
@@ -5832,7 +7008,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 192,
+        "line": 196,
         "symbol": "weekly_outline_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5840,7 +7016,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 201,
+        "line": 205,
         "symbol": "weekly_outline_retry_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5848,7 +7024,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 212,
+        "line": 216,
         "symbol": "daily_scenes_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5856,7 +7032,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 219,
+        "line": 223,
         "symbol": "daily_scenes_retry_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5864,7 +7040,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 228,
+        "line": 232,
         "symbol": "daily_her_universe_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5872,7 +7048,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 237,
+        "line": 241,
         "symbol": "daily_feed_publish_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5880,7 +7056,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 246,
+        "line": 250,
         "symbol": "comment_reply_poll_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -5888,7 +7064,7 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 255,
+        "line": 259,
         "symbol": "agent_aware_poll_task",
         "scope": "agent-future",
         "contract_document": "contract-agent-future-api"
@@ -5896,10 +7072,66 @@
       {
         "kind": "scheduled-job",
         "path": "backend/tasks/scheduler.py",
-        "line": 264,
+        "line": 268,
         "symbol": "feed_new_broadcast_task",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 276,
+        "symbol": "voice_reconcile_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 281,
+        "symbol": "voice_crisis_expiry_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 286,
+        "symbol": "voice_memory_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 291,
+        "symbol": "voice_summary_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 296,
+        "symbol": "voice_followup_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 301,
+        "symbol": "voice_retention_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 306,
+        "symbol": "voice_daily_metrics_task",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-data"
       }
     ],
     "path": "docs/contract/code-surface-coverage.md"
