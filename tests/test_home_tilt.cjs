@@ -84,8 +84,12 @@ async function settings(s) {
     assert.equal(await s.page.evaluate(() => HomeScene.tilt.inspect().state), 'waiting-data', 'Permission alone is not valid sensor data');
     await orient(s, 45, 0);
     await orient(s, 55, 15);
-    assert.deepEqual(await s.page.evaluate(() => HomeScene.tilt.inspect().input), { x: 0.6, y: 0.286 });
-    await s.page.waitForFunction(() => document.querySelector('.home-scene-parallax').style.transform !== 'translate3d(0px, 0px, 0px)');
+    assert.deepEqual(await s.page.evaluate(() => HomeScene.tilt.inspect().input), { x: 0.75, y: 0.4 });
+    // Approved tuning: 15° sideways and 10° forward move the visible layer 9px / 3.2px.
+    await s.page.waitForFunction(() => {
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.home-scene-parallax')).transform);
+      return Math.abs(matrix.m41 - 9) < 0.1 && Math.abs(matrix.m42 - 3.2) < 0.1;
+    }, null, { timeout: 2000 });
     await s.page.evaluate(() => window.dispatchEvent(new Event('orientationchange')));
     await orient(s, 55, 15);
     assert.deepEqual(await s.page.evaluate(() => HomeScene.tilt.inspect().input), { x: 0, y: 0 });

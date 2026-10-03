@@ -12,12 +12,13 @@
     parallax: {
       backgroundX: -6.2,
       backgroundY: -5.0,
-      characterX: 3.2,
-      characterY: 2.4
+      characterX: 12,
+      characterY: 8,
+      smoothingMs: 140
     },
     orientation: {
-      xRange: 25,
-      yRange: 35,
+      xRange: 20,
+      yRange: 25,
       defaultBeta: 45
     },
     motion: {

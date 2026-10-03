@@ -6,11 +6,12 @@ const assets=JSON.parse(fs.readFileSync('frontend/static/images/home-scene/v4/ma
  const measure=await s.page.evaluate(()=>{
   const rect=e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};
   const rig=rect(document.querySelector('.home-scene-position')),bg=rect(document.querySelector('.home-scene-background')),scale=Math.max(bg.width/853,bg.height/1844);
-  return{rig,face:{x:rig.x+rig.width*.36,y:rig.y+rig.height*.17,right:rig.x+rig.width*.68,bottom:rig.y+rig.height*.33},lampPoint:{x:bg.x+(bg.width-853*scale)/2+835*scale,y:bg.y+(bg.height-1844*scale)/2+715*scale},top:rect(document.querySelector('.home-top-bar')),hero:rect(document.querySelector('.home-hero')),float:rect(document.querySelector('.home-hero-float')),zoom:document.querySelector('meta[name=viewport]').content,
+  // (840,715) is on the lit shade in the source image and stays visible at the approved 12px tilt.
+  return{rig,face:{x:rig.x+rig.width*.36,y:rig.y+rig.height*.17,right:rig.x+rig.width*.68,bottom:rig.y+rig.height*.33},lampPoint:{x:bg.x+(bg.width-853*scale)/2+840*scale,y:bg.y+(bg.height-1844*scale)/2+715*scale},top:rect(document.querySelector('.home-top-bar')),hero:rect(document.querySelector('.home-hero')),float:rect(document.querySelector('.home-hero-float')),zoom:document.querySelector('meta[name=viewport]').content,
   controls:[...document.querySelectorAll('.home-quick-btn,.home-intimacy-pill,#linxiaomeng-avatar,.home-preview-card,.home-cta-btn')].map(e=>({...rect(e),opacity:getComputedStyle(e.closest('.home-enter-item')||e).opacity}))}
  });
  assert.ok(measure.face.y>=measure.top.bottom&&measure.face.bottom<=measure.hero.bottom);assert.ok(measure.face.x>=measure.float.right||measure.face.y>=measure.float.bottom);assert.ok(measure.face.x>=0&&measure.face.right<=viewport.width);
- assert.ok(measure.lampPoint.x>measure.rig.right+3.2,'A bright lamp portion remains beyond the person even with maximum tilt');assert.ok(measure.lampPoint.x<viewport.width&&measure.lampPoint.y>=0&&measure.lampPoint.y<viewport.height);
+ assert.ok(measure.lampPoint.x>measure.rig.right+12,'A bright lamp portion remains beyond the person even with maximum tilt');assert.ok(measure.lampPoint.x<viewport.width&&measure.lampPoint.y>=0&&measure.lampPoint.y<viewport.height);
  for(const c of measure.controls){assert.ok(c.width>0&&c.height>0);assert.equal(c.opacity,'1','Business entries are visible immediately on mask release')}
  for(const asset of assets.filter(a=>a.placement_in_character_canvas)){
   const actual=await s.page.locator('.home-scene-'+asset.role.replace('_','-')).evaluate(img=>{const r=img.getBoundingClientRect(),p=img.parentElement.getBoundingClientRect();return{left_percent:(r.left-p.left)/p.width*100,top_percent:(r.top-p.top)/p.height*100,width_percent:r.width/p.width*100,height_percent:r.height/p.height*100}});
