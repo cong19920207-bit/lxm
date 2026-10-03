@@ -1,0 +1,37 @@
+{
+  "scope": "Actual homepage, desktop Chrome controlled business responses; real HTTP cancellation",
+  "results": [
+    {
+      "case": "visitor public Feed only",
+      "pass": true
+    },
+    {
+      "case": "independent diary/unknown lock and relationship timeout",
+      "pass": true
+    },
+    {
+      "case": "all six hung fetches cancelled at one 8s deadline; deduplication",
+      "pass": true
+    },
+    {
+      "case": "known data retained on failure, bounded local retry deduped",
+      "pass": true
+    },
+    {
+      "case": "account switch cancels old request; late 401 cannot clear new context",
+      "pass": true
+    },
+    {
+      "case": "current 401 clears private modules and downgrades visitor",
+      "pass": true
+    },
+    {
+      "case": "unavailable auth read is unknown, never false visitor/Lv0",
+      "pass": true
+    },
+    {
+      "case": "malformed success response is failure, never fabricated Lv0",
+      "pass": true
+    }
+  ]
+}

@@ -52,6 +52,7 @@
 | 入口 | 内容 |
 |---|---|
 | [design/README.md](design/README.md) | 按功能分类的 PRD、开发步骤、实施计划与审查文档 |
+| [主页改版 v2 PRD](design/home-redesign/PRD-林小梦主页改版-v2.md) | 本地实现及 [H5 契约](contract/current/h5-app/api.md) 已同步；真机倾斜、声音、性能与部署验收待补，当前状态见 [唯一 STEP 进度](design/home-redesign/steps-verified.md#9-林小梦主页改版-v2-step-进度)；旧版见 [history](design/home-redesign/history/README.md) |
 | [design/DESIGN_SYSTEM.md](design/DESIGN_SYSTEM.md) | 设计系统 |
 | [design/product-development-plan-h5-chat.md](design/product-development-plan-h5-chat.md) | H5 对话产品开发方案 |
 | [design/chat-message-pipeline.md](design/chat-message-pipeline.md) | 消息管线说明 |

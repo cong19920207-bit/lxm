@@ -1,0 +1,19 @@
+{
+  "scope": "Final local M4 evidence audit only; real HTTPS/four phone environments/audio/Q201 pending.",
+  "browserScripts": 17,
+  "preservedScenarios": 53,
+  "rollbackCases": 7,
+  "desktopNativeCacheVisits": 6,
+  "staticPytest": 19,
+  "isolatedVoiceNginxPytest": 1,
+  "sourceHashesVerified": 8,
+  "parsedJS": 30,
+  "parsedInlineScripts": 3,
+  "stepBodySha256": "4677826738a9439f60b343e26fce8a1ba0ee081b235e053cfae3f6ddd0c43bd4",
+  "completedSteps": 10,
+  "totalSteps": 18,
+  "m4Gate": "NOT_REACHED",
+  "formalContractIntegration": "NOT_STARTED",
+  "temporaryHomeContainersRemaining": 0,
+  "gitDiffCheck": "PASS"
+}

@@ -1,0 +1,44 @@
+{
+  "scope": "Real desktop Chrome native forward/back cache with Playwright cache-disabling launch flag removed; actual navigation to login and browser back",
+  "pass": true,
+  "before": {
+    "identity": "1790951604045:0.12779865708617844",
+    "scene": {
+      "id": 1,
+      "running": false,
+      "disposed": false,
+      "reasons": [
+        "test-hold-quality"
+      ],
+      "raf": false,
+      "time": 176.7,
+      "frames": 6,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 35
+    },
+    "quality": 1
+  },
+  "after": {
+    "identity": "1790951604045:0.12779865708617844",
+    "shows": [
+      false,
+      true
+    ],
+    "scene": {
+      "id": 1,
+      "running": false,
+      "disposed": false,
+      "reasons": [
+        "test-hold-quality"
+      ],
+      "raf": true,
+      "time": 176.7,
+      "frames": 6,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 35
+    },
+    "quality": 1
+  }
+}

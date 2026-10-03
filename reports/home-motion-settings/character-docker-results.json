@@ -1,0 +1,74 @@
+{
+  "scope": "Current local Docker Nginx serving exact source at loopback and LAN URLs; guest homepage in desktop Chrome mobile emulation with native reload. No real phone or authenticated backend acceptance claim.",
+  "pass": true,
+  "served": [
+    {
+      "origin": "http://127.0.0.1",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "sourceSha256": "71bb430ac0091db4e08fe9c9190b9ec8c4d6e3801f31cdf84c7e4f9820868077"
+    },
+    {
+      "origin": "http://192.168.1.3:54324",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "sourceSha256": "71bb430ac0091db4e08fe9c9190b9ec8c4d6e3801f31cdf84c7e4f9820868077"
+    }
+  ],
+  "results": [
+    {
+      "case": "initial",
+      "navigation": "navigate",
+      "sampleCount": 345,
+      "widthRange": 0,
+      "heightRange": 0,
+      "movementRange": 1.510772705078125,
+      "maximumStep": 0.0145721435546875,
+      "first": {
+        "width": 249.59375,
+        "height": 539.5625,
+        "y": 78.09375,
+        "rigX": 119.80499267578125,
+        "rigY": 78.09375,
+        "rigWidth": 249.59375,
+        "rigHeight": 539.5625
+      },
+      "last": {
+        "width": 249.59375,
+        "height": 539.5625,
+        "y": 78.08727264404297,
+        "rigX": 119.80499267578125,
+        "rigY": 78.09375,
+        "rigWidth": 249.59375,
+        "rigHeight": 539.5625
+      }
+    },
+    {
+      "case": "refresh",
+      "navigation": "reload",
+      "sampleCount": 345,
+      "widthRange": 0,
+      "heightRange": 0,
+      "movementRange": 1.510772705078125,
+      "maximumStep": 0.0145721435546875,
+      "first": {
+        "width": 249.59375,
+        "height": 539.5625,
+        "y": 78.09375,
+        "rigX": 119.80499267578125,
+        "rigY": 78.09375,
+        "rigWidth": 249.59375,
+        "rigHeight": 539.5625
+      },
+      "last": {
+        "width": 249.59375,
+        "height": 539.5625,
+        "y": 78.08727264404297,
+        "rigX": 119.80499267578125,
+        "rigY": 78.09375,
+        "rigWidth": 249.59375,
+        "rigHeight": 539.5625
+      }
+    }
+  ]
+}

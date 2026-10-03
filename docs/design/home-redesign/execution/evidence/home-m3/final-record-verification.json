@@ -1,0 +1,22 @@
+{
+  "syntax": "PASS",
+  "inlineScripts": 2,
+  "browserScripts": 15,
+  "verifiedSourceFiles": 7,
+  "auditSources": 29,
+  "changedAuditSources": [
+    "SRC-04",
+    "SRC-05",
+    "SRC-09"
+  ],
+  "immutableBody": "PASS",
+  "done": 10,
+  "total": 18,
+  "inProgress": [
+    "011",
+    "012",
+    "013"
+  ],
+  "drafts": 10,
+  "evidence": "PASS"
+}

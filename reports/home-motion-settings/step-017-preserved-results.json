@@ -1,0 +1,349 @@
+{
+  "scope": "Actual desktop Chrome homepage, controlled API/clock/MicroMessenger capability/destination fixtures. Existing failure/unknown/login restoration cases are in regression/; actual phone keyboard/gestures/tilt/audio and destination pages remain unverified.",
+  "results": [
+    {
+      "case": "four relationship levels, growth fallback/precedence, maximum level, known days and Feed",
+      "pass": true
+    },
+    {
+      "case": "status text, emotion and default priority",
+      "pass": true
+    },
+    {
+      "case": "fixed diary sentence, four relative time bands, strict NEW and empty list",
+      "pass": true
+    },
+    {
+      "case": "Beijing 24h clock, fourteen seven-period boundaries and Good night",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/relationship.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/memory.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/diary.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "click",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/relationship.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/memory.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/diary.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Enter",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/relationship.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/memory.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/diary.html",
+      "gated": true,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "method": "Space",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "target": "video",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "target": "sleep",
+      "pass": true
+    },
+    {
+      "identity": "visitor",
+      "target": "voice",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/relationship.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/memory.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/diary.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "click",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/relationship.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/memory.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/diary.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Enter",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/settings.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/relationship.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/memory.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/diary.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/feed.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "/pages/chat.html",
+      "gated": false,
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "method": "Space",
+      "target": "more placeholder",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "target": "video",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "target": "sleep",
+      "pass": true
+    },
+    {
+      "identity": "authenticated",
+      "target": "voice",
+      "pass": true
+    },
+    {
+      "case": "actual login form with controlled POST; single private restoration, no action replay or tilt authorization",
+      "pass": true
+    }
+  ],
+  "sourceSha256": {
+    "frontend/pages/index.html": "bf69846b016c14d2aecc1e32ebb5a307bf97dc17676410157b9d1508e82174fe",
+    "frontend/static/js/api.js": "2139ee79129bcdefd7c86d9dd44cc07f20d12a44a87906466731df241ed242c8",
+    "frontend/static/js/home-data.js": "8e855210f3b079299c55c348e6e5ec55abf574ae387d9c87462bf41411a11f16",
+    "frontend/static/js/home-scene.js": "d90864adc8d98da8a539601b70be84e43c2ec62622526906e6620839fb524d67"
+  }
+}

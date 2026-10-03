@@ -1,9 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-home-scene-mode="dynamic">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>林小梦</title>
+  <script>
+    // Establish deadlines before any storage-dependent business initialization.
+    window.HomeStartup = (() => {
+      const startedAt = Date.now()
+      let known = false, token = null, storedToken = null, overrideAuth = false, watchdog
+      const state = { startedAt, coreDeadline: startedAt + 5000, overlayDeadline: startedAt + 8000,
+        phase: 'loading', releases: 0, disposed: false }
+      const legacyBackground = '/static/images/Index/Index.png'
+      state.sceneMode = document.documentElement.dataset.homeSceneMode === 'legacy' ? 'legacy' : 'dynamic'
+      document.documentElement.dataset.homeSceneMode = state.sceneMode
+      state.useLegacyScene = () => {
+        if (state.sceneMode === 'legacy') return
+        state.sceneMode = 'legacy'
+        document.documentElement.dataset.homeSceneMode = 'legacy'
+        const background = document.querySelector('.home-scene-background')
+        if (background) { background.hidden = false; background.src = legacyBackground }
+        document.querySelector('.home-scene-character')?.classList.remove('home-scene-core')
+        const loader = document.getElementById('home-loading-hero')
+        if (loader) { loader.hidden = false; loader.src = legacyBackground }
+        window.dispatchEvent(new Event('home-scene-mode-change'))
+      }
+      state.coreImageFailed = image => {
+        image.dataset.coreFailed = '1'
+        const images = [...document.querySelectorAll('.home-scene-core')]
+        if (state.sceneMode === 'dynamic' && images.length === 2 && images.every(item => item.dataset.coreFailed === '1')) state.useLegacyScene()
+      }
+      state.mountScene = () => {
+        const scene = document.querySelector('.home-scene'), template = document.getElementById('home-scene-markup')
+        if (!scene || !template) return
+        const content = template.content.cloneNode(true)
+        if (state.sceneMode === 'legacy') {
+          content.querySelector('.home-scene-background').src = legacyBackground
+          const character = content.querySelector('.home-scene-character')
+          character.removeAttribute('src'); character.classList.remove('home-scene-core'); character.hidden = true
+          content.querySelectorAll('[data-src]').forEach(image => image.removeAttribute('data-src'))
+        }
+        scene.appendChild(content); template.remove()
+        const loader = document.getElementById('home-loading-hero')
+        if (loader) loader.src = state.sceneMode === 'legacy' ? legacyBackground : document.querySelector('.home-scene-background').src
+      }
+      function storage(kind, operation, key, value) {
+        try { return { ok: true, value: window[kind][operation](key, value) } }
+        catch (_) { return { ok: false, value: null } }
+      }
+      state.storage = storage
+      state.auth = () => {
+        const result = storage('localStorage', 'getItem', 'token')
+        if (result.ok && (!overrideAuth || result.value !== storedToken)) {
+          known = true; token = result.value; storedToken = result.value; overrideAuth = false
+        }
+        return { known, token, available: result.ok }
+      }
+      state.rememberAuth = value => { known = true; token = value; overrideAuth = true }
+      state.complete = force => {
+        if (state.disposed) return
+        const screen = document.getElementById('home-loading-screen')
+        if (screen) screen.remove()
+        document.getElementById('main-content')?.classList.add('content-loaded')
+        document.querySelector('.h5-home-page')?.classList.add('is-enter-active', 'is-startup-ready')
+        if (state.phase === 'ready') return
+        state.phase = 'ready'; state.releases++
+        state.forced = !!force; state.releasedAt = Date.now()
+        clearTimeout(watchdog)
+        storage('sessionStorage', 'setItem', 'lxm_home_loader_done', '1')
+        window.dispatchEvent(new Event('home-startup-change'))
+      }
+      state.checkDeadline = () => {
+        if (state.phase !== 'ready' && Date.now() >= state.overlayDeadline) state.complete(true)
+      }
+      watchdog = setTimeout(() => state.complete(true), Math.max(0, state.overlayDeadline - Date.now()))
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) state.checkDeadline() })
+      window.addEventListener('pageshow', state.checkDeadline)
+      window.addEventListener('pagehide', event => {
+        if (!event.persisted) { state.disposed = true; clearTimeout(watchdog) }
+      })
+      document.addEventListener('DOMContentLoaded', () => {
+        if (state.phase === 'ready') state.complete(true)
+        else state.checkDeadline()
+      }, { once: true })
+      state.auth()
+      return state
+    })()
+  </script>
+
   <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/h5-theme.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +113,7 @@
       display: flex;
       flex-direction: column;
       background-color: var(--home-bg-deep);
-      background-image: url('/static/images/Index/index.png');
+      background-image: none;
       background-size: cover;
       background-position: center top;
       background-repeat: no-repeat;
@@ -92,7 +176,7 @@
       border-bottom: none !important;
       box-shadow: none !important;
       backdrop-filter: none;
-      padding: calc(32px + env(safe-area-inset-top, 0px)) 16px 0;
+      padding: calc(32px + var(--home-safe-top, env(safe-area-inset-top, 0px))) 16px 0;
     }
 
     .home-top-bar .bar-left.home-top-left {
@@ -235,7 +319,7 @@
     .home-hero-float {
       position: absolute;
       left: 18px;
-      top: calc(clamp(96px, 31%, 128px) + env(safe-area-inset-top, 0px) * 0.2);
+      top: calc(clamp(96px, 31%, 128px) + var(--home-safe-top, env(safe-area-inset-top, 0px)) * 0.2);
       z-index: 3;
       display: flex;
       flex-direction: column;
@@ -247,7 +331,7 @@
 
     @media (max-width: 390px) {
       .home-hero-float {
-        top: calc(clamp(88px, 29%, 118px) + env(safe-area-inset-top, 0px) * 0.2);
+        top: calc(clamp(88px, 29%, 118px) + var(--home-safe-top, env(safe-area-inset-top, 0px)) * 0.2);
         max-width: min(220px, calc(100% - 32px));
       }
     }
@@ -407,7 +491,7 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 0 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      padding: 0 16px calc(10px + var(--home-safe-bottom, env(safe-area-inset-bottom, 0px)));
       gap: var(--home-stack-gap);
       box-sizing: border-box;
     }
@@ -815,7 +899,7 @@
     .action-section {
       width: 100%;
       flex-shrink: 0;
-      padding: 0 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      padding: 0 16px calc(10px + var(--home-safe-bottom, env(safe-area-inset-bottom, 0px)));
       box-sizing: border-box;
       background: transparent;
     }
@@ -956,7 +1040,7 @@
       height: 100%;
       object-fit: cover;
       object-position: center top;
-      filter: brightness(0.3) saturate(0.55) blur(15px);
+      filter: none;
       opacity: 0.4;
       transition: filter 0.3s ease, opacity 0.3s ease;
     }
@@ -1149,7 +1233,7 @@
       right: 0;
       bottom: 20px;
       z-index: 2;
-      padding: 0 2.5rem calc(3.5rem + env(safe-area-inset-bottom, 0px));
+      padding: 0 2.5rem calc(3.5rem + var(--home-safe-bottom, env(safe-area-inset-bottom, 0px)));
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -1245,11 +1329,12 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/static/css/home-scene.css">
 </head>
-<body class="h5-skin">
+<body class="h5-skin home-scene-page">
   <div id="home-loading-screen" class="home-loading-screen" aria-live="polite" aria-busy="true">
     <div class="home-loading-bg">
-      <img id="home-loading-hero" src="/static/images/Index/index.png" alt="" width="1024" height="1024">
+      <img id="home-loading-hero" alt="" width="1024" height="1024" onerror="this.hidden=true">
       <div class="home-loading-bg-grad"></div>
       <div class="home-loading-vignette" aria-hidden="true"></div>
       <div class="home-loading-glow" aria-hidden="true"></div>
@@ -1262,11 +1347,11 @@
         <span class="loading-avatar-ripple loading-avatar-ripple--delay" aria-hidden="true"></span>
         <span class="loading-avatar-ring" aria-hidden="true"></span>
         <img id="loading-avatar"
-             src="/static/images/Index/loader_avatar.jpg"
+             src="/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
              alt="林小梦"
              width="96"
              height="96"
-             onerror="handleLoaderAvatarError(this)">
+             onerror="window.handleLoaderAvatarError && handleLoaderAvatarError(this)">
       </div>
       <h1 class="home-loading-title">林小梦</h1>
       <span class="home-loading-subtitle">正在靠近你的世界</span>
@@ -1281,13 +1366,32 @@
   </div>
 
   <div class="page h5-home-page">
+    <div class="home-scene">
+      <template id="home-scene-markup">
+      <img class="home-scene-core home-scene-background" src="/static/images/home-scene/v4/background.c094490a4d8e.webp" alt="" width="853" height="1844" onerror="this.hidden=true;window.HomeStartup?.coreImageFailed(this)">
+      <img class="home-scene-lamp" data-src="/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp" alt="" hidden>
+      <canvas class="home-scene-environment" aria-hidden="true"></canvas>
+      <div class="home-scene-position">
+        <div class="home-scene-parallax"><div class="home-scene-gesture"><div class="home-scene-breathe">
+          <img class="home-scene-core home-scene-character" src="/static/images/home-scene/v4/character.2816096f87aa.webp" alt="" width="853" height="1844" onerror="this.hidden=true;this.parentElement.classList.add('home-scene-character-failed');window.HomeStartup?.coreImageFailed(this)">
+          <img class="home-scene-patch home-scene-hair-front" data-src="/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp" alt="" hidden>
+          <img class="home-scene-patch home-scene-hair-side" data-src="/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp" alt="" hidden>
+          <img class="home-scene-patch home-scene-hair-back" data-src="/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp" alt="" hidden>
+          <button class="home-scene-hit" type="button" aria-label="轻触林小梦" disabled></button>
+          <img class="home-scene-patch home-scene-blink" data-src="/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp" alt="" hidden>
+        </div></div></div>
+      </div>
+      </template>
+    </div>
+    <script>window.HomeStartup.mountScene()</script>
+
     <section class="home-hero" aria-label="林小梦">
       <span class="home-good-night" id="good-night" aria-hidden="true">Good night</span>
 
       <div class="top-bar home-top-bar home-enter-item" style="--enter-delay: 0.1s">
         <div class="bar-left home-top-left">
           <img id="linxiaomeng-avatar"
-               src="/static/images/avatar/default.png"
+               src="/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp"
                alt="林小梦，点击进入设置"
                width="42"
                height="42"
@@ -1295,7 +1399,7 @@
                tabindex="0"
                onclick="location.href='/pages/settings.html'"
                onkeydown="if(event.key==='Enter'||event.key===' '){location.href='/pages/settings.html'}"
-               onerror="handleAvatarError(this)">
+               onerror="window.handleAvatarError && handleAvatarError(this)">
           <div class="home-top-meta">
             <div class="home-top-identity">
               <span class="home-top-name">林小梦</span>
@@ -1443,7 +1547,7 @@
                 </div>
               </div>
               <div class="home-card-thumb">
-                <img src="/static/images/Index/in_diary/diary_1.png" alt="" loading="lazy">
+                <img src="/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp" alt="" loading="lazy">
               </div>
               <span class="home-card-chevron" aria-hidden="true">›</span>
             </div>
@@ -1470,7 +1574,11 @@
     </div>
   </div>
 
+  <script src="/static/js/home-preferences.js"></script>
+  <script src="/static/js/home-scene-core.js"></script>
+  <script src="/static/js/home-scene.js"></script>
   <script src="/static/js/api.js"></script>
+  <script src="/static/js/home-data.js"></script>
   <link rel="stylesheet" href="/static/css/voice-entry.css">
   <script src="/static/js/voice-playback.js"></script>
   <script src="/static/js/voice-audio-transport.js"></script>
@@ -1481,36 +1589,67 @@
     const HOME_LOADER_KEY = 'lxm_home_loader_done'
     const LOADER_MIN_MS = 3000
     const LOADER_HOLD_MS = 500
-    const LOADER_BLUR_MAX = 15
     const LOADER_MESSAGES = [
       '我在。别急。',
       '马上就见面了。',
       '来了？我等你一会儿了。',
     ]
     const STATIC_ASSETS = [
-      '/static/images/Index/index.png',
-      '/static/images/Index/loader_avatar.jpg',
+      '/static/images/home-scene/v4/background.c094490a4d8e.webp',
       '/static/images/Index/home-feed-icon.png',
       '/static/images/Index/home-diary-icon.png',
-      '/static/images/Index/in_diary/diary_1.png',
-      '/static/images/avatar/default.png',
     ]
+
+    const HOME_AVATAR_MAP = {
+  "default": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+  "平静": "/static/images/home-thumbnails/v2/emotion_calm.c92996b91505.webp",
+  "开心": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+  "好奇": "/static/images/home-thumbnails/v2/emotion_curious.cc184da7f1d6.webp",
+  "想念": "/static/images/home-thumbnails/v2/emotion_miss.b552a52cadab.webp",
+  "担心": "/static/images/home-thumbnails/v2/emotion_worry.7542495825fb.webp",
+  "害羞": "/static/images/home-thumbnails/v2/emotion_shy.3c7f0553088b.webp",
+  "困倦": "/static/images/home-thumbnails/v2/emotion_sleepy.779d18fc6bcb.webp"
+}
+    const HOME_LOADER_AVATAR = "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
+    const homeAvatarFailures = new Set()
 
     let clockTimer = null
     let loaderMsgTimer = null
     let loaderProgressTimer = null
     let loaderDismissTimer = null
-    let homeAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    const loaderCleanups = []
+    const initialHomeAuth = HomeStartup.auth()
+    let homeAuthMode = initialHomeAuth.known ? (initialHomeAuth.token ? 'authenticated' : 'visitor') : 'unknown'
     let homeVisitorRendered = false
 
-    function handleAvatarError(img) {
-      img.onerror = null
-      img.src = '/static/images/avatar/default.png'
+    function homeAvatarFallback(img, failedSrc) {
+      homeAvatarFailures.add(new URL(failedSrc || img.src, location.href).pathname)
+      const candidates = img.id === 'loading-avatar'
+        ? [HOME_LOADER_AVATAR, HOME_AVATAR_MAP.default]
+        : [HOME_AVATAR_MAP.default, HOME_LOADER_AVATAR]
+      const next = candidates.find(src => !homeAvatarFailures.has(src))
+      if (next) {
+        if (new URL(img.src, location.href).pathname !== next) img.src = next
+      } else {
+        img.onerror = null
+        img.removeAttribute('src')
+        img.style.visibility = 'hidden'
+      }
     }
 
-    function handleLoaderAvatarError(img) {
-      img.onerror = null
-      img.src = '/static/images/avatar/default.png'
+    function handleAvatarError(img) { homeAvatarFallback(img) }
+    function handleLoaderAvatarError(img) { homeAvatarFallback(img) }
+
+    function updateHomeAvatar(emotion, isCurrent) {
+      const img = document.getElementById('linxiaomeng-avatar')
+      const src = emotionAvatarSrc(emotion)
+      if (!img) return
+      if (homeAvatarFailures.has(src)) { homeAvatarFallback(img, src); return }
+      if (new URL(img.src, location.href).pathname === src) {
+        if (img.complete && !img.naturalWidth) homeAvatarFallback(img, src)
+        return
+      }
+      updateAvatarEmotion(emotion, { avatarMap: HOME_AVATAR_MAP, onError: homeAvatarFallback, isCurrent })
     }
 
     function isReloadNavigation() {
@@ -1532,29 +1671,29 @@
     }
 
     function preloadImage(src) {
+      if (homeAvatarFailures.has(src)) return Promise.resolve()
+      const existing = [...document.images].find(img => new URL(img.src, location.href).pathname === src)
+      if (existing) {
+        if (existing.complete) return Promise.resolve()
+        return new Promise(resolve => {
+          existing.addEventListener('load', resolve, { once: true })
+          existing.addEventListener('error', resolve, { once: true })
+        })
+      }
       return new Promise((resolve) => {
         const img = new Image()
         img.onload = () => resolve()
-        img.onerror = () => resolve()
+        img.onerror = () => {
+          if (src.startsWith('/static/images/home-thumbnails/')) homeAvatarFailures.add(src)
+          resolve()
+        }
         img.src = src
       })
     }
 
     function emotionAvatarSrc(emotion) {
-      if (!emotion) return AVATAR_MAP['default']
-      return AVATAR_MAP[emotion] || AVATAR_MAP['default']
-    }
-
-    function updateLoadingHeroVisual(progress) {
-      const p = progress / 100
-      const hero = document.getElementById('home-loading-hero')
-      if (!hero) return
-      const brightness = 0.3 + p * 0.75
-      const saturate = 0.55 + p * 0.65
-      const blur = (1 - p) * LOADER_BLUR_MAX
-      const opacity = 0.4 + p * 0.6
-      hero.style.filter = 'brightness(' + brightness + ') saturate(' + saturate + ') blur(' + blur + 'px)'
-      hero.style.opacity = String(opacity)
+      if (!emotion) return HOME_AVATAR_MAP.default
+      return HOME_AVATAR_MAP[emotion] || HOME_AVATAR_MAP.default
     }
 
     function updateLoadingProgressUI(progress) {
@@ -1562,7 +1701,6 @@
       const percent = document.getElementById('home-loading-percent')
       if (fill) fill.style.width = progress + '%'
       if (percent) percent.textContent = Math.round(progress) + '%'
-      updateLoadingHeroVisual(progress)
     }
 
     function initLoadingParticles() {
@@ -1629,6 +1767,7 @@
     }
 
     function clearLoaderTimers() {
+      for (const clean of loaderCleanups.splice(0)) clean()
       if (loaderMsgTimer) {
         clearInterval(loaderMsgTimer)
         loaderMsgTimer = null
@@ -1644,146 +1783,105 @@
     }
 
     function dismissHomeLoader() {
+      const state = window.HomeStartup
+      if (state.phase === 'ready' || state.disposed) return
       const screen = document.getElementById('home-loading-screen')
-      const page = document.querySelector('.h5-home-page')
-      if (!screen) {
-        triggerHomeEntrance()
-        return
-      }
-
-      try {
-        sessionStorage.setItem(HOME_LOADER_KEY, '1')
-      } catch (e) {
-        /* 忽略 */
-      }
-
-      screen.setAttribute('aria-busy', 'false')
-
-      if (prefersReducedMotion()) {
-        screen.remove()
-        triggerHomeEntrance()
-        return
-      }
-
-      screen.classList.add('is-exiting')
-      if (page) {
-        page.classList.add('is-enter-reveal')
-        requestAnimationFrame(() => {
-          page.classList.add('is-enter-active')
-        })
-      }
-
-      loaderDismissTimer = window.setTimeout(() => {
-        screen.remove()
-      }, 550)
+      state.phase = 'exiting'
+      if (screen) { screen.setAttribute('aria-busy', 'false'); screen.classList.add('is-exiting') }
+      triggerHomeEntrance()
+      loaderDismissTimer = setTimeout(() => {
+        clearLoaderTimers()
+        state.complete(false)
+      }, prefersReducedMotion() ? 0 : 550)
     }
 
     function hideHomeLoaderImmediately() {
-      const screen = document.getElementById('home-loading-screen')
       clearLoaderTimers()
-      if (screen) screen.remove()
+      window.HomeStartup.complete(false)
+    }
+
+    function waitCoreImage(img) {
+      return new Promise(resolve => {
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          clearTimeout(deadline)
+          img.removeEventListener('load', loaded)
+          img.removeEventListener('error', finish)
+          resolve()
+        }
+        const loaded = () => {
+          if (img.naturalWidth && typeof img.decode === 'function') {
+            try { Promise.resolve(img.decode()).then(finish, finish) } catch (_) { finish() }
+          } else finish()
+        }
+        const deadline = setTimeout(finish, Math.max(0, HomeStartup.coreDeadline - Date.now()))
+        img.addEventListener('load', loaded, { once: true })
+        img.addEventListener('error', finish, { once: true })
+        if (img.complete) loaded()
+      })
     }
 
     function runHomeLoader() {
-      const screen = document.getElementById('home-loading-screen')
-      if (!screen) {
-        triggerHomeEntrance()
-        return loadPage()
+      const state = window.HomeStartup
+      let coreReady = false, finishing = false, msgIndex = 0
+      document.getElementById('main-content').classList.add('content-loaded')
+      // Data and avatar updates run independently of the core-image gate.
+      loadPage().catch(() => {})
+      if (state.phase === 'ready' || !document.getElementById('home-loading-screen')) {
+        state.complete(false)
+        return
       }
-
-      initLoadingParticles()
-      updateLoadingProgressUI(0)
-
-      let staticLoaded = 0
-      let apiDone = false
-      let emotionDone = false
-      let progress = 0
-      let dismissed = false
-      const startAt = Date.now()
-      let msgIndex = 0
+      try { initLoadingParticles() } catch (_) { /* Optional decoration */ }
+      const coreImages = [...document.querySelectorAll('.home-scene-core')]
+      Promise.all(coreImages.map(waitCoreImage)).then(async () => {
+        if (state.sceneMode === 'dynamic' && coreImages.every(image => !image.naturalWidth)) state.useLegacyScene()
+        if (state.sceneMode === 'legacy') await waitCoreImage(document.querySelector('.home-scene-background'))
+        coreReady = true; tick()
+      })
       const msgEl = document.getElementById('home-loading-message')
-      const staticTotal = STATIC_ASSETS.length
-      const gateUnits = staticTotal + 2
-
-      STATIC_ASSETS.forEach((src) => {
-        preloadImage(src).then(() => { staticLoaded++ })
-      })
-
-      loaderMsgTimer = window.setInterval(() => {
+      loaderMsgTimer = setInterval(() => {
         msgIndex = (msgIndex + 1) % LOADER_MESSAGES.length
-        if (msgEl) {
-          msgEl.textContent = LOADER_MESSAGES[msgIndex]
-          msgEl.style.animation = 'none'
-          void msgEl.offsetWidth
-          msgEl.style.animation = ''
-        }
+        if (msgEl) msgEl.textContent = LOADER_MESSAGES[msgIndex]
       }, 1500)
-
-      const pagePromise = loadPage({ deferAvatar: true }).then((result) => {
-        apiDone = true
-        const emotion = result && result.emotion
-        const src = emotionAvatarSrc(emotion)
-        return preloadImage(src).then(() => {
-          if (emotion) updateAvatarEmotion(emotion)
-          emotionDone = true
-        })
-      }).catch(() => {
-        apiDone = true
-        emotionDone = true
-      })
-
-      function isGateReady() {
-        return staticLoaded >= staticTotal
-          && apiDone
-          && emotionDone
-          && (Date.now() - startAt) >= LOADER_MIN_MS
-      }
-
-      loaderProgressTimer = window.setInterval(() => {
-        const elapsed = Date.now() - startAt
-        const timeRatio = Math.min(elapsed / LOADER_MIN_MS, 1)
-        const loadedUnits = staticLoaded + (apiDone ? 1 : 0) + (emotionDone ? 1 : 0)
-        const assetRatio = loadedUnits / gateUnits
-        const target = Math.min(assetRatio, timeRatio) * 100
-        progress = progress + (target - progress) * 0.12 + 0.4
-        if (target >= 99.5 && isGateReady()) {
-          progress = 100
-        } else {
-          progress = Math.min(progress, 97)
-        }
-        updateLoadingProgressUI(progress)
-
-        if (progress >= 100 && isGateReady() && !dismissed) {
-          dismissed = true
-          clearLoaderTimers()
+      function tick() {
+        if (state.disposed || state.phase === 'ready') { clearLoaderTimers(); return }
+        state.checkDeadline()
+        if (state.phase === 'ready') { clearLoaderTimers(); return }
+        const elapsed = Date.now() - state.startedAt
+        if (Date.now() >= state.coreDeadline) coreReady = true
+        updateLoadingProgressUI(finishing ? 100 : Math.min(97, elapsed / LOADER_MIN_MS * (coreReady ? 100 : 85)))
+        if (coreReady && elapsed >= LOADER_MIN_MS && !finishing) {
+          finishing = true; state.phase = 'core-ready'
           updateLoadingProgressUI(100)
-          pagePromise.finally(() => {
-            loaderDismissTimer = window.setTimeout(dismissHomeLoader, LOADER_HOLD_MS)
-          })
+          loaderDismissTimer = setTimeout(dismissHomeLoader, LOADER_HOLD_MS)
         }
-      }, 60)
-
-      window.addEventListener('pagehide', clearLoaderTimers, { once: true })
+      }
+      loaderProgressTimer = setInterval(tick, 60)
+      const resume = () => { if (!document.hidden) tick() }
+      document.addEventListener('visibilitychange', resume)
+      window.addEventListener('pageshow', tick)
+      const leave = event => { if (!event.persisted) clearLoaderTimers() }
+      const released = () => { if (state.phase === 'ready') clearLoaderTimers() }
+      window.addEventListener('pagehide', leave)
+      window.addEventListener('home-startup-change', released)
+      loaderCleanups.push(() => document.removeEventListener('visibilitychange', resume),
+        () => window.removeEventListener('pageshow', tick),
+        () => window.removeEventListener('pagehide', leave),
+        () => window.removeEventListener('home-startup-change', released))
+      tick()
     }
 
     async function initHomePage() {
-      if (isReloadNavigation()) {
-        try {
-          sessionStorage.removeItem(HOME_LOADER_KEY)
-        } catch (e) {
-          /* 忽略 */
-        }
-      }
-
+      if (isReloadNavigation()) HomeStartup.storage('sessionStorage', 'removeItem', HOME_LOADER_KEY)
       startHeroClock()
-
+      document.getElementById('main-content').classList.add('content-loaded')
       if (shouldSkipHomeLoader()) {
         hideHomeLoaderImmediately()
-        triggerHomeEntrance()
         await loadPage()
         return
       }
-
       runHomeLoader()
     }
 
@@ -1868,7 +1966,7 @@
 
       if (d.next_threshold == null) {
         progressInfo.textContent = growth + ' / 已满级'
-        setTimeout(() => { progressFill.style.width = '100%' }, 100)
+        progressFill.style.width = '100%'
         return
       }
 
@@ -1876,7 +1974,7 @@
       const percent = d.progress_percent != null
         ? d.progress_percent
         : Math.min(100, Math.round(growth / d.next_threshold * 100))
-      setTimeout(() => { progressFill.style.width = percent + '%' }, 100)
+      progressFill.style.width = percent + '%'
     }
 
     function renderDiaryPreview(items, level) {
@@ -1889,7 +1987,10 @@
       previewEl.textContent = DIARY_PLACEHOLDER
 
       if (lockEl) {
-        lockEl.style.display = level === 0 ? 'inline' : 'none'
+        lockEl.dataset.lockState = level == null ? 'unknown' : (level === 0 ? 'locked' : 'unlocked')
+        lockEl.textContent = level == null ? '…' : '🔒'
+        lockEl.setAttribute('aria-label', level == null ? '解锁状态待确认' : '尚未解锁')
+        lockEl.style.display = level == null || level === 0 ? 'inline' : 'none'
       }
 
       if (!items || items.length === 0) {
@@ -1941,8 +2042,9 @@
     function renderVisitorHome() {
       homeAuthMode = 'visitor'
       homeVisitorRendered = true
-      localStorage.removeItem('relationship_level')
-      updateAvatarEmotion(null)
+      HomeStartup.storage('localStorage', 'removeItem', 'relationship_level')
+      const avatarAuth = HomeStartup.auth()
+      updateHomeAvatar(null, () => { const current = HomeStartup.auth(); return current.known === avatarAuth.known && current.token === avatarAuth.token })
       document.getElementById('status-text').textContent = DEFAULT_STATUS_TEXT
       renderRelationshipPreview({ level: 0, level_name: LEVEL_NAMES[0] })
       renderTopBarIntimacy({ current_growth: 0, next_threshold: 200, progress_percent: 0 })
@@ -1965,14 +2067,14 @@
     }
 
     async function refreshHomeAfterLogin() {
-      if (!localStorage.getItem('token')) return
+      if (!HomeStartup.auth().token) return
       homeAuthMode = 'authenticated'
       homeVisitorRendered = false
       await loadPage()
     }
 
     function goHomeRelationship() {
-      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+      if (homeAuthMode === 'visitor' || !HomeStartup.auth().token) {
         openHomeLoginModal()
         return
       }
@@ -1980,7 +2082,7 @@
     }
 
     function goHomeDiary() {
-      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+      if (homeAuthMode === 'visitor' || !HomeStartup.auth().token) {
         openHomeLoginModal()
         return
       }
@@ -1988,7 +2090,7 @@
     }
 
     function handleHomeQuickAction(action) {
-      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
+      if (homeAuthMode === 'visitor' || !HomeStartup.auth().token) {
         openHomeLoginModal()
         return
       }
@@ -2095,164 +2197,71 @@
       }
     }
 
-    async function loadPage(options) {
-      const deferAvatar = options && options.deferAvatar === true
-      if (!localStorage.getItem('token')) {
-        renderVisitorHome()
-        await loadFeedHomeCard()
-        return { emotion: null }
+    let homeDataController = null
+    let homeRelationshipLevel = null
+    let homeDiaryItems = null
+    const homeModuleLabels = { relationship:'关系', days:'陪伴天数', diary:'日记', unread:'消息', feedList:'动态', feedBadge:'动态提醒' }
+    const homeModuleTargets = { relationship:'.bar-right', days:'.home-top-meta', diary:'.home-diary-card .home-card-body', unread:'.home-chat-btn-wrap', feedList:'.home-feed-head-text', feedBadge:'.home-feed-footer' }
+    function renderHomeModuleState(key, state) {
+      let note = document.querySelector('[data-home-module="' + key + '"]')
+      if (!note) {
+        const target = document.querySelector(homeModuleTargets[key])
+        if (!target) return
+        note = document.createElement('span'); note.className = 'home-module-note'
+        note.dataset.homeModule = key; note.setAttribute('aria-live','polite'); target.appendChild(note)
       }
-
-      homeAuthMode = 'authenticated'
-      homeVisitorRendered = false
-      const silentAuthOptions = {
-        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
-        onUnauthorized: switchHomeToVisitor,
+      note.dataset.state = state.status; note.replaceChildren()
+      if (state.status === 'pending' && !state.data) note.textContent = homeModuleLabels[key] + '加载中…'
+      else if (state.status === 'unknown') note.textContent = '登录状态暂不可用'
+      else if (state.status === 'error') {
+        note.append(homeModuleLabels[key] + (state.data ? '更新失败 ' : '暂时未加载 '))
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '重试'
+        retry.onclick = event => { event.stopPropagation(); homeDataController.retry(key) }
+        note.appendChild(retry)
       }
-      try {
-        const [relSettled, detailSettled, diarySettled, unreadSettled] = await Promise.allSettled([
-          request('GET', '/api/relationship/status', null, silentAuthOptions),
-          request('GET', '/api/relationship/detail', null, silentAuthOptions),
-          request('GET', '/api/diary/list?page=1&page_size=1', null, silentAuthOptions),
-          request('GET', '/api/agent/unread-count', null, silentAuthOptions),
-        ])
-
-        const relRes = relSettled.status === 'fulfilled' ? relSettled.value : { code: -1, data: null }
-        const detailRes = detailSettled.status === 'fulfilled' ? detailSettled.value : { code: -1, data: null }
-        const diaryRes = diarySettled.status === 'fulfilled' ? diarySettled.value : { code: -1, data: null }
-        const unreadRes = unreadSettled.status === 'fulfilled' ? unreadSettled.value : { code: -1, data: null }
-
-        if (homeAuthMode === 'visitor') {
-          renderVisitorHome()
-          await loadFeedHomeCard()
-          return { emotion: null }
-        }
-
-        let level = 0
-        let emotion = null
-
-        if (relRes.code === 0 && relRes.data) {
-          const d = relRes.data
-          level = d.level || 0
-          emotion = d.ai_current_emotion || null
-
-          if (d.ai_current_emotion && !deferAvatar) {
-            updateAvatarEmotion(d.ai_current_emotion)
-          }
-
-          document.getElementById('status-text').textContent = resolveStatusText(d)
-          renderTopBarIntimacy(d)
-          renderRelationshipPreview(d)
-          localStorage.setItem('relationship_level', level)
-        }
-
-        if (detailRes.code === 0 && detailRes.data && detailRes.data.milestones) {
-          renderKnownDays(detailRes.data.milestones)
-        } else {
-          hideKnownDays()
-        }
-
-        if (diaryRes.code === 0 && diaryRes.data) {
-          renderDiaryPreview(diaryRes.data.items || [], level)
-        } else {
-          renderDiaryPreview([], level)
-        }
-
-        renderUnreadBadge(unreadRes)
-        await loadFeedHomeCard()
-        document.getElementById('main-content').classList.add('content-loaded')
-
-        return { emotion }
-
-      } catch (err) {
-        console.error('页面加载失败:', err)
-        document.getElementById('main-content').classList.add('content-loaded')
-        showToast('加载失败，请刷新重试', 'error')
-        return { emotion: null }
+      note.hidden = !note.childNodes.length
+    }
+    function resetHomeData(auth) {
+      homeRelationshipLevel = null; homeDiaryItems = null
+      if (auth.known && !auth.token) { renderVisitorHome(); return }
+      homeAuthMode = auth.token ? 'authenticated' : 'unknown'; homeVisitorRendered = false
+      const avatarAuth = HomeStartup.auth()
+      updateHomeAvatar(null, () => { const current = HomeStartup.auth(); return current.known === avatarAuth.known && current.token === avatarAuth.token })
+      document.getElementById('relationship-level-name').textContent = '—'
+      document.getElementById('progress-info').textContent = '—'
+      document.getElementById('progress-fill').style.width = '0%'
+      document.getElementById('status-text').textContent = DEFAULT_STATUS_TEXT
+      document.getElementById('known-days').textContent = '—'
+      renderDiaryPreview([],null); hideUnreadBadge()
+      renderFeedPreview([]); renderFeedReplyPill(0); renderFeedFooter(0)
+      window.__feedBadge = {unread:0,hasNew:false,newCount:0}
+    }
+    function renderHomeModule(key, data, isCurrent) {
+      if (key === 'relationship') {
+        homeRelationshipLevel = data.level ?? null
+        updateHomeAvatar(data.ai_current_emotion,isCurrent)
+        document.getElementById('status-text').textContent = resolveStatusText(data)
+        renderTopBarIntimacy(data); renderRelationshipPreview(data)
+        HomeStartup.storage('localStorage','setItem','relationship_level',homeRelationshipLevel)
+        renderDiaryPreview(homeDiaryItems || [],homeRelationshipLevel)
+      } else if (key === 'days') renderKnownDays(data.milestones)
+      else if (key === 'diary') { homeDiaryItems = data.items || []; renderDiaryPreview(homeDiaryItems,homeRelationshipLevel) }
+      else if (key === 'unread') renderUnreadBadge({code:0,data})
+      else if (key === 'feedList') renderFeedPreview(data.posts || [])
+      else if (key === 'feedBadge') {
+        window.__feedBadge = {unread:data.unread_reply_count || 0,hasNew:!!data.has_new,newCount:data.new_post_count || 0}
+        renderFeedReplyPill(window.__feedBadge.unread); renderFeedFooter(window.__feedBadge.newCount)
       }
     }
-
-    /**
-     * 首页朋友圈富预览：
-     * - badge.new_post_count → 底栏「N 条新动态」（相对 last_feed_entered_at，非 SSE）
-     * - badge.unread_reply_count → 顶胶囊「NEW · N条新回复」
-     * - list 最新帖 → 正文 / 更新时间 / 双图
-     */
-    async function loadFeedHomeCard() {
-      const silentAuthOptions = {
-        authPolicy: AUTH_401_POLICIES.SILENT_VISITOR,
-        onUnauthorized: switchHomeToVisitor,
-      }
-
-      if (homeAuthMode === 'visitor' || !localStorage.getItem('token')) {
-        const visitorFeedRequests = [
-          request('GET', '/api/feed/list?size=8', null, silentAuthOptions),
-        ]
-        const [listSettled] = await Promise.allSettled(visitorFeedRequests)
-        const listRes = listSettled.status === 'fulfilled' ? listSettled.value : null
-        renderFeedReplyPill(0)
-        renderFeedFooter(0)
-        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
-        if (listRes && listRes.code === 0 && listRes.data) {
-          renderFeedPreview(listRes.data.posts || [])
-        } else {
-          renderFeedPreview([])
-        }
-        return
-      }
-
-      const [badgeSettled, listSettled] = await Promise.allSettled([
-        request('GET', '/api/feed/badge', null, silentAuthOptions),
-        request('GET', '/api/feed/list?size=8', null, silentAuthOptions),
-      ])
-      const badgeRes = badgeSettled.status === 'fulfilled' ? badgeSettled.value : null
-      const listRes = listSettled.status === 'fulfilled' ? listSettled.value : null
-
-      if (homeAuthMode === 'visitor') {
-        renderFeedReplyPill(0)
-        renderFeedFooter(0)
-        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
-        if (listRes && listRes.code === 0 && listRes.data) {
-          renderFeedPreview(listRes.data.posts || [])
-        } else {
-          const anonymousList = await request(
-            'GET',
-            '/api/feed/list?size=8',
-            null,
-            silentAuthOptions
-          )
-          renderFeedPreview(
-            anonymousList.code === 0 && anonymousList.data
-              ? (anonymousList.data.posts || [])
-              : []
-          )
-        }
-        return
-      }
-
-      let unread = 0
-      let newCount = 0
-      if (badgeRes && badgeRes.code === 0 && badgeRes.data) {
-        unread = badgeRes.data.unread_reply_count || 0
-        newCount = badgeRes.data.new_post_count || 0
-        window.__feedBadge = {
-          unread: unread,
-          hasNew: !!badgeRes.data.has_new,
-          newCount: newCount,
-        }
-      } else {
-        window.__feedBadge = { unread: 0, hasNew: false, newCount: 0 }
-      }
-
-      renderFeedReplyPill(unread)
-      renderFeedFooter(newCount)
-
-      if (listRes && listRes.code === 0 && listRes.data) {
-        renderFeedPreview(listRes.data.posts || [])
-      } else {
-        renderFeedPreview([])
-      }
+    function getHomeDataController() {
+      if (!homeDataController) homeDataController = HomeData.mount({auth:resetHomeData,state:renderHomeModuleState,success:renderHomeModule})
+      return homeDataController
     }
+    async function loadPage() {
+      await getHomeDataController().load()
+      return {emotion:null}
+    }
+    async function loadFeedHomeCard() { await getHomeDataController().feed() }
 
     /** 点击朋友圈入口：有未读回复带 focus 定位，否则进列表顶部（PRD 5.6.3） */
     function goFeed() {
@@ -2264,11 +2273,10 @@
       }
     }
 
-    /** 从其他页返回首页时刷新朋友圈预览（不做自动轮询） */
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') loadFeedHomeCard()
-    })
-
+    for (const id of ['linxiaomeng-avatar', 'loading-avatar']) {
+      const img = document.getElementById(id)
+      if (img && img.complete && !img.naturalWidth) homeAvatarFallback(img)
+    }
     initHomePage()
     consumeLoginModalSignal({ onSuccess: refreshHomeAfterLogin })
   </script>

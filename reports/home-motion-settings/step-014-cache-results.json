@@ -1,0 +1,156 @@
+{
+  "scope": "Isolated local Linux Nginx 80 over HTTP and controlled API; not external HTTPS or phone verification",
+  "nginxImage": "sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa",
+  "results": [
+    {
+      "path": "/pages/index.html",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 79478,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-data.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 6686,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-scene-core.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 4080,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-scene.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 32255,
+      "etag": null
+    },
+    {
+      "path": "/static/css/home-scene.css",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 6714,
+      "etag": null
+    },
+    {
+      "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "bytes": 165630,
+      "etag": "\"6ac04779-286fe\""
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "bytes": 18394,
+      "etag": "\"6ac04779-47da\""
+    },
+    {
+      "path": "/static/images/Index/Index.png",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 550814,
+      "etag": "\"6ac04779-8679e\""
+    },
+    {
+      "path": "/static/images/home-scene/v4/manifest.json",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 9152,
+      "etag": "W/\"6ac04779-23c0\""
+    },
+    {
+      "path": "/static/css/voice-entry.css",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 6005,
+      "etag": "W/\"6ac04779-1775\""
+    },
+    {
+      "path": "/pages/settings.html",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 30369,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-preferences.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 1496,
+      "etag": null
+    }
+  ],
+  "caseSensitiveOldImage": true,
+  "missingHashNotImmutable": true,
+  "sharedApiWarmCacheUpdated": true,
+  "newVersionAcquired": true,
+  "cacheEvents": [
+    {
+      "url": "http://127.0.0.1:51798/static/images/home-scene/v4/cache_probe.c094490a4d8e.webp",
+      "status": 200,
+      "fromDiskCache": false
+    },
+    {
+      "requestId": "35484.145",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.146",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.159",
+      "servedFromCache": true
+    },
+    {
+      "url": "http://127.0.0.1:51798/static/images/home-scene/v4/cache_probe.c094490a4d8e.webp",
+      "status": 200,
+      "fromDiskCache": false
+    },
+    {
+      "requestId": "35484.165",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.166",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.172",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.190",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.191",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.210",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.211",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "35484.217",
+      "servedFromCache": true
+    },
+    {
+      "url": "http://127.0.0.1:51798/static/images/home-scene/v4/cache_probe.2816096f87aa.webp",
+      "status": 200,
+      "fromDiskCache": false
+    }
+  ],
+  "errors": []
+}

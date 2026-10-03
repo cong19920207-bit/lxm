@@ -1,0 +1,303 @@
+{
+  "version": "v4",
+  "canvas": [
+    853,
+    1844
+  ],
+  "geometry": "Original canvas, padding, placement and rotation anchors preserved",
+  "tools": {
+    "pillow": "12.3.0",
+    "libwebp": "1.6.0"
+  },
+  "assets": [
+    {
+      "role": "background",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp",
+      "source_sha256": "c094490a4d8eb789299af8d04ddce8eed7454f9c43c9d2e28a8bb40b500ad1aa",
+      "source_bytes": 165630,
+      "source_format": "WEBP",
+      "source_mode": "RGB",
+      "file": "background.c094490a4d8e.webp",
+      "url": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "sha256": "c094490a4d8eb789299af8d04ddce8eed7454f9c43c9d2e28a8bb40b500ad1aa",
+      "bytes": 165630,
+      "size": [
+        853,
+        1844
+      ],
+      "mode": "RGB",
+      "parameters": {
+        "operation": "copy_original_bytes"
+      },
+      "placement_in_character_canvas": null,
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "bedb376c55d7cb6ab7f976bf1f689f2263e1c35d43bfd440afbd2a8d9c777645",
+        "alpha_bbox": [
+          0,
+          0,
+          853,
+          1844
+        ]
+      }
+    },
+    {
+      "role": "character",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp",
+      "source_sha256": "2816096f87aaae6cd49b80065186eeadea240b2b2ab12482ee4879ad44a0dfb4",
+      "source_bytes": 284604,
+      "source_format": "WEBP",
+      "source_mode": "RGBA",
+      "file": "character.2816096f87aa.webp",
+      "url": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+      "sha256": "2816096f87aaae6cd49b80065186eeadea240b2b2ab12482ee4879ad44a0dfb4",
+      "bytes": 284604,
+      "size": [
+        853,
+        1844
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "operation": "copy_original_bytes"
+      },
+      "placement_in_character_canvas": null,
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "ddb9252aa8f43f46b2b06a26acdcf742a6495c1dbf11ff4179e3a692e3cd06aa",
+        "alpha_bbox": [
+          0,
+          19,
+          853,
+          1844
+        ]
+      }
+    },
+    {
+      "role": "hair_front",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png",
+      "source_sha256": "b1e1d3d8534d6ad77a6960949c07097a8b20765e558977abfdb4ae5140790db2",
+      "source_bytes": 358769,
+      "source_format": "PNG",
+      "source_mode": "RGBA",
+      "file": "hair_front_physics.584d824b1097.webp",
+      "url": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+      "sha256": "584d824b1097c128830b46bc9ffa97093f7cce452dc823f72c095bfe174148ac",
+      "bytes": 122426,
+      "size": [
+        456,
+        417
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": false
+      },
+      "placement_in_character_canvas": {
+        "left_percent": 26.7292,
+        "top_percent": 7.6464,
+        "width_percent": 53.4584,
+        "height_percent": 22.6139,
+        "transform_origin_percent": [
+          50,
+          10
+        ]
+      },
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "3f9220d9e15afa388bdccc1a6360a2180dd2764be77da3581b6e387681aa1441",
+        "alpha_bbox": [
+          8,
+          8,
+          448,
+          409
+        ]
+      }
+    },
+    {
+      "role": "hair_side",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png",
+      "source_sha256": "c1aa3d65e058f37a93c0cb8d897c07ac3ca85d17f5907e8019270acb8eed4c0a",
+      "source_bytes": 120267,
+      "source_format": "PNG",
+      "source_mode": "RGBA",
+      "file": "hair_side_physics.bdbce85d79df.webp",
+      "url": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+      "sha256": "bdbce85d79dfeb29511d731e3c28256463f67d03ae9bfacd8ac7dc5548329c9e",
+      "bytes": 72036,
+      "size": [
+        220,
+        512
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": false
+      },
+      "placement_in_character_canvas": {
+        "left_percent": 72.8019,
+        "top_percent": 11.8221,
+        "width_percent": 25.7913,
+        "height_percent": 27.7657,
+        "transform_origin_percent": [
+          15,
+          8
+        ]
+      },
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "7e2ded6450e607a811f3c3046846f961754db477a87e895d07190a512e960bb9",
+        "alpha_bbox": [
+          8,
+          7,
+          213,
+          504
+        ]
+      }
+    },
+    {
+      "role": "hair_back",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png",
+      "source_sha256": "cb856237a6f68ee69e52d1b7c26dbe1c0cfd1eec8ab317f51588dcc3eac3fdab",
+      "source_bytes": 146555,
+      "source_format": "PNG",
+      "source_mode": "RGBA",
+      "file": "hair_back_physics.5e44234c710b.webp",
+      "url": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+      "sha256": "5e44234c710bc34ca3dedf3218c78621101e4d6c48c64fcfbf4b913e48dddfa5",
+      "bytes": 90110,
+      "size": [
+        168,
+        445
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": false
+      },
+      "placement_in_character_canvas": {
+        "left_percent": 21.3365,
+        "top_percent": 9.4902,
+        "width_percent": 19.6952,
+        "height_percent": 24.1323,
+        "transform_origin_percent": [
+          74,
+          9
+        ]
+      },
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "316e7943b054fd17f28e718d6824baeb7c84f41819ab5020b63e06850a5ee6c2",
+        "alpha_bbox": [
+          8,
+          8,
+          160,
+          437
+        ]
+      }
+    },
+    {
+      "role": "blink",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png",
+      "source_sha256": "3365f66905d34fe4a9d1e5beb038525c1cfcf18b2e1e40d90cdaac5207f6c75a",
+      "source_bytes": 70797,
+      "source_format": "PNG",
+      "source_mode": "RGBA",
+      "file": "blink_crop.33f4a94e6931.webp",
+      "url": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+      "sha256": "33f4a94e6931e48fcb5907e02e396407c70c8d2b2df497491531fcb30d7c2413",
+      "bytes": 20540,
+      "size": [
+        263,
+        134
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": false
+      },
+      "placement_in_character_canvas": {
+        "left_percent": 35.990621,
+        "top_percent": 19.143167,
+        "width_percent": 30.832356,
+        "height_percent": 7.266811
+      },
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "a34fdc00eac138dd7af79649a3a9f0832b3af38489cdd99c526e08126fbfd3f5",
+        "alpha_bbox": [
+          7,
+          7,
+          256,
+          127
+        ]
+      }
+    },
+    {
+      "role": "lamp",
+      "source": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp",
+      "source_sha256": "a1425ca6fb0adbcf0bd6128f0dc5f3d376b91e0cb0fe8da0d58d940cd027bf1f",
+      "source_bytes": 140176,
+      "source_format": "WEBP",
+      "source_mode": "RGBA",
+      "file": "lamp_glow.a1425ca6fb0a.webp",
+      "url": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+      "sha256": "a1425ca6fb0adbcf0bd6128f0dc5f3d376b91e0cb0fe8da0d58d940cd027bf1f",
+      "bytes": 140176,
+      "size": [
+        853,
+        1844
+      ],
+      "mode": "RGBA",
+      "parameters": {
+        "operation": "copy_original_bytes"
+      },
+      "placement_in_character_canvas": null,
+      "verification": {
+        "alpha_equal": true,
+        "visible_rgb_equal": true,
+        "black_white_composites_equal": true,
+        "alpha_sha256": "a79c8be1d3013d96c1b20f5ab9709e92a7e3c93e5146ac9640ec5eb7e35b0883",
+        "alpha_bbox": [
+          35,
+          9,
+          853,
+          1819
+        ]
+      }
+    }
+  ],
+  "budget": {
+    "source_bytes": 1286798,
+    "export_bytes": 895522,
+    "saved_bytes": 391276,
+    "core_bytes": 450234,
+    "core_target_bytes": 358400,
+    "core_target_met": false,
+    "whole_target_range_bytes": [
+      819200,
+      921600
+    ],
+    "whole_upper_target_met": true
+  },
+  "quality_scope": "Pixel verification only; browser and target-device evidence tracked in steps-verified.md section 9"
+}

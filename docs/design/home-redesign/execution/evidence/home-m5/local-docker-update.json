@@ -1,0 +1,187 @@
+{
+  "date": "2026-10-03",
+  "origin": "http://127.0.0.1",
+  "action": "nginx -t then graceful reload; existing read-only workspace mounts",
+  "files": [
+    {
+      "path": "/pages/index.html",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "no-cache",
+      "sha256": "00c7f4d0ff6693b2ea456ed35c42b72dc309cd9f8a15242ddebad31dc372a402"
+    },
+    {
+      "path": "/static/js/api.js",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": null,
+      "sha256": "2139ee79129bcdefd7c86d9dd44cc07f20d12a44a87906466731df241ed242c8"
+    },
+    {
+      "path": "/static/js/home-data.js",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "no-cache",
+      "sha256": "8e855210f3b079299c55c348e6e5ec55abf574ae387d9c87462bf41411a11f16"
+    },
+    {
+      "path": "/static/js/home-scene-core.js",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "no-cache",
+      "sha256": "0725fe4941ac683c2f3902531d1576b0439c7ec48f6dff6e9104935b97213dfc"
+    },
+    {
+      "path": "/static/js/home-scene.js",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "no-cache",
+      "sha256": "809cc77f8c6d6b781eb7be17b031ee1e442ec0ec41c156704b6dded3a628797f"
+    },
+    {
+      "path": "/static/css/home-scene.css",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "no-cache",
+      "sha256": "08f5ebf9e84ad22330a1ef8728d7970aa9963503b205d4e8dc5e85f666db34e0"
+    },
+    {
+      "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "c094490a4d8eb789299af8d04ddce8eed7454f9c43c9d2e28a8bb40b500ad1aa"
+    },
+    {
+      "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "33f4a94e6931e48fcb5907e02e396407c70c8d2b2df497491531fcb30d7c2413"
+    },
+    {
+      "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "2816096f87aaae6cd49b80065186eeadea240b2b2ab12482ee4879ad44a0dfb4"
+    },
+    {
+      "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "5e44234c710bc34ca3dedf3218c78621101e4d6c48c64fcfbf4b913e48dddfa5"
+    },
+    {
+      "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "584d824b1097c128830b46bc9ffa97093f7cce452dc823f72c095bfe174148ac"
+    },
+    {
+      "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "bdbce85d79dfeb29511d731e3c28256463f67d03ae9bfacd8ac7dc5548329c9e"
+    },
+    {
+      "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "a1425ca6fb0adbcf0bd6128f0dc5f3d376b91e0cb0fe8da0d58d940cd027bf1f"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "0d3cb97c216272f56024f446f848741f2d862dd2bfa41c96121550b9ea46c154"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "1ff65a5fb6c1d04ee2c5e70e4c07e7927c67e00036676c8ce195f3e9745644c7"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_calm.c92996b91505.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "c92996b91505eadc1061856a5fce1e2d1dba0509d867a1f4cad2081ec3b6ec3a"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_curious.cc184da7f1d6.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "cc184da7f1d6ab20b784618e526edfe78f4805ca3da2c8317625509b3e64ca27"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "eed62969ffbc312db4d5c52300cf289e32181dddf99b19263424cc24d1dec53f"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_miss.b552a52cadab.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "b552a52cadab915967b322b2f890a68766461224ae7c478e6d7feb66b195792c"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_shy.3c7f0553088b.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "3c7f0553088be75cdd6a15d3652c7e680bc67e813e427c7d6a236c1a8fb50e4f"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_sleepy.779d18fc6bcb.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "779d18fc6bcb5d3bbcc9d43e2d8bc18700d6b1c5985bcdd3f9a9db0c53f8d615"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/emotion_worry.7542495825fb.webp",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "7542495825fb8e85b913e0fd7e810efcaa509dfd44fdfef4cec2afb49c975f99"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+      "status": 200,
+      "matchesWorkspace": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "sha256": "68494af2b4bf4bf5759c69b571ee89639e34cadf0f554fbb8cc2197edcf34348"
+    }
+  ],
+  "api": [
+    {
+      "path": "/api/app/persona-background",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/feed/list?size=1",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/relationship/status",
+      "status": 401,
+      "expected": 401
+    }
+  ],
+  "realAccountLoginTested": false,
+  "phoneHttpsTested": false
+}

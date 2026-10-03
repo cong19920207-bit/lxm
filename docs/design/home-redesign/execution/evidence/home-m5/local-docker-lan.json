@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-03",
+  "lanOrigin": "http://192.168.1.3:54324",
+  "loopbackOrigin": "http://127.0.0.1",
+  "composeOverride": "docker-compose.lan-local.yml",
+  "dockerPorts": {
+    "80/tcp": [
+      {
+        "HostIp": "127.0.0.1",
+        "HostPort": "80"
+      },
+      {
+        "HostIp": "192.168.1.3",
+        "HostPort": "54324"
+      }
+    ]
+  },
+  "staticChecks": [
+    {
+      "path": "/pages/index.html",
+      "status": 200,
+      "matchesWorkspace": true
+    },
+    {
+      "path": "/pages/login.html",
+      "status": 200,
+      "matchesWorkspace": true
+    },
+    {
+      "path": "/static/js/api.js",
+      "status": 200,
+      "matchesWorkspace": true
+    },
+    {
+      "path": "/static/js/home-data.js",
+      "status": 200,
+      "matchesWorkspace": true
+    },
+    {
+      "path": "/static/js/home-scene.js",
+      "status": 200,
+      "matchesWorkspace": true
+    }
+  ],
+  "apiChecks": [
+    {
+      "path": "/api/feed/list?size=1",
+      "status": 200
+    },
+    {
+      "path": "/api/app/persona-background",
+      "status": 200
+    },
+    {
+      "path": "/api/relationship/status",
+      "status": 401
+    }
+  ],
+  "loopbackStillAvailable": true,
+  "temporary8080Released": true,
+  "portConflictChecks": "Before binding: no host listener or published Docker port on 54324; checked the two other running Compose projects port configuration. No other project changed.",
+  "credentialsSubmitted": false,
+  "phoneClientVerified": false,
+  "httpsSensorAcceptance": false,
+  "loginRoute": {
+    "statusForReadOnlyGet": 405,
+    "allow": "POST",
+    "credentialsSubmitted": false
+  }
+}

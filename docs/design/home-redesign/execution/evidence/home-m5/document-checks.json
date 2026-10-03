@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-03",
+  "scope": "New or updated M5 documentation and entry links only; no history contents read.",
+  "links": [
+    {
+      "source": "docs/contract/current/h5-app/api.md",
+      "target": "docs/design/home-redesign/steps-verified.md",
+      "fragment": "9-林小梦主页改版-v2-step-进度",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/contract/current/h5-app/api.md",
+      "target": "docs/design/home-redesign/steps-verified.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/home-redesign/steps-verified.md",
+      "target": "docs/contract/current/h5-app/api.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/home-redesign/steps-verified.md",
+      "target": "docs/design/home-redesign/execution/evidence/home-m5/contract-verification.json",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/home-redesign/steps-verified.md",
+      "target": "docs/design/home-redesign/execution/evidence/home-m5/document-checks.json",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/INDEX.md",
+      "target": "docs/design/home-redesign/PRD-林小梦主页改版-v2.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/INDEX.md",
+      "target": "docs/contract/current/h5-app/api.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/INDEX.md",
+      "target": "docs/design/home-redesign/steps-verified.md",
+      "fragment": "9-林小梦主页改版-v2-step-进度",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/INDEX.md",
+      "target": "docs/design/home-redesign/history/README.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/README.md",
+      "target": "docs/design/home-redesign",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/README.md",
+      "target": "docs/design/home-redesign/PRD-林小梦主页改版-v2.md",
+      "fragment": "",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/README.md",
+      "target": "docs/design/home-redesign/steps-verified.md",
+      "fragment": "9-林小梦主页改版-v2-step-进度",
+      "result": "PASS"
+    },
+    {
+      "source": "docs/design/README.md",
+      "target": "docs/design/home-redesign/history/README.md",
+      "fragment": "",
+      "result": "PASS"
+    }
+  ],
+  "linkCount": 13,
+  "stepBodyUnchanged": true,
+  "steps": 18,
+  "doneSteps": 10,
+  "m5Documentation": "VERIFIED",
+  "contractHandoff": "CONTRACT_VERIFICATION_READY",
+  "overallAcceptance": "NOT_REACHED",
+  "gitDiffCheck": "PASS",
+  "status": "PASS"
+}

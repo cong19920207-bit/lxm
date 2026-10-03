@@ -1,0 +1,33 @@
+{
+  "scope": "Actual desktop page, actual delayed external script and controlled optional API/core failures",
+  "results": [
+    {
+      "case": "actual scene script arrives after independent 8s head deadline; ready state read, one scene/data init",
+      "pass": true
+    },
+    {
+      "case": "optional ResizeObserver fault isolated from static/business entry",
+      "pass": true
+    },
+    {
+      "case": "optional WAAPI fault isolated from static/business entry",
+      "pass": true
+    },
+    {
+      "case": "optional core fault isolated from static/business entry",
+      "pass": true
+    },
+    {
+      "case": "optional script fault isolated from static/business entry",
+      "pass": true
+    },
+    {
+      "case": "optional background fault isolated from static/business entry",
+      "pass": true
+    },
+    {
+      "case": "optional character fault isolated from static/business entry",
+      "pass": true
+    }
+  ]
+}

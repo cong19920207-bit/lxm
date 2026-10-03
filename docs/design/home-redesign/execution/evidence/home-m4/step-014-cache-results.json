@@ -1,0 +1,142 @@
+{
+  "scope": "Isolated local Linux Nginx 80 over HTTP and controlled API; not external HTTPS or phone verification",
+  "nginxImage": "sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa",
+  "results": [
+    {
+      "path": "/pages/index.html",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 79685,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-data.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 6686,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-scene-core.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 4080,
+      "etag": null
+    },
+    {
+      "path": "/static/js/home-scene.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 31610,
+      "etag": null
+    },
+    {
+      "path": "/static/css/home-scene.css",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "bytes": 6714,
+      "etag": null
+    },
+    {
+      "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "bytes": 165630,
+      "etag": "\"6abfbffb-286fe\""
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "bytes": 18394,
+      "etag": "\"6abfbffb-47da\""
+    },
+    {
+      "path": "/static/images/Index/Index.png",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 550814,
+      "etag": "\"6abfbffb-8679e\""
+    },
+    {
+      "path": "/static/images/home-scene/v4/manifest.json",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 9152,
+      "etag": "W/\"6abfbffb-23c0\""
+    },
+    {
+      "path": "/static/css/voice-entry.css",
+      "status": 200,
+      "cacheControl": null,
+      "bytes": 6005,
+      "etag": "W/\"6abfbffb-1775\""
+    }
+  ],
+  "caseSensitiveOldImage": true,
+  "missingHashNotImmutable": true,
+  "sharedApiWarmCacheUpdated": true,
+  "newVersionAcquired": true,
+  "cacheEvents": [
+    {
+      "url": "http://127.0.0.1:51770/static/images/home-scene/v4/cache_probe.c094490a4d8e.webp",
+      "status": 200,
+      "fromDiskCache": false
+    },
+    {
+      "requestId": "46269.139",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.140",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.152",
+      "servedFromCache": true
+    },
+    {
+      "url": "http://127.0.0.1:51770/static/images/home-scene/v4/cache_probe.c094490a4d8e.webp",
+      "status": 200,
+      "fromDiskCache": false
+    },
+    {
+      "requestId": "46269.158",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.159",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.165",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.182",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.183",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.201",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.202",
+      "servedFromCache": true
+    },
+    {
+      "requestId": "46269.208",
+      "servedFromCache": true
+    },
+    {
+      "url": "http://127.0.0.1:51770/static/images/home-scene/v4/cache_probe.2816096f87aa.webp",
+      "status": 200,
+      "fromDiskCache": false
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,18 @@
+{
+  "url": "http://192.168.1.3:54323/pages/index.html?__home_preview=authenticated",
+  "secureContext": false,
+  "tiltChecked": false,
+  "panel": "× 更多互动 主页动态让她轻轻呼吸，看看窗外的雨 正常运行 倾斜视差轻转手机，换个角度看看她 当前页面连接不支持倾斜",
+  "images": [
+    {
+      "src": "/static/images/Index/in_memery/sunset.png",
+      "width": 1254
+    },
+    {
+      "src": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+      "width": 168
+    }
+  ],
+  "scope": "Actual LAN HTTP served by preview, desktop Chrome; no injected sensor or permission. Reproduces HTTP prerequisite block, not a real phone acceptance.",
+  "harnessCorrection": "Initial check() incorrectly expected checked state; changed to click() because unavailable must restore OFF."
+}

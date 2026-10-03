@@ -1,0 +1,61 @@
+{
+  "scope": "Real home/settings frontend and desktop Chrome native back cache, controlled DeviceOrientation and permission outcomes; actual phone/HTTPS permission and direction remain pending",
+  "results": [
+    {
+      "case": "settings shape/default, click authorization, real native back, finite data, rotation, combined pause, cleanup and explicit off",
+      "pass": true
+    },
+    {
+      "case": "deny feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "unsupported feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "insecure feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "reject feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "storage feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "motion-off feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "reduced feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "defer feedback, off state and no hidden activation",
+      "pass": true
+    },
+    {
+      "case": "departure invalidates a late authorization result",
+      "pass": true
+    },
+    {
+      "case": "motion-off invalidates a late authorization result",
+      "pass": true
+    },
+    {
+      "case": "reduced invalidates a late authorization result",
+      "pass": true
+    },
+    {
+      "case": "missing direction data times out and is reflected in settings",
+      "pass": true
+    },
+    {
+      "case": "explicit setting with a browser that has no permission method",
+      "pass": true
+    }
+  ]
+}

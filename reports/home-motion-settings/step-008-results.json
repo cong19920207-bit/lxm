@@ -1,0 +1,53 @@
+{
+  "scope": "Actual homepage desktop Chrome; source motion rules and controlled layer failures",
+  "results": [
+    {
+      "case": "seven motion classes, source-consistent layers, blink/idle pause cancellation",
+      "pass": true,
+      "metrics": {
+        "loaded": [
+          "lamp",
+          "front",
+          "side",
+          "back",
+          "blink"
+        ],
+        "failed": [],
+        "environmentFrames": 402,
+        "blinkCount": 9,
+        "idleCount": 1,
+        "responseCount": 0,
+        "action": "idle",
+        "quality": 0,
+        "responseLatencyMs": null,
+        "pixelBudget": null,
+        "canvas": {
+          "width": 585,
+          "height": 1266,
+          "dpr": 1.5,
+          "pixels": 740610
+        }
+      }
+    },
+    {
+      "case": "isolated hair-side failure with real login entry",
+      "pass": true
+    },
+    {
+      "case": "isolated blink failure with real login entry",
+      "pass": true
+    },
+    {
+      "case": "isolated lamp failure with real login entry",
+      "pass": true
+    },
+    {
+      "case": "isolated canvas failure with real login entry",
+      "pass": true
+    },
+    {
+      "case": "initial reduced motion avoids optional downloads and loops",
+      "pass": true
+    }
+  ]
+}

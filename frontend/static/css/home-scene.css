@@ -1,0 +1,89 @@
+/* Home-only canvas coordinates: all character patches share the 853 x 1844 rig. */
+body.h5-skin.home-scene-page { background: #080611; overflow-y: auto; }
+body.h5-skin .page.h5-home-page {
+  --home-hero-height: 44vh;
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 560px);
+  margin: 0 auto;
+  height: auto;
+  min-height: max(100vh, 600px);
+  min-height: max(100dvh, 600px);
+  max-height: none;
+  background-image: none;
+}
+body.h5-skin .h5-home-page .home-hero {
+  height: var(--home-hero-height);
+  max-height: none;
+  min-height: 210px;
+}
+body.h5-skin .h5-home-page .home-hero-float { max-width: 46%; }
+body.h5-skin .h5-home-page .h5-home-main {
+  min-height: calc(100vh - var(--home-hero-height));
+  min-height: calc(100dvh - var(--home-hero-height));
+}
+.h5-home-page .home-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #080611;
+  pointer-events: none;
+  z-index: -1;
+}
+.h5-home-page .home-scene-background { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+html[data-home-scene-mode="legacy"] .home-scene-position,
+html[data-home-scene-mode="legacy"] .home-scene-lamp,
+html[data-home-scene-mode="legacy"] .home-scene-environment { display: none !important; }
+.h5-home-page .home-scene-position {
+  position: absolute;
+  width: 64%;
+  aspect-ratio: 853 / 1844;
+  left: 64%;
+  top: calc(var(--home-hero-height) * .68);
+  transform: translate(-52%, -25%);
+}
+.h5-home-page .home-scene-parallax,
+.h5-home-page .home-scene-gesture,
+.h5-home-page .home-scene-breathe { position: absolute; inset: 0; }
+.h5-home-page .home-scene-position::before { content: ''; display: block; padding-top: 216.178194%; }
+.h5-home-page .home-scene-character { position: absolute; inset: 0; width: 100%; height: 100%; }
+.h5-home-page .home-scene img { user-select: none; -webkit-user-drag: none; }
+.h5-home-page .home-scene img[hidden] { display: none !important; }
+.h5-home-page .home-scene-patch { position: absolute; pointer-events: none; opacity: 0; }
+.h5-home-page .home-scene-character-failed .home-scene-patch { display: none; }
+.h5-home-page .home-scene-hair-front { left: 26.7292%; top: 7.6464%; width: 53.4584%; height: 22.6139%; transform-origin: 50% 10%; }
+.h5-home-page .home-scene-hair-side { left: 72.8019%; top: 11.8221%; width: 25.7913%; height: 27.7657%; transform-origin: 15% 8%; }
+.h5-home-page .home-scene-hair-back { left: 21.3365%; top: 9.4902%; width: 19.6952%; height: 24.1323%; transform-origin: 74% 9%; }
+.h5-home-page .home-scene-blink { left: 35.990621%; top: 19.143167%; width: 30.832356%; height: 7.266811%; }
+@media (max-width: 390px) { body.h5-skin .page.h5-home-page { --home-hero-height: 40vh; } }
+@media (min-width: 700px) { body.h5-skin .page.h5-home-page { --home-hero-height: 40vh; } }
+@supports (height: 100dvh) {
+  body.h5-skin .page.h5-home-page { --home-hero-height: 44dvh; }
+  @media (max-width: 390px), (min-width: 700px) { body.h5-skin .page.h5-home-page { --home-hero-height: 40dvh; } }
+}
+/* Short landscape/keyboard space scrolls normally instead of clipping the CTA. */
+@media (max-height: 600px) {
+  body.h5-skin .page.h5-home-page { --home-hero-height: 240px; height: auto; min-height: 650px; }
+  body.h5-skin .h5-home-page .h5-home-main { min-height: 390px; flex: 1; }
+}
+
+/* Once the mask releases, all business entries are visibly available. */
+.h5-home-page.is-startup-ready .home-enter-item { opacity: 1; transform: none; transition: none; animation: none; }
+.h5-home-page .home-module-note { display: block; font-size: 10px; color: #e0c3d2; line-height: 1.4; }
+.h5-home-page .home-module-note[hidden] { display: none; }
+.h5-home-page .home-module-note button { border: 0; background: transparent; color: #ffe5cd; font: inherit; text-decoration: underline; padding: 3px 6px; cursor: pointer; }
+.h5-home-page .home-chat-btn-wrap > .home-module-note { position: absolute; top: -17px; right: 0; }
+.h5-home-page .home-scene-lamp, .h5-home-page .home-scene-environment { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.h5-home-page .home-scene-lamp { object-fit: cover; opacity: 0; mix-blend-mode: screen; }
+.h5-home-page .home-scene-breathe { transform-origin: 55% 78%; }
+.h5-home-page .home-scene-gesture { transform-origin: 55% 78%; }
+.h5-home-page .home-scene-hair-front { -webkit-mask-image: linear-gradient(to bottom, transparent 0%,rgba(0,0,0,.22) 30%,#000 64%); mask-image: linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.22) 30%,#000 64%); }
+.h5-home-page .home-scene-hair-side { -webkit-mask-image: linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.35) 18%,#000 48%); mask-image: linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.35) 18%,#000 48%); }
+.h5-home-page .home-scene-hair-back { -webkit-mask-image: linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.28) 22%,#000 52%); mask-image: linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.28) 22%,#000 52%); }
+.h5-home-page .home-scene-blink { clip-path: inset(48% 0 48% 0); }
+.h5-home-page .home-scene { z-index: 0; }
+.h5-home-page .home-hero { pointer-events: none; }
+.h5-home-page .home-top-bar, .h5-home-page .home-hero-float { pointer-events: auto; }
+.h5-home-page .home-scene-hit { position: absolute; left: 35%; top: 16%; width: 35%; height: 20%; border: 0; padding: 0; background: transparent; border-radius: 45%; pointer-events: auto; cursor: pointer; z-index: 5; }
+.h5-home-page .home-scene-hit:disabled { cursor: default; }
+.h5-home-page .home-scene-hit:focus-visible { outline: 2px solid #d9caff; outline-offset: 3px; }

@@ -1,0 +1,128 @@
+{
+  "scope": "Actual index.html, desktop Chrome, controlled storage/network/decode faults",
+  "results": [
+    {
+      "case": "API hang",
+      "elapsed": 4118,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "core hang",
+      "elapsed": 6059,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "core decode hang",
+      "elapsed": 6072,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "core error",
+      "elapsed": 4094,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "local property",
+      "elapsed": 4093,
+      "phase": "ready",
+      "releases": 1,
+      "auth": false,
+      "relationship": "—",
+      "pass": true
+    },
+    {
+      "case": "token read",
+      "elapsed": 4090,
+      "phase": "ready",
+      "releases": 1,
+      "auth": false,
+      "relationship": "—",
+      "pass": true
+    },
+    {
+      "case": "session read",
+      "elapsed": 4094,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "session write",
+      "elapsed": 4094,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "session remove",
+      "elapsed": 4072,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "relationship write",
+      "elapsed": 4087,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "亲密",
+      "pass": true
+    },
+    {
+      "case": "relationship remove",
+      "elapsed": 4091,
+      "phase": "ready",
+      "releases": 1,
+      "auth": true,
+      "relationship": "陌生",
+      "pass": true
+    },
+    {
+      "case": "skip + local property",
+      "elapsed": 39,
+      "phase": "ready",
+      "releases": 1,
+      "auth": false,
+      "relationship": "—",
+      "pass": true
+    },
+    {
+      "case": "skip + token read",
+      "elapsed": 41,
+      "phase": "ready",
+      "releases": 1,
+      "auth": false,
+      "relationship": "—",
+      "pass": true
+    },
+    {
+      "case": "same-tab skip and refresh",
+      "skip": 12,
+      "refresh": 4073,
+      "pass": true
+    }
+  ]
+}

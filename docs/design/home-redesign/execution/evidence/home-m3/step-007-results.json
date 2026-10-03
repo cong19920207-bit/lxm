@@ -1,0 +1,96 @@
+{
+  "scope": "Actual page desktop Chrome; controlled lifecycle events (not proof of native bfcache eligibility)",
+  "result": {
+    "first": {
+      "id": 1,
+      "running": true,
+      "disposed": false,
+      "reasons": [],
+      "raf": true,
+      "time": 0,
+      "frames": 1,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "same": true,
+    "combined": {
+      "id": 1,
+      "running": false,
+      "disposed": false,
+      "reasons": [
+        "hidden"
+      ],
+      "raf": true,
+      "time": 0,
+      "frames": 1,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "stopped": {
+      "id": 1,
+      "running": false,
+      "disposed": false,
+      "reasons": [
+        "hidden"
+      ],
+      "raf": false,
+      "time": 0,
+      "frames": 1,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "resumed": {
+      "id": 1,
+      "running": true,
+      "disposed": false,
+      "reasons": [],
+      "raf": true,
+      "time": 33.30000000000001,
+      "frames": 4,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "cached": {
+      "id": 1,
+      "running": false,
+      "disposed": false,
+      "reasons": [
+        "bfcache"
+      ],
+      "raf": false,
+      "time": 33.30000000000001,
+      "frames": 4,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "restored": {
+      "id": 1,
+      "running": true,
+      "disposed": false,
+      "reasons": [],
+      "raf": true,
+      "time": 49.89999999999998,
+      "frames": 6,
+      "effects": 3,
+      "timers": 0,
+      "subscriptions": 34
+    },
+    "destroyed": {
+      "id": 1,
+      "running": false,
+      "disposed": true,
+      "reasons": [],
+      "raf": false,
+      "time": 49.89999999999998,
+      "frames": 6,
+      "effects": 0,
+      "timers": 0,
+      "subscriptions": 0
+    }
+  }
+}

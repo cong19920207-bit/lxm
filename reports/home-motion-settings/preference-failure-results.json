@@ -1,0 +1,48 @@
+{
+  "scope": "Actual home/settings frontend and desktop Chrome; controlled storage write failures and orientation permissions; real phone validation remains pending",
+  "results": [
+    {
+      "case": "tilt_startup_page_only",
+      "pass": true
+    },
+    {
+      "case": "tilt_startup_hidden",
+      "pass": true
+    },
+    {
+      "case": "tilt_startup_replaced",
+      "pass": true
+    },
+    {
+      "case": "tilt_startup_destroyed",
+      "pass": true
+    },
+    {
+      "case": "motion",
+      "pass": true
+    },
+    {
+      "case": "tilt_timeout",
+      "pass": true
+    },
+    {
+      "case": "tilt_page_only",
+      "pass": true
+    },
+    {
+      "case": "tilt_handoff_failure",
+      "pass": true
+    },
+    {
+      "case": "tilt_timeout_page_only",
+      "pass": true
+    }
+  ],
+  "sourceSha256": {
+    "frontend/pages/index.html": "bf69846b016c14d2aecc1e32ebb5a307bf97dc17676410157b9d1508e82174fe",
+    "frontend/pages/settings.html": "2409a7fb20f4428e57746c49641d12ec0105fa20a5dc4aae6b0ca99842fceea4",
+    "frontend/static/js/home-preferences.js": "8f3c4dd1cf101b9811a666c210b11b39915e6f5b74b6fdf59edfe4aa2d380052",
+    "frontend/static/js/home-scene.js": "2ae1d5ef5a5cbb8bb9ca42d94811f9a91eba7a4af44c4cb0cc2c3a438b551f1d",
+    "frontend/static/css/home-scene.css": "a4da79e5b6049cdb5df196fc65ba3d44e7d2cc9bd7bb025fad10dafe89f9df3c"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "scope": "Isolated Linux Nginx and actual frontend desktop Chrome. API/storage/sensor/low-FPS faults are controlled; no phone/HTTPS/real audio/Q201 acceptance claim.",
+  "results": [
+    {
+      "script": "test_home_cache",
+      "exitCode": 0,
+      "durationMs": 2590
+    },
+    {
+      "script": "test_home_fallback",
+      "exitCode": 0,
+      "durationMs": 14261
+    },
+    {
+      "script": "test_home_startup",
+      "exitCode": 0,
+      "durationMs": 63504
+    },
+    {
+      "script": "test_home_startup_boundaries",
+      "exitCode": 0,
+      "durationMs": 9875
+    },
+    {
+      "script": "test_home_request_context",
+      "exitCode": 0,
+      "durationMs": 2082
+    },
+    {
+      "script": "test_home_data",
+      "exitCode": 0,
+      "durationMs": 18650
+    },
+    {
+      "script": "test_home_lifecycle",
+      "exitCode": 0,
+      "durationMs": 821
+    },
+    {
+      "script": "test_home_motion",
+      "exitCode": 0,
+      "durationMs": 23082
+    },
+    {
+      "script": "test_home_response",
+      "exitCode": 0,
+      "durationMs": 10650
+    },
+    {
+      "script": "test_home_preferences",
+      "exitCode": 0,
+      "durationMs": 8413
+    },
+    {
+      "script": "test_home_tilt",
+      "exitCode": 0,
+      "durationMs": 10291
+    },
+    {
+      "script": "test_home_panels",
+      "exitCode": 0,
+      "durationMs": 628
+    },
+    {
+      "script": "test_home_quality",
+      "exitCode": 0,
+      "durationMs": 3430
+    },
+    {
+      "script": "test_home_scene_boundaries",
+      "exitCode": 0,
+      "durationMs": 15857
+    },
+    {
+      "script": "test_home_native_bfcache",
+      "exitCode": 0,
+      "durationMs": 879
+    },
+    {
+      "script": "test_home_final_layout",
+      "exitCode": 0,
+      "durationMs": 3497
+    },
+    {
+      "script": "test_home_assets",
+      "exitCode": 0,
+      "durationMs": 26492
+    }
+  ],
+  "sourceSha256": {
+    "frontend/pages/index.html": "00c7f4d0ff6693b2ea456ed35c42b72dc309cd9f8a15242ddebad31dc372a402",
+    "frontend/static/js/api.js": "2139ee79129bcdefd7c86d9dd44cc07f20d12a44a87906466731df241ed242c8",
+    "frontend/static/js/home-data.js": "8e855210f3b079299c55c348e6e5ec55abf574ae387d9c87462bf41411a11f16",
+    "frontend/static/js/home-scene-core.js": "0725fe4941ac683c2f3902531d1576b0439c7ec48f6dff6e9104935b97213dfc",
+    "frontend/static/js/home-scene.js": "809cc77f8c6d6b781eb7be17b031ee1e442ec0ec41c156704b6dded3a628797f",
+    "frontend/static/css/home-scene.css": "08f5ebf9e84ad22330a1ef8728d7970aa9963503b205d4e8dc5e85f666db34e0",
+    "nginx/nginx.conf": "18253d95abc4e6964a63dd1571e58686b0415537bfa37184b07488ec8780b273",
+    "tests/test_h5_static_contract.py": "59017bea27def6e7989672b3db2ea2ea424a1ce44592ab085ab690bba263e649"
+  }
+}

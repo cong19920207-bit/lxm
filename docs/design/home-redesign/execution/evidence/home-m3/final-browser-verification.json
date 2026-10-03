@@ -1,0 +1,89 @@
+{
+  "scope": "Actual frontend on desktop Chrome, controlled API/storage/sensor faults separately labeled; no phone/real audio/Q201 claims",
+  "results": [
+    {
+      "script": "test_home_startup",
+      "exitCode": 0,
+      "durationMs": 64126
+    },
+    {
+      "script": "test_home_startup_boundaries",
+      "exitCode": 0,
+      "durationMs": 9994
+    },
+    {
+      "script": "test_home_request_context",
+      "exitCode": 0,
+      "durationMs": 2121
+    },
+    {
+      "script": "test_home_data",
+      "exitCode": 0,
+      "durationMs": 18714
+    },
+    {
+      "script": "test_home_lifecycle",
+      "exitCode": 0,
+      "durationMs": 805
+    },
+    {
+      "script": "test_home_motion",
+      "exitCode": 0,
+      "durationMs": 23165
+    },
+    {
+      "script": "test_home_response",
+      "exitCode": 0,
+      "durationMs": 19089
+    },
+    {
+      "script": "test_home_preferences",
+      "exitCode": 0,
+      "durationMs": 7975
+    },
+    {
+      "script": "test_home_tilt",
+      "exitCode": 0,
+      "durationMs": 10343
+    },
+    {
+      "script": "test_home_panels",
+      "exitCode": 0,
+      "durationMs": 640
+    },
+    {
+      "script": "test_home_quality",
+      "exitCode": 0,
+      "durationMs": 3516
+    },
+    {
+      "script": "test_home_scene_boundaries",
+      "exitCode": 0,
+      "durationMs": 14400
+    },
+    {
+      "script": "test_home_native_bfcache",
+      "exitCode": 0,
+      "durationMs": 933
+    },
+    {
+      "script": "test_home_final_layout",
+      "exitCode": 0,
+      "durationMs": 3633
+    },
+    {
+      "script": "test_home_assets",
+      "exitCode": 0,
+      "durationMs": 26556
+    }
+  ],
+  "sourceSha256": {
+    "frontend/pages/index.html": "d37befebd6406b2faffefcbc457e6d0815b3018233f09361709f27e50cb71f83",
+    "frontend/static/js/api.js": "2139ee79129bcdefd7c86d9dd44cc07f20d12a44a87906466731df241ed242c8",
+    "frontend/static/js/home-data.js": "8e855210f3b079299c55c348e6e5ec55abf574ae387d9c87462bf41411a11f16",
+    "frontend/static/js/home-scene-core.js": "0725fe4941ac683c2f3902531d1576b0439c7ec48f6dff6e9104935b97213dfc",
+    "frontend/static/js/home-scene.js": "c508aee10a397db29bfc18a4f80958a5b378656848249de961abed8b9dbe2752",
+    "frontend/static/css/home-scene.css": "2acb2117b2b968b0d0b06bc39043e558c57a77c25af6ebf90a3609c967aca9bd",
+    "tests/test_h5_static_contract.py": "59017bea27def6e7989672b3db2ea2ea424a1ce44592ab085ab690bba263e649"
+  }
+}

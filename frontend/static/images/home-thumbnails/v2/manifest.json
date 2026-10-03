@@ -1,0 +1,174 @@
+{
+  "assets": [
+    {
+      "source": "frontend/static/images/avatar/default.png",
+      "source_sha256": "6b5ed7ef4db883937dac2b9817823f374a288e881f9c5567b9d7abfaa3b83f99",
+      "source_bytes": 683856,
+      "source_size": [
+        1254,
+        1254
+      ],
+      "file": "default.0d3cb97c2162.webp",
+      "sha256": "0d3cb97c216272f56024f446f848741f2d862dd2bfa41c96121550b9ea46c154",
+      "bytes": 18394,
+      "size": [
+        126,
+        126
+      ],
+      "url": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_calm.png",
+      "source_sha256": "04924329f4905b3cfcc33fd56d0fa965eeb470dcf614a43c16e1705f7757d493",
+      "source_bytes": 835673,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_calm.c92996b91505.webp",
+      "sha256": "c92996b91505eadc1061856a5fce1e2d1dba0509d867a1f4cad2081ec3b6ec3a",
+      "bytes": 29830,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_calm.c92996b91505.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_curious.png",
+      "source_sha256": "41303b5508fe11f1bcef6cf6e9eb3003161e61da98b08aebe6f0bee5d9176748",
+      "source_bytes": 665182,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_curious.cc184da7f1d6.webp",
+      "sha256": "cc184da7f1d6ab20b784618e526edfe78f4805ca3da2c8317625509b3e64ca27",
+      "bytes": 29686,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_curious.cc184da7f1d6.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_happy.png",
+      "source_sha256": "b31225f596381b6fc0632f67aa51f838f28264d864fdc43bbb6d0e555f09f83a",
+      "source_bytes": 780129,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_happy.eed62969ffbc.webp",
+      "sha256": "eed62969ffbc312db4d5c52300cf289e32181dddf99b19263424cc24d1dec53f",
+      "bytes": 29562,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_miss.png",
+      "source_sha256": "8a97a6dd1bf3a80087061b07bf3d115c36a17bcf27e91d58a66cae587fc03eb4",
+      "source_bytes": 630016,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_miss.b552a52cadab.webp",
+      "sha256": "b552a52cadab915967b322b2f890a68766461224ae7c478e6d7feb66b195792c",
+      "bytes": 29572,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_miss.b552a52cadab.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_shy.png",
+      "source_sha256": "23850ac17292f15c0dbad7e83afa30a152179b69f94d139994cef9a09f206c19",
+      "source_bytes": 908279,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_shy.3c7f0553088b.webp",
+      "sha256": "3c7f0553088be75cdd6a15d3652c7e680bc67e813e427c7d6a236c1a8fb50e4f",
+      "bytes": 30462,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_shy.3c7f0553088b.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_sleepy.png",
+      "source_sha256": "b7e8f9700b852bbb9d68f547b302ee3c98a364afca3300e8ead2e6da1b266886",
+      "source_bytes": 775237,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_sleepy.779d18fc6bcb.webp",
+      "sha256": "779d18fc6bcb5d3bbcc9d43e2d8bc18700d6b1c5985bcdd3f9a9db0c53f8d615",
+      "bytes": 30128,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_sleepy.779d18fc6bcb.webp"
+    },
+    {
+      "source": "frontend/static/images/avatar/emotion_worry.png",
+      "source_sha256": "8fa764581203ae01344acbde5a377064376d9026bfc96dd7278c7c3ed86799bb",
+      "source_bytes": 683019,
+      "source_size": [
+        853,
+        1844
+      ],
+      "file": "emotion_worry.7542495825fb.webp",
+      "sha256": "7542495825fb8e85b913e0fd7e810efcaa509dfd44fdfef4cec2afb49c975f99",
+      "bytes": 29996,
+      "size": [
+        126,
+        272
+      ],
+      "url": "/static/images/home-thumbnails/v2/emotion_worry.7542495825fb.webp"
+    },
+    {
+      "source": "frontend/static/images/Index/loader_avatar.jpg",
+      "source_sha256": "68494af2b4bf4bf5759c69b571ee89639e34cadf0f554fbb8cc2197edcf34348",
+      "source_bytes": 19678,
+      "source_size": [
+        256,
+        256
+      ],
+      "file": "loader_avatar.68494af2b4bf.jpg",
+      "sha256": "68494af2b4bf4bf5759c69b571ee89639e34cadf0f554fbb8cc2197edcf34348",
+      "bytes": 19678,
+      "size": [
+        256,
+        256
+      ],
+      "url": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
+    },
+    {
+      "source": "frontend/static/images/Index/in_diary/diary_1.png",
+      "source_sha256": "1065a612ffe122f23f0ce6e469f0678d90c71395fd00d5425cf6d24654ac6a16",
+      "source_bytes": 612551,
+      "source_size": [
+        1254,
+        1254
+      ],
+      "file": "diary_1.1ff65a5fb6c1.webp",
+      "sha256": "1ff65a5fb6c1d04ee2c5e70e4c07e7927c67e00036676c8ce195f3e9745644c7",
+      "bytes": 36924,
+      "size": [
+        168,
+        168
+      ],
+      "url": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp"
+    }
+  ]
+}

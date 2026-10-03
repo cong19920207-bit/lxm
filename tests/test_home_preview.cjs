@@ -1,0 +1,53 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {createPreviewServer}=require('../scripts/serve_home_preview.cjs');
+const {chromium}=require(process.env.HOME_PLAYWRIGHT_PATH||'playwright');
+const root=path.resolve(__dirname,'..'),output=process.env.HOME_REGRESSION_EVIDENCE_DIR||path.join(root,'docs/design/home-redesign/execution/evidence/home-m4');
+(async()=>{
+ const server=createPreviewServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const origin='http://127.0.0.1:'+server.address().port;let browser;
+ try{
+  const response=await fetch(origin+'/api/feed/list?size=8');assert.equal(response.status,200,'Public preview Feed is available');
+  const feed=await response.json();assert.equal(feed.code,0);assert.equal(feed.data.posts[0].image_urls.length,2);assert.equal('comments' in feed.data.posts[0],false);assert.equal('user_liked' in feed.data.posts[0],false);
+  assert.equal((await fetch(origin+'/api/feed/list',{headers:{Authorization:'Bearer unrelated-token'}})).status,401,'Invalid preview auth must not become anonymous');
+  for(const url of feed.data.posts[0].image_urls)assert.equal((await fetch(origin+url,{method:'HEAD'})).status,200);
+  for(const route of ['/api/relationship/status','/api/feed/badge'])assert.equal((await fetch(origin+route)).status,401);
+  assert.equal((await fetch(origin+'/api/auth/login',{method:'POST',body:JSON.stringify({username:'real-secret-name',password:'real-secret-password'})})).status,405,'No real credential handling in this demo');
+  assert.equal((await fetch(origin+'/api/voice/calls',{method:'POST'})).status,405,'No backend writes');
+  assert.equal((await fetch(origin+'/.env')).status,404);
+  browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3}),page=await context.newPage(),requests=[],errors=[];
+  page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))requests.push(new URL(r.url()).pathname)});page.on('pageerror',e=>errors.push(e.message));
+  const cdp=await context.newCDPSession(page);await cdp.send('Network.enable');await cdp.send('Network.setBlockedURLs',{urls:['https://fonts.googleapis.com/*','https://fonts.gstatic.com/*']});
+  await page.goto(origin+'/pages/index.html');await page.waitForFunction(()=>!document.getElementById('home-loading-screen'));
+  await page.waitForFunction(()=>document.querySelectorAll('#feed-thumbs img').length===2&&[...document.querySelectorAll('#feed-thumbs img')].every(img=>img.naturalWidth>0));
+  assert.equal(await page.locator('#known-days').textContent(),'故事从今天开始');assert.deepEqual(requests,['/api/feed/list']);
+  await page.getByRole('button',{name:'更多互动',exact:true}).click();await page.waitForSelector('#auth-login-modal.is-open');
+  await page.locator('#auth-modal-login-username').fill('fixtureuser');await page.locator('#auth-modal-login-password').fill('Fixture123');
+  await page.locator('[data-auth-modal-submit="login"]').click();await page.waitForSelector('.toast-item');
+  assert.equal(requests.filter(route=>route==='/api/auth/login').length,0,'Preview login form never sends credentials');
+  await page.keyboard.press('Escape');
+  await page.locator('#auth-login-modal').waitFor({state:'hidden'});
+  fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,'preview-visitor-two-images.png')});
+  await page.goto(origin+'/__home_preview');await page.getByRole('link',{name:'模拟登录首页',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('relationship-level-name').textContent==='亲密');
+  assert.equal(await page.locator('#known-days').textContent(),'陪伴你的第 12 天');
+  await page.getByRole('button',{name:'更多互动',exact:true}).click();assert.equal(await page.locator('.toast-item').last().textContent(),'敬请期待');
+  await page.waitForFunction(()=>{
+    const toast=document.querySelector('.toast-item');
+    return toast&&Number(getComputedStyle(toast).opacity)>.95&&toast.getBoundingClientRect().top>=0;
+  });
+  await page.screenshot({path:path.join(output,'preview-more-expecting.png')});
+  assert.equal(await page.locator('#home-motion-panel').count(),0);
+  assert.equal(await page.locator('#home-tilt-enabled').count(),0);
+  await page.locator('#linxiaomeng-avatar').click();await page.waitForURL(origin+'/pages/settings.html');
+  assert.equal(await page.getByRole('switch',{name:'倾斜视差',exact:true}).getAttribute('aria-checked'),'false');
+  await page.goBack();
+  await page.screenshot({path:path.join(output,'preview-authenticated-two-images.png')});
+  await page.goto(origin+'/__home_preview');await page.getByRole('link',{name:'访客首页',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('known-days').textContent==='故事从今天开始');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('token')),null);
+  assert.deepEqual(errors,[]);
+  fs.writeFileSync(path.join(output,'preview-results.json'),JSON.stringify({scope:'Actual desktop frontend served by controlled temporary preview; public Feed two pictures, visitor/mocked-auth selection and original gate. No real login, sensor, audio or phone acceptance claim.',publicFeed:feed.data.posts,visitorPrivateRequestCount:0,simulatedLogin:true,returnedToVisitor:true,errors},null,2)+'\n');
+  console.log('PASS preview public two-image Feed, visitor gate, explicit mock-auth and no backend writes');
+ }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
+})().catch(e=>{console.error(e);process.exitCode=1});

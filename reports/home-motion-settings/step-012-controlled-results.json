@@ -1,0 +1,17 @@
+{
+  "scope": "Actual shared login modal and actual VoiceEntry.begin/close on desktop; controlled terminal DOM states, no microphone/network/audio call acceptance",
+  "pass": true,
+  "id": 1,
+  "destroyed": {
+    "id": 1,
+    "running": false,
+    "disposed": true,
+    "reasons": [],
+    "raf": false,
+    "time": 16.633999999999986,
+    "frames": 3,
+    "effects": 0,
+    "timers": 0,
+    "subscriptions": 0
+  }
+}

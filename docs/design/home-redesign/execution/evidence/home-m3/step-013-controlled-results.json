@@ -1,0 +1,128 @@
+{
+  "scope": "Desktop measurements and deliberately controlled 200000px/300ms/30fps calibration. These parameters are NOT production/Q201 selections.",
+  "results": [
+    {
+      "case": "uncalibrated desktop metrics are collected without invented Q201 parameters",
+      "pass": true,
+      "measured": {
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 90,
+            "elapsedMs": 1499.568,
+            "maxFrameMs": 16.799999999999997,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.01728497807368,
+            "heapBytes": 2266096
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 34,
+          "blinkCount": 0,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      }
+    },
+    {
+      "case": "controlled calibration caps pixels and drops environment→hair→static; same instance retains, new page reassesses preference",
+      "pass": true,
+      "first": {
+        "q": {
+          "level": 1,
+          "calibrated": true,
+          "calibration": {
+            "pixelBudget": 200000,
+            "windowMs": 300,
+            "minimumFps": 30,
+            "source": "controlled-desktop-test-only"
+          },
+          "lastWindow": {
+            "elapsedMs": 325.5,
+            "frames": 4,
+            "fps": 12.288786482334869
+          },
+          "metrics": {
+            "frames": 4,
+            "elapsedMs": 325.5,
+            "maxFrameMs": 81.80000001192093,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 12.288786482334869,
+            "heapBytes": 2651338
+          }
+        },
+        "m": {
+          "loaded": [
+            "side",
+            "front",
+            "lamp",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 4,
+          "blinkCount": 0,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 1,
+          "responseLatencyMs": null,
+          "pixelBudget": 200000,
+          "canvas": {
+            "width": 304,
+            "height": 657,
+            "dpr": 0.7794916565803208,
+            "pixels": 199728
+          }
+        }
+      },
+      "second": {
+        "level": 2,
+        "calibrated": true,
+        "calibration": {
+          "pixelBudget": 200000,
+          "windowMs": 300,
+          "minimumFps": 30,
+          "source": "controlled-desktop-test-only"
+        },
+        "lastWindow": {
+          "elapsedMs": 330.80000001192093,
+          "frames": 4,
+          "fps": 12.091898427617453
+        },
+        "metrics": {
+          "frames": 8,
+          "elapsedMs": 656.3000000119209,
+          "maxFrameMs": 82.8999999910593,
+          "longTasks": 0,
+          "longTaskMs": 0,
+          "meanFps": 12.189547462829026,
+          "heapBytes": 2803142
+        }
+      }
+    }
+  ]
+}

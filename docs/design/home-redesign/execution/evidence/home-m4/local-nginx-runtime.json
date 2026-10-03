@@ -1,0 +1,53 @@
+{
+  "scope": "Existing task-local lxm_nginx, exact read-only workspace mounts, bound only to 127.0.0.1:80. Successful nginx -t and graceful reload; actual HTTP HEAD checks only. No external HTTPS, production publication, API data or phone assertion.",
+  "results": [
+    {
+      "path": "/pages/index.html",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "etag": null,
+      "lastModified": "Fri, 02 Oct 2026 14:10:15 GMT",
+      "contentLength": null
+    },
+    {
+      "path": "/static/js/home-scene.js",
+      "status": 200,
+      "cacheControl": "no-cache",
+      "etag": null,
+      "lastModified": "Fri, 02 Oct 2026 14:10:15 GMT",
+      "contentLength": null
+    },
+    {
+      "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "etag": "\"6abf763b-286fe\"",
+      "lastModified": "Fri, 02 Oct 2026 09:15:39 GMT",
+      "contentLength": "165630"
+    },
+    {
+      "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+      "status": 200,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "etag": "\"6abf8767-47da\"",
+      "lastModified": "Fri, 02 Oct 2026 10:28:55 GMT",
+      "contentLength": "18394"
+    },
+    {
+      "path": "/static/images/Index/Index.png",
+      "status": 200,
+      "cacheControl": null,
+      "etag": "\"6a2d1f01-8679e\"",
+      "lastModified": "Sat, 13 Jun 2026 09:12:33 GMT",
+      "contentLength": "550814"
+    },
+    {
+      "path": "/static/css/voice-entry.css",
+      "status": 200,
+      "cacheControl": null,
+      "etag": "W/\"6aaed24b-1775\"",
+      "lastModified": "Sat, 19 Sep 2026 18:19:55 GMT",
+      "contentLength": null
+    }
+  ]
+}

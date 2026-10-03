@@ -1,0 +1,13 @@
+{
+  "scope": "Actual page desktop mouse/keyboard and controlled reduced motion; native mobile gestures pending M4",
+  "results": [
+    {
+      "case": "visitor click, Enter/Space, merged repeat, paused suppression, network/navigation unchanged",
+      "pass": true
+    },
+    {
+      "case": "authenticated click, Enter/Space, merged repeat, paused suppression, network/navigation unchanged",
+      "pass": true
+    }
+  ]
+}

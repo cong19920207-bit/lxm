@@ -1,0 +1,45 @@
+{
+  "scope": "Real home/settings frontend; controlled API, desktop Chrome",
+  "results": [
+    {
+      "case": "initial/emotions/cache/refresh",
+      "pass": true
+    },
+    {
+      "case": "settings retains shared default mapping",
+      "pass": true
+    },
+    {
+      "case": "emotion failure",
+      "pass": true,
+      "failed": [
+        "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp"
+      ],
+      "actual": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp"
+    },
+    {
+      "case": "default+emotion failure",
+      "pass": true,
+      "failed": [
+        "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+        "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp"
+      ],
+      "actual": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
+    },
+    {
+      "case": "loader portrait failure",
+      "pass": true,
+      "failed": [
+        "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
+      ]
+    },
+    {
+      "case": "all fallback images fail safely",
+      "pass": true,
+      "failed": [
+        "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+        "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp"
+      ]
+    }
+  ]
+}

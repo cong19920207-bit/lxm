@@ -1,0 +1,12 @@
+# 同 Wi-Fi 的 H5 测试入口；仅叠加在现有本机配置之后，不用于生产。
+# LXM_LAN_IP 填本机当前 Wi-Fi IPv4（例如 ipconfig getifaddr en0 的结果）。
+# LXM_LAN_IP=192.168.1.3 docker compose -f docker-compose.yml -f docker-compose.voice-local.yml -f docker-compose.lan-local.yml up -d --no-deps --no-build nginx
+# 电脑仍用 127.0.0.1:80，手机用 LXM_LAN_IP:54324；后端直连端口保持本机限定。
+# IP 变化后用新值重建 nginx。恢复仅本机入口：
+# docker compose -f docker-compose.yml -f docker-compose.voice-local.yml up -d --no-deps --no-build nginx
+# HTTP 支持普通页面与账号登录，手机倾斜／麦克风仍需可信 HTTPS。
+services:
+  nginx:
+    ports: !override
+      - "127.0.0.1:80:80"
+      - "${LXM_LAN_IP:?Set LXM_LAN_IP to the current Wi-Fi IPv4}:54324:80"

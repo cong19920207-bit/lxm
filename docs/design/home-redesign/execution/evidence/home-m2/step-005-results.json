@@ -1,0 +1,37 @@
+{
+  "scope": "Actual api.js in real index.html, desktop Chrome; real fetch cancellation and controlled async responses",
+  "results": [
+    {
+      "case": "effective 401 legacy-login-page",
+      "pass": true
+    },
+    {
+      "case": "effective 401 silent-visitor",
+      "pass": true
+    },
+    {
+      "case": "effective 401 protected-home-modal",
+      "pass": true
+    },
+    {
+      "case": "effective 401 interactive-modal",
+      "pass": true
+    },
+    {
+      "case": "stale 401 before side effects",
+      "pass": true
+    },
+    {
+      "case": "context changes during JSON parse",
+      "pass": true
+    },
+    {
+      "case": "AbortSignal cancels real fetch",
+      "pass": true
+    },
+    {
+      "case": "legacy network error result",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "scope": "Actual desktop page, separate browser contexts and controlled Storage faults",
+  "results": [
+    {
+      "case": "preference persists across refresh/account; system override; Escape",
+      "pass": true
+    },
+    {
+      "case": "visitor shared login and no action replay",
+      "pass": true
+    },
+    {
+      "case": "preference getItem exception in actual page",
+      "pass": true
+    },
+    {
+      "case": "preference setItem exception in actual page",
+      "pass": true
+    },
+    {
+      "case": "independent browser has its own default preference",
+      "pass": true
+    }
+  ]
+}

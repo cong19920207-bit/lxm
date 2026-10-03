@@ -1,0 +1,630 @@
+{
+  "scope": "Desktop Chrome asset viewer. Viewports and DPR are controlled; no mobile device, WeChat, production UI or network-performance claim.",
+  "browserVersion": "154.0.8037.97",
+  "runs": [
+    {
+      "requestedViewport": [
+        375,
+        667
+      ],
+      "requestedDPR": 1,
+      "environment": {
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "devicePixelRatio": 1,
+        "viewport": [
+          375,
+          667
+        ],
+        "screen": [
+          375,
+          667
+        ],
+        "sceneCSS": [
+          308.54175704989154,
+          667
+        ],
+        "protocol": "http:",
+        "eye": "open",
+        "mode": "export"
+      },
+      "assets": [
+        {
+          "role": "background",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "character",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_front",
+          "sourceSize": [
+            456,
+            417
+          ],
+          "exportSize": [
+            456,
+            417
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 136214,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_side",
+          "sourceSize": [
+            220,
+            512
+          ],
+          "exportSize": [
+            220,
+            512
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 95950,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_back",
+          "sourceSize": [
+            168,
+            445
+          ],
+          "exportSize": [
+            168,
+            445
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 75302,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "blink",
+          "sourceSize": [
+            263,
+            134
+          ],
+          "exportSize": [
+            263,
+            134
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 17038,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "lamp",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "requestedViewport": [
+        390,
+        844
+      ],
+      "requestedDPR": 3,
+      "environment": {
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "devicePixelRatio": 3,
+        "viewport": [
+          390,
+          844
+        ],
+        "screen": [
+          390,
+          844
+        ],
+        "sceneCSS": [
+          390,
+          844
+        ],
+        "protocol": "http:",
+        "eye": "open",
+        "mode": "export"
+      },
+      "assets": [
+        {
+          "role": "background",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "character",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_front",
+          "sourceSize": [
+            456,
+            417
+          ],
+          "exportSize": [
+            456,
+            417
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 136214,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_side",
+          "sourceSize": [
+            220,
+            512
+          ],
+          "exportSize": [
+            220,
+            512
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 95950,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_back",
+          "sourceSize": [
+            168,
+            445
+          ],
+          "exportSize": [
+            168,
+            445
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 75302,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "blink",
+          "sourceSize": [
+            263,
+            134
+          ],
+          "exportSize": [
+            263,
+            134
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 17038,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "lamp",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "requestedViewport": [
+        430,
+        932
+      ],
+      "requestedDPR": 3,
+      "environment": {
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "devicePixelRatio": 3,
+        "viewport": [
+          430,
+          932
+        ],
+        "screen": [
+          430,
+          932
+        ],
+        "sceneCSS": [
+          430,
+          932
+        ],
+        "protocol": "http:",
+        "eye": "open",
+        "mode": "export"
+      },
+      "assets": [
+        {
+          "role": "background",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "character",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_front",
+          "sourceSize": [
+            456,
+            417
+          ],
+          "exportSize": [
+            456,
+            417
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 136214,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_side",
+          "sourceSize": [
+            220,
+            512
+          ],
+          "exportSize": [
+            220,
+            512
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 95950,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_back",
+          "sourceSize": [
+            168,
+            445
+          ],
+          "exportSize": [
+            168,
+            445
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 75302,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "blink",
+          "sourceSize": [
+            263,
+            134
+          ],
+          "exportSize": [
+            263,
+            134
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 17038,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "lamp",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "requestedViewport": [
+        1280,
+        720
+      ],
+      "requestedDPR": 1,
+      "environment": {
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "devicePixelRatio": 1,
+        "viewport": [
+          1280,
+          720
+        ],
+        "screen": [
+          1280,
+          720
+        ],
+        "sceneCSS": [
+          333.058568329718,
+          720
+        ],
+        "protocol": "http:",
+        "eye": "open",
+        "mode": "export"
+      },
+      "assets": [
+        {
+          "role": "background",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "character",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_front",
+          "sourceSize": [
+            456,
+            417
+          ],
+          "exportSize": [
+            456,
+            417
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 136214,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_side",
+          "sourceSize": [
+            220,
+            512
+          ],
+          "exportSize": [
+            220,
+            512
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 95950,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "hair_back",
+          "sourceSize": [
+            168,
+            445
+          ],
+          "exportSize": [
+            168,
+            445
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 75302,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "blink",
+          "sourceSize": [
+            263,
+            134
+          ],
+          "exportSize": [
+            263,
+            134
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 17038,
+          "maxRGBDifference": 1,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        },
+        {
+          "role": "lamp",
+          "sourceSize": [
+            853,
+            1844
+          ],
+          "exportSize": [
+            853,
+            1844
+          ],
+          "geometryEqual": true,
+          "changedCompositePixels": 0,
+          "maxRGBDifference": 0,
+          "alphaMismatch": 0,
+          "opaqueMismatch": 0,
+          "transparentMismatch": 0,
+          "pass": true
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

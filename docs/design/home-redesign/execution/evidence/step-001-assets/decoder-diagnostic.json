@@ -1,0 +1,47 @@
+{
+  "browser": "154.0.8037.97",
+  "initialExactCompositeAssertion": "FAILED for PNG-to-WebP translucent pixels",
+  "singleVariableControl": "Set source alpha to opaque; PNG and lossless WebP then composite identically",
+  "results": [
+    {
+      "role": "hair_front",
+      "alphaMismatch": 0,
+      "blackWhiteMaxRGB": 1,
+      "changedOpaquePixels": 0,
+      "changedTransparentPixels": 0,
+      "changedTranslucentPixels": 136214
+    },
+    {
+      "role": "hair_side",
+      "alphaMismatch": 0,
+      "blackWhiteMaxRGB": 1,
+      "changedOpaquePixels": 0,
+      "changedTransparentPixels": 0,
+      "changedTranslucentPixels": 95950
+    },
+    {
+      "role": "hair_back",
+      "alphaMismatch": 0,
+      "blackWhiteMaxRGB": 1,
+      "changedOpaquePixels": 0,
+      "changedTransparentPixels": 0,
+      "changedTranslucentPixels": 75302
+    },
+    {
+      "role": "blink",
+      "alphaMismatch": 0,
+      "blackWhiteMaxRGB": 1,
+      "changedOpaquePixels": 0,
+      "changedTransparentPixels": 0,
+      "changedTranslucentPixels": 17038
+    },
+    {
+      "role": "opaque-control",
+      "alphaMismatch": 0,
+      "blackWhiteMaxRGB": 0,
+      "changedOpaquePixels": 0,
+      "changedTransparentPixels": 0,
+      "changedTranslucentPixels": 0
+    }
+  ]
+}

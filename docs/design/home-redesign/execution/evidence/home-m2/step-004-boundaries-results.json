@@ -1,0 +1,31 @@
+{
+  "scope": "Actual homepage; real watchdog timing and controlled clock/storage fault paths",
+  "results": [
+    {
+      "case": "real 8s watchdog when ordinary tick unavailable",
+      "pass": true,
+      "result": {
+        "elapsed": 8002,
+        "forced": true,
+        "releases": 1,
+        "cleanups": 0
+      }
+    },
+    {
+      "case": "controlled absolute deadline on visibility/pageshow; late completion idempotent",
+      "pass": true
+    },
+    {
+      "case": "Session removeItem fault in actual clearToken branch",
+      "pass": true
+    },
+    {
+      "case": "explicit auth setItem failure retains valid in-memory outcome",
+      "pass": true
+    },
+    {
+      "case": "explicit auth removeItem failure retains valid in-memory outcome",
+      "pass": true
+    }
+  ]
+}

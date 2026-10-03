@@ -407,6 +407,7 @@ def test_relationship_html_surface_contract():
 def test_index_html_home_surface_contract():
     """首页改版：一屏布局、头像进设置、右上等级进关系、朋友圈富预览、日记卡、CTA。"""
     html = _read("index.html")
+    home_source = html + _read_js("home-data.js")
     api_js = _read_js("api.js")
     for fragment in (
         'id="unread-badge"',
@@ -421,7 +422,7 @@ def test_index_html_home_surface_contract():
         "/api/feed/list",
         "classList.add('unread-badge--active')",
         "home-hero",
-        "/static/images/Index/index.png",
+        "/static/images/home-scene/v4/",
         'id="linxiaomeng-avatar"',
         "/pages/settings.html",
         "goToRelationship()",
@@ -464,12 +465,12 @@ def test_index_html_home_surface_contract():
         "loading-avatar-ring",
         "home-enter-item",
         "is-enter-reveal",
-        "Promise.allSettled",
+        "HomeData.mount",
         "loadFeedHomeCard",
         "home-feed-icon.png",
         "home-diary-icon.png",
     ):
-        assert fragment in html, fragment
+        assert fragment in home_source, fragment
     assert "resolveStatusText" in api_js
     assert "home-rel-card" not in html
     assert "home-feature-grid" not in html
@@ -483,6 +484,7 @@ def test_index_html_home_surface_contract():
 def test_index_guest_mode_contract():
     """首页访客态：不发纯个性化请求，精确降级并在原页完成登录恢复。"""
     html = _read("index.html")
+    home_source = html + _read_js("home-data.js")
     for fragment in (
         "renderVisitorHome",
         "refreshHomeAfterLogin",
@@ -493,8 +495,8 @@ def test_index_guest_mode_contract():
         "故事从今天开始",
         "AUTH_401_POLICIES.SILENT_VISITOR",
         "consumeLoginModalSignal",
-        "visitorFeedRequests",
-        "request('GET', '/api/feed/list?size=8'",
+        "start(next.token ? Object.keys(paths) : ['feedList'])",
+        "/api/feed/list?size=8",
         "onclick=\"handleHomeQuickAction('voice')\"",
         "onclick=\"handleHomeQuickAction('video')\"",
         "onclick=\"handleHomeQuickAction('memory')\"",
@@ -502,7 +504,7 @@ def test_index_guest_mode_contract():
         "onclick=\"handleHomeQuickAction('more')\"",
         "onclick=\"goHomeDiary()\"",
     ):
-        assert fragment in html, fragment
+        assert fragment in home_source, fragment
 
     assert "checkLogin()" not in html
 

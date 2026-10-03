@@ -1,0 +1,1801 @@
+{
+  "date": "2026-10-03",
+  "scope": "Documentation synchronization and source consistency only. Reused behavior evidence requires unchanged source hashes. Controlled/desktop results do not prove phone/audio/production acceptance.",
+  "contractSha256": "2ac1308fa959e510397b01740e48e18f4639b06d531c2980e8cddb780f105431",
+  "sourceSha256": {
+    "frontend/pages/index.html": "00c7f4d0ff6693b2ea456ed35c42b72dc309cd9f8a15242ddebad31dc372a402",
+    "frontend/static/js/api.js": "2139ee79129bcdefd7c86d9dd44cc07f20d12a44a87906466731df241ed242c8",
+    "frontend/static/js/home-data.js": "8e855210f3b079299c55c348e6e5ec55abf574ae387d9c87462bf41411a11f16",
+    "frontend/static/js/home-scene-core.js": "0725fe4941ac683c2f3902531d1576b0439c7ec48f6dff6e9104935b97213dfc",
+    "frontend/static/js/home-scene.js": "809cc77f8c6d6b781eb7be17b031ee1e442ec0ec41c156704b6dded3a628797f",
+    "frontend/static/css/home-scene.css": "08f5ebf9e84ad22330a1ef8728d7970aa9963503b205d4e8dc5e85f666db34e0",
+    "nginx/nginx.conf": "18253d95abc4e6964a63dd1571e58686b0415537bfa37184b07488ec8780b273",
+    "tests/test_h5_static_contract.py": "59017bea27def6e7989672b3db2ea2ea424a1ce44592ab085ab690bba263e649"
+  },
+  "unchangedStepBodySha256": "4677826738a9439f60b343e26fce8a1ba0ee081b235e053cfae3f6ddd0c43bd4",
+  "milestonePlanSha256": "739a9b8b4e953fbb75f7d6a73609d3f6e66d1f6054540a5e22191f130a37f5a5",
+  "draftMappings": [
+    {
+      "step": "STEP-002",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-002-契约增量.md",
+      "draftSha256": "b01d6404ce1053a0dbb04bd4329409020201aac9f4e04ca1f8257fda83847e51",
+      "formalSections": [
+        "静态场景与首页图片"
+      ],
+      "implementation": [
+        "frontend/static/js/api.js::updateAvatarEmotion",
+        "frontend/pages/index.html::homeAvatarFallback"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": "头像 isCurrent 异步保护在 STEP-006 接入，按最终源码同步。"
+    },
+    {
+      "step": "STEP-003",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-003-契约增量.md",
+      "draftSha256": "61ec29580fa37f003d985db727daacf4bd13f09086f8c20e42c63143646d758c",
+      "formalSections": [
+        "静态场景与首页图片"
+      ],
+      "implementation": [
+        "frontend/pages/index.html::HomeStartup.mountScene",
+        "frontend/static/js/home-scene.js::layout"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": "STEP-003 的静态阶段不加载可选层由后续 STEP-008 渐进加载取代。"
+    },
+    {
+      "step": "STEP-004",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-004-契约增量.md",
+      "draftSha256": "daea71d56ecebfe63ced335002c6d0938cda8166b355a3365747e290cf040697",
+      "formalSections": [
+        "加载时序与恢复"
+      ],
+      "implementation": [
+        "frontend/pages/index.html::runHomeLoader / waitCoreImage / HomeStartup.complete"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-005",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-005-契约增量.md",
+      "draftSha256": "c05172792c2c3a2285201d5f8a9a780ad7d13fe0afcda23106b5be0cc6805dd6",
+      "formalSections": [
+        "共享请求上下文"
+      ],
+      "implementation": [
+        "frontend/static/js/api.js::request / assertRequestCurrent / saveToken / clearToken"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-006",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-006-契约增量.md",
+      "draftSha256": "24f49c6ed3aded48f7832f5256ed134cf55b82d39d09395d6aceb2533f8ced06",
+      "formalSections": [
+        "首页模块取数与保留内容"
+      ],
+      "implementation": [
+        "frontend/static/js/home-data.js::start / valid / changeAuth",
+        "frontend/pages/index.html::renderHomeModule"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-007",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-007-契约增量.md",
+      "draftSha256": "b3c72ab5c27f7f28d3eb3e93741b55ea6f186cf69dbb6c3334200180e7581981",
+      "formalSections": [
+        "统一暂停与清理"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::mount / reconcile / destroy"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-008",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-008-契约增量.md",
+      "draftSha256": "3f759c24b75f942cc91965433dd535df7f316e113c9738966fe814d7e89fd1f7",
+      "formalSections": [
+        "渐进动效与人物回应"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::optionalImages / neutral / frame"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-009",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-009-契约增量.md",
+      "draftSha256": "f1bb57e4e74a3953ae22a834ecbc4e187c96fbddad0d0244a5b8137372c6c0f5",
+      "formalSections": [
+        "渐进动效与人物回应"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::startAction",
+        "frontend/pages/index.html::.home-scene-hit"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-010",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-010-契约增量.md",
+      "draftSha256": "0c24a87099c58e4e89f5a984efa14b16bff6cea864243083362390fbbf29fc3e",
+      "formalSections": [
+        "更多互动与偏好"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::setMotionEnabled / controls",
+        "frontend/pages/index.html::handleHomeQuickAction"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-011",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-011-契约增量.md",
+      "draftSha256": "c55aee2cd062914e6ce026670999cfeab008578d0a1e4a6abb6ff8809572c0bc",
+      "formalSections": [
+        "主动倾斜"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::enable / validData / watchData / suspend / rotated"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-012",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-012-契约增量.md",
+      "draftSha256": "5a2cfd2e9b03c3784d42a8a6ad2c0b1fb1c7a49f49bd6e570a541ce26112164e",
+      "formalSections": [
+        "统一暂停与清理"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::panel MutationObserver"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    },
+    {
+      "step": "STEP-013",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-013-契约增量.md",
+      "draftSha256": "85a99fc912f4e4a62eda16f3bbb0536e2eb6919f1f008ff04d75988f94390365",
+      "formalSections": [
+        "质量策略与当前配置"
+      ],
+      "implementation": [
+        "frontend/static/js/home-scene.js::quality.configure / motion.setQuality / capPixels"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": "自动降级正式参数仍未配置；不可将夹具当生产配置。"
+    },
+    {
+      "step": "STEP-014",
+      "draft": "docs/design/home-redesign/execution/contract-drafts/STEP-014-契约增量.md",
+      "draftSha256": "1fc6bb3eb40f07fae042408e3e5373c5eaabe7a946778eb8824ae19a611bfa10",
+      "formalSections": [
+        "主页 v2：资源缓存与回退"
+      ],
+      "implementation": [
+        "frontend/pages/index.html::HomeStartup.useLegacyScene",
+        "nginx/nginx.conf"
+      ],
+      "review": "SOURCE_REVIEW_MATCHED",
+      "note": ""
+    }
+  ],
+  "noNewBusinessDeltaSteps": {
+    "STEP-001": "资源产物已映射，无新增业务接口",
+    "STEP-015": "性能量测证据与未测范围",
+    "STEP-016": "加载量测证据与未测范围",
+    "STEP-017": "保留能力回归证据",
+    "STEP-018": "文档同步，无额外 M5 业务草稿"
+  },
+  "requirements": [
+    {
+      "id": "RQ-01",
+      "sourceRow": "| RQ-01 | 保留布局与入口，接入 demo 场景 | 已确认 | STEP-003、STEP-008、STEP-009、STEP-017 |",
+      "owners": [
+        "STEP-003",
+        "STEP-008",
+        "STEP-009",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "渐进动效与人物回应",
+        "首页模块取数与保留内容",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "RQ-02",
+      "sourceRow": "| RQ-02 | 加载截止、内容独立显示与旧请求保护 | 已确认 | STEP-004、STEP-005、STEP-006 |",
+      "owners": [
+        "STEP-004",
+        "STEP-005",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "共享请求上下文",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "RQ-03",
+      "sourceRow": "| RQ-03 | 互动入口、访客门禁与倾斜主动授权 | 已确认 | STEP-009、STEP-010、STEP-011 |",
+      "owners": [
+        "STEP-009",
+        "STEP-010",
+        "STEP-011"
+      ],
+      "formalSections": [
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-009-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "RQ-04",
+      "sourceRow": "| RQ-04 | 动态偏好的保存范围 | 已确认 | STEP-010 |",
+      "owners": [
+        "STEP-010"
+      ],
+      "formalSections": [
+        "更多互动与偏好"
+      ],
+      "evidence": [
+        "home-m4/regression/step-010-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "RQ-05",
+      "sourceRow": "| RQ-05 | 首版设备与浏览器验收范围 | 已确认 | STEP-011、STEP-014、STEP-015、STEP-016、STEP-017 |",
+      "owners": [
+        "STEP-011",
+        "STEP-014",
+        "STEP-015",
+        "STEP-016",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "主动倾斜",
+        "主页 v2：资源缓存与回退",
+        "质量策略与当前配置",
+        "主页 v2：验收边界",
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好"
+      ],
+      "evidence": [
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json",
+        "home-m4/step-015-016-desktop-measurements.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "RQ-06",
+      "sourceRow": "| RQ-06 | 自动降级后的恢复策略 | 已确认 | STEP-013 |",
+      "owners": [
+        "STEP-013"
+      ],
+      "formalSections": [
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "G201",
+      "sourceRow": "| G201 | 保留主页使用路径；现有入口、卡片、数据与权限行为保持；背景和人物交互符合 demo 的视觉方向 | STEP-003、STEP-008、STEP-009、STEP-017 |",
+      "owners": [
+        "STEP-003",
+        "STEP-008",
+        "STEP-009",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "渐进动效与人物回应",
+        "首页模块取数与保留内容",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "G202",
+      "sourceRow": "| G202 | 加载可结束；接口或特效失败不永久遮挡页面，入口可以独立显示 | STEP-004、STEP-006 |",
+      "owners": [
+        "STEP-004",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "G203",
+      "sourceRow": "| G203 | 动态可控；更多互动提供开关，传感器可关闭，弹窗、通话与后台状态能正确暂停恢复 | STEP-007、STEP-010、STEP-011、STEP-012 |",
+      "owners": [
+        "STEP-007",
+        "STEP-010",
+        "STEP-011",
+        "STEP-012"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "更多互动与偏好",
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "G204",
+      "sourceRow": "| G204 | 降低素材传输；核心两图争取 ≤350 KiB，全套七图争取 800～900 KiB，同时通过清晰度与贴片对齐检查 | STEP-001、STEP-002、STEP-016 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "G205",
+      "sourceRow": "| G205 | 控制持续运行成本；普通手机目标接近 60fps，低档模式目标至少 30fps；持续掉帧按规则降级 | STEP-013、STEP-015 |",
+      "owners": [
+        "STEP-013",
+        "STEP-015"
+      ],
+      "formalSections": [
+        "质量策略与当前配置",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-013-controlled-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D01",
+      "sourceRow": "| V2-D01 | 布局与入口基线；保留当前生产项目主页布局、卡片和入口，以 §4 为准 | STEP-003、STEP-017 |",
+      "owners": [
+        "STEP-003",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D02",
+      "sourceRow": "| V2-D02 | 背景与人物；替换为 demo v4 分层场景；完整静态画面优先，特效渐进增强 | STEP-003、STEP-008、STEP-009 |",
+      "owners": [
+        "STEP-003",
+        "STEP-008",
+        "STEP-009"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "渐进动效与人物回应"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-009-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D03",
+      "sourceRow": "| V2-D03 | 更多互动；增加“主页动态”和“倾斜视差”开关；沿用现有登录门禁 | STEP-010、STEP-011 |",
+      "owners": [
+        "STEP-010",
+        "STEP-011"
+      ],
+      "formalSections": [
+        "更多互动与偏好",
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D04",
+      "sourceRow": "| V2-D04 | 加载时序；保留正常 3000ms 最短展示、500ms 停留、550ms 退出；核心图片等待最多 5 秒，遮罩 8 秒兜底 | STEP-004 |",
+      "owners": [
+        "STEP-004"
+      ],
+      "formalSections": [
+        "加载时序与恢复"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D05",
+      "sourceRow": "| V2-D05 | 业务数据；与遮罩完成解耦，首页请求批次 8 秒截止；区分未完成、失败、真实空态与访客态 | STEP-006 |",
+      "owners": [
+        "STEP-006"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D06",
+      "sourceRow": "| V2-D06 | 并发保护；取消过期请求；写 UI 与处理 401 前检查请求代次及登录快照 | STEP-005、STEP-006 |",
+      "owners": [
+        "STEP-005",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "共享请求上下文",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D07",
+      "sourceRow": "| V2-D07 | 性能与生命周期；单一主调度、环境特效优先 30fps、Canvas 有效 DPR 默认至多 1.5；统一暂停与降级 | STEP-007、STEP-008、STEP-012、STEP-013 |",
+      "owners": [
+        "STEP-007",
+        "STEP-008",
+        "STEP-012",
+        "STEP-013"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "渐进动效与人物回应",
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D08",
+      "sourceRow": "| V2-D08 | 素材优化；优先头发和眨眼 PNG，保护透明边缘；导出首页小图，不覆盖其他页面原图 | STEP-001、STEP-002 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002"
+      ],
+      "formalSections": [
+        "静态场景与首页图片"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D09",
+      "sourceRow": "| V2-D09 | 权限与业务；保留公共首页和交互登录；人物反馈本地执行；不增加后端接口、数据库或模型调用 | STEP-006、STEP-009、STEP-017 |",
+      "owners": [
+        "STEP-006",
+        "STEP-009",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D10",
+      "sourceRow": "| V2-D10 | 发布与回退；新资源版本化，核对实际缓存与 HTTPS；保留旧背景及首页回退开关 | STEP-014 |",
+      "owners": [
+        "STEP-014"
+      ],
+      "formalSections": [
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D11",
+      "sourceRow": "| V2-D11 | 文档与实现状态；新建 v2，保留 v1；本轮只记录，功能状态为待实施 | STEP-018 |",
+      "owners": [
+        "STEP-018"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "共享请求上下文",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜",
+        "统一暂停与清理",
+        "质量策略与当前配置",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D12",
+      "sourceRow": "| V2-D12 | 动态偏好保存；当前浏览器长期保存主页动态选择，刷新、再次访问及登录切换均保留；不同设备分别设置，系统减少动态效果优先 | STEP-010 |",
+      "owners": [
+        "STEP-010"
+      ],
+      "formalSections": [
+        "更多互动与偏好"
+      ],
+      "evidence": [
+        "home-m4/regression/step-010-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D13",
+      "sourceRow": "| V2-D13 | 首版验收范围；包含 iOS Safari、Android Chrome、iOS 微信和 Android 微信内置浏览器；具体机型与版本在验收前列明，语音沿用现有兼容策略 | STEP-011、STEP-014、STEP-015、STEP-016、STEP-017 |",
+      "owners": [
+        "STEP-011",
+        "STEP-014",
+        "STEP-015",
+        "STEP-016",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "主动倾斜",
+        "主页 v2：资源缓存与回退",
+        "质量策略与当前配置",
+        "主页 v2：验收边界",
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好"
+      ],
+      "evidence": [
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json",
+        "home-m4/step-015-016-desktop-measurements.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "V2-D14",
+      "sourceRow": "| V2-D14 | 降级后恢复；同一页面实例保持降级档位；后台、弹窗和浏览器后退恢复不升档；刷新或全新打开主页时重新评估 | STEP-013 |",
+      "owners": [
+        "STEP-013"
+      ],
+      "formalSections": [
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-01",
+      "sourceRow": "| CSTR-01 | 保留当前布局、朋友圈＋日记卡、顶栏关系、快捷栏与 CTA；不恢复旧三卡、横卡、装饰球或新增关怀位。 | §3.2、§4.1—§4.2 | STEP-003、STEP-017 |",
+      "owners": [
+        "STEP-003",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-02",
+      "sourceRow": "| CSTR-02 | 关系等级、成长进度／满级算法与 milestones.known_days 沿用；失败不能当成真实 Lv0。 | §4.1、§5.2 | STEP-006、STEP-017 |",
+      "owners": [
+        "STEP-006",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-03",
+      "sourceRow": "| CSTR-03 | 状态语使用 resolveStatusText；头像情绪更新与加载专用头像职责分离；首页小图不改变其他页映射。 | §4.1、§5.1、§7.1 | STEP-002、STEP-004、STEP-006、STEP-017 |",
+      "owners": [
+        "STEP-002",
+        "STEP-004",
+        "STEP-006",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-002-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-04",
+      "sourceRow": "| CSTR-04 | 北京时间 HH:mm 与七时段保持；Good night 仅 hour<5 或 hour>=20；装饰波形语义保持。 | §4.1 | STEP-017 |",
+      "owners": [
+        "STEP-017"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-05",
+      "sourceRow": "| CSTR-05 | 日记固定句、formatTime 四档、is_read===false 的 NEW 与真实 Lv0 锁保持，点击仍走登录门禁。 | §4.1、§5.2 | STEP-006、STEP-017 |",
+      "owners": [
+        "STEP-006",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-06",
+      "sourceRow": "| CSTR-06 | Feed 公共预览、更新时间、配图、登录角标与 goFeed 未读定位保持；协调已有 visibilitychange 刷新，不额外轮询。 | §4.1、§5.2 | STEP-006、STEP-017 |",
+      "owners": [
+        "STEP-006",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-07",
+      "sourceRow": "| CSTR-07 | 不重排业务卡片，不开发视频／入睡，不新增模型调用、后台 API、聚合接口或数据库迁移，不改变子页业务与语音协议、音频链路、计费。 | §4.2、§9.2 | STEP-003、STEP-005、STEP-006、STEP-009、STEP-012、STEP-017、STEP-018 |",
+      "owners": [
+        "STEP-003",
+        "STEP-005",
+        "STEP-006",
+        "STEP-009",
+        "STEP-012",
+        "STEP-017",
+        "STEP-018"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "共享请求上下文",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "统一暂停与清理",
+        "更多互动与偏好",
+        "主页 v2：验收边界",
+        "加载时序与恢复",
+        "主动倾斜",
+        "质量策略与当前配置",
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-08",
+      "sourceRow": "| CSTR-08 | 装饰层不抢事件；业务按钮、卡片、弹窗和语音面板优先；保持正常手势、缩放与键盘，不照搬全场景 touch-action:none。 | §5.3 | STEP-003、STEP-009、STEP-010、STEP-011、STEP-012、STEP-017 |",
+      "owners": [
+        "STEP-003",
+        "STEP-009",
+        "STEP-010",
+        "STEP-011",
+        "STEP-012",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜",
+        "统一暂停与清理",
+        "首页模块取数与保留内容",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-09",
+      "sourceRow": "| CSTR-09 | 保留 lxm_home_loader_done：同标签非刷新跳过，刷新及 clearToken 既有语义保持；跳过仍初始化场景和数据。 | §5.1 | STEP-004、STEP-005、STEP-006、STEP-007 |",
+      "owners": [
+        "STEP-004",
+        "STEP-005",
+        "STEP-006",
+        "STEP-007"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "共享请求上下文",
+        "首页模块取数与保留内容",
+        "统一暂停与清理"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-10",
+      "sourceRow": "| CSTR-10 | 保留加载品牌文案及完成提示；移除进度驱动的大面积模糊，用透明度过渡；减少动态时取消对应过渡，压缩不等于缩短固定展示。 | §5.1、§7.2 | STEP-004、STEP-016 |",
+      "owners": [
+        "STEP-004",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-11",
+      "sourceRow": "| CSTR-11 | 未完成、失败、真实空态、访客态分开；超时不清登录；未知关系不渲染为 Lv0 锁；旧结果不能覆盖已知数据或新 token。 | §5.2 | STEP-005、STEP-006 |",
+      "owners": [
+        "STEP-005",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "共享请求上下文",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-12",
+      "sourceRow": "| CSTR-12 | 新资源版本化，HTML 不长期不可变缓存；旧图保留并核对大小写；语音旧图不重新加入首页关键预热链，加载修复可随场景回退保留。 | §9.2 | STEP-001、STEP-002、STEP-004、STEP-014 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002",
+        "STEP-004",
+        "STEP-014"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-13",
+      "sourceRow": "| CSTR-13 | 减少雨和星光，再停止发丝物理，仍不稳则静态；同页保持降级，刷新／新实例重评，不覆盖动态关闭或系统减少动态偏好。 | §6；RQ-06 | STEP-013、STEP-015 |",
+      "owners": [
+        "STEP-013",
+        "STEP-015"
+      ],
+      "formalSections": [
+        "质量策略与当前配置",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-013-controlled-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-14",
+      "sourceRow": "| CSTR-14 | 多暂停原因互不覆盖；清理场景 CSS／WAAPI／RAF／计时器／传感器／观察器；bfcache 暂停，幂等恢复，真正销毁释放。 | §6 | STEP-007、STEP-008、STEP-011、STEP-012、STEP-013 |",
+      "owners": [
+        "STEP-007",
+        "STEP-008",
+        "STEP-011",
+        "STEP-012",
+        "STEP-013"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "渐进动效与人物回应",
+        "主动倾斜",
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-15",
+      "sourceRow": "| CSTR-15 | 首版场景、交互、加载含 iOS Safari、Android Chrome、iOS 微信、Android 微信；记录实际机型／版本／网络，个别通过不推定全体。 | §8；RQ-05 | STEP-001、STEP-002、STEP-003、STEP-004、STEP-006、STEP-007、STEP-008、STEP-009、STEP-010、STEP-011、STEP-012、STEP-013、STEP-014、STEP-015、STEP-016、STEP-017 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002",
+        "STEP-003",
+        "STEP-004",
+        "STEP-006",
+        "STEP-007",
+        "STEP-008",
+        "STEP-009",
+        "STEP-010",
+        "STEP-011",
+        "STEP-012",
+        "STEP-013",
+        "STEP-014",
+        "STEP-015",
+        "STEP-016",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "首页模块取数与保留内容",
+        "统一暂停与清理",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜",
+        "质量策略与当前配置",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json",
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-009-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/regression/step-013-controlled-results.json",
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json",
+        "home-m4/step-015-016-desktop-measurements.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-16",
+      "sourceRow": "| CSTR-16 | 倾斜只作为本地视觉输入；不上传或新增采集，不加埋点平台，不记录 token 或传感器原始数据；节约测算不当作账单或模型费用收益。 | §7.2、§9.2 | STEP-011、STEP-015、STEP-016 |",
+      "owners": [
+        "STEP-011",
+        "STEP-015",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "主动倾斜",
+        "质量策略与当前配置",
+        "主页 v2：验收边界",
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "CSTR-17",
+      "sourceRow": "| CSTR-17 | 文档只记录真实实现与证据；历史 K1—K7、TD-HOME-08 等不在本轮重结算，不新增技术债编号，不把 demo／静态壳／模拟结果当整体验收。 | §3.2、§8、§9.2、§9.5 | STEP-015、STEP-016、STEP-017、STEP-018 |",
+      "owners": [
+        "STEP-015",
+        "STEP-016",
+        "STEP-017",
+        "STEP-018"
+      ],
+      "formalSections": [
+        "质量策略与当前配置",
+        "主页 v2：验收边界",
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "主页 v2：资源缓存与回退",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "共享请求上下文",
+        "主动倾斜",
+        "统一暂停与清理"
+      ],
+      "evidence": [
+        "home-m4/step-015-016-desktop-measurements.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F201",
+      "sourceRow": "| F201 | STEP-003：背景＋完整人物的基础画面及可选层缺失时的静态保底；STEP-004：核心图失败／挂起后的有界等待；STEP-008：全部可选场景动效与失败保留基础画面 |",
+      "owners": [
+        "STEP-003",
+        "STEP-004",
+        "STEP-008"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "渐进动效与人物回应"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-008-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F202",
+      "sourceRow": "| F202 | STEP-003：共用坐标变换、小屏／短屏／桌面与旋转适配；STEP-017：最终动效、倾斜与数据状态接入后的布局、贴片和手势集成验收 |",
+      "owners": [
+        "STEP-003",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F203",
+      "sourceRow": "| F203 | STEP-004：首访、刷新、会话跳过及完整加载截止规则；STEP-006：会话跳过／正常启动仍只初始化一次数据；STEP-016：真实环境下的时序与截止达成 |",
+      "owners": [
+        "STEP-004",
+        "STEP-006",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "首页模块取数与保留内容",
+        "静态场景与首页图片",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F204",
+      "sourceRow": "| F204 | STEP-005：请求可取消与 401 前上下文保护的共享请求部分；STEP-006：模块更新、批次截止、真实状态、去重与 UI 代次的首页部分 |",
+      "owners": [
+        "STEP-005",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "共享请求上下文",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F205",
+      "sourceRow": "| F205 | STEP-009：人物有效区域、重复合并、本地回应与输入优先级 |",
+      "owners": [
+        "STEP-009"
+      ],
+      "formalSections": [
+        "渐进动效与人物回应"
+      ],
+      "evidence": [
+        "home-m4/regression/step-009-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F206",
+      "sourceRow": "| F206 | STEP-010：更多入口门禁、主页动态总开关与长期偏好；倾斜实际状态由 STEP-011 接入；STEP-011：倾斜开关实际状态子条款 |",
+      "owners": [
+        "STEP-010",
+        "STEP-011"
+      ],
+      "formalSections": [
+        "更多互动与偏好",
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F207",
+      "sourceRow": "| F207 | STEP-011：倾斜权限、实际数据、关闭和旋转全部条款 |",
+      "owners": [
+        "STEP-011"
+      ],
+      "formalSections": [
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F208",
+      "sourceRow": "| F208 | STEP-007：实例、暂停原因、资源登记、bfcache 与销毁基础条款；STEP-008：具体动作的 CSS／WAAPI／RAF／计时器清理子条款；STEP-011：倾斜监听暂停／恢复／销毁子条款；STEP-012：登录／语音覆盖层的暂停原因接入；STEP-013：暂停恢复不重置质量档位子条款 |",
+      "owners": [
+        "STEP-007",
+        "STEP-008",
+        "STEP-011",
+        "STEP-012",
+        "STEP-013"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "渐进动效与人物回应",
+        "主动倾斜",
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F209",
+      "sourceRow": "| F209 | STEP-007：单一主 RAF 与恢复时间差的调度基础条款；STEP-013：环境 30fps、DPR／像素上限、缓存纹理与按序持久降级；STEP-015：真实设备帧率、交互响应、长任务和内存趋势及低档目标 |",
+      "owners": [
+        "STEP-007",
+        "STEP-013",
+        "STEP-015"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "质量策略与当前配置",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-013-controlled-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F210",
+      "sourceRow": "| F210 | STEP-001：场景七图导出；保持比例、透明通道、锚点及原资源；STEP-002：首页头像和日记派生图的完整接入链路；STEP-016：最终集成素材质量、体积与下载链路 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F211",
+      "sourceRow": "| F211 | STEP-014：资源版本、实际缓存／HTTPS、背景大小写与回退全部条款；STEP-016：版本和缓存行为的传输实测部分 |",
+      "owners": [
+        "STEP-014",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "主页 v2：资源缓存与回退",
+        "加载时序与恢复",
+        "静态场景与首页图片",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "F212",
+      "sourceRow": "| F212 | STEP-005：共享 request 的默认调用与原有效 401 策略兼容；STEP-012：场景暂停不影响既有语音入口／音频链路的兼容子条款；STEP-017：§4 全部入口、数据与权限的用户可观察回归；STEP-018：实施完成后同步当前 H5 契约、静态回归及整体验收证据 |",
+      "owners": [
+        "STEP-005",
+        "STEP-012",
+        "STEP-017",
+        "STEP-018"
+      ],
+      "formalSections": [
+        "共享请求上下文",
+        "统一暂停与清理",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界",
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主动倾斜",
+        "质量策略与当前配置",
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC201",
+      "sourceRow": "| AC201 | 静态层与可选层依次就绪，观察并触碰人物；基础画面完整、贴片对齐；有预期动态与本地回应；可选层缺失不破坏人物 | STEP-003：基础画面与贴片对齐子条款；STEP-008：呼吸、眨眼、发丝、待机及环境层的可观察动态子条款；STEP-009：触碰人物的本地回应子条款 |",
+      "owners": [
+        "STEP-003",
+        "STEP-008",
+        "STEP-009"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "渐进动效与人物回应"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-009-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC202",
+      "sourceRow": "| AC202 | 首访、刷新、会话跳过，模拟模块晚加载及存储不可用；启动状态正确；普通模式遵守确认时序；跳过不漏挂载；异常存储不阻塞页面 | STEP-004：正常时序、跳过、模块晚加载与异常存储；跳过数据初始化由 STEP-006 联合负责；STEP-006：跳过加载仍初始化数据子条款；STEP-007：晚加载模块读取当前状态、跳过不漏场景初始化子条款 |",
+      "owners": [
+        "STEP-004",
+        "STEP-006",
+        "STEP-007"
+      ],
+      "formalSections": [
+        "加载时序与恢复",
+        "首页模块取数与保留内容",
+        "统一暂停与清理"
+      ],
+      "evidence": [
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/regression/step-006-results.json",
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC203",
+      "sourceRow": "| AC203 | 阻断或损坏单张图片、使核心图一直挂起；核心等待 5 秒截止；前台可执行情况下遮罩最迟 8 秒兜底释放；入口可操作；迟到结果不盖回加载层 | STEP-003：图片失败时的已完成图层／底色呈现子条款；截止时序由 STEP-004 负责；STEP-004：核心 5 秒等待、遮罩 8 秒释放及迟到结果防护 |",
+      "owners": [
+        "STEP-003",
+        "STEP-004"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC204",
+      "sourceRow": "| AC204 | 使业务请求一直挂起、离线或局部失败；页面结构独立显示；请求批次 8 秒截止并取消；显示对应失败状态，可局部重试；不假冒访客、Lv0 或真实空列表 | STEP-006：超时、局部失败、离线与真实空态 |",
+      "owners": [
+        "STEP-006"
+      ],
+      "formalSections": [
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC205",
+      "sourceRow": "| AC205 | 慢请求期间登录、退出、重试，并让旧请求晚返回成功或 401；旧结果不覆盖新 UI、不清新 token；当前有效 401 仍执行既有策略；无重复刷新批次 | STEP-005：失效 401 不清新 token、有效 401 仍保持原策略；UI 代次由 STEP-006 联合负责；STEP-006：旧结果不写 UI，登录／退出／重试去重 |",
+      "owners": [
+        "STEP-005",
+        "STEP-006"
+      ],
+      "formalSections": [
+        "共享请求上下文",
+        "首页模块取数与保留内容"
+      ],
+      "evidence": [
+        "home-m4/regression/step-005-results.json",
+        "home-m4/regression/step-006-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC206",
+      "sourceRow": "| AC206 | 访客/已登录用户分别点击人物、更多、卡片和 CTA，并使用键盘；人物只做本地反馈，业务入口优先；访客门禁正确；登录后不自动重放或请求传感器权限 | STEP-009：人物反馈、业务控件优先及键盘子条款；更多门禁由 STEP-010 负责；STEP-010：更多访客门禁、登录不重放／不自动请求权限子条款；STEP-017：业务卡片／CTA／更多的点击及键盘、UI 优先、门禁与登录不重放／不自动授权集成子条款 |",
+      "owners": [
+        "STEP-009",
+        "STEP-010",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "首页模块取数与保留内容",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-009-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC207",
+      "sourceRow": "| AC207 | 真机允许/拒绝倾斜，模拟无数据、不支持、非安全环境，关闭并旋转屏幕；实际状态与开关一致；关闭移除监听；无重复授权；有效恢复后方向正确 | STEP-011：真机允许／拒绝／无数据／不支持／不安全环境／关闭／旋转 |",
+      "owners": [
+        "STEP-011"
+      ],
+      "formalSections": [
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC208",
+      "sourceRow": "| AC208 | 切后台、往返页面、开关登录/语音面板、切换动态及系统减少动态效果；多个暂停原因互不覆盖；无后台场景循环与传感器监听；恢复无跳变、闭眼残留或重复实例；同一页面暂停恢复不重置降级档位 | STEP-007：页面隐藏／返回、原因集合与幂等恢复子条款；具体动作／面板／传感器由对应 STEP 接入；STEP-008：动作暂停恢复、无跳变／闭眼残留子条款；STEP-010：动态开关与系统减少动态暂停子条款；STEP-011：暂停期间无传感器监听，合法恢复子条款；STEP-012：登录／语音面板组合暂停、恢复与无重复实例子条款；STEP-013：后台／面板／bfcache 恢复不重置质量子条款 |",
+      "owners": [
+        "STEP-007",
+        "STEP-008",
+        "STEP-010",
+        "STEP-011",
+        "STEP-012",
+        "STEP-013"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜",
+        "质量策略与当前配置"
+      ],
+      "evidence": [
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json",
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json",
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/regression/step-013-controlled-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC209",
+      "sourceRow": "| AC209 | 禁用 Canvas 或可选 API，制造特效初始化错误；静态画面与业务入口可用；不存在异常引发的整页中断 | STEP-003：场景能力缺失时的静态保底子条款；STEP-007：可选 API 与初始化异常隔离子条款；STEP-008：动效初始化／可选能力故障隔离子条款 |",
+      "owners": [
+        "STEP-003",
+        "STEP-007",
+        "STEP-008"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "统一暂停与清理",
+        "渐进动效与人物回应"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/regression/step-007-results.json",
+        "home-m4/regression/native-bfcache-results.json",
+        "home-m4/regression/step-008-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC210",
+      "sourceRow": "| AC210 | 在列明的设备上记录新旧主页持续运行与低档表现，制造掉帧并恢复、刷新或全新打开；记录帧率、长任务、点击响应和内存趋势；掉帧按顺序降级，同一页面不自动升档；刷新或全新打开重新评估；达到经 Q201 确定环境下的目标 | STEP-013：质量策略、调度指标与同页保持／新实例重评子条款；真机目标测量由 STEP-015 联合负责；STEP-015：帧率、长任务、点击、内存和 Q201 目标的真实测量；策略由 STEP-013 联合负责 |",
+      "owners": [
+        "STEP-013",
+        "STEP-015"
+      ],
+      "formalSections": [
+        "质量策略与当前配置",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-013-controlled-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC211",
+      "sourceRow": "| AC211 | 在 375×667、390×844、430×932、1280×720 及横竖屏下检查；人脸与入口可见、贴片一致，底部内容可操作，安全区和正常页面手势可用 | STEP-003：指定尺寸、旋转、安全区和卡片变化时的构图／手势；STEP-017：同一最终集成快照的指定视口、旋转、动态／倾斜贴片和业务高度变化验收 |",
+      "owners": [
+        "STEP-003",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m1/step-003-results.json",
+        "home-m4/regression/final-layout-results.json",
+        "home-m4/step-017-preserved-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC212",
+      "sourceRow": "| AC212 | 对比原始与优化素材，在实际尺寸及高像素密度设备显示；输出字节清单；确认预算达成情况、透明边缘、脸部清晰度和眨眼/发丝对齐；无重复大图下载 | STEP-001：场景七图的预算、清晰度与贴片对齐子条款；首页小图与最终集成下载由 STEP-002、STEP-016 负责；STEP-002：首页派生图质量及无重复原图下载子条款；STEP-016：最终实际尺寸／高像素密度质量、体积与无重复下载 |",
+      "owners": [
+        "STEP-001",
+        "STEP-002",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "step-001-assets/browser-results.json",
+        "home-m4/regression/step-002-results.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC213",
+      "sourceRow": "| AC213 | 同设备同网络分别测冷加载、缓存访问及刷新；记录遮罩退出、入口可操作时间与传输量；可选特效不延长门闩，不把固定展示时间算成压缩收益 | STEP-002：首页小图请求清单与传输量记录子条款；完整新旧加载测量由 STEP-016 负责；STEP-004：API／可选特效不延长门闩；真实新旧测量由 STEP-016 负责；STEP-014：缓存／资源版本请求行为子条款；完整时序对比由 STEP-016 负责；STEP-016：完整新旧加载时序、缓存和传输测量 |",
+      "owners": [
+        "STEP-002",
+        "STEP-004",
+        "STEP-014",
+        "STEP-016"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-002-results.json",
+        "home-m4/regression/step-004-results.json",
+        "home-m4/regression/step-004-boundaries-results.json",
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json",
+        "home-m4/step-015-016-desktop-measurements.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC214",
+      "sourceRow": "| AC214 | 访客及已登录用户逐一操作 §4 入口；设置、关系、记忆、Feed、日记、聊天和真实语音入口符合当前规则；声音链路不被场景占用影响 | STEP-012：声音链路不被场景占用影响子条款；完整入口回归由 STEP-017 负责；STEP-017：完整主页保留能力与真实语音入口／声音链路 |",
+      "owners": [
+        "STEP-012",
+        "STEP-017"
+      ],
+      "formalSections": [
+        "统一暂停与清理",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [
+        "home-m4/regression/step-012-controlled-results.json",
+        "home-m4/step-017-preserved-results.json",
+        "home-m4/regression/final-layout-results.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC215",
+      "sourceRow": "| AC215 | 检查实际部署资源响应并更新资源版本、切回旧背景；HTTPS/权限行为、资源缓存及大小写引用正确；新版本可获取，回退可用，语音旧背景仍可访问 | STEP-014：实际响应、版本更新、场景回退与语音旧图 |",
+      "owners": [
+        "STEP-014"
+      ],
+      "formalSections": [
+        "主页 v2：资源缓存与回退"
+      ],
+      "evidence": [
+        "home-m4/step-014-cache-results.json",
+        "home-m4/step-014-fallback-results.json",
+        "home-m4/local-nginx-runtime.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC216",
+      "sourceRow": "| AC216 | 实施后核对源码、回归测试与当前 H5 契约；同步本次真实行为；不把只测 demo、静态壳或模拟时钟的结果作为整体通过 | STEP-018：源码、相关回归与当前契约对账，不用局部模拟代替整体通过 |",
+      "owners": [
+        "STEP-018"
+      ],
+      "formalSections": [
+        "静态场景与首页图片",
+        "加载时序与恢复",
+        "共享请求上下文",
+        "首页模块取数与保留内容",
+        "渐进动效与人物回应",
+        "更多互动与偏好",
+        "主动倾斜",
+        "统一暂停与清理",
+        "质量策略与当前配置",
+        "主页 v2：资源缓存与回退",
+        "主页 v2：验收边界"
+      ],
+      "evidence": [],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    },
+    {
+      "id": "AC217",
+      "sourceRow": "| AC217 | 修改动态开关后刷新、再次访问、切换登录账号，并在另一设备访问或开启系统减少动态效果；当前浏览器保留选择；不同设备分别设置；登录切换不重置；系统减少动态效果优先；倾斜仍遵守新页面初始关闭与主动授权规则 | STEP-010：动态偏好刷新／再次访问／账号切换／设备与系统覆盖子条款；STEP-011：新页面倾斜初始关闭、主动授权子条款 |",
+      "owners": [
+        "STEP-010",
+        "STEP-011"
+      ],
+      "formalSections": [
+        "更多互动与偏好",
+        "主动倾斜"
+      ],
+      "evidence": [
+        "home-m4/regression/step-010-results.json",
+        "home-m4/regression/step-011-controlled-results.json",
+        "home-m4/preview-lan-tilt-diagnostic.json"
+      ],
+      "status": "MAPPED; evidence scope retained, not an overall acceptance result"
+    }
+  ],
+  "deferred": [
+    {
+      "steps": [
+        "STEP-011"
+      ],
+      "acs": [
+        "AC207",
+        "AC208",
+        "AC217"
+      ],
+      "remaining": "可信 HTTPS 下四类手机真实权限、方向、旋转、暂停恢复；用户明确延期倾斜验收"
+    },
+    {
+      "steps": [
+        "STEP-012",
+        "STEP-017"
+      ],
+      "acs": [
+        "AC208",
+        "AC214"
+      ],
+      "remaining": "原支持环境真实麦克风、通话声音及通话控制"
+    },
+    {
+      "steps": [
+        "STEP-013",
+        "STEP-015"
+      ],
+      "acs": [
+        "AC210",
+        "AC208"
+      ],
+      "remaining": "Q201 真机像素预算、统计与降级参数及正式配置；同设备持续运行和低档实测"
+    },
+    {
+      "steps": [
+        "STEP-014"
+      ],
+      "acs": [
+        "AC215"
+      ],
+      "remaining": "实际 HTTPS／外层缓存与正式部署验证"
+    },
+    {
+      "steps": [
+        "STEP-016",
+        "STEP-017"
+      ],
+      "acs": [
+        "AC211",
+        "AC212",
+        "AC213",
+        "AC206"
+      ],
+      "remaining": "四类真机最终图片、手势、键盘、布局及同设备新旧加载／网络对照"
+    }
+  ],
+  "checks": {
+    "existingAuthPolicyPreserved": true,
+    "runtimeSourceHashesMatched": 8,
+    "draftsMapped": 13,
+    "requirementIdsMapped": 71,
+    "acceptanceIdsMapped": 17,
+    "reusedBrowserScripts": 17,
+    "reusedPreservedScenarios": 53,
+    "reusedStaticPytest": 19,
+    "reusedVoiceTransportPytest": 1
+  },
+  "documentConsistency": "PASS",
+  "handoff": "CONTRACT_VERIFICATION_READY",
+  "finalGate": "NOT_REACHED",
+  "allFeatureAcceptanceComplete": false
+}

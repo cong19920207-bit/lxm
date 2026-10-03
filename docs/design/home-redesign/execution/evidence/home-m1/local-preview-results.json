@@ -1,0 +1,15 @@
+{
+  "url": "http://127.0.0.1:54323/pages/index.html",
+  "scope": "Actual static preview, API unavailable (HTTP404), desktop Chrome",
+  "core": [
+    {
+      "url": "http://127.0.0.1:54323/static/images/home-scene/v4/background.c094490a4d8e.webp",
+      "loaded": true
+    },
+    {
+      "url": "http://127.0.0.1:54323/static/images/home-scene/v4/character.2816096f87aa.webp",
+      "loaded": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,23 @@
+{
+  "scope": "Actual desktop frontend served by controlled temporary preview; public Feed two pictures, visitor/mocked-auth selection and original gate. No real login, sensor, audio or phone acceptance claim.",
+  "publicFeed": [
+    {
+      "id": 1,
+      "content_text": "傍晚看了海，回来把今天的小事写进本子里。",
+      "hashtags": [],
+      "image_urls": [
+        "/static/images/Index/in_memery/sunset.png",
+        "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp"
+      ],
+      "scheduled_publish_time": "2026-10-03T09:16:33",
+      "emotion": "平静",
+      "city": "",
+      "display_likes": 12,
+      "display_comments": 0
+    }
+  ],
+  "visitorPrivateRequestCount": 0,
+  "simulatedLogin": true,
+  "returnedToVisitor": true,
+  "errors": []
+}

@@ -1,0 +1,160 @@
+{
+  "scope": "Actual frontend in desktop Chrome with controlled business APIs; entrance transform, native reload, real chat return button, and native bfcache. Chat-return geometry is relative to the page to preserve normal scroll restoration. Real phone browser chrome changes are not simulated.",
+  "results": [
+    {
+      "case": "entrance and transient failure-note geometry",
+      "pass": true,
+      "result": {
+        "neutral": {
+          "x": 178.99063110351562,
+          "y": -24.21875,
+          "width": 344.9999694824219,
+          "height": 745.8125
+        },
+        "entrance": {
+          "x": 178.99063110351562,
+          "y": -24.21875,
+          "width": 344.9999694824219,
+          "height": 745.8125
+        },
+        "restored": {
+          "x": 178.99063110351562,
+          "y": -24.21875,
+          "width": 344.9999694824219,
+          "height": 745.8125
+        },
+        "withNote": {
+          "x": 178.99063110351562,
+          "y": -24.21875,
+          "width": 344.9999694824219,
+          "height": 745.8125
+        },
+        "afterNote": {
+          "x": 178.99063110351562,
+          "y": -24.21875,
+          "width": 344.9999694824219,
+          "height": 745.8125
+        },
+        "noteVisible": true
+      }
+    },
+    {
+      "case": "initial load and refresh breathing",
+      "pass": true,
+      "results": [
+        {
+          "navigation": "initial",
+          "widthRange": 0,
+          "heightRange": 0,
+          "movementRange": 1.510772705078125,
+          "maximumStep": 0.0145721435546875,
+          "first": {
+            "time": 0,
+            "x": 119.80499267578125,
+            "y": 78.09375,
+            "width": 249.59375,
+            "height": 539.5625
+          },
+          "last": {
+            "time": 5699.700000000001,
+            "x": 119.80499267578125,
+            "y": 78.08889770507812,
+            "width": 249.59375,
+            "height": 539.5625
+          }
+        },
+        {
+          "navigation": "refresh",
+          "widthRange": 0,
+          "heightRange": 0,
+          "movementRange": 1.510772705078125,
+          "maximumStep": 0.0145721435546875,
+          "first": {
+            "time": 0,
+            "x": 119.80499267578125,
+            "y": 78.09375,
+            "width": 249.59375,
+            "height": 539.5625
+          },
+          "last": {
+            "time": 5699.8,
+            "x": 119.80499267578125,
+            "y": 78.08889770507812,
+            "width": 249.59375,
+            "height": 539.5625
+          }
+        }
+      ]
+    },
+    {
+      "case": "chat return button and native browser back",
+      "pass": true,
+      "results": [
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "pass": true,
+          "initial": {
+            "x": 119.80499267578125,
+            "y": 78.09375,
+            "width": 249.59375,
+            "height": 539.5625,
+            "scrollY": 0
+          },
+          "returned": {
+            "x": 119.80499267578125,
+            "y": 78.09375,
+            "width": 249.59375,
+            "height": 539.5625,
+            "scrollY": 0
+          },
+          "browserBack": {
+            "x": 119.80499267578125,
+            "y": 78.09375,
+            "width": 249.59375,
+            "height": 539.5625,
+            "scrollY": 0
+          },
+          "returnReleaseMs": 4
+        },
+        {
+          "viewport": {
+            "width": 560,
+            "height": 600
+          },
+          "pass": true,
+          "initial": {
+            "x": 178.99063110351562,
+            "y": -24.21875,
+            "width": 344.9999694824219,
+            "height": 745.8125,
+            "scrollY": 0
+          },
+          "returned": {
+            "x": 178.99063110351562,
+            "y": -24.21875,
+            "width": 344.9999694824219,
+            "height": 745.8125,
+            "scrollY": 0
+          },
+          "browserBack": {
+            "x": 178.99063110351562,
+            "y": -24.21875,
+            "width": 344.9999694824219,
+            "height": 745.8125,
+            "scrollY": 0
+          },
+          "returnReleaseMs": 3
+        }
+      ]
+    }
+  ],
+  "sourceSha256": {
+    "frontend/pages/index.html": "bf69846b016c14d2aecc1e32ebb5a307bf97dc17676410157b9d1508e82174fe",
+    "frontend/pages/chat.html": "81dadc4fc2a9ee826ecf0a8cfe465790531de6b76714e59af52a44311aba9a1b",
+    "frontend/static/css/home-scene.css": "a4da79e5b6049cdb5df196fc65ba3d44e7d2cc9bd7bb025fad10dafe89f9df3c",
+    "frontend/static/js/home-scene.js": "71bb430ac0091db4e08fe9c9190b9ec8c4d6e3801f31cdf84c7e4f9820868077"
+  }
+}

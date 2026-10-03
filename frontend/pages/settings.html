@@ -321,6 +321,21 @@
       background: #9333ea;
     }
 
+    body.settings-soft-page button.toggle-switch {
+      padding: 0;
+      border: 0;
+      appearance: none;
+    }
+
+    body.settings-soft-page button.toggle-switch:focus-visible {
+      outline: 2px solid #7c3aed;
+      outline-offset: 3px;
+    }
+
+    .settings-preference-note:empty {
+      display: none;
+    }
+
     /* ====== 修改密码展开区 ====== */
     .settings-expand-wrap {
       display: none;
@@ -601,6 +616,37 @@
           <div class="toggle-switch active" id="toggle-agent" onclick="toggleSetting('agent_message_enabled', this)"></div>
         </div>
       </div>
+      <div class="settings-item">
+        <div class="settings-item-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3z" stroke="#7c3aed" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="settings-item-body">
+          <div class="settings-item-title" id="home-motion-setting-title">主页动效</div>
+          <div class="settings-item-desc" id="home-motion-setting-desc">开启人物和场景动效</div>
+          <div class="settings-item-desc settings-preference-note" id="home-motion-storage-note" aria-live="polite"></div>
+        </div>
+        <div class="settings-item-action">
+          <button type="button" class="toggle-switch active" id="toggle-home-motion" role="switch" aria-checked="true" aria-labelledby="home-motion-setting-title" aria-describedby="home-motion-setting-desc home-motion-storage-note" onclick="toggleHomeMotionSetting()"></button>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="7" y="3" width="10" height="18" rx="2" transform="rotate(-15 12 12)" stroke="#7c3aed" stroke-width="1.8"/>
+            <path d="M3 9l-1 3 3-1M21 15l1-3-3 1" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="settings-item-body">
+          <div class="settings-item-title" id="home-tilt-setting-title">倾斜视差</div>
+          <div class="settings-item-desc" id="home-tilt-setting-desc">轻转手机，换个角度看看她</div>
+          <div class="settings-item-desc settings-preference-note" id="home-tilt-setting-status" aria-live="polite"></div>
+        </div>
+        <div class="settings-item-action">
+          <button type="button" class="toggle-switch" id="toggle-home-tilt" role="switch" aria-checked="false" aria-labelledby="home-tilt-setting-title" aria-describedby="home-tilt-setting-desc home-tilt-setting-status" onclick="toggleHomeTiltSetting()"></button>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -639,10 +685,13 @@
   </div>
 
   <script src="/static/js/api.js"></script>
+  <script src="/static/js/home-preferences.js"></script>
   <script>
     let aboutLoaded = false
     let settingsAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
     let settingsRestorePromise = null
+    const settingsMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    let settingsTiltEpoch = 0, settingsTiltPending = false
 
     function isSettingsAuthenticated() {
       return settingsAuthMode === 'authenticated' && Boolean(localStorage.getItem('token'))
@@ -656,6 +705,7 @@
     }
 
     function renderVisitorSettings() {
+      cancelHomeTiltPermission()
       settingsAuthMode = 'visitor'
       const privateSections = document.getElementById('settings-private-sections')
       const authAction = document.getElementById('settings-auth-action')
@@ -806,6 +856,133 @@
         showToast(res.message || '设置失败', 'error')
       }
     }
+
+    /* 主页动效是当前浏览器偏好，不调用账号设置接口。 */
+    function renderHomeMotionSetting(preference) {
+      const toggle = document.getElementById('toggle-home-motion')
+      toggle.classList.toggle('active', preference.enabled)
+      toggle.setAttribute('aria-checked', String(preference.enabled))
+      document.getElementById('home-motion-storage-note').textContent = preference.note
+      document.getElementById('home-motion-setting-desc').textContent = settingsMotionQuery?.matches
+        ? '系统已减少动态，主页会保持静止'
+        : '开启人物和场景动效'
+      if (settingsTiltPending && (!preference.enabled || settingsMotionQuery?.matches)) cancelHomeTiltPermission()
+      syncHomeTiltSetting()
+    }
+
+    function syncHomeMotionSetting(refreshSaved = false) {
+      if (!window.HomePreferences) {
+        document.getElementById('toggle-home-motion').disabled = true
+        document.getElementById('home-motion-storage-note').textContent = '动效设置暂不可用，请刷新后重试'
+        syncHomeTiltSetting()
+        return
+      }
+      renderHomeMotionSetting(window.HomePreferences.readMotion(refreshSaved === true))
+    }
+
+    function toggleHomeMotionSetting() {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
+      const enabled = document.getElementById('toggle-home-motion').getAttribute('aria-checked') !== 'true'
+      renderHomeMotionSetting(window.HomePreferences.writeMotion(enabled))
+    }
+
+    function syncHomeTiltSetting(preference = window.HomePreferences?.readTilt()) {
+      const toggle = document.getElementById('toggle-home-tilt')
+      const status = document.getElementById('home-tilt-setting-status')
+      if (!preference) {
+        toggle.disabled = true
+        status.textContent = '倾斜设置暂不可用，请刷新后重试'
+        return
+      }
+      toggle.classList.toggle('active', preference.enabled)
+      toggle.setAttribute('aria-checked', String(preference.enabled))
+      toggle.setAttribute('aria-busy', String(settingsTiltPending))
+      const failure = preference.state === 'unavailable' && preference.message && preference.message !== preference.note
+        ? preference.message.replace(/[。；]$/, '') + '；' : ''
+      status.textContent = settingsTiltPending ? '正在等待倾斜授权…' : preference.note ? failure + preference.note :
+        (preference.enabled && !window.HomePreferences.readMotion().enabled ? '主页动效已关闭，倾斜当前暂停' :
+         preference.enabled && settingsMotionQuery?.matches ? '系统已减少动态，倾斜当前暂停' :
+         preference.enabled ? '已开启，返回主页后轻转手机试试' :
+         preference.message === '已关闭' ? '' : preference.message)
+    }
+
+    function cancelHomeTiltPermission() {
+      settingsTiltEpoch++
+      if (!settingsTiltPending) return
+      settingsTiltPending = false
+      window.HomePreferences?.reportTilt('off', '授权已取消，可主动重试')
+      syncHomeTiltSetting()
+    }
+
+    function toggleHomeTiltSetting() {
+      if (!isSettingsAuthenticated()) {
+        openSettingsLoginModal()
+        return
+      }
+      const preferences = window.HomePreferences
+      if (!preferences) return
+      const previous = preferences.readTilt()
+      if (settingsTiltPending || previous.enabled) {
+        cancelHomeTiltPermission()
+        preferences.writeTilt(false)
+        preferences.reportTilt('off', '已关闭')
+        syncHomeTiltSetting(preferences.readTilt())
+        return
+      }
+      const unavailable = previous.state === 'legacy' ? '旧背景模式不支持倾斜' :
+        !preferences.readMotion().enabled ? '请先开启主页动效' :
+        settingsMotionQuery?.matches ? '系统已减少动态，倾斜暂不可用' :
+        !window.isSecureContext ? '当前页面连接不支持倾斜' :
+        typeof window.DeviceOrientationEvent === 'undefined' ? '当前浏览器不支持倾斜' : ''
+      if (unavailable) {
+        preferences.reportTilt(previous.state === 'legacy' ? 'legacy' : 'unavailable', unavailable)
+        syncHomeTiltSetting()
+        return
+      }
+      const run = ++settingsTiltEpoch, token = localStorage.getItem('token')
+      settingsTiltPending = true
+      syncHomeTiltSetting()
+      let permission
+      try {
+        // Request directly in the switch click, before any asynchronous work.
+        const Orientation = window.DeviceOrientationEvent
+        permission = typeof Orientation.requestPermission === 'function' ? Orientation.requestPermission() : Promise.resolve('granted')
+      } catch (_) { permission = Promise.reject(Error('倾斜授权暂不可用')) }
+      Promise.resolve(permission).then(result => {
+        if (run !== settingsTiltEpoch) return
+        if (!isSettingsAuthenticated() || token !== localStorage.getItem('token') || document.hidden) {
+          cancelHomeTiltPermission()
+          return
+        }
+        settingsTiltPending = false
+        if (result !== 'granted') {
+          preferences.reportTilt('unavailable', '未获得倾斜授权，可主动重试')
+          syncHomeTiltSetting()
+          return
+        }
+        const saved = preferences.writeTilt(true, true)
+        preferences.reportTilt(saved.note ? 'unavailable' : 'waiting-data', saved.note || '返回主页后，轻转手机试试')
+        syncHomeTiltSetting(saved)
+      }).catch(() => {
+        if (run !== settingsTiltEpoch) return
+        settingsTiltPending = false
+        preferences.reportTilt('unavailable', '倾斜授权暂不可用，可主动重试')
+        syncHomeTiltSetting()
+      })
+    }
+
+    window.addEventListener('pageshow', syncHomeMotionSetting)
+    window.addEventListener('pagehide', cancelHomeTiltPermission)
+    document.addEventListener('visibilitychange', () => { if (document.hidden) cancelHomeTiltPermission() })
+    window.addEventListener('storage', event => {
+      if (event.key === null || event.key === window.HomePreferences?.motionKey) syncHomeMotionSetting(true)
+    })
+    if (settingsMotionQuery?.addEventListener) settingsMotionQuery.addEventListener('change', syncHomeMotionSetting)
+    else settingsMotionQuery?.addListener?.(syncHomeMotionSetting)
+    syncHomeMotionSetting()
 
     /* ====== 关于：首次展开时懒加载 ====== */
     async function toggleAbout() {

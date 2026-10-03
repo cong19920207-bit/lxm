@@ -80,20 +80,35 @@ function resolveStatusText(data) {
  * 统一请求函数
  * 自动携带 Token，并按调用点选择 401 策略；未迁移调用点仍跳独立登录页。
  */
+// Home-only recovery; default storage behavior on other pages stays unchanged.
+function readAuthToken() {
+  if (typeof window !== 'undefined' && window.HomeStartup) return window.HomeStartup.auth().token
+  return localStorage.getItem('token')
+}
+function authStorage(operation, key, value) {
+  if (typeof window !== 'undefined' && window.HomeStartup) {
+    return window.HomeStartup.storage('localStorage', operation, key, value).value
+  }
+  return localStorage[operation](key, value)
+}
+
 async function request(method, path, data, requestOptions = {}) {
-  const token = localStorage.getItem('token')
+  const token = readAuthToken()
   const headers = { 'Content-Type': 'application/json' }
   if (token) {
     headers['Authorization'] = 'Bearer ' + token
   }
 
   const options = { method, headers }
+  if (requestOptions.signal) options.signal = requestOptions.signal
   if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
     options.body = JSON.stringify(data)
   }
 
   try {
+    assertRequestCurrent(requestOptions)
     const response = await fetch(API_BASE + path, options)
+    assertRequestCurrent(requestOptions)
 
     if (response.status === 401) {
       await handleUnauthorized(requestOptions)
@@ -101,11 +116,25 @@ async function request(method, path, data, requestOptions = {}) {
     }
 
     const result = await response.json()
+    assertRequestCurrent(requestOptions)
     return result
   } catch (err) {
+    assertRequestCurrent(requestOptions)
+    if (requestOptions.signal && err.name === 'AbortError') throw err
     console.error('请求失败:', method, path, err)
     return { code: -1, data: null, message: '网络连接失败，请检查网络后重试' }
   }
+}
+
+/** Optional callers own cancellation/stale-result handling; legacy results stay unchanged. */
+function assertRequestCurrent(options) {
+  let name = null
+  if (options.signal?.aborted) name = 'AbortError'
+  else if (typeof options.isCurrent === 'function') {
+    try { if (!options.isCurrent()) name = 'StaleRequestError' }
+    catch (_) { name = 'StaleRequestError' }
+  }
+  if (name) { const error = new Error('Request is no longer current'); error.name = name; throw error }
 }
 
 async function handleUnauthorized(requestOptions = {}) {
@@ -140,20 +169,24 @@ async function handleUnauthorized(requestOptions = {}) {
 }
 
 function saveToken(token) {
-  localStorage.setItem('token', token)
+  if (typeof window !== 'undefined' && window.HomeStartup) window.HomeStartup.rememberAuth(token)
+  authStorage('setItem', 'token', token)
+  if (typeof window !== 'undefined' && window.HomeStartup) window.dispatchEvent(new Event('home-auth-change'))
 }
 
 function clearToken() {
-  localStorage.removeItem('token')
+  if (typeof window !== 'undefined' && window.HomeStartup) window.HomeStartup.rememberAuth(null)
+  authStorage('removeItem', 'token')
   try {
     sessionStorage.removeItem('lxm_home_loader_done')
   } catch (e) {
     /* sessionStorage 不可用时忽略 */
   }
+  if (typeof window !== 'undefined' && window.HomeStartup) window.dispatchEvent(new Event('home-auth-change'))
 }
 
 function checkLogin() {
-  if (!localStorage.getItem('token')) {
+  if (!readAuthToken()) {
     window.location.href = '/pages/login.html'
   }
 }
@@ -162,7 +195,7 @@ function checkLogin() {
  * 主动交互登录门禁。返回 true 表示已有登录态，false 表示已触发登录处理。
  */
 function requireLogin(options = {}) {
-  if (localStorage.getItem('token')) return true
+  if (readAuthToken()) return true
   const normalized = typeof options === 'function' ? { onSuccess: options } : options
   const policy = normalized.authPolicy || AUTH_401_POLICIES.INTERACTIVE_MODAL
   if (policy === AUTH_401_POLICIES.PROTECTED_HOME_MODAL) {
@@ -175,7 +208,7 @@ function requireLogin(options = {}) {
 
 /** 受保护页入口门禁：无 token 时立即写单次信号并替换到首页。 */
 function requireProtectedPage() {
-  if (localStorage.getItem('token')) return true
+  if (readAuthToken()) return true
   redirectToHomeLogin()
   return false
 }
@@ -369,7 +402,7 @@ function openLoginModal(options = {}) {
   overlay.setAttribute('aria-hidden', 'false')
   document.body.classList.add('auth-modal-open')
 
-  const remembered = localStorage.getItem('remember_username')
+  const remembered = authStorage('getItem', 'remember_username')
   if (remembered) {
     overlay.querySelector('#auth-modal-login-username').value = remembered
     overlay.querySelector('#auth-modal-remember-me').checked = true
@@ -512,9 +545,9 @@ async function finishAuthModal(token, username) {
   saveToken(token)
   const remember = document.getElementById('auth-modal-remember-me')
   if (remember && remember.checked && username) {
-    localStorage.setItem('remember_username', username)
+    authStorage('setItem', 'remember_username', username)
   } else if (remember) {
-    localStorage.removeItem('remember_username')
+    authStorage('removeItem', 'remember_username')
   }
   const callback = authModalState.onSuccess
   authModalState.onSuccess = null
@@ -612,20 +645,26 @@ function formatTime(isoString) {
  * 头像情绪切换（所有页面通用）
  * 预加载图片避免闪烁
  */
-function updateAvatarEmotion(emotionLabel) {
+function updateAvatarEmotion(emotionLabel, avatarOptions = {}) {
   const imgs = [
     document.getElementById('linxiaomeng-avatar'),
   ].filter(Boolean)
   if (!imgs.length) return
 
-  const src = AVATAR_MAP[emotionLabel] || AVATAR_MAP['default']
-  const fallback = AVATAR_MAP['default']
+  const avatarMap = avatarOptions.avatarMap || AVATAR_MAP
+  const src = avatarMap[emotionLabel] || avatarMap['default']
+  const fallback = avatarMap['default']
   const preload = new Image()
   preload.onload = () => {
+    if (avatarOptions.isCurrent && !avatarOptions.isCurrent()) return
     imgs.forEach((img) => { img.src = src })
   }
   preload.onerror = () => {
-    imgs.forEach((img) => { img.src = fallback })
+    if (avatarOptions.isCurrent && !avatarOptions.isCurrent()) return
+    imgs.forEach((img) => {
+      if (typeof avatarOptions.onError === 'function') avatarOptions.onError(img, src)
+      else img.src = fallback
+    })
   }
   preload.src = src
 }

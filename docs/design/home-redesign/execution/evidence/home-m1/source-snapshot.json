@@ -1,0 +1,214 @@
+{
+  "frontend/pages/index.html": "aa78031ef0d5a875f90851b9319135986c083440cfa734bb30e6a05e0edc4170",
+  "frontend/static/js/api.js": "3c4e0f794bc58dea769ff7afb8b1acee28fdda9579b505c9cc5fe3adec3dde5b",
+  "frontend/static/css/home-scene.css": "e0b1369f4671ca226d926452507db3ed9580895c1fcede35352730be81df8b25",
+  "frontend/static/js/home-scene.js": "d27ce51451889a7e41861ec7cb3975799789b48af638be97720cb3c0fae4a99c",
+  "tests/test_home_assets.cjs": "4017e4b6d9accb9c6273d837ea36070f4c0e42f7100ab4e85ef775ccbf0e52ea",
+  "tests/test_home_scene.cjs": "208109bb759d860df339514ada1d60d406c86482978e62f8018343609a9af14a",
+  "tests/test_h5_static_contract.py": "6a163c0bbe5bcd9c2fdf25173dcd03e64e5a11a753625c29ef2e2c0fcb02af72",
+  "audit_sources": [
+    {
+      "source_id": "SRC-01",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/design/home-redesign/PRD-林小梦主页改版-v2.md",
+      "baseline": "165e84076e14016073e92b4c2284a0ada52321fe8c6d753061ceda81e4ce9ed6",
+      "current": "165e84076e14016073e92b4c2284a0ada52321fe8c6d753061ceda81e4ce9ed6",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-02",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/h5-app/api.md",
+      "baseline": "bf727722686bf983fb2e36d4976ae98f5aa3f723327f7787bcbc121c9b0c0fef",
+      "current": "bf727722686bf983fb2e36d4976ae98f5aa3f723327f7787bcbc121c9b0c0fef",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-03",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/_shared/conventions.md",
+      "baseline": "9ae6b47a846bbcdbb74a1ff5133900ebf794bf4acff4638c74f1d8d82ae4e388",
+      "current": "9ae6b47a846bbcdbb74a1ff5133900ebf794bf4acff4638c74f1d8d82ae4e388",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-04",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/pages/index.html",
+      "baseline": "7009f8fa634bcc085aeaed9885c53677f7ea5cb9a00569158c237968576afa7a",
+      "current": "aa78031ef0d5a875f90851b9319135986c083440cfa734bb30e6a05e0edc4170",
+      "changed": true
+    },
+    {
+      "source_id": "SRC-05",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/js/api.js",
+      "baseline": "6bf271e53a7b1911d7cdc45c3ec7e96d21711a91f1803e392740b882f495118e",
+      "current": "3c4e0f794bc58dea769ff7afb8b1acee28fdda9579b505c9cc5fe3adec3dde5b",
+      "changed": true
+    },
+    {
+      "source_id": "SRC-06",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/js/voice-entry.js",
+      "baseline": "ac355a96679f3263020f2e06da9997ad6c0359949ef02f342f7f68a2817baf22",
+      "current": "ac355a96679f3263020f2e06da9997ad6c0359949ef02f342f7f68a2817baf22",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-07",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/css/voice-entry.css",
+      "baseline": "a4d106cfd86368f32884ae1d9d078e24ae23895415df76bc27d3c22e63b8ee0b",
+      "current": "a4d106cfd86368f32884ae1d9d078e24ae23895415df76bc27d3c22e63b8ee0b",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-08",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/nginx/nginx.conf",
+      "baseline": "1f53e0b85c09bc01f90ac17d93a9683ddf24454f808d2bd5eea74ef3b98b23b5",
+      "current": "1f53e0b85c09bc01f90ac17d93a9683ddf24454f808d2bd5eea74ef3b98b23b5",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-09",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/tests/test_h5_static_contract.py",
+      "baseline": "21dec126aab8a46377c7c99c8a828fdb924110de59746437689b1b6512c59c56",
+      "current": "6a163c0bbe5bcd9c2fdf25173dcd03e64e5a11a753625c29ef2e2c0fcb02af72",
+      "changed": true
+    },
+    {
+      "source_id": "SRC-10",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/requirements.txt",
+      "baseline": "79d5196a84c651e963e24065cd17547244bd72dc8a6a69147ee41c0ba5720238",
+      "current": "79d5196a84c651e963e24065cd17547244bd72dc8a6a69147ee41c0ba5720238",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-11",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js",
+      "baseline": "a6bb07bfc2be6a3011741912c8b293b2d03701b4819ab86cad27679c40c4900d",
+      "current": "a6bb07bfc2be6a3011741912c8b293b2d03701b4819ab86cad27679c40c4900d",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-12",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js",
+      "baseline": "d9eb388f8ce10250f8aa6d0a241d191043870d18b0d1d5ccfd580c302d480d8e",
+      "current": "d9eb388f8ce10250f8aa6d0a241d191043870d18b0d1d5ccfd580c302d480d8e",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-13",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css",
+      "baseline": "959a10405861a7e81130d19a38673248e0cc03fe191016b86ba8dbf3c253142a",
+      "current": "959a10405861a7e81130d19a38673248e0cc03fe191016b86ba8dbf3c253142a",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-14",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/index.html",
+      "baseline": "c59d82c2f5da6ac0e8c37dcad79d7db06fc6a05b40f7ecf88f890b108efdf348",
+      "current": "c59d82c2f5da6ac0e8c37dcad79d7db06fc6a05b40f7ecf88f890b108efdf348",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-15",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/tests/test_realtime_voice_step036_states.cjs",
+      "baseline": "bb93e2b1b10e3f43fd8b4b99bb3c81990b011d2e0f5e74f100f8bd27483a1b8d",
+      "current": "bb93e2b1b10e3f43fd8b4b99bb3c81990b011d2e0f5e74f100f8bd27483a1b8d",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-16",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/INDEX.md",
+      "baseline": "179cf230fc39f73ac8cb58b7d21181f8a91fc8ec1c61c9af39491e38569ccafa",
+      "current": "179cf230fc39f73ac8cb58b7d21181f8a91fc8ec1c61c9af39491e38569ccafa",
+      "changed": false
+    },
+    {
+      "source_id": "SRC-17",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/llm-manifest.json",
+      "baseline": "15819acc2ae0300566e6d633c521c412395dd8ac8e5bb946e1e714439d32b362",
+      "current": "15819acc2ae0300566e6d633c521c412395dd8ac8e5bb946e1e714439d32b362",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-01",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp",
+      "baseline": "c094490a4d8eb789299af8d04ddce8eed7454f9c43c9d2e28a8bb40b500ad1aa",
+      "current": "c094490a4d8eb789299af8d04ddce8eed7454f9c43c9d2e28a8bb40b500ad1aa",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-02",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp",
+      "baseline": "2816096f87aaae6cd49b80065186eeadea240b2b2ab12482ee4879ad44a0dfb4",
+      "current": "2816096f87aaae6cd49b80065186eeadea240b2b2ab12482ee4879ad44a0dfb4",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-03",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png",
+      "baseline": "b1e1d3d8534d6ad77a6960949c07097a8b20765e558977abfdb4ae5140790db2",
+      "current": "b1e1d3d8534d6ad77a6960949c07097a8b20765e558977abfdb4ae5140790db2",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-04",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png",
+      "baseline": "c1aa3d65e058f37a93c0cb8d897c07ac3ca85d17f5907e8019270acb8eed4c0a",
+      "current": "c1aa3d65e058f37a93c0cb8d897c07ac3ca85d17f5907e8019270acb8eed4c0a",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-05",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png",
+      "baseline": "cb856237a6f68ee69e52d1b7c26dbe1c0cfd1eec8ab317f51588dcc3eac3fdab",
+      "current": "cb856237a6f68ee69e52d1b7c26dbe1c0cfd1eec8ab317f51588dcc3eac3fdab",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-06",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png",
+      "baseline": "3365f66905d34fe4a9d1e5beb038525c1cfcf18b2e1e40d90cdaac5207f6c75a",
+      "current": "3365f66905d34fe4a9d1e5beb038525c1cfcf18b2e1e40d90cdaac5207f6c75a",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-07",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp",
+      "baseline": "a1425ca6fb0adbcf0bd6128f0dc5f3d376b91e0cb0fe8da0d58d940cd027bf1f",
+      "current": "a1425ca6fb0adbcf0bd6128f0dc5f3d376b91e0cb0fe8da0d58d940cd027bf1f",
+      "changed": false
+    },
+    {
+      "source_id": "ASSET-08",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/frontend/static/images/Index/Index.png",
+      "baseline": "0b072904c320b7f93e6472c851db621e6f3cadf8235ebd465f47695ad48bd2c0",
+      "current": "0b072904c320b7f93e6472c851db621e6f3cadf8235ebd465f47695ad48bd2c0",
+      "changed": false
+    },
+    {
+      "source_id": "IN-STEP",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/design/home-redesign/steps-draft.md",
+      "baseline": "e3dccbf514175800344fbfb3504cf0b7ebfdebcd20a84b8c710230d737928cab",
+      "current": "e3dccbf514175800344fbfb3504cf0b7ebfdebcd20a84b8c710230d737928cab",
+      "changed": false
+    },
+    {
+      "source_id": "A-RULE",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/AGENTS.md",
+      "baseline": "9594e52f3ec3c8bab990fa973c3ff8a854467081df2369971800330666e642c3",
+      "current": "9594e52f3ec3c8bab990fa973c3ff8a854467081df2369971800330666e642c3",
+      "changed": false
+    },
+    {
+      "source_id": "A-FEED",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/contract/current/life-feed/api.md",
+      "baseline": "d276b074794c21de5a13c10892389d043e6494464349e5912e23f4cd09c86491",
+      "current": "d276b074794c21de5a13c10892389d043e6494464349e5912e23f4cd09c86491",
+      "changed": false
+    },
+    {
+      "source_id": "IN-CANDIDATE-R1",
+      "path": "/Users/umark/Desktop/lxm-tm/lxm-4/lxm_for/docs/design/home-redesign/steps-candidate-r1.md",
+      "baseline": "c73cc056bbf824536979a386b7439fd88384838042baba938cf9c02dcc6e9378",
+      "current": "c73cc056bbf824536979a386b7439fd88384838042baba938cf9c02dcc6e9378",
+      "changed": false
+    }
+  ]
+}

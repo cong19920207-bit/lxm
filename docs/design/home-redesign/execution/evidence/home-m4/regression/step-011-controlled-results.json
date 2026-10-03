@@ -1,0 +1,29 @@
+{
+  "scope": "Controlled DeviceOrientation API on real desktop homepage. Does not establish real Safari/Chrome/WeChat permissions or direction.",
+  "results": [
+    {
+      "case": "explicit permission, finite data, rotation calibration, combined pause, listener cleanup",
+      "pass": true
+    },
+    {
+      "case": "deny controlled permission/capability/late result",
+      "pass": true
+    },
+    {
+      "case": "unsupported controlled permission/capability/late result",
+      "pass": true
+    },
+    {
+      "case": "insecure controlled permission/capability/late result",
+      "pass": true
+    },
+    {
+      "case": "allow controlled permission/capability/late result",
+      "pass": true
+    },
+    {
+      "case": "defer controlled permission/capability/late result",
+      "pass": true
+    }
+  ]
+}

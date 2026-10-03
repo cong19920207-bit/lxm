@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>STEP-001 七图素材对照</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080611;color:#eee;font:14px system-ui}
+header,footer{padding:12px;max-width:960px;margin:auto}h1{font-size:18px;margin:0 0 8px}p{margin:6px 0;line-height:1.5}
+button{padding:8px 12px;border:1px solid #8378a6;border-radius:8px;color:#fff;background:#29223d;margin:3px}
+button[aria-pressed=true]{background:#685797}#views{display:flex;justify-content:center;gap:8px}
+figure{margin:0;position:relative}figcaption{position:absolute;top:8px;left:8px;z-index:10;background:#0009;padding:4px 8px;border-radius:4px}
+.scene{position:relative;overflow:hidden;background:#080611;isolation:isolate}
+.background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lamp{position:absolute;inset:-1.5%;width:103%;height:103%;object-fit:cover;mix-blend-mode:screen;opacity:.22;pointer-events:none}
+.rig{position:absolute;right:-1.2%;bottom:-1.5%;width:82%;height:82%;transform-origin:56% 100%}
+.character{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:drop-shadow(0 12px 28px #0004)}
+.patch{position:absolute;pointer-events:none;z-index:2}
+.hair_front{opacity:.78;mask-image:linear-gradient(to bottom,transparent 0%,#00000038 30%,#000 64%,#000 100%)}
+.hair_side{opacity:.86;mask-image:linear-gradient(to bottom,transparent 0%,#00000059 18%,#000 48%,#000 100%)}
+.hair_back{opacity:.84;mask-image:linear-gradient(to bottom,transparent 0%,#00000047 22%,#000 52%,#000 100%)}
+.blink{z-index:4;opacity:0;object-fit:fill}.closed .blink{opacity:1}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 49% 42%,transparent 50%,#02010814 74%,#0101057a 100%),linear-gradient(to bottom,#0202090f,transparent 28%,transparent 70%,#00000047);mix-blend-mode:multiply}
+pre{white-space:pre-wrap;word-break:break-word;font-size:12px}#checks{color:#cfbddf}
+</style>
+<header>
+<h1>STEP-001 七图素材对照</h1>
+<p>参考 demo 的静态构图与贴片坐标；尚未接入正式主页。原图与导出图可切换对照。</p>
+<div id="modes"><button data-mode="original" aria-pressed="false">原图</button><button data-mode="export" aria-pressed="true">导出</button><button data-mode="compare" aria-pressed="false">并排</button></div>
+<button id="eye" aria-pressed="false">切换睁眼／闭眼</button><button id="check">检查七图解码与透明边缘</button>
+<p>观察脸部清晰度、发丝白边、睁闭眼跳边和贴片错位。并排在手机上显示较小；精细检查请切换原图／导出。</p>
+</header>
+<main id="views"></main>
+<footer><p id="checks">素材加载中</p><pre id="environment"></pre></footer>
+<script>
+let manifest,mode='export',closed=false;
+const query=new URLSearchParams(location.search);
+if(query.get('compare'))mode='compare';
+const checks=document.querySelector('#checks'),views=document.querySelector('#views');
+function imageUrl(asset,original){return original?'/source/'+asset.source.split('/').pop():'/export/'+asset.file;}
+function draw(){
+ views.replaceChildren();
+ const viewportWidth=Number(query.get('width'))||innerWidth;
+ const viewportHeight=Number(query.get('height'))||Math.max(360,innerHeight-210);
+ const height=viewportHeight,width=Math.min(viewportWidth,height*853/1844);
+ for(const original of mode==='compare'?[true,false]:[mode==='original']){
+  const figure=document.createElement('figure'),caption=document.createElement('figcaption');caption.textContent=original?'原图':'导出';
+  const scene=document.createElement('div');scene.className='scene'+(closed?' closed':'');
+  scene.style.width=width+'px';scene.style.height=height+'px';
+  const rig=document.createElement('div');rig.className='rig';
+  for(const asset of manifest.assets){
+   const img=document.createElement('img');img.src=imageUrl(asset,original);img.alt=asset.role;
+   img.className=asset.role;
+   if(asset.role==='background'||asset.role==='lamp')scene.append(img);
+   else{
+    if(asset.placement_in_character_canvas){
+     img.classList.add('patch');const p=asset.placement_in_character_canvas;
+     for(const [key,css] of [['left_percent','left'],['top_percent','top'],['width_percent','width'],['height_percent','height']])img.style[css]=p[key]+'%';
+     if(p.transform_origin_percent)img.style.transformOrigin=p.transform_origin_percent.map(n=>n+'%').join(' ');
+    }
+    rig.append(img);
+   }
+  }
+  scene.append(rig);const vignette=document.createElement('div');vignette.className='vignette';scene.append(vignette);
+  figure.append(caption,scene);views.append(figure);
+ }
+ document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+ document.querySelector('#eye').setAttribute('aria-pressed',String(closed));
+ window.environment={userAgent:navigator.userAgent,platform:navigator.platform,devicePixelRatio,viewport:[innerWidth,innerHeight],screen:[screen.width,screen.height],sceneCSS:[width,height],protocol:location.protocol,eye:closed?'closed':'open',mode};
+ document.querySelector('#environment').textContent=JSON.stringify(window.environment,null,2);
+}
+function canvasPixels(img,color){const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d',{willReadFrequently:true});if(color){ctx.fillStyle=color;ctx.fillRect(0,0,canvas.width,canvas.height);}ctx.drawImage(img,0,0);return ctx.getImageData(0,0,canvas.width,canvas.height).data;}
+async function load(url){const img=new Image();img.src=url;await img.decode();return img;}
+window.runChecks=async()=>{
+ checks.textContent='检查中';const results=[];
+ for(const asset of manifest.assets){
+  const [a,b]=await Promise.all([load(imageUrl(asset,true)),load(imageUrl(asset,false))]);
+  let changed=0,maxRGBDifference=0,alphaMismatch=0,opaqueMismatch=0,transparentMismatch=0;
+  const originalAlpha=canvasPixels(a),exportAlpha=canvasPixels(b);
+  for(let i=3;i<originalAlpha.length;i+=4)if(originalAlpha[i]!==exportAlpha[i])alphaMismatch++;
+  // decoder-diagnostic.json: Chrome's PNG/WebP paths differ by one 8-bit
+  // composite level only at translucent pixels. An opaque control is exact.
+  // Keep strict alpha and opaque/transparent checks; report bounded rounding.
+  for(const color of ['black','white']){const x=canvasPixels(a,color),y=canvasPixels(b,color);for(let i=0;i<x.length;i+=4){let delta=0;for(let k=0;k<3;k++)delta=Math.max(delta,Math.abs(x[i+k]-y[i+k]));maxRGBDifference=Math.max(maxRGBDifference,delta);if(delta){changed++;if(originalAlpha[i+3]===255)opaqueMismatch++;if(originalAlpha[i+3]===0)transparentMismatch++;}}}
+  const geometryEqual=a.naturalWidth===b.naturalWidth&&a.naturalHeight===b.naturalHeight;
+  results.push({role:asset.role,sourceSize:[a.naturalWidth,a.naturalHeight],exportSize:[b.naturalWidth,b.naturalHeight],geometryEqual,changedCompositePixels:changed,maxRGBDifference,alphaMismatch,opaqueMismatch,transparentMismatch,pass:geometryEqual&&alphaMismatch===0&&opaqueMismatch===0&&transparentMismatch===0&&maxRGBDifference<=1});
+ }
+ window.checkResults=results;
+ checks.textContent=results.every(r=>r.pass)?'7/7 通过：尺寸、alpha 及不透明像素一致；半透明合成差异最多 1/255（浏览器舍入）。仍需人工观察脸部、发丝和睁闭眼贴片。':JSON.stringify(results,null,2);
+ return {environment:window.environment,assets:results};
+};
+window.setEye=value=>{closed=Boolean(value);draw();};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;draw();});
+document.querySelector('#eye').onclick=()=>window.setEye(!closed);
+document.querySelector('#check').onclick=()=>window.runChecks().catch(e=>checks.textContent='未通过：'+e.message);
+addEventListener('resize',()=>manifest&&draw());
+fetch('/manifest.json').then(r=>{if(!r.ok)throw new Error('清单加载失败');return r.json();}).then(data=>{manifest=data;draw();checks.textContent='七图共 '+(data.budget.export_bytes/1024).toFixed(1)+' KiB；核心两图 '+(data.budget.core_bytes/1024).toFixed(1)+' KiB。';window.previewReady=true;}).catch(e=>checks.textContent=e.message);
+</script>
+</html>

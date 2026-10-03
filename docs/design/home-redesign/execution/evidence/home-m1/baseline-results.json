@@ -1,0 +1,1161 @@
+{
+  "scope": "Desktop Chrome, local HTTP, fixed visitor/authenticated fixtures; real frontend resources. Not phone or real API/network measurements.",
+  "snapshots": [
+    {
+      "file": "frontend/pages/index.html",
+      "sha256": "7009f8fa634bcc085aeaed9885c53677f7ea5cb9a00569158c237968576afa7a"
+    },
+    {
+      "file": "frontend/static/js/api.js",
+      "sha256": "6bf271e53a7b1911d7cdc45c3ec7e96d21711a91f1803e392740b882f495118e"
+    }
+  ],
+  "runs": [
+    {
+      "token": false,
+      "action": "cold",
+      "readyElapsedMs": 4166,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        }
+      ],
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "transferSize": 612851,
+          "encodedBodySize": 612551,
+          "decodedBodySize": 612551
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "token": false,
+      "action": "cached",
+      "readyElapsedMs": 45,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        }
+      ],
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "transferSize": 612851,
+          "encodedBodySize": 612551,
+          "decodedBodySize": 612551
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "token": false,
+      "action": "refresh",
+      "readyElapsedMs": 4085,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        }
+      ],
+      "resources": [
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "transferSize": 612851,
+          "encodedBodySize": 612551,
+          "decodedBodySize": 612551
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        }
+      ],
+      "errors": []
+    },
+    {
+      "token": true,
+      "action": "cold",
+      "readyElapsedMs": 4113,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "bytes": 780129
+        }
+      ],
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "transferSize": 612851,
+          "encodedBodySize": 612551,
+          "decodedBodySize": 612551
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 447,
+          "encodedBodySize": 147,
+          "decodedBodySize": 147
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 335,
+          "encodedBodySize": 35,
+          "decodedBodySize": 35
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 329,
+          "encodedBodySize": 29,
+          "decodedBodySize": 29
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 377,
+          "encodedBodySize": 77,
+          "decodedBodySize": 77
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "transferSize": 780429,
+          "encodedBodySize": 780129,
+          "decodedBodySize": 780129
+        }
+      ],
+      "errors": []
+    },
+    {
+      "token": true,
+      "action": "cached",
+      "readyElapsedMs": 26,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "bytes": 780129
+        }
+      ],
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 447,
+          "encodedBodySize": 147,
+          "decodedBodySize": 147
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 335,
+          "encodedBodySize": 35,
+          "decodedBodySize": 35
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 329,
+          "encodedBodySize": 29,
+          "decodedBodySize": 29
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 377,
+          "encodedBodySize": 77,
+          "decodedBodySize": 77
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "transferSize": 780429,
+          "encodedBodySize": 780129,
+          "decodedBodySize": 780129
+        }
+      ],
+      "errors": []
+    },
+    {
+      "token": true,
+      "action": "refresh",
+      "readyElapsedMs": 4089,
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "bytes": 70503
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        },
+        {
+          "path": "/static/css/common.css",
+          "bytes": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "bytes": 22544
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "bytes": 550814
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "bytes": 31171
+        },
+        {
+          "path": "/static/js/api.js",
+          "bytes": 26547
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "bytes": 6005
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "bytes": 4021
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "bytes": 7282
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "bytes": 29679
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "bytes": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "bytes": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "bytes": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "bytes": 81212
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "bytes": 612551
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "bytes": 780129
+        }
+      ],
+      "resources": [
+        {
+          "path": "/css2",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 11306,
+          "encodedBodySize": 11006,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 22844,
+          "encodedBodySize": 22544,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/images/Index/index.png",
+          "transferSize": 551114,
+          "encodedBodySize": 550814,
+          "decodedBodySize": 550814
+        },
+        {
+          "path": "/static/images/Index/loader_avatar.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/avatar/default.png",
+          "transferSize": 684156,
+          "encodedBodySize": 683856,
+          "decodedBodySize": 683856
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 6305,
+          "encodedBodySize": 6005,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 26847,
+          "encodedBodySize": 26547,
+          "decodedBodySize": 26547
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 4321,
+          "encodedBodySize": 4021,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 7582,
+          "encodedBodySize": 7282,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 29979,
+          "encodedBodySize": 29679,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/images/Index/in_diary/diary_1.png",
+          "transferSize": 612851,
+          "encodedBodySize": 612551,
+          "decodedBodySize": 612551
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 447,
+          "encodedBodySize": 147,
+          "decodedBodySize": 147
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 335,
+          "encodedBodySize": 35,
+          "decodedBodySize": 35
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 329,
+          "encodedBodySize": 29,
+          "decodedBodySize": 29
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 377,
+          "encodedBodySize": 77,
+          "decodedBodySize": 77
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 330,
+          "encodedBodySize": 30,
+          "decodedBodySize": 30
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/avatar/emotion_happy.png",
+          "transferSize": 780429,
+          "encodedBodySize": 780129,
+          "decodedBodySize": 780129
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

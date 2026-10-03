@@ -1,0 +1,3041 @@
+{
+  "scope": "Supplementary actual desktop Chrome on isolated Linux Nginx/local HTTP, controlled API, 390x844 DPR3. External fonts blocked with CDP; native HTTP cache retained. No phone/HTTPS/real audio/low-device target/pre-change comparison or Q201 selection claim.",
+  "environment": {
+    "browser": "154.0.8037.97",
+    "platform": "darwin",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "deviceScaleFactor": 3,
+    "network": "localhost Docker forwarding, no throttling"
+  },
+  "method": {
+    "timing": "performance.now since navigation; mask absent and real more-button hit test",
+    "wireBytes": "CDP loadingFinished.encodedDataLength; protocol accounting, not pure asset bytes",
+    "resourceBytes": "Resource Timing transferSize/encodedBodySize separately; cache has zero transfer",
+    "memory": "Chrome performance.memory.usedJSHeapSize sampled without forced GC; JS heap only, not whole-browser peak or leak verdict"
+  },
+  "loads": [
+    {
+      "identity": "visitor",
+      "mode": "cold",
+      "maskGoneMs": 4085.4000000059605,
+      "entryHitMs": 4086.2000000029802,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 3717,
+          "encodedBodySize": 3417,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 7288,
+          "encodedBodySize": 6988,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 18694,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 2474,
+          "encodedBodySize": 2174,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 9568,
+          "encodedBodySize": 9268,
+          "decodedBodySize": 28505
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 2884,
+          "encodedBodySize": 2584,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 1806,
+          "encodedBodySize": 1506,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 10650,
+          "encodedBodySize": 10350,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 165930,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 284904,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 37224,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/favicon.ico",
+          "transferSize": 476,
+          "encodedBodySize": 176,
+          "decodedBodySize": 555
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 20840,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 140476,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 90410,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 72336,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 122726,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 3678,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 7250,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 19972,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 18688,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 31412,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 77695,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 81454,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 9544,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2435,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2859,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1780,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 10626,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 165926,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 284900,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 37218,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/favicon.ico",
+          "type": "Other",
+          "encodedReceivedBytes": 373,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 404
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 140472,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 122722,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 72331,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 90405,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 20834,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 1244446
+    },
+    {
+      "identity": "visitor",
+      "mode": "cached-navigation",
+      "maskGoneMs": 18,
+      "entryHitMs": 19.599999994039536,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 0,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 0,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 0,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 0,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 0,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 0,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 0,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 0,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 0,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 0,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 182,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 182,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 180,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 43683
+    },
+    {
+      "identity": "visitor",
+      "mode": "refresh",
+      "maskGoneMs": 4068,
+      "entryHitMs": 4069.2000000029802,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 0,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 0,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 0,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 0,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 0,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 0,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 0,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 0,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 0,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 0,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 41872
+    },
+    {
+      "identity": "authenticated",
+      "mode": "cold",
+      "maskGoneMs": 4089.3999999910593,
+      "entryHitMs": 4090,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 3717,
+          "encodedBodySize": 3417,
+          "decodedBodySize": 11006
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 7288,
+          "encodedBodySize": 6988,
+          "decodedBodySize": 22544
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 31471,
+          "encodedBodySize": 31171,
+          "decodedBodySize": 31171
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 18694,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 19978,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 77753,
+          "encodedBodySize": 77453,
+          "decodedBodySize": 77453
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 81512,
+          "encodedBodySize": 81212,
+          "decodedBodySize": 81212
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 2474,
+          "encodedBodySize": 2174,
+          "decodedBodySize": 6005
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 9568,
+          "encodedBodySize": 9268,
+          "decodedBodySize": 28505
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 2884,
+          "encodedBodySize": 2584,
+          "decodedBodySize": 7282
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 1806,
+          "encodedBodySize": 1506,
+          "decodedBodySize": 4021
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 10650,
+          "encodedBodySize": 10350,
+          "decodedBodySize": 29679
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 165930,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 284904,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 455,
+          "encodedBodySize": 155,
+          "decodedBodySize": 173
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 374,
+          "encodedBodySize": 74,
+          "decodedBodySize": 55
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 355,
+          "encodedBodySize": 55,
+          "decodedBodySize": 33
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 392,
+          "encodedBodySize": 92,
+          "decodedBodySize": 85
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 37224,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "transferSize": 29862,
+          "encodedBodySize": 29562,
+          "decodedBodySize": 29562
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 140476,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 20840,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 72336,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 90410,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 122726,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 3678,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 7250,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 19972,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 18688,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 31412,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 77695,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 81454,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 9544,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2435,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2859,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1780,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 10626,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 165926,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 284900,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/status",
+          "type": "Fetch",
+          "encodedReceivedBytes": 308,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/detail",
+          "type": "Fetch",
+          "encodedReceivedBytes": 227,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/diary/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "type": "Fetch",
+          "encodedReceivedBytes": 208,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/badge",
+          "type": "Fetch",
+          "encodedReceivedBytes": 245,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 37218,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 29856,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 140472,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 122722,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 72331,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 90405,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 20834,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 1275128
+    },
+    {
+      "identity": "authenticated",
+      "mode": "cached-navigation",
+      "maskGoneMs": 14.700000002980232,
+      "entryHitMs": 15.799999997019768,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 0,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 0,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 300,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 0,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 0,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 0,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 0,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 0,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 0,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 0,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 0,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 374,
+          "encodedBodySize": 74,
+          "decodedBodySize": 55
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 455,
+          "encodedBodySize": 155,
+          "decodedBodySize": 173
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 355,
+          "encodedBodySize": 55,
+          "decodedBodySize": 33
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 392,
+          "encodedBodySize": 92,
+          "decodedBodySize": 85
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "transferSize": 0,
+          "encodedBodySize": 29562,
+          "decodedBodySize": 29562
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 182,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 182,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 180,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 181,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 304
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/status",
+          "type": "Fetch",
+          "encodedReceivedBytes": 308,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/detail",
+          "type": "Fetch",
+          "encodedReceivedBytes": 227,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/diary/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "type": "Fetch",
+          "encodedReceivedBytes": 208,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/badge",
+          "type": "Fetch",
+          "encodedReceivedBytes": 245,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 44882
+    },
+    {
+      "identity": "authenticated",
+      "mode": "refresh",
+      "maskGoneMs": 4070,
+      "entryHitMs": 4070.7999999970198,
+      "startup": {
+        "phase": "ready"
+      },
+      "resources": [
+        {
+          "path": "/static/css/common.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "transferSize": 2502,
+          "encodedBodySize": 2202,
+          "decodedBodySize": 6714
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "transferSize": 0,
+          "encodedBodySize": 19678,
+          "decodedBodySize": 19678
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "transferSize": 0,
+          "encodedBodySize": 18394,
+          "decodedBodySize": 18394
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "transferSize": 1863,
+          "encodedBodySize": 1563,
+          "decodedBodySize": 4080
+        },
+        {
+          "path": "/static/js/api.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "transferSize": 11838,
+          "encodedBodySize": 11538,
+          "decodedBodySize": 31610
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "transferSize": 2691,
+          "encodedBodySize": 2391,
+          "decodedBodySize": 6686
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "transferSize": 0,
+          "encodedBodySize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "transferSize": 0,
+          "encodedBodySize": 165630,
+          "decodedBodySize": 165630
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "transferSize": 0,
+          "encodedBodySize": 284604,
+          "decodedBodySize": 284604
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "transferSize": 0,
+          "encodedBodySize": 36924,
+          "decodedBodySize": 36924
+        },
+        {
+          "path": "/api/relationship/status",
+          "transferSize": 455,
+          "encodedBodySize": 155,
+          "decodedBodySize": 173
+        },
+        {
+          "path": "/api/relationship/detail",
+          "transferSize": 374,
+          "encodedBodySize": 74,
+          "decodedBodySize": 55
+        },
+        {
+          "path": "/api/diary/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/api/feed/badge",
+          "transferSize": 392,
+          "encodedBodySize": 92,
+          "decodedBodySize": 85
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "transferSize": 360,
+          "encodedBodySize": 60,
+          "decodedBodySize": 33
+        },
+        {
+          "path": "/api/feed/list",
+          "transferSize": 358,
+          "encodedBodySize": 58,
+          "decodedBodySize": 34
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "transferSize": 0,
+          "encodedBodySize": 29562,
+          "decodedBodySize": 29562
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "transferSize": 0,
+          "encodedBodySize": 140176,
+          "decodedBodySize": 140176
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "transferSize": 0,
+          "encodedBodySize": 122426,
+          "decodedBodySize": 122426
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "transferSize": 0,
+          "encodedBodySize": 72036,
+          "decodedBodySize": 72036
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "transferSize": 0,
+          "encodedBodySize": 90110,
+          "decodedBodySize": 90110
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "transferSize": 0,
+          "encodedBodySize": 20540,
+          "decodedBodySize": 20540
+        }
+      ],
+      "requests": [
+        {
+          "path": "/pages/index.html",
+          "type": "Document",
+          "encodedReceivedBytes": 22880,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/common.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/css/h5-theme.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/css/home-scene.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 2463,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/chat/icon-memory-nebula.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-feed-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/Index/home-diary-icon.png",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene-core.js",
+          "type": "Script",
+          "encodedReceivedBytes": 1838,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-scene.js",
+          "type": "Script",
+          "encodedReceivedBytes": 11814,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/js/api.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/home-data.js",
+          "type": "Script",
+          "encodedReceivedBytes": 2666,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/css/voice-entry.css",
+          "type": "Stylesheet",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-playback.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-audio-transport.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/js/voice-entry.js",
+          "type": "Script",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/background.c094490a4d8e.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/character.2816096f87aa.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/status",
+          "type": "Fetch",
+          "encodedReceivedBytes": 308,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/relationship/detail",
+          "type": "Fetch",
+          "encodedReceivedBytes": 227,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/diary/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/agent/unread-count",
+          "type": "Fetch",
+          "encodedReceivedBytes": 213,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/list",
+          "type": "Fetch",
+          "encodedReceivedBytes": 211,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/api/feed/badge",
+          "type": "Fetch",
+          "encodedReceivedBytes": 245,
+          "fromDiskCache": false,
+          "fromMemoryCache": false,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-thumbnails/v2/emotion_happy.eed62969ffbc.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        },
+        {
+          "path": "/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp",
+          "type": "Image",
+          "encodedReceivedBytes": 0,
+          "fromDiskCache": false,
+          "fromMemoryCache": true,
+          "status": 200
+        }
+      ],
+      "totalCDPEncodedReceivedBytes": 43076
+    }
+  ],
+  "running": {
+    "durationMs": 30031.90000000596,
+    "frames": 1802,
+    "meanMainFrameFps": 60.0024640301544,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "responseFirstFrameLatencyMs": [
+      9.599999994039536,
+      11.299999997019768,
+      12.600000008940697,
+      11.600000008940697,
+      11.5
+    ],
+    "samples": [
+      {
+        "at": 4242.0999999940395,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 149.99999999999955,
+          "frames": 10,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 9,
+            "elapsedMs": 149.99999999999955,
+            "maxFrameMs": 16.700000000000728,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.000000000000185,
+            "heapBytes": 5157813
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 3,
+          "blinkCount": 0,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 9249.79999999702,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 5149.8,
+          "frames": 310,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 309,
+            "elapsedMs": 5149.8,
+            "maxFrameMs": 16.80000000000109,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.0023301875801,
+            "heapBytes": 5193357
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 114,
+          "blinkCount": 1,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 14252.59999999404,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 10166.2,
+          "frames": 611,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 610,
+            "elapsedMs": 10166.2,
+            "maxFrameMs": 16.80000000000109,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.002754224784084,
+            "heapBytes": 4617753
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 225,
+          "blinkCount": 2,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 19261.59999999404,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 15166.1,
+          "frames": 911,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 910,
+            "elapsedMs": 15166.1,
+            "maxFrameMs": 16.80000000000291,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.00224184200289,
+            "heapBytes": 4706041
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 336,
+          "blinkCount": 3,
+          "idleCount": 0,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 24266.39999999106,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 20165.9,
+          "frames": 1211,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 1210,
+            "elapsedMs": 20165.9,
+            "maxFrameMs": 16.80000000000291,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.00228107845422,
+            "heapBytes": 3280793
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 450,
+          "blinkCount": 4,
+          "idleCount": 1,
+          "responseCount": 0,
+          "action": "idle",
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 29270.39999999106,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 25182.4,
+          "frames": 1512,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 1511,
+            "elapsedMs": 25182.4,
+            "maxFrameMs": 16.80000000000291,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.00222377533515,
+            "heapBytes": 3347081
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 560,
+          "blinkCount": 5,
+          "idleCount": 1,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      },
+      {
+        "at": 34274,
+        "owner": {
+          "id": 1,
+          "running": true,
+          "disposed": false,
+          "reasons": [],
+          "raf": true,
+          "time": 30182.100000000002,
+          "frames": 1812,
+          "effects": 3,
+          "timers": 0,
+          "subscriptions": 35
+        },
+        "quality": {
+          "level": 0,
+          "calibrated": false,
+          "calibration": null,
+          "lastWindow": null,
+          "metrics": {
+            "frames": 1811,
+            "elapsedMs": 30182.100000000002,
+            "maxFrameMs": 16.80000000000291,
+            "longTasks": 0,
+            "longTaskMs": 0,
+            "meanFps": 60.00245178433575,
+            "heapBytes": 2822452
+          }
+        },
+        "motion": {
+          "loaded": [
+            "lamp",
+            "front",
+            "side",
+            "back",
+            "blink"
+          ],
+          "failed": [],
+          "environmentFrames": 673,
+          "blinkCount": 6,
+          "idleCount": 1,
+          "responseCount": 0,
+          "action": null,
+          "quality": 0,
+          "responseLatencyMs": null,
+          "pixelBudget": null,
+          "canvas": {
+            "width": 585,
+            "height": 1266,
+            "dpr": 1.5,
+            "pixels": 740610
+          }
+        }
+      }
+    ],
+    "modalCycles": [
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41215,
+        "frames": 2474,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41265.1,
+        "frames": 2477,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41298.299999999996,
+        "frames": 2479,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41331.7,
+        "frames": 2481,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41365,
+        "frames": 2483,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41398.299999999996,
+        "frames": 2485,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41431.7,
+        "frames": 2487,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41465,
+        "frames": 2489,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41498.299999999996,
+        "frames": 2491,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      },
+      {
+        "id": 1,
+        "running": true,
+        "disposed": false,
+        "reasons": [],
+        "raf": true,
+        "time": 41531.7,
+        "frames": 2493,
+        "effects": 3,
+        "timers": 0,
+        "subscriptions": 35
+      }
+    ]
+  },
+  "errors": [],
+  "sourceSha256": {
+    "frontend/pages/index.html": "00c7f4d0ff6693b2ea456ed35c42b72dc309cd9f8a15242ddebad31dc372a402",
+    "frontend/static/js/home-scene.js": "809cc77f8c6d6b781eb7be17b031ee1e442ec0ec41c156704b6dded3a628797f",
+    "nginx/nginx.conf": "18253d95abc4e6964a63dd1571e58686b0415537bfa37184b07488ec8780b273"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "scope": "Real homepage and settings frontend, desktop Chrome, controlled business APIs and storage failures; native back cache exercised",
+  "results": [
+    {
+      "case": "settings switch appearance, native back, refresh, account change, cross-tab sync, keyboard, reduced motion and separate tilt",
+      "pass": true
+    },
+    {
+      "case": "actual settings with controlled preference getItem failure",
+      "pass": true
+    },
+    {
+      "case": "actual settings with controlled preference setItem failure",
+      "pass": true
+    },
+    {
+      "case": "browser default and preserved visitor settings gate",
+      "pass": true
+    }
+  ]
+}
