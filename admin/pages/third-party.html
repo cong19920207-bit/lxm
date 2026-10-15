@@ -81,6 +81,15 @@
       height: 200px;
       border-radius: 8px;
     }
+
+    #bm25-capability { margin-bottom: 16px; }
+    .bm25-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+    .bm25-grid .tp-row { gap: 16px; align-items: flex-start; }
+    .bm25-grid .tp-row > span:first-child { flex-shrink: 0; color: #666; }
+    .bm25-grid .tp-row > span:last-child { text-align: right; overflow-wrap: anywhere; }
+    .bm25-version { margin-top: 12px; font-size: 12px; color: #888; overflow-wrap: anywhere; }
+    .bm25-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: #888; }
+    @media (max-width: 900px) { .bm25-grid { grid-template-columns: minmax(0, 1fr); } }
   </style>
 </head>
 <body>
@@ -179,14 +188,37 @@
 
   function renderBm25(data) {
     var el=document.getElementById('bm25-capability');
-    if(!data){el.textContent='本地 BM25 能力状态暂不可用。';return;}
-    el.textContent='BM25 · 本地能力 · '+(data.package||'未知组件')+' '+(data.version||'版本未知')+' · 编码版本：'+(data.encoder_version||'未知')+' · '+(data.ready===true?'已就绪':'未就绪，索引尚未完成初始化或回填')+'。不需要远端 Endpoint 或 API Key。';
+    data=data||{};
+    var init=data.initialization||{}, index=data.index||{}, backfill=data.backfill||{};
+    var initLabels={ready:'已初始化并开放',not_configured:'未配置运行环境',not_initialized:'尚未初始化',initializing:'初始化中',maintenance:'维护中，尚未开放',failed:'初始化失败',target_mismatch:'目标库与运行记录不一致',unverified:'初始化回执待核实',unknown:'状态未知'};
+    var indexLabels={ready:'全部就绪',empty:'暂无待建数据',pending:'存在未就绪索引',attention:'存在待处理项',unknown:'状态未知'};
+    var backfillLabels={not_started:'无回填记录',pending:'等待执行',running:'进行中',interrupted:'已中断',manual_required:'需要人工处理',completed:'已完成并核对',unverified:'完成情况待核实',unknown:'状态未知'};
+    var stageLabels={scan:'扫描',index:'建索引',reconcile:'核对',catchup:'增量追平'};
+    var encoderErrors={bm25_profile_mismatch:'编码配置不匹配',bm25_statistics_mismatch:'统计文件不匹配',bm25_package_mismatch:'组件版本不匹配',bm25_analyzer_mismatch:'分词文件不匹配',bm25_profile_unavailable:'编码器加载失败'};
+    function count(n){return typeof n==='number'&&Number.isSafeInteger(n)&&n>=0?String(n):'未知';}
+    function row(label,value,key){return '<div class="tp-row"><span>'+label+'</span><span data-bm25-field="'+key+'">'+escapeHtml(value)+'</span></div>';}
+    var verifiedReady=data.encoder_ready===true&&init.state==='ready'&&['ready','empty'].indexOf(index.state)>=0&&['completed','not_started'].indexOf(backfill.state)>=0;
+    var dot=data.encoder_ready===false?'error':data.ready===true&&verifiedReady?'normal':data.ready===false&&init.state&&init.state!=='unknown'?'warning':'unknown';
+    var encoder=data.encoder_ready===true?'已就绪':data.encoder_ready===false?(encoderErrors[data.reason]||'未就绪'):'状态未知';
+    var indexText=indexLabels[index.state]||'状态未知';
+    if(index.total!=null)indexText+=' · 已就绪 '+count(index.ready)+' / 共 '+count(index.total)+' 条';
+    var counts=index.total==null?'状态未知':'待处理 '+count(index.pending)+' · 需人工处理 '+count(index.manual)+' · 来源待核实 '+count(index.unverified)+' 条';
+    var backfillText=backfillLabels[backfill.state]||'状态未知';
+    if(backfill.state!=='completed'&&stageLabels[backfill.stage])backfillText+=' · '+stageLabels[backfill.stage];
+    var progress=backfill.state==='not_started'?'无回填记录':backfill.run_id?
+      '扫描 '+count(backfill.scanned_records)+' 条 · 已识别 '+count(backfill.unique_source_ids)+' 个源 · '+(backfill.total_known===true?'总源数 '+count(backfill.total_source_ids):'总量待确认')+' · 待核对 '+count(backfill.unresolved_count)+' 项':'状态未知';
+    el.innerHTML='<div class="tp-card-head"><span class="tp-card-title">BM25（本地检索）</span><span class="tp-status-dot '+dot+'" aria-label="'+(dot==='normal'?'当前记录均就绪':dot==='unknown'?'状态未知':'存在未就绪或待处理项')+'"></span></div>'+
+      '<div class="bm25-grid">'+row('本地组件',data.package?(data.package+' '+(data.version||'版本未知')):'状态未知','package')+row('索引初始化',initLabels[init.state]||'状态未知','initialization')+
+      row('本地编码器',encoder,'encoder')+row('当前索引',indexText,'index')+row('回填状态',backfillText,'backfill')+row('索引待处理',counts,'counts')+row('回填进度',progress,'progress')+row('检查时间',data.checked_at?new Date(data.checked_at).toLocaleString('zh-CN',{hour12:false}):'未知','checked_at')+'</div>'+
+      '<div class="bm25-version">编码版本：'+escapeHtml(data.encoder_version||'未知')+'</div><p class="bm25-note">本地编码无需配置 Endpoint 或 API Key。状态按当前运行环境的初始化、索引和回填记录展示。</p>'+
+      '<div class="tp-card-foot"><a class="btn btn-default btn-sm" href="/admin/pages/memory-index-maintenance.html">查看索引维护</a></div>';
   }
   async function refreshThirdPartyStatus() {
     var sequence=++statusSequence;
     var res=await adminRequest('GET', '/api/admin/third-party/status',null,false,{silentErrorToast:true,timeoutMs:10000});
     if(sequence!==statusSequence)return false;
     if(!res||res.code!==0||!res.data||!Array.isArray(res.data.services)){
+      renderBm25(null);
       document.getElementById('service-load-status').textContent='状态加载失败，已有信息可能过期；重新加载成功前不能打开新的配置表单。';
       document.querySelectorAll('.tp-config-btn').forEach(function(b){b.disabled=true;});return false;
     }
@@ -273,7 +305,7 @@
     renderSidebar('third-party') +
     renderHeader('第三方服务监控') +
     '<div class="admin-content">' +
-      '<p id="service-load-status" role="status"></p><div id="bm25-capability" class="page-card" role="status">正在加载本地 BM25 能力…</div>' +
+      '<p id="service-load-status" role="status"></p><div id="bm25-capability" class="tp-card" role="status" aria-live="polite">正在加载本地 BM25 能力…</div>' +
       '<div id="service-grid">' +
         '<div class="skeleton"></div>' +
         '<div class="skeleton"></div>' +

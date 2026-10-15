@@ -22,8 +22,9 @@ from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
 from backend.services.memory_effective_config import (
     EffectiveConfigError, load_environment, provider_public_state, resolve_provider,
-    publish_provider, server_time, bm25_capability, PROVIDER_KEYS, provider_from_record,
+    publish_provider, server_time, PROVIDER_KEYS, provider_from_record,
 )
+from backend.services.memory_bm25_status import read_bm25_status
 from backend.services.memory_provider_service import probe_provider
 from backend.utils.admin_auth import (
     deny_observer_export,
@@ -81,7 +82,11 @@ async def _memory_provider_status(data: dict, db: AsyncSession) -> dict:
             item.update(service_key="doubao", endpoint=get_volc_endpoint(), provider="volcengine", model=get_volc_model(), version=0, revision=0, source="env", credential_configured=bool(get_volc_api_key()))
         elif item.get("name") == "内容安全":
             item.update(service_key="content_safety", provider="local", credential_configured=False)
-    result.update(bm25=bm25_capability(), server_time=server_time())
+    try:
+        vector_provider = provider_from_record('dashvector', records[PROVIDER_KEYS['dashvector']], env)
+    except EffectiveConfigError:
+        vector_provider = None
+    result.update(bm25=await read_bm25_status(db, vector_provider), server_time=server_time())
     return result
 
 

@@ -4,6 +4,8 @@
 import json
 import logging
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Optional
 
 from pydantic import BaseModel
@@ -75,6 +77,132 @@ _ALL_FIELD_NAMES = [
 ]
 
 
+# 仅保留元数据；ContextVar 隔离并发轮次，不改变原有解析/写入接口。
+_STEP6_DIAGNOSTIC = ContextVar("step6_diagnostic", default=None)
+_DIAGNOSTIC_REASONS = frozenset({
+    "memory_write_unavailable", "invalid_memory_atom", "invalid_user_memory_atom",
+    "runtime_environment_missing", "runtime_target_changed", "runtime_config_changed",
+    "business_epoch_not_frozen", "identity_busy", "memory_in_use", "operation_not_current",
+    "remote_rejected", "remote_outcome_unknown", "operation_commit_unconfirmed",
+    "operation_expired_before_dispatch", "operation_receipt_expired", "source_read_unverified",
+})
+_KEY_DROP_REASONS = {
+    "key 须为 ": "key_layers", "key 每一段不能为空": "key_empty_segment",
+    "key 每段仅允许": "key_charset", "key 汉字不能超过": "key_too_long",
+}
+
+
+def _diagnostic_reason(reason):
+    return reason if isinstance(reason, str) and reason in _DIAGNOSTIC_REASONS else (None if reason is None else "other")
+
+
+def _diagnose_step6(event, **meta):
+    """诊断失败不得影响业务；调用方只在原有决策分支旁观察，不参与决策。"""
+    try:
+        state = _STEP6_DIAGNOSTIC.get()
+        if state is None:
+            return
+        if event == "stage":
+            state["stage"] = meta["stage"]
+            if meta["stage"] == "relationship":
+                state["relationship_result"] = "started"
+            return
+        if event == "relationship":
+            state["relationship_result"] = meta["result"]
+            return
+        if event == "error":
+            exc = meta["exception"]
+            state["outcome"] = "error" if isinstance(exc, Exception) else "cancelled"
+            state["exception_type"] = type(exc).__name__
+            state["reason"] = _diagnostic_reason(getattr(exc, "reason", None))
+            active = state.pop("active_write", None)
+            if active is not None:
+                field = state["fields"][active.pop("field")]
+                for counts in (field["source_counts"], field["index_counts"]):
+                    counts["unobserved"] = counts.get("unobserved", 0) + 1
+                # 取消时没有拿到回执，不能猜测源状态、generation 或 operation_id。
+                field["items"].append(dict(**active, generation=None, internal_operation_id=None,
+                    source_result="unobserved", index_result="unobserved", reason="receipt_not_observed",
+                    exception_type=type(exc).__name__))
+            return
+        if event == "parsed":
+            data = meta["data"]
+            for name in _FIELD_TO_MEMORY_TYPE:
+                value = data.get(name)
+                input_state = ("missing" if name not in data else "null" if value is None
+                    else "non_string" if not isinstance(value, str) else "explicit_none" if value.strip() == "无"
+                    else "empty" if not value.strip() else "text")
+                state["fields"][name] = dict(input_state=input_state, lines_total=0, blank_lines=0,
+                    parsed_pairs=0, discarded={}, write_attempted=0, source_counts={}, index_counts={}, items=[])
+            return
+        if event == "field":
+            state["active_field"] = meta["name"]
+            return
+        field = state["fields"].get(state.get("active_field"))
+        if field is None:
+            return
+        if event == "line":
+            field["lines_total"] += 1
+            status = meta["status"]
+            if status == "blank":
+                field["blank_lines"] += 1
+            elif status == "parsed":
+                field["parsed_pairs"] += 1
+            else:
+                field["discarded"][status] = field["discarded"].get(status, 0) + 1
+        elif event == "key_rejected":
+            reason = next((v for k, v in _KEY_DROP_REASONS.items() if meta["error"].startswith(k)), "key_invalid")
+            field["discarded"][reason] = field["discarded"].get(reason, 0) + 1
+        elif event == "write_attempted":
+            field["write_attempted"] += 1
+            state["active_write"] = dict(field=state["active_field"], doc_id=meta["doc_id"], ordinal=meta["ordinal"])
+        elif event == "receipt":
+            result, exc = meta["result"], meta.get("exception")
+            source = result.get("source_result")
+            index = result.get("index_result")
+            source = source if source in {"confirmed", "failed", "unknown", "pending", "superseded"} else "other"
+            index = index if index in {"pending", "ready", "failed", "unknown", "manual", "not_required", "superseded"} else "other"
+            for counts, status in ((field["source_counts"], source), (field["index_counts"], index)):
+                counts[status] = counts.get(status, 0) + 1
+            operation_id = result.get("internal_operation_id")
+            if not isinstance(operation_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", operation_id):
+                operation_id = None
+            generation = result.get("generation")
+            reason = result.get("reason")
+            if exc is not None:
+                # ValueError 的固定校验码可辨识；任意异常文本不进诊断日志。
+                reason = getattr(exc, "reason", None) or (exc.args[0] if exc.args else None)
+            field["items"].append(dict(ordinal=meta["ordinal"], doc_id=meta["doc_id"],
+                generation=generation if type(generation) is int else None, internal_operation_id=operation_id,
+                source_result=source, index_result=index, reason=_diagnostic_reason(reason),
+                exception_type=type(exc).__name__ if exc is not None else None))
+            state.pop("active_write", None)
+    except Exception:
+        pass
+
+
+@contextmanager
+def step6_diagnostic_attempt(user_id, round_id, attempt, *, stage="prompt"):
+    """每次尝试仅发一条摘要；不记录 Prompt、LLM 原文、key/value 或异常正文。"""
+    state = dict(event="step6_diagnostic", user_id=user_id, round_id=round_id, attempt=attempt,
+                 stage=stage, outcome="completed", exception_type=None, reason=None,
+                 relationship_result="not_reached", fields={})
+    token = _STEP6_DIAGNOSTIC.set(state)
+    try:
+        yield
+    except BaseException as exc:
+        _diagnose_step6("error", exception=exc)
+        raise
+    finally:
+        _STEP6_DIAGNOSTIC.reset(token)
+        state.pop("active_field", None)
+        state.pop("active_write", None)
+        try:
+            logger.info("Step6 诊断: %s", json.dumps(state, ensure_ascii=False), extra={"step6_diagnostic": state})
+        except Exception:
+            pass
+
+
 # ============ JSON 解析 ============
 
 
@@ -114,6 +242,7 @@ def parse_step6_output(raw_json_str: str) -> Step6MemoryOutput:
     if not isinstance(data, dict):
         raise Step6ParseError(f"Step6 JSON 顶层不是对象，类型为 {type(data).__name__}")
 
+    _diagnose_step6("parsed", data=data)
     # 对每个字段做缺失兜底
     field_values = {}
     for name in _ALL_FIELD_NAMES:
@@ -428,17 +557,21 @@ def parse_kv_lines(text: str) -> list[tuple[str, str]]:
     for line in text.split("\n"):
         line = line.strip()
         if not line:
+            _diagnose_step6("line", status="blank")
             continue
         colon_idx = line.find(_FULLWIDTH_COLON)
         if colon_idx < 0:
+            _diagnose_step6("line", status="missing_fullwidth_colon")
             logger.debug("parse_kv_lines: 丢弃无全角冒号的行: %s", line)
             continue
         key = line[:colon_idx].strip()
         value = line[colon_idx + 1:].strip()
         if not key or not value:
+            _diagnose_step6("line", status="empty_key" if not key else "empty_value")
             logger.debug("parse_kv_lines: 丢弃 key 或 value 为空的行: %s", line)
             continue
         results.append((key, value))
+        _diagnose_step6("line", status="parsed")
     return results
 
 
@@ -451,20 +584,26 @@ async def upsert_step6_vectors(output: Step6MemoryOutput, user_id: int, *, write
     counts = {mt: 0 for mt in _FIELD_TO_MEMORY_TYPE.values()}
     results = []
     for field_name, memory_type in _FIELD_TO_MEMORY_TYPE.items():
+        _diagnose_step6("field", name=field_name)
         field_value = getattr(output, field_name, "无")
         if field_value.strip() == "无":
             continue
         for ordinal, (key, value) in enumerate(parse_kv_lines(field_value)):
-            if validate_key(key):
+            key_error = validate_key(key)
+            if key_error:
+                _diagnose_step6("key_rejected", error=key_error)
                 continue
             doc_id = build_doc_id(memory_type, key, user_id if memory_type in _TYPES_WITH_USER_ID else None)
             try:
+                _diagnose_step6("write_attempted", doc_id=doc_id, ordinal=ordinal)
                 actual = await writer.upsert(memory_type=memory_type, user_id=user_id, key=key, value=value,
                     source='text', source_entry=source_identity('text', round_id, memory_type, doc_id, ordinal) if round_id else '')
                 result = dict(actual.receipt, memory_type=memory_type)
+                _diagnose_step6("receipt", result=result, doc_id=doc_id, ordinal=ordinal)
             except Exception as exc:
                 result = dict(doc_id=doc_id, memory_type=memory_type, source_result='failed', index_result='not_required',
                               reason=getattr(exc, 'reason', 'memory_write_unavailable'), internal_operation_id=None, task_id=None)
+                _diagnose_step6("receipt", result=result, doc_id=doc_id, ordinal=ordinal, exception=exc)
             results.append(result)
             if result['source_result'] == 'confirmed':
                 counts[memory_type] += 1

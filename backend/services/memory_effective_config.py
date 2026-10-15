@@ -313,10 +313,11 @@ def provider_public_state(service: str, record: dict, env: dict) -> dict:
 
 
 def bm25_capability() -> dict:
+    """Local encoder only; index readiness needs the current environment's records."""
     from backend.services.memory_bm25 import get_encoder, BM25Error, PACKAGE_VERSION
     result = {"provider": "local", "package": "dashtext", "version": PACKAGE_VERSION,
-              "encoder_version": None, "encoder_ready": False, "ready": False,
-              "reason": "index_not_initialized"}
+              "encoder_version": None, "encoder_ready": False, "ready": None,
+              "reason": "index_status_unchecked"}
     try:
         encoder = get_encoder()
         result.update(encoder_version=encoder.encoder_version, encoder_ready=True,

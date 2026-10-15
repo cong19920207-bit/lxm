@@ -114,7 +114,10 @@ class MemoryVectorClient:
         output = data.get("output")
         if isinstance(output, list) and len(output) == 1:
             item = output[0]
-            if isinstance(item, dict) and item.get("id") == prepared["id"] and type(item.get("code")) is int and item["code"] == 0 and item.get("doc_op") == "upsert":
+            if (isinstance(item, dict) and item.get("id") == prepared["id"]
+                    and type(item.get("code")) is int and item["code"] == 0
+                    and isinstance(item.get("doc_op"), str)
+                    and item["doc_op"] in {"insert", "update", "upsert"}):
                 return WriteResult("confirmed")
         # Some successful envelopes have no per-document acknowledgement. Read
         # exactly once; old/missing data never releases an unresolved fence.

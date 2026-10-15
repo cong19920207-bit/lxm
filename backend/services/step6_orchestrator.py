@@ -19,6 +19,8 @@ from backend.services.memory_llm_service import (
     build_step6_prompt,
     parse_step6_output,
     upsert_step6_vectors,
+    _diagnose_step6,
+    step6_diagnostic_attempt,
 )
 from backend.services.relationship_service import RelationshipService
 from backend.utils.llm_client import llm_client
@@ -73,10 +75,17 @@ async def execute_step6(snapshot: Step6Snapshot) -> dict | None:
     重试策略：首次失败 → sleep 500ms → 重试一次 → 仍失败则写日志，任务结束。
     """
     from backend.services.memory_llm_service import get_memory_writer
-    writer = await get_memory_writer()
+    try:
+        writer = await get_memory_writer()
+    except BaseException:
+        # 原来初始化失败直接向外抛出，仍不进入重试；只补失败阶段证据。
+        with step6_diagnostic_attempt(snapshot.user_id, snapshot.round_id, 1, stage="writer_init"):
+            raise
     for attempt in range(2):
         try:
-            result = await _step6_pipeline(snapshot, writer=writer)
+            with step6_diagnostic_attempt(snapshot.user_id, snapshot.round_id, attempt + 1):
+                result = await _step6_pipeline(snapshot, writer=writer)
+                _diagnose_step6("stage", stage="completed")
             logger.info(
                 "Step6 完成: user_id=%d, round_id=%s, attempt=%d",
                 snapshot.user_id, snapshot.round_id, attempt + 1,
@@ -104,6 +113,7 @@ async def _step6_pipeline(snapshot: Step6Snapshot, *, writer=None) -> dict:
     if writer is None:
         from backend.services.memory_llm_service import get_memory_writer
         writer = await get_memory_writer()
+    _diagnose_step6("stage", stage="prompt")
     # 1. 构建代理对象给 build_step6_prompt
     conv_proxies = [_ConvProxy(role=c["role"], content=c["content"]) for c in snapshot.recent_conversations]
 
@@ -123,15 +133,19 @@ async def _step6_pipeline(snapshot: Step6Snapshot, *, writer=None) -> dict:
     )
 
     # 3. 调用 LLM（非流式，timeout=_STEP6_LLM_TIMEOUT_SEC，默认 45s）
+    _diagnose_step6("stage", stage="llm")
     raw_output = await llm_client.chat_sync(prompt, timeout_sec=_STEP6_LLM_TIMEOUT_SEC)
 
     # 4. 解析 Step6 JSON 输出
+    _diagnose_step6("stage", stage="parse")
     step6_output = parse_step6_output(raw_output)
 
     # 5. 四路向量写入（STEP-014）
+    _diagnose_step6("stage", stage="vectors")
     write_result = await upsert_step6_vectors(step6_output, snapshot.user_id, writer=writer, round_id=snapshot.round_id)
 
     # 6. 标量字段 + Future 槽更新（STEP-015）
+    _diagnose_step6("stage", stage="relationship")
     async with async_session_maker() as db:
         from backend.services.memory_business_guard import guard_writer_transaction
         await guard_writer_transaction(db, writer)
@@ -140,6 +154,7 @@ async def _step6_pipeline(snapshot: Step6Snapshot, *, writer=None) -> dict:
         relationship = result.scalar_one_or_none()
 
         if relationship is None:
+            _diagnose_step6("relationship", result="skipped_missing")
             logger.warning(
                 "Step6 标量更新跳过: 用户无 relationship 记录, user_id=%d",
                 snapshot.user_id,
@@ -156,5 +171,6 @@ async def _step6_pipeline(snapshot: Step6Snapshot, *, writer=None) -> dict:
             future_clear_slot=snapshot.future_clear_slot,
         )
         await db.commit()
+        _diagnose_step6("relationship", result="committed")
 
     return write_result
