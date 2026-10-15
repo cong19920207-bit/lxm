@@ -1,3 +1,4 @@
+from backend.services.memory_business_guard import uncleared_call_condition
 """VOICE-MEM-01 independent semantic atom extraction and durable orchestration."""
 import asyncio
 import json
@@ -23,6 +24,8 @@ from backend.utils.character_knowledge_validate import build_doc_id
 
 from backend.utils.character_knowledge_validate import validate_key, validate_value
 
+from backend.services.memory_business_writer import get_memory_writer, source_identity, VoiceAtomResult
+
 PIPELINE_VERSION = 'voice_memory_v1'
 MIN_ASR_CONFIDENCE = 0.5  # USER_DECISION, execution record §59; missing confidence is not invented.
 EXTRACTION_REQUEST_TIMEOUT_SECONDS = 45
@@ -33,7 +36,7 @@ _sqlite_doc_locks = WeakKeyDictionary()
 
 
 @asynccontextmanager
-async def memory_doc_session(factory, doc_id):
+async def memory_doc_session(factory, doc_id, *, lock_timeout=0):
     """Serialize voice writes for one doc across calls, without live call locks."""
     engine = factory.kw['bind']
     if engine.dialect.name == 'sqlite':
@@ -48,7 +51,7 @@ async def memory_doc_session(factory, doc_id):
     key = 'voice-mem:' + hashlib.sha256(doc_id.encode()).hexdigest()[:48]
     async with engine.connect() as connection:
         try:
-            acquired = await connection.scalar(text('SELECT GET_LOCK(:key, 0)'), {'key': key})
+            acquired = await connection.scalar(text('SELECT GET_LOCK(:key, :timeout)'), {'key': key, 'timeout': lock_timeout})
             await connection.commit()
             if acquired != 1:
                 raise RuntimeError('voice_memory_doc_busy')
@@ -64,6 +67,18 @@ async def memory_doc_session(factory, doc_id):
                 # Never return a connection with an uncertain session lock.
                 await connection.invalidate()
                 raise
+
+
+@asynccontextmanager
+async def memory_call_session(factory, call_id):
+    """Deletion and one admitted atom serialize before any SQL row locks.
+
+    This connection/local lock survives commits and never owns the runtime
+    fence during source I/O. MySQL waits at most 20 seconds, then fails closed;
+    the existing caller retry path handles busy/deletion failure.
+    """
+    async with memory_doc_session(factory, 'call:' + call_id, lock_timeout=20) as db:
+        yield db
 
 
 def retry_policy(script):
@@ -315,6 +330,7 @@ class VoiceMemoryService:
         from backend.services.vector_memory_write_service import upsert_user_memory
         self.factory, self.gate, self.model = session_factory, gate, model
         from functools import partial
+        self._managed_writer = writer is None
         self.writer = writer or partial(upsert_user_memory, last_write_source="voice")
         self.context = session_context
         self.metrics = metrics
@@ -331,7 +347,7 @@ class VoiceMemoryService:
         await self.purge_expired_snapshots()
         now = datetime.utcnow()
         async with self.factory() as db:
-            calls = list((await db.scalars(select(VoiceMemoryJob.call_id).where(
+            calls = list((await db.scalars(select(VoiceMemoryJob.call_id).where(uncleared_call_condition(VoiceMemoryJob),
                 VoiceMemoryJob.pipeline_version == PIPELINE_VERSION,
                 or_(VoiceMemoryJob.status == 'pending', and_(VoiceMemoryJob.status == 'failed',
                     VoiceMemoryJob.next_retry_at <= now), and_(
@@ -349,7 +365,7 @@ class VoiceMemoryService:
             targets = (await db.execute(select(VoiceMemoryJob.id, VoiceMemoryJob.call_id).join(
                 VoiceCall, VoiceCall.call_id == VoiceMemoryJob.call_id).join(
                 VoiceCallTurn, VoiceCallTurn.id == VoiceMemoryJob.turn_id).where(
-                VoiceMemoryJob.extraction_snapshot.is_not(None),
+                VoiceMemoryJob.extraction_snapshot.is_not(None), VoiceCall.cleared_run_id.is_(None),
                 or_(VoiceCall.deletion_fence_at.is_not(None), expiry.is_(None), expiry <= datetime.utcnow())
             ).limit(100))).all()
         for job_id, call_id in targets:
@@ -372,6 +388,8 @@ class VoiceMemoryService:
 
     @staticmethod
     async def stage_job(db, *, call, turn):
+        from backend.services.memory_business_guard import guard_voice_call
+        await guard_voice_call(db,call)
         """Caller owns call lock; job creation shares the final-turn commit."""
         try:
             async with db.begin_nested():
@@ -428,7 +446,7 @@ class VoiceMemoryService:
             VoiceCallTurn.turn_status.in_(['finalized', 'interrupted']), ~has_job).exists()
         async with self.factory() as db:
             calls = list((await db.scalars(select(VoiceCall.call_id).where(
-                VoiceCall.status.in_(TERMINAL), VoiceCall.deletion_fence_at.is_(None),
+                VoiceCall.status.in_(TERMINAL), VoiceCall.cleared_run_id.is_(None), VoiceCall.deletion_fence_at.is_(None),
                 or_(~recorded, missing)).order_by(VoiceCall.id).limit(8))).all())
         return [await self.compensate(call_id=call, audited=True) for call in calls]
 
@@ -503,8 +521,9 @@ class VoiceMemoryService:
     async def stage_deletion_fence(db, *, call_id):
         """Stage in the deletion caller's transaction; never commit for it.
 
-        Wait for existing vector writes under job locks before fencing. Once
-        fenced, cancel only uncommitted work; successful vectors/traces remain.
+        The deletion caller holds memory_call_session before taking SQL locks,
+        so admitted vector writes and their trace have finished before fencing.
+        Cancel only uncommitted work; successful vectors/traces remain.
         Lock all pipeline versions so an older worker cannot escape deletion.
         """
         call = await lock_call(db, call_id)
@@ -622,6 +641,13 @@ class VoiceMemoryService:
             job_id, user_id = job.id, call.user_id
             await self._commit(db)
         try:
+            write_context = None
+            if self._managed_writer:
+                write_context = await get_memory_writer(session_factory=self.factory, expected_context=snapshot.get('write_context'))
+                await write_context.validate_context(snapshot.get('write_context'))
+                if not await self._freeze_write_context(call_id, job_id, token, write_context.context):
+                    return 'cancelled'
+                snapshot = {**snapshot, 'write_context': write_context.context}
             if snapshot.get('version') != 1 or snapshot.get('phase') not in {'extracting', 'ready'}:
                 return await self._finish(call_id, job_id, token, 'failed', 'snapshot_invalid')
             if snapshot['phase'] == 'ready':
@@ -662,7 +688,7 @@ class VoiceMemoryService:
                 await self._observe([('voice.memory_extract.output',{'bucket':str(len(safe_items))},1)])
                 if not await self._save_snapshot(call_id, job_id, token, result):
                     return 'cancelled'
-            dropped, written = result.dropped, 0
+            dropped, written, unresolved = result.dropped, 0, False
             for item in result.items:
                 if not await self._allows(call_id, item['stable_key'] + '\n' + item['content']):
                     dropped += 1
@@ -672,20 +698,39 @@ class VoiceMemoryService:
                     await self.context.append(call_id=call_id, user_id=user_id, kind='candidate',
                         item_id=item['memory_type']+':'+item['stable_key'], turn_index=turn.turn_index,
                         text=item['content'], safe=True)
-                status = await self._write(call_id, job_id, token, user_id, turn.turn_index, item)
+                status = await self._write(call_id, job_id, token, user_id, turn.turn_index, item, write_context=write_context)
                 if status == 'cancelled':
                     return status
                 if self.context is not None:
                     await self.context.remove_candidate(call_id=call_id, user_id=user_id,
                         item_id=item['memory_type']+':'+item['stable_key'])
-                if status != 'superseded':
+                if status == 'unknown':
+                    unresolved = True
+                elif status != 'superseded':
                     written += 1
+            if unresolved:
+                return await self._finish(call_id, job_id, token, 'failed', 'write_unavailable')
             logger.info('voice.memory.dropped=%s', dropped)
             return await self._finish(call_id, job_id, token, 'success' if written else 'skipped',
                                       'dropped_items' if dropped else None)
         except Exception:
             logger.warning('voice.memory.processing_failed')
             return await self._finish(call_id, job_id, token, 'failed', 'write_unavailable')
+
+    async def _freeze_write_context(self, call_id, job_id, token, context):
+        async with self.factory() as db:
+            call = await lock_call(db, call_id)
+            job = await db.scalar(select(VoiceMemoryJob).where(VoiceMemoryJob.id == job_id).with_for_update())
+            if (call.deletion_fence_at or job.status != 'processing' or job.lease_owner != token
+                    or job.lease_expires_at is None or job.lease_expires_at <= datetime.utcnow()):
+                return False
+            snapshot = job.extraction_snapshot or {}
+            original = snapshot.get('write_context')
+            if original and any(original.get(k) != context[k] for k in ('target_epoch','target_fingerprint','encoder_version')):
+                raise RuntimeError('runtime_target_changed')
+            job.extraction_snapshot = {**snapshot, 'write_context': original or context}
+            await self._commit(db)
+            return True
 
     async def _save_snapshot(self, call_id, job_id, token, result):
         async with self.factory() as db:
@@ -697,26 +742,26 @@ class VoiceMemoryService:
                     job.status != 'processing' or job.lease_owner != token or
                     job.lease_expires_at is None or job.lease_expires_at <= datetime.utcnow()):
                 return False
-            if job.extraction_snapshot != {'version': 1, 'phase': 'extracting'}:
+            if (job.extraction_snapshot or {}).get('version') != 1 or (job.extraction_snapshot or {}).get('phase') != 'extracting':
                 return False
-            job.extraction_snapshot = dict(version=1, phase='ready', items=list(result.items), dropped=result.dropped)
+            job.extraction_snapshot = {**job.extraction_snapshot, **dict(version=1, phase='ready', items=list(result.items), dropped=result.dropped)}
             await self._commit(db)
             return True
 
-    async def _write(self, call_id, job_id, token, user_id, index, item):
+    async def _write(self, call_id, job_id, token, user_id, index, item, *, write_context=None):
         from backend.services.memory_write_source import collect_source_observations
         try:
             with collect_source_observations() as observations:
-                result = await self._write_atom(call_id,job_id,token,user_id,index,item)
+                result = await self._write_atom(call_id,job_id,token,user_id,index,item, write_context=write_context)
         except Exception as exc:
             events = [('voice.memory_upsert.result',{'result':'failure'},1)]
             if isinstance(exc,RuntimeError) and str(exc)=='voice_memory_doc_busy':
                 events.append(('voice.memory_upsert.conflict',{'scope':'stable_key','result':'busy'},1))
             await self._observe(events)
             raise
-        events = [('voice.memory_upsert.result',{'result':result},1)]
+        events = [('voice.memory_upsert.result',{'result':'failure' if result == 'unknown' else str(result)},1)]
         if result in {'existing','superseded'}:
-            events.append(('voice.memory_upsert.conflict',{'scope':'stable_key','result':result},1))
+            events.append(('voice.memory_upsert.conflict',{'scope':'stable_key','result':str(result)},1))
         if result=='written':
             previous = observations[0] if len(observations) == 1 else 'unknown'
             events.append(('voice.memory_upsert.source_observation',
@@ -724,57 +769,87 @@ class VoiceMemoryService:
         await self._observe(events)
         return result
 
-    async def _write_atom(self, call_id, job_id, token, user_id, index, item):
-        doc_id = build_doc_id(item['memory_type'], item['stable_key'], user_id)
-        async with memory_doc_session(self.factory, doc_id) as db:
-            # Only the claimed job is held during external I/O. Never lock the
-            # live call/user here: their locks also protect subsequent turns.
-            # Deletion must acquire the call lock, then all its job rows before
-            # setting the fence (the shared M5 deletion boundary).
-            job = await db.scalar(select(VoiceMemoryJob).where(VoiceMemoryJob.id == job_id).with_for_update())
-            call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id))
-            turn = await db.get(VoiceCallTurn, job.turn_id)
-            expiry = call.transcript_expires_at or turn.effective_text_expires_at
-            if (call.deletion_fence_at or job.status != 'processing' or job.lease_owner != token or
-                    job.lease_expires_at is None or job.lease_expires_at <= datetime.utcnow()):
-                if call.deletion_fence_at and job.status not in {'success', 'skipped', 'cancelled'}:
-                    job.status = 'cancelled'
-                    job.extraction_snapshot = None
-                    turn = await db.get(VoiceCallTurn, job.turn_id)
-                    turn.memory_status = 'cancelled'
-                    stage_memory_job_outcome(db,job,'deletion_fence')
-                    await self._commit(db)
-                return 'cancelled'
-            if expiry is None or expiry <= datetime.utcnow():
-                job.extraction_snapshot = None
+    async def _atom_state(self, db, call_id, job_id, token, user_id, index, doc_id, write_context):
+        """Check one trace transaction; never hold these locks across source I/O."""
+        if write_context is not None:
+            from backend.services.memory_business_guard import guard_writer_transaction
+            await guard_writer_transaction(db, write_context)
+        # Keep the same call/user -> job order as deletion and finalization.
+        call = await lock_call(db, call_id)
+        job = await db.scalar(select(VoiceMemoryJob).where(VoiceMemoryJob.id == job_id)
+            .with_for_update().execution_options(populate_existing=True))
+        if call is None or job is None or call.user_id != user_id or job.call_id != call_id:
+            return 'cancelled', None, None
+        turn = await db.get(VoiceCallTurn, job.turn_id, populate_existing=True)
+        if turn is None or turn.call_id != call_id or turn.turn_index != index:
+            return 'cancelled', None, None
+        expiry = call.transcript_expires_at or turn.effective_text_expires_at
+        if (call.deletion_fence_at or call.deleted_at or job.status != 'processing' or job.lease_owner != token or
+                job.lease_expires_at is None or job.lease_expires_at <= datetime.utcnow()):
+            if (call.deletion_fence_at or call.deleted_at) and job.status not in {'success', 'skipped', 'cancelled'}:
                 job.status = turn.memory_status = 'cancelled'
-                job.fail_reason = 'source_expired'
-                job.lease_owner = job.lease_expires_at = job.next_retry_at = None
-                stage_memory_job_outcome(db,job)
+                job.extraction_snapshot = None
+                stage_memory_job_outcome(db,job,'deletion_fence')
                 await self._commit(db)
-                return 'cancelled'
-            doc_id = build_doc_id(item['memory_type'], item['stable_key'], user_id)
-            newer = await db.scalar(select(VoiceMemoryTrace.id).join(
-                VoiceCall, VoiceCall.call_id == VoiceMemoryTrace.call_id).where(
-                VoiceMemoryTrace.doc_id == doc_id, VoiceCall.user_id == user_id,
-                or_(VoiceCall.id > call.id, and_(VoiceCall.id == call.id,
-                    VoiceMemoryTrace.turn_index > index))).limit(1))
-            if newer is not None:
-                return 'superseded'
-            trace = await db.scalar(select(VoiceMemoryTrace).where(VoiceMemoryTrace.call_id == call_id,
-                VoiceMemoryTrace.turn_index == index, VoiceMemoryTrace.doc_id == doc_id,
-                VoiceMemoryTrace.pipeline_version == PIPELINE_VERSION))
-            if trace is not None:
+            return 'cancelled', None, None
+        if expiry is None or expiry <= datetime.utcnow():
+            job.extraction_snapshot = None
+            job.status = turn.memory_status = 'cancelled'
+            job.fail_reason = 'source_expired'
+            job.lease_owner = job.lease_expires_at = job.next_retry_at = None
+            stage_memory_job_outcome(db,job)
+            await self._commit(db)
+            return 'cancelled', None, None
+        newer = await db.scalar(select(VoiceMemoryTrace.id).join(
+            VoiceCall, VoiceCall.call_id == VoiceMemoryTrace.call_id).where(
+            VoiceMemoryTrace.doc_id == doc_id, VoiceCall.user_id == user_id,
+            or_(VoiceCall.id > call.id, and_(VoiceCall.id == call.id,
+                VoiceMemoryTrace.turn_index > index))).limit(1))
+        if newer is not None:
+            return 'superseded', None, None
+        trace = await db.scalar(select(VoiceMemoryTrace.id).where(VoiceMemoryTrace.call_id == call_id,
+            VoiceMemoryTrace.turn_index == index, VoiceMemoryTrace.doc_id == doc_id,
+            VoiceMemoryTrace.pipeline_version == PIPELINE_VERSION))
+        return None, trace is not None, (job.extraction_snapshot or {}).get('write_context')
+
+    async def _write_atom(self, call_id, job_id, token, user_id, index, item, *, write_context=None):
+        doc_id = build_doc_id(item['memory_type'], item['stable_key'], user_id)
+        async with memory_call_session(self.factory, call_id), memory_doc_session(self.factory, doc_id) as db:
+            status, traced, expected = await self._atom_state(db, call_id, job_id, token, user_id, index, doc_id, write_context)
+            if status is not None:
+                return status
+            if not self._managed_writer and traced:
                 return 'existing'
-            actual = await asyncio.wait_for(self.writer(memory_type=item['memory_type'], user_id=user_id,
-                key=item['stable_key'], value=item['content']), timeout=20)
+            # The per-doc advisory/local lock survives commit, but the runtime
+            # fence, call, user and job row locks must not. The managed source
+            # writer acquires the same fence on its own physical connection.
+            await db.commit()
+            db.expire_all()
+            kwargs = dict(memory_type=item['memory_type'], user_id=user_id, key=item['stable_key'], value=item['content'])
+            if self._managed_writer:
+                write_context = write_context or await get_memory_writer(session_factory=self.factory, expected_context=expected)
+                kwargs.update(writer=write_context, source_entry=source_identity('voice', call_id, index, doc_id),
+                              resume_only=traced)
+            actual = await asyncio.wait_for(self.writer(**kwargs), timeout=20)
             if actual != doc_id:
                 raise RuntimeError('voice_memory_doc_identity_mismatch')
+            receipt = getattr(actual, 'receipt', None)
+            # New transaction + fresh rows. Never adopt a newer epoch or job
+            # owner after I/O, nor recreate a deleted/cleared/cancelled trace.
+            status, traced, _ = await self._atom_state(db, call_id, job_id, token, user_id, index, doc_id, write_context)
+            if status is not None:
+                return status
+            if receipt and receipt['source_result'] != 'confirmed':
+                if receipt['source_result'] == 'failed':
+                    raise RuntimeError('memory_vector_write_failed')
+                return VoiceAtomResult('unknown', receipt)
+            if traced:
+                return VoiceAtomResult('existing', receipt)
             db.add(VoiceMemoryTrace(call_id=call_id, turn_index=index, doc_id=doc_id,
                 memory_type=item['memory_type'], stable_key=item['stable_key'],
                 pipeline_version=PIPELINE_VERSION, written_at=datetime.utcnow()))
             await self._commit(db)
-            return 'written'
+            return VoiceAtomResult('written', receipt)
 
     async def _finish(self, call_id, job_id, token, status, reason):
         async with self.factory() as db:

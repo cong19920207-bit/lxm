@@ -1,0 +1,16 @@
+# 镜像只需要运行源码；本地凭据、日志、恢复归档和文档不进入构建上下文。
+*
+!Dockerfile
+!requirements.txt
+!backend/
+!backend/**
+!admin/
+!admin/**
+!frontend/
+!frontend/**
+!alembic/
+!alembic/**
+!alembic.ini
+**/__pycache__
+**/*.pyc
+**/._*

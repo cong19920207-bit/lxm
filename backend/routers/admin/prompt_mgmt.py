@@ -649,7 +649,7 @@ async def test_prompt(
             system_prompt_override = _step5_extract_content(draft.get("config_value"))
 
     builder = PromptBuilder(db=db)
-    full_prompt = await builder.build_chat_prompt(
+    full_prompt = await builder.build_legacy_mock_prompt(
         user_id=1,
         user_input=body.test_input,
         memories=memories,

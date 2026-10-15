@@ -8,6 +8,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
+from backend.models.memory_control import U64
 
 
 class Relationship(Base):
@@ -36,6 +37,7 @@ class Relationship(Base):
     character_attitude: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # ── Step8 Future 槽机制扩展字段（R-FUT-02 / R-FUT-03） ──
+    future_slot_version: Mapped[int] = mapped_column(U64, default=0, server_default="0")
     future_timestamp: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     future_action: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     proactive_times: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

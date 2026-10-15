@@ -71,11 +71,25 @@ async def lifespan(app: FastAPI):
 
     dh, dm = await get_scheduled_diary_cron_times(use_cache=True)
     start_scheduler(diary_hour=dh, diary_minute=dm)
-    yield
-    shutdown_scheduler()
+    from backend.services import chat_lifecycle_runtime
+    from backend.routers.chat import _execute_llm_bundle
+    chat_lifecycle_runtime.start(_execute_llm_bundle)
+    from backend.routers.admin.memory_diagnostics import get_service as diagnostic_service
+    diagnostic_service().start()
+    from backend.services import memory_index_runtime
+    memory_index_runtime.start()
+    try:
+        yield
+    finally:
+        await memory_index_runtime.stop()
+        await diagnostic_service().stop()
+        await chat_lifecycle_runtime.stop()
+        shutdown_scheduler()
 
 
 app = FastAPI(title="林小梦 AI 虚拟人", lifespan=lifespan)
+from backend.services.memory_business_guard import BusinessMaintenanceMiddleware
+app.add_middleware(BusinessMaintenanceMiddleware)
 from backend.services.realtime_voice_metric_service import ApplicationVoiceMetrics
 app.state.voice_metrics = ApplicationVoiceMetrics()
 
@@ -126,6 +140,7 @@ from backend.routers.admin import prompt_mgmt as admin_prompt  # noqa: E402
 from backend.routers.admin import chat_prompt_view as admin_chat_prompt_view  # noqa: E402
 from backend.routers.admin import safety_rules as admin_safety  # noqa: E402
 from backend.routers.admin import test_cases as admin_test_cases  # noqa: E402
+from backend.routers.admin import memory_write_operations as admin_memory_write_operations
 from backend.routers.admin import memory_mgmt as admin_memory  # noqa: E402
 from backend.routers.admin import agent_mgmt as admin_agent  # noqa: E402
 from backend.routers.admin import relationship_mgmt as admin_relationship  # noqa: E402
@@ -163,6 +178,7 @@ app.include_router(admin_safety.router,
     prefix="/api/admin", tags=["admin-safety"])
 app.include_router(admin_test_cases.router,
     prefix="/api/admin", tags=["admin-test-cases"])
+app.include_router(admin_memory_write_operations.router, prefix="/api/admin", tags=["admin-memory-write-operations"])
 app.include_router(admin_memory.router,
     prefix="/api/admin", tags=["admin-memory"])
 app.include_router(admin_agent.router,
@@ -255,3 +271,7 @@ async def avatar_image(filename: str):
     path = f"frontend/static/images/avatar/{filename}"
     default = "frontend/static/images/avatar/default.png"
     return FileResponse(path if os.path.exists(path) else default)
+
+from backend.routers.admin import memory_diagnostics as admin_memory_diagnostics, memory_index_maintenance as admin_memory_index_maintenance
+app.include_router(admin_memory_diagnostics.router, prefix="/api/admin", tags=["admin-memory-diagnostics"])
+app.include_router(admin_memory_index_maintenance.router, prefix="/api/admin", tags=["admin-memory-index-maintenance"])

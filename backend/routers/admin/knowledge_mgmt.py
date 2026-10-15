@@ -13,6 +13,8 @@ from backend.constants import ADMIN_ERROR_MESSAGES
 from backend.database import get_db
 from backend.models.admin_user import AdminUser
 from backend.schemas.common import ApiResponse
+from backend.services.memory_effective_config import server_time
+from backend.services.admin_memory_write_service import validate_write_header
 from backend.services.character_knowledge_service import character_knowledge_service
 from backend.utils.admin_auth import get_current_admin, log_operation, require_role
 
@@ -36,7 +38,7 @@ class CharacterKnowledgeUpdateRequest(BaseModel):
 def _fail_from_service(result: dict):
     code = result.get("error_code")
     message = result.get("message") or ADMIN_ERROR_MESSAGES.get(code, "操作失败")
-    return ApiResponse.fail(code, message=message)
+    return ApiResponse.fail(code, message=message, data=result.get("data"))
 
 
 @router.get(
@@ -59,12 +61,12 @@ async def list_character_knowledge(
     )
     if "error_code" in result:
         return _fail_from_service(result)
-    return ApiResponse.ok(data=result)
+    return ApiResponse.ok(data={**result, "server_time": server_time()})
 
 
 @router.post(
     "/character-knowledge",
-    dependencies=[require_role(*_WRITE_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def create_character_knowledge(
     body: CharacterKnowledgeCreateRequest,
@@ -77,6 +79,7 @@ async def create_character_knowledge(
         memory_type=body.type.strip(),
         key=body.key.strip(),
         value=body.value.strip(),
+        actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"),
     )
     if "error_code" in result:
         return _fail_from_service(result)
@@ -95,7 +98,7 @@ async def create_character_knowledge(
 
 @router.put(
     "/character-knowledge/{doc_id:path}",
-    dependencies=[require_role(*_WRITE_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def update_character_knowledge(
     doc_id: str,
@@ -109,6 +112,7 @@ async def update_character_knowledge(
     result = await character_knowledge_service.update_entry(
         doc_id=doc_id,
         value=body.value.strip(),
+        actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"),
     )
     if "error_code" in result:
         return _fail_from_service(result)
@@ -127,7 +131,7 @@ async def update_character_knowledge(
 
 @router.delete(
     "/character-knowledge/{doc_id:path}",
-    dependencies=[require_role(*_WRITE_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def delete_character_knowledge(
     doc_id: str,
@@ -137,7 +141,7 @@ async def delete_character_knowledge(
 ):
     """从 DashVector 删除指定 doc_id。"""
     doc_id = unquote(doc_id)
-    result = await character_knowledge_service.delete_entry(doc_id)
+    result = await character_knowledge_service.delete_entry(doc_id, actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"))
     if "error_code" in result:
         return _fail_from_service(result)
 

@@ -18,44 +18,23 @@ from backend.services import chat_service
 from backend.services.timeline_read_service import get_timeline
 
 
-async def open_send(
-    user_id: int,
-    db: AsyncSession,
-    content: str,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> ApiResponse:
-    safety = await chat_service.check_content_safety(content)
-    if not safety.get("ok"):
-        return ApiResponse.fail(safety["code"])
-
-    if await chat_service.check_send_quota(user_id, db):
-        await chat_service.trigger_recovery_if_queue_stuck(user_id, db, run_bundle)
-        return ApiResponse.fail(ERR_CHAT_QUEUE_FULL)
-
-    generation_id = await chat_service.enqueue_send(
-        user_id,
-        db,
-        safety["content"],
-        safety["persona_risk_flag"],
-        safety["persona_risk_type"],
-        run_bundle,
-    )
-    return await _payload_to_api_response(generation_id)
+async def open_send(user_id, db, content, run_bundle, request_id=None):
+    from backend.services.chat_lifecycle import AdmissionError
+    try:
+        admission=await chat_service.submit(user_id,db,'send',request_id,run_bundle,content=content,channel='open')
+    except AdmissionError as exc:return ApiResponse.fail(exc.code,data=exc.status)
+    return await _admission_response(admission,user_id)
 
 
-async def open_resend(
-    user_id: int,
-    db: AsyncSession,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> ApiResponse:
-    generation_id, err_code = await chat_service.enqueue_resend(user_id, db, run_bundle)
-    if err_code is not None:
-        return ApiResponse.fail(err_code)
-    return await _payload_to_api_response(generation_id)
+async def open_resend(user_id,db,run_bundle,request_id=None):
+    from backend.services.chat_lifecycle import AdmissionError
+    try:admission=await chat_service.submit(user_id,db,'resend',request_id,run_bundle,channel='open')
+    except AdmissionError as exc:return ApiResponse.fail(exc.code,data=exc.status)
+    return await _admission_response(admission,user_id)
 
 
-async def _payload_to_api_response(generation_id: str) -> ApiResponse:
-    payload = await chat_service.await_bundle_payload(generation_id)
+async def _payload_to_api_response(generation_id: str,user_id:int|None=None) -> ApiResponse:
+    payload = await chat_service.await_bundle_payload(generation_id,user_id)
     if payload.get("obsolete"):
         return ApiResponse.fail(ERR_CHAT_GENERATION_OBSOLETE)
     if payload.get("error"):
@@ -80,3 +59,13 @@ async def open_get_timeline(
     limit: int,
 ) -> dict[str, Any]:
     return await get_timeline(user_id, db, cursor=cursor, limit=limit)
+
+
+async def _admission_response(admission,user_id):
+    response=await _payload_to_api_response(admission.generation_id,user_id)
+    if response.code==10110:
+        from backend.database import async_session_maker
+        from backend.services.chat_lifecycle import read_status
+        async with async_session_maker() as db:
+            response.data=await read_status(db,user_id,admission.operation,admission.request_id)
+    return response

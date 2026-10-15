@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Open API v1 对话路由
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
@@ -17,18 +17,20 @@ router = APIRouter(prefix="/api/open/v1/chat", tags=["open-chat"])
 @router.post("/send")
 async def open_chat_send(
     req: OpenChatSendRequest,
+    idempotency_key: str | None = Header(None,max_length=64),
     user_id: int = Depends(get_current_user_by_api_key),
     db: AsyncSession = Depends(get_db),
 ):
-    return await open_send(user_id, db, req.content, _execute_llm_bundle)
+    return await open_send(user_id, db, req.content, _execute_llm_bundle, idempotency_key)
 
 
 @router.post("/resend")
 async def open_chat_resend(
+    idempotency_key: str | None = Header(None,max_length=128),
     user_id: int = Depends(get_current_user_by_api_key),
     db: AsyncSession = Depends(get_db),
 ):
-    return await open_resend(user_id, db, _execute_llm_bundle)
+    return await open_resend(user_id, db, _execute_llm_bundle,idempotency_key)
 
 
 @router.get("/timeline")
@@ -40,3 +42,11 @@ async def open_chat_timeline(
 ):
     data = await open_get_timeline(user_id, db, cursor=cursor, limit=limit)
     return ApiResponse.ok(data=data)
+
+
+@router.get("/submissions/{operation}/{request_id}")
+async def open_submission_status(operation:str,request_id:str,user_id:int=Depends(get_current_user_by_api_key),db:AsyncSession=Depends(get_db)):
+    from backend.services.chat_lifecycle import decode_request_id,read_status
+    try:raw=decode_request_id(operation,request_id)
+    except ValueError:raise HTTPException(422,"invalid_submission_identity") from None
+    return ApiResponse.ok(data=await read_status(db,user_id,operation,raw))

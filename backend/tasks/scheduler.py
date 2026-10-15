@@ -1,3 +1,4 @@
+from backend.services.memory_business_guard import fenced_scheduler
 # -*- coding: utf-8 -*-
 # APScheduler 定时任务调度：日记生成、Agent 主动消息扫描
 
@@ -16,6 +17,7 @@ _voice_retention_cursors={'contents':0,'replays':0}
 _voice_daily_after=None
 
 
+@fenced_scheduler
 async def _run_daily_diary_task() -> None:
     """每日日记生成任务包装器（run_daily_diary_task 内部自行创建 session）"""
     from backend.database import async_session_maker
@@ -31,6 +33,7 @@ async def _run_daily_diary_task() -> None:
         logger.error("[定时任务] 日记生成任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_agent_scan() -> None:
     """Agent 主动消息扫描任务包装器"""
     logger.info("[定时任务] 触发 Agent 主动消息扫描")
@@ -42,6 +45,7 @@ async def _run_agent_scan() -> None:
         logger.error("[定时任务] Agent 扫描任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_future_slot_scan() -> None:
     """Future 槽消费轮询：扫描到期 Future 槽并触发主动消息子链路"""
     logger.info("[定时任务] 触发 Future 槽轮询")
@@ -59,6 +63,7 @@ async def _run_future_slot_scan() -> None:
         logger.error("[定时任务] Future 槽轮询异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_weekly_outline() -> None:
     """LLM-01 周大纲首次生成（周日 23:00）"""
     try:
@@ -68,6 +73,7 @@ async def _run_weekly_outline() -> None:
         logger.error("[定时任务] 周大纲生成任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_weekly_outline_retry() -> None:
     """LLM-01 周大纲重试（周日 23:30，仅当 23:00 未落库时实际生成）"""
     try:
@@ -77,6 +83,7 @@ async def _run_weekly_outline_retry() -> None:
         logger.error("[定时任务] 周大纲重试任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_daily_scenes() -> None:
     """LLM-02 日场景首次生成（每日 00:20，为当日生成）"""
     try:
@@ -86,6 +93,7 @@ async def _run_daily_scenes() -> None:
         logger.error("[定时任务] 日场景生成任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_daily_scenes_retry() -> None:
     """LLM-02 日场景重试（每日 00:30，仅当 00:20 未 ready 时实际生成）"""
     try:
@@ -95,6 +103,7 @@ async def _run_daily_scenes_retry() -> None:
         logger.error("[定时任务] 日场景重试任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_daily_her_universe() -> None:
     """LLM-03 她的宇宙（每日 00:45，处理当日 ready 场景）"""
     try:
@@ -104,6 +113,7 @@ async def _run_daily_her_universe() -> None:
         logger.error("[定时任务] 她的宇宙任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_daily_feed_publish() -> None:
     """LIFE001 每日发布整合（每日 01:00，整合文案+图片落库 feed_post）"""
     try:
@@ -113,6 +123,7 @@ async def _run_daily_feed_publish() -> None:
         logger.error("[定时任务] 每日发布整合任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_comment_reply_poll() -> None:
     """LLM-05 评论回复延迟消费（每 30s，扫 due_at 到期 pending 评论）"""
     try:
@@ -122,6 +133,7 @@ async def _run_comment_reply_poll() -> None:
         logger.error("[定时任务] 评论回复轮询任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_agent_aware_poll() -> None:
     """LLM-06/07 点赞/已读感知 IM 延迟消费（每 60s，扫 agent_aware_queue 到期 pending）"""
     try:
@@ -131,6 +143,7 @@ async def _run_agent_aware_poll() -> None:
         logger.error("[定时任务] 感知 IM 轮询任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_feed_new_broadcast() -> None:
     """STEP-026 SSE 新帖广播调度（每 30s，扫 ready+visible+到点+未广播帖子）"""
     try:
@@ -140,6 +153,7 @@ async def _run_feed_new_broadcast() -> None:
         logger.error("[定时任务] SSE 新帖广播任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
 async def _run_inactive_reset() -> None:
     """R-FUT-03④：30 天无活动自动清零 proactive_times + Future 槽"""
     logger.info("[定时任务] 触发 30 天无活动清零检查")
@@ -330,6 +344,7 @@ def shutdown_scheduler() -> None:
         logger.info("[定时任务] 调度器已停止")
 
 
+@fenced_scheduler
 async def _run_voice_reconcile():
     from backend.redis_client import get_redis
     from backend.database import async_session_maker
@@ -340,6 +355,7 @@ async def _run_voice_reconcile():
         logger.warning('voice.ops_stop.reconcile_failed=1')
 
 
+@fenced_scheduler
 async def _run_voice_crisis_expiry():
     from backend.database import async_session_maker
     from backend.services.realtime_voice_crisis_service import clear_expired_crisis
@@ -351,6 +367,7 @@ async def _run_voice_crisis_expiry():
         logger.error('voice.crisis.expiry_failed')
 
 
+@fenced_scheduler
 async def _run_voice_memory():
     from backend.services.realtime_voice_memory_service import build_voice_memory_service
     try:
@@ -361,6 +378,7 @@ async def _run_voice_memory():
         logger.warning('voice.memory.poll_unavailable')
 
 
+@fenced_scheduler
 async def _run_voice_summary():
     from backend.services.realtime_voice_summary_runtime import build_voice_summary_service
     try:
@@ -371,6 +389,7 @@ async def _run_voice_summary():
         logger.warning('voice.summary.poll_unavailable')
 
 
+@fenced_scheduler
 async def _run_voice_followup():
     from backend.services.realtime_voice_followup_runtime import build_voice_followup_service
     try:
@@ -380,6 +399,7 @@ async def _run_voice_followup():
         logger.warning('voice.followup.poll_unavailable')
 
 
+@fenced_scheduler
 async def _run_voice_retention():
     from datetime import datetime
     from backend.services.realtime_voice_retention_service import build_voice_retention_service
@@ -399,6 +419,7 @@ async def _run_voice_retention():
             logger.warning('voice.retention.%s_unavailable',kind)
 
 
+@fenced_scheduler
 async def _run_voice_daily_metrics():
     global _voice_daily_after
     from backend.database import async_session_maker

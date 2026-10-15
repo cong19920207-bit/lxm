@@ -130,6 +130,34 @@ class VoiceOpsService:
         return result
 
     async def end_call(self, *, call_id, user_id=None, reason='system_error', admin_user=None, request=None):
+        # Original gateway/finalizer callbacks remain reachable during sealing;
+        # external HTTP remains blocked. Only an extant local owner can drain.
+        import os
+        environment=os.getenv('MEMORY_RUNTIME_ENVIRONMENT_ID','').strip()
+        if environment and not getattr(self.session_factory,'s15_drain_scope',False):
+            from backend.models.memory_control import MemoryRuntimeFence
+            from backend.models.memory_backfill import MemoryResetRun
+            from backend.services.memory_runtime_service import MemoryControlError
+            async with self.session_factory() as probe:
+                fence=await probe.get(MemoryRuntimeFence,environment)
+                maintenance=bool(fence and fence.mode=='maintenance')
+                run_id=fence.reset_run_id if maintenance else None
+                target=fence.target_fingerprint if maintenance else None
+            if maintenance:
+                if local_voice_calls.get(call_id) is None:raise MemoryControlError(20126,'original_voice_runtime_unavailable')
+                from contextlib import asynccontextmanager
+                from backend.services.memory_reset_service import MemoryResetService
+                reset=MemoryResetService(self.session_factory,environment,target)
+                @asynccontextmanager
+                async def scoped():
+                    async with self.session_factory() as db:
+                        run,locked=await reset._run(db,run_id)
+                        if run.t0 or locked.mode!='maintenance':raise MemoryControlError(20126,'drain_closed')
+                        db.info['s15_drain_call']=call_id
+                        yield db
+                scoped.s15_drain_scope=True
+                drain=VoiceOpsService(cache=self.cache,session_factory=scoped,metric=self.metric,metrics=self.metrics)
+                return await drain.end_call(call_id=call_id,user_id=user_id,reason=reason,admin_user=admin_user,request=request)
         # A disconnected HTTP/WS request must not cancel settlement halfway
         # through. Wait for this owned task; never leave a detached finalizer.
         task = asyncio.create_task(self._end_call(call_id=call_id, user_id=user_id,

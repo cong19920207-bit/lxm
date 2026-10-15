@@ -10,33 +10,23 @@ from datetime import datetime
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.config import get_llm_timeout_chat_seconds
 from backend.constants import PERSONA_RISK_KEYWORDS
 from backend.database import async_session_maker
-from backend.models.agent_message import AgentMessage, TriggerType
+from backend.models.agent_message import TriggerType
 from backend.models.conversation_log import ConversationLog
-from backend.models.emotion_log import EmotionLog
 from backend.models.relationship import Relationship
 from backend.redis_client import get_redis
 from backend.services.content_safety_service import check_content
-from backend.services.llm_service import (
-    Step5ParseError,
-    llm_service,
-    merge_messages_if_exceed,
-)
-from backend.services.multi_vector_retrieval_service import execute_multi_vector_retrieval
+from backend.services.llm_service import merge_messages_if_exceed
 from backend.services.prompt_builder import (
     DEFAULT_PERSONA,
     LEVEL_DEFINITIONS,
     REDIS_KEY_PERSONA,
-    PromptBuilder,
     _generate_time_description,
     get_activity_description,
 )
-from backend.services.query_rewrite_service import execute_query_rewrite
 from backend.services.step5_5_service import execute_step5_5
 from backend.services.step6_orchestrator import Step6Snapshot, execute_step6
-from backend.services.timeline_seq_service import allocate_sort_seq
 from backend.services import user_short_term_emotion_service
 from backend.services.agent_service import agent_service
 from backend.utils.future_time_parser import parse_future_time
@@ -53,101 +43,147 @@ DECAY_BASE = 0.15
 STEP8_FALLBACK_REPLY = "突然想起一件事想跟你说~"
 
 
-async def execute_step8_subchain(user_id: int, future_action: str | None) -> bool:
-    """
-    Step8 子链路完整执行：Future 槽到期触发的主动消息生成。
+from contextlib import suppress
+from backend.services import future_lifecycle as life
+from backend.services.step8_memory_pipeline import build_step8_prompt, call_step8_model
+from backend.services.memory_business_guard import enter_business_epoch, business_epoch
+from backend.services.chat_timing import TIMING
 
-    子链路步骤：
-    1. Step1：并行装载上下文（recent_conversations, relationship, emotion）
-    2. Step1.5 变体：查询重写（rewrite_input 传 future.action，约 20 字）
-    3. Step2：多路向量检索（完全复用）
-    4. Step3 变体：Prompt 拼装（模块9 替换为【主动发起】）
-    5. Step5：LLM 调用（Schema 一致，完全复用）
-    6. Step5.5：可配置较低触发概率
-    7. 产出写入 agent_message 表（不走 SSE）
-    8. Step6：记忆总结（完全复用）
-    9. proactive_times +1；衰减门控
+_effect_tasks = set()
+_effects_by_consume = {}
 
-    Args:
-        user_id: 用户 ID
-        future_action: Future 槽意图摘要
+def _spawn_effect(coro, consume_id=None):
+    task = asyncio.create_task(coro)
+    _effect_tasks.add(task)
+    def done(completed):
+        _effect_tasks.discard(completed)
+        if consume_id is not None:
+            pending = _effects_by_consume.get(consume_id, set())
+            pending.discard(completed)
+            if not pending:
+                _effects_by_consume.pop(consume_id, None)
+                life.ACTIVE_SNAPSHOTS.discard(consume_id)
+        if not completed.cancelled() and completed.exception():
+            logger.error('future_effect_task_failed consume=%s', consume_id, exc_info=completed.exception())
+    if consume_id is not None:
+        life.ACTIVE_SNAPSHOTS.add(consume_id)
+        _effects_by_consume.setdefault(consume_id, set()).add(task)
+    task.add_done_callback(done)
+    return task
 
-    Returns:
-        True=执行成功, False=失败
-    """
-    # future_action 为空时整轮失败
-    if not future_action or not future_action.strip():
-        logger.error(
-            "[Step8] future_action 为空，整轮主动消息失败: user_id=%d", user_id
-        )
-        return False
+async def drain_effects():
+    while _effect_tasks:
+        await asyncio.gather(*tuple(_effect_tasks), return_exceptions=True)
 
+async def _heartbeat(handle, worker):
+    while True:
+        await asyncio.sleep(TIMING.renew_ms / 1000)
+        try:
+            if not await life.renew(handle):
+                worker.cancel()
+                return
+        except Exception:
+            worker.cancel()
+            return
+
+class _SuccessEffects:
+    """Keep the live worker snapshot through outer verification; notify at most once."""
+    def __init__(self):
+        self.marker = None
+        self.callback = None
+        self.notified = False
+
+    def arm(self, callback):
+        self.marker = str(uuid.uuid4())
+        self.callback = callback
+        return self.marker
+
+    def confirmed(self):
+        if self.callback is not None and not self.notified:
+            self.notified = True
+            self.callback()
+
+
+async def execute_step8_subchain(user_id: int, future_action: str | None, *, slot=None):
+    token = business_epoch.set(await enter_business_epoch(async_session_maker))
+    handle = None
+    effects = _SuccessEffects()
+    try:
+        slot = slot or await life.capture(user_id)
+        if slot is None or slot.action != future_action:
+            return life.Result(None, 'superseded')
+        accepted = await life.accept(slot)
+        if isinstance(accepted, life.Result):
+            if accepted.consume_id:
+                return await life.reconcile(user_id, accepted.consume_id)
+            return accepted
+        handle = accepted
+        if not future_action or not future_action.strip():
+            return await life.fail(handle, 'llm_failed')
+        pulse = asyncio.create_task(_heartbeat(handle, asyncio.current_task()))
+        try:
+            async with asyncio.timeout(max(0, (handle.deadline_at-datetime.utcnow()).total_seconds())):
+                result = await _execute_owned(handle, future_action, effects)
+            if result.terminal == 'unverified' and effects.marker is not None:
+                return await life.reconcile(user_id, handle.consume_id, marker=effects.marker,
+                    handle=handle, on_success=effects.confirmed)
+            return result
+        except (TimeoutError, asyncio.CancelledError):
+            return await _finish_owned(handle, effects, 'deadline_exceeded' if datetime.utcnow()>=handle.deadline_at else 'execution_lost')
+        except Exception as exc:
+            reason = str(exc) if str(exc) in ('prompt_budget_exceeded','prompt_budget_unverified') else 'llm_failed'
+            return await _finish_owned(handle, effects, reason)
+        finally:
+            pulse.cancel()
+            with suppress(asyncio.CancelledError): await pulse
+    finally:
+        business_epoch.reset(token)
+
+async def _finish_owned(handle, effects, reason):
+    result = await life.reconcile(handle.user_id, handle.consume_id, marker=effects.marker,
+        handle=handle, on_success=effects.confirmed)
+    if result.terminal == 'pending':
+        return await life.fail(handle, reason)
+    return result
+
+
+async def _load_memory_context(user_id, db):
+    """Read-only Step8 input adapter; never reads or consumes a Future slot."""
+    recent_conversations = await _get_recent_conversations(user_id, db)
+    relationship_info = await _get_relationship(user_id, db)
+    emotion_context = await _get_emotion_context(user_id, db)
+    recent_10 = recent_conversations[-10:] if len(recent_conversations) > 10 else recent_conversations
+    time_description = _generate_time_description()
+    activity_description = await get_activity_description()
+    round_context = _build_step8_round_context(relationship_info, time_description, activity_description)
+    r_for_persona = await get_redis()
+    persona_text = await r_for_persona.get(REDIS_KEY_PERSONA)
+    if not persona_text:
+        persona_text = DEFAULT_PERSONA
+    return dict(persona_text=persona_text,round_context=round_context,recent_conversations=recent_10,
+        relationship_info=relationship_info,emotion_context=emotion_context)
+
+
+async def _execute_owned(handle, future_action, effects):
+    user_id = handle.user_id
     try:
         # ── Step1：并行装载上下文 ──
         logger.info("[Step8] 开始子链路: user_id=%d, action=%s", user_id, future_action)
 
-        # 同一 AsyncSession 禁止并发查询（asyncio.gather 会触发连接状态冲突）
         async with async_session_maker() as db:
-            recent_conversations = await _get_recent_conversations(user_id, db)
-            relationship_info = await _get_relationship(user_id, db)
-            emotion_context = await _get_emotion_context(user_id, db)
+            context = await _load_memory_context(user_id, db)
+        recent_10 = context['recent_conversations']
+        relationship_info = context['relationship_info']
+        emotion_context = context['emotion_context']
+        round_context = context['round_context']
+        persona_text = context['persona_text']
 
-        recent_10 = recent_conversations[-10:] if len(recent_conversations) > 10 else recent_conversations
-
-        # 构建本轮内存上下文
-        time_description = _generate_time_description()
-        activity_description = await get_activity_description()
-        round_context = _build_step8_round_context(
-            relationship_info, time_description, activity_description,
-        )
-
-        # ── Step1.5 变体：rewrite_input 传 future_action（约 20 字，非用户消息包，C17/C31）──
-        r_for_persona = await get_redis()
-        persona_text = await r_for_persona.get(REDIS_KEY_PERSONA)
-        if not persona_text:
-            persona_text = DEFAULT_PERSONA
-
-        query_rewrite_result = await execute_query_rewrite(
-            user_id=user_id,
-            rewrite_input=future_action,
-            persona_text=persona_text,
-            round_context=round_context,
-            recent_conversations=recent_10,
-            source="step8",
-        )
-
-        # ── Step2：多路向量检索（完全复用）──
-        retrieval_result = await execute_multi_vector_retrieval(
-            query_rewrite_result=query_rewrite_result,
-            user_id=user_id,
-        )
-
-        memories_raw = retrieval_result.user_memory_results
-        retrieval_for_prompt = retrieval_result.format_for_prompt()
-
-        # ── Step3 变体：Prompt 拼装（模块9 替换为【主动发起】）──
-        async with async_session_maker() as db:
-            builder = PromptBuilder(db)
-            prompt = await builder.build_step8_prompt(
-                user_id=user_id,
-                future_action=future_action,
-                memories=memories_raw,
-                recent_conversations=recent_10,
-                relationship_info=relationship_info,
-                emotion_context=emotion_context,
-                round_context=round_context,
-                retrieval_results=retrieval_for_prompt,
-            )
-
-        # ── Step5：LLM 调用（Schema 一致）──
-        try:
-            step5_result = await llm_service.chat_with_step5_parse(
-                prompt,
-                timeout_sec=get_llm_timeout_chat_seconds(),
-            )
-        except (Step5ParseError, Exception) as e:
-            logger.error("[Step8] Step5 LLM 失败: user_id=%d, error=%s", user_id, e)
-            return False
+        if not await life.renew(handle, remote=True):
+            raise life.LostOwnership()
+        prepared = await build_step8_prompt(handle, bundled=future_action, rewrite_input=future_action,
+            persona_text=persona_text, round_context=round_context, recent_conversations=recent_10,
+            relationship_info=relationship_info, emotion_context=emotion_context)
+        step5_result = await call_step8_model(prepared, handle.owner)
 
         # 内容安全检测：messages 逐条
         for idx, msg in enumerate(step5_result.messages):
@@ -158,7 +194,7 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
                     logger.warning(
                         "[Step8] Step5 messages[%d] 内容安全拦截: user_id=%d", idx, user_id
                     )
-                    return False
+                    return await life.fail(handle, "content_blocked")
 
         # 人格风险关键词扫描
         for msg in step5_result.messages:
@@ -166,7 +202,7 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
                 logger.warning(
                     "[Step8] 人格风险检测命中，使用兜底: user_id=%d", user_id
                 )
-                return await _fallback_write_agent_message(user_id)
+                return await _fallback_write_agent_message(handle, effects)
 
         round_id = str(uuid.uuid4())
 
@@ -208,66 +244,40 @@ async def execute_step8_subchain(user_id: int, future_action: str | None) -> boo
 
         # ── 写入 agent_message 表（不走 SSE）──
         reply_text = "\n".join(m.content for m in final_messages)
-        emotion_data = {
-            "label": step5_result.emotion.label,
-            "confidence": step5_result.emotion.confidence,
-        }
 
-        async with async_session_maker() as db:
-            score = await agent_service.calculate_action_score(user_id, TriggerType.FUTURE)
+        recent_conv_snapshot = [{"role": c.role, "content": c.content} for c in recent_10]
+        step6_snapshot = Step6Snapshot(
+            user_id=user_id, round_id=round_id, step6_messages=step6_messages,
+            user_input=future_action, persona_text=persona_text, level_name=level_name,
+            relation_description=round_context["relation_description"] or None,
+            user_real_name=round_context["user_real_name"] or None,
+            user_hobby_name=round_context["user_hobby_name"] or None,
+            user_description=round_context["user_description"] or None,
+            character_purpose=round_context["character_purpose"] or None,
+            character_attitude=round_context["character_attitude"] or None,
+            recent_conversations=recent_conv_snapshot,
+            future_time_natural=step5_result.future.time_natural, future_action=step5_result.future.action,
+            future_clear_slot=handle.slot)
+        def confirmed():
+            _spawn_effect(life.step6_effect(handle, lambda: execute_step6(step6_snapshot)), handle.consume_id)
+            _spawn_effect(_normal_effects(handle, step5_result), handle.consume_id)
+        score = await agent_service.calculate_action_score(user_id, TriggerType.FUTURE)
+        return await life.commit_success(handle, effects.arm(confirmed), content=reply_text, score=score,
+            success_kind='normal', round_id=round_id, on_success=effects.confirmed)
+    except Exception:
+        logger.exception('[Step8] 子链执行失败 user_id=%s', user_id)
+        raise
 
-            seqs = await allocate_sort_seq(user_id, count=1, db=db)
-            agent_msg = AgentMessage(
-                user_id=user_id,
-                trigger_type=TriggerType.FUTURE,
-                content=reply_text,
-                action_score=score,
-                sort_seq=seqs[0],
-            )
-            db.add(agent_msg)
-            await db.commit()
-            logger.info(
-                "[Step8] agent_message 写入成功: user_id=%d, sort_seq=%d",
-                user_id, seqs[0],
-            )
-
-        # ── Step6：记忆总结（完全复用，异步不阻塞）──
-        try:
-            recent_conv_snapshot = [
-                {"role": c.role, "content": c.content} for c in recent_10
-            ]
-            step6_snapshot = Step6Snapshot(
-                user_id=user_id,
-                round_id=round_id,
-                step6_messages=step6_messages,
-                user_input=future_action,
-                persona_text=persona_text,
-                level_name=level_name,
-                relation_description=round_context["relation_description"] or None,
-                user_real_name=round_context["user_real_name"] or None,
-                user_hobby_name=round_context["user_hobby_name"] or None,
-                user_description=round_context["user_description"] or None,
-                character_purpose=round_context["character_purpose"] or None,
-                character_attitude=round_context["character_attitude"] or None,
-                recent_conversations=recent_conv_snapshot,
-                future_time_natural=step5_result.future.time_natural,
-                future_action=step5_result.future.action,
-            )
-            asyncio.create_task(execute_step6(step6_snapshot))
-        except Exception:
-            logger.exception("[Step8] Step6 入队失败(不影响主流程): user_id=%d", user_id)
-
-        # ── proactive_times +1 + 衰减门控 ──
-        await _decay_gate_and_update(user_id, step5_result)
-
-        logger.info("[Step8] 子链路完成: user_id=%d, round_id=%s", user_id, round_id)
-        return True
-
-    except Exception as e:
-        logger.error(
-            "[Step8] 子链路异常: user_id=%d, error=%s", user_id, str(e), exc_info=True
-        )
-        return False
+async def _normal_effects(handle, step5_result):
+    try:
+        await _decay_gate_and_update(handle, step5_result)
+    except Exception:
+        logger.exception('future_normal_decay_failed consume=%s', handle.consume_id)
+        await life.effect_failed(handle.user_id, handle.consume_id, 'normal_decay')
+    try:
+        await life.handler_effects(handle.user_id, handle.consume_id)
+    except Exception:
+        logger.exception('future_handler_effect_failed consume=%s', handle.consume_id)
 
 
 # ================================================================
@@ -373,89 +383,27 @@ def _check_persona_risk(text: str) -> bool:
     return False
 
 
-async def _fallback_write_agent_message(user_id: int) -> bool:
-    """人格风险触发时写入兜底 agent_message"""
-    try:
-        async with async_session_maker() as db:
-            score = await agent_service.calculate_action_score(user_id, TriggerType.FUTURE)
-            seqs = await allocate_sort_seq(user_id, count=1, db=db)
-            agent_msg = AgentMessage(
-                user_id=user_id,
-                trigger_type=TriggerType.FUTURE,
-                content=STEP8_FALLBACK_REPLY,
-                action_score=score,
-                sort_seq=seqs[0],
-            )
-            db.add(agent_msg)
-            await db.commit()
-        return True
-    except Exception:
-        logger.exception("[Step8] 兜底写入失败: user_id=%d", user_id)
-        return False
+async def _fallback_write_agent_message(handle, effects=None):
+    """Independent fallback transaction carries exactly the same consumption fence."""
+    effects = effects or _SuccessEffects()
+    score = await agent_service.calculate_action_score(handle.user_id, TriggerType.FUTURE)
+    def confirmed():
+        _spawn_effect(life.handler_effects(handle.user_id, handle.consume_id))
+    return await life.commit_success(handle, effects.arm(confirmed), content=STEP8_FALLBACK_REPLY,
+        score=score, success_kind='fallback', round_id=str(uuid.uuid4()), on_success=effects.confirmed)
 
-
-async def _decay_gate_and_update(user_id: int, step5_result) -> None:
-    """
-    proactive_times +1 + 衰减门控：
-    以 0.15^(proactive_times+1) 概率决定是否写入下一轮 Future 预约。
-    """
-    try:
-        async with async_session_maker() as db:
-            stmt = select(Relationship).where(Relationship.user_id == user_id)
-            result = await db.execute(stmt)
-            rel = result.scalar_one_or_none()
-            if rel is None:
-                return
-
-            # proactive_times +1（上限 3）
-            old_pt = rel.proactive_times
-            if rel.proactive_times < 3:
-                rel.proactive_times += 1
-
-            new_pt = rel.proactive_times
-
-            # 衰减门控：检查 Step5 是否输出了新的 Future
-            future_time = step5_result.future.time_natural
-            future_action = step5_result.future.action
-
-            if future_action and future_action != "无" and future_time and future_time != "无":
-                # 以 0.15^(proactive_times+1) 概率写入
-                probability = DECAY_BASE ** (new_pt + 1)
-                roll = random.random()
-
-                if roll < probability:
-                    # 命中：解析时间并写入 Future 槽
-                    parsed_ts = parse_future_time(future_time)
-                    if parsed_ts is not None:
-                        rel.future_timestamp = parsed_ts
-                        rel.future_action = future_action
-                        logger.info(
-                            "[Step8] 衰减门控命中，写入下一轮 Future: "
-                            "user_id=%d, pt=%d, prob=%.6f, roll=%.6f, ts=%d",
-                            user_id, new_pt, probability, roll, parsed_ts,
-                        )
-                    else:
-                        logger.warning(
-                            "[Step8] 衰减门控命中但时间解析失败: "
-                            "user_id=%d, time_natural=%s",
-                            user_id, future_time,
-                        )
-                else:
-                    # 未命中：不写入
-                    logger.info(
-                        "[Step8] 衰减门控未命中: "
-                        "user_id=%d, pt=%d, prob=%.6f, roll=%.6f",
-                        user_id, new_pt, probability, roll,
-                    )
-            else:
-                logger.debug(
-                    "[Step8] Step5 未输出有效 Future: user_id=%d", user_id
-                )
-
-            await db.commit()
-            logger.info(
-                "[Step8] proactive_times 更新: user_id=%d, %d→%d",
-                user_id, old_pt, new_pt,
-            )
-    except Exception:
-        logger.exception("[Step8] 衰减门控/proactive_times 更新失败: user_id=%d", user_id)
+async def _decay_gate_and_update(handle, step5_result):
+    async def apply(db, rel, row):
+        if rel is None: return
+        rel.proactive_times = min(3, rel.proactive_times+1)
+        future_time = step5_result.future.time_natural
+        future_action = step5_result.future.action
+        if future_action and future_action != '无' and future_time and future_time != '无':
+            probability = DECAY_BASE ** (rel.proactive_times+1)
+            if random.random() < probability:
+                parsed = parse_future_time(future_time)
+                if parsed is not None:
+                    rel.future_timestamp = parsed
+                    rel.future_action = future_action
+                    rel.future_slot_version += 1
+    return await life.sql_effect(handle.user_id, handle.consume_id, 'normal_decay', apply)

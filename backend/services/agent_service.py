@@ -440,8 +440,11 @@ class AgentService:
 
                 for rel in rels:
                     rel.proactive_times = 0
-                    rel.future_timestamp = None
-                    rel.future_action = None
+                    from sqlalchemy import update
+                    await db.execute(update(Relationship).where(Relationship.user_id==rel.user_id,
+                        Relationship.future_slot_version==rel.future_slot_version).values(
+                            future_timestamp=None, future_action=None,
+                            future_slot_version=Relationship.future_slot_version+1))
                     reset_count += 1
                     logger.info(
                         "[Agent] 30天无活动清零: user_id=%d, proactive_times→0, future→cleared",

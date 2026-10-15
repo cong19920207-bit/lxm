@@ -6,6 +6,7 @@
   <title>第三方服务监控 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
+    [hidden] { display: none !important; }
     #service-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -84,7 +85,7 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=m3-publish-20261009"></script>
 <script>
 (function () {
   if (!checkAdminLogin()) return;
@@ -99,6 +100,7 @@
   var SERVICE_KEY_MAP = {
     'LLM（豆包）': 'doubao',
     'Embedding（阿里云）': 'embedding',
+    'Rerank（阿里云）': 'rerank',
     'DashVector（向量检索）': 'dashvector',
     '内容安全': 'content_safety'
   };
@@ -126,31 +128,19 @@
     return 'unknown';
   }
 
+  var serviceSnapshots = {}, modalSnapshot = null, modalPublication = null, modalEpoch = 0, modalTestSequence = 0, modalTestFingerprint = '', statusSequence = 0;
+  function serviceFields(svc) { return svc === 'dashvector' ? ['endpoint','collection_name'] : ['endpoint','model']; }
   function renderStandardCard(s, svcKey) {
-    var rate = Number(s.success_rate);
-    if (isNaN(rate)) rate = 0;
-    var fillColor = rate < 90 ? '#ff4d4f' : '#1890ff';
-    var avgMs = Number(s.avg_response_ms);
-    var avgStyle = (!isNaN(avgMs) && avgMs > 5000) ? ' style="color:var(--danger)"' : '';
-    var dn = escapeHtml(s.name);
-    var h = '';
-    h += '<div class="tp-card" data-svc-card="' + escapeHtml(svcKey) + '">';
-    h += '<div class="tp-card-head"><span class="tp-card-title">' + dn + '</span>';
-    h += '<span class="tp-status-dot ' + statusDotClass(s.status) + '" title="' + escapeHtml(s.status || '') + '"></span></div>';
-    h += '<div class="tp-row"><span>今日调用次数</span><span>' + (s.today_calls != null ? s.today_calls : '—') + ' 次</span></div>';
-    h += '<div class="tp-row"><span>成功率</span><div style="display:flex;align-items:center;flex:1;min-width:0">';
-    h += '<div class="tp-progress-wrap"><div class="tp-progress-fill" style="width:' + rate + '%;background:' + fillColor + '"></div></div>';
-    var pctStyle = rate < 90 ? ' style="white-space:nowrap;color:var(--danger)"' : ' style="white-space:nowrap"';
-    h += '<span' + pctStyle + '>' + rate + '%</span></div></div>';
-    h += '<div class="tp-row"><span>平均响应</span><span' + avgStyle + '>' + (s.avg_response_ms != null ? s.avg_response_ms : '—') + ' ms</span></div>';
-    if (s.credential_configured !== undefined) {
-      h += '<div class="tp-row"><span>凭据状态</span><span>' + (s.credential_configured ? '已配置' : '未配置') + '</span></div>';
-    }
-    if (!observerView) {
-      h += '<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-write-action data-display-name="' + escapeHtml(s.name) + '" data-svc-key="' + escapeHtml(svcKey) + '">配置</button></div>';
-    }
-    h += '</div>';
-    return h;
+    var rate=typeof s.success_rate==='number'&&Number.isFinite(s.success_rate)?s.success_rate:null;
+    var h='<div class="tp-card" data-svc-card="'+escapeHtml(svcKey)+'"><div class="tp-card-head"><span class="tp-card-title">'+escapeHtml(s.name)+'</span><span class="tp-status-dot '+statusDotClass(s.status)+'"></span></div>';
+    [['服务商',s.provider],['模型',s.model],['Endpoint',s.endpoint],['Collection',s.collection_name],['当前版本',s.version],['来源',s.source]].forEach(function(item){if(item[1]!=null)h+='<div class="tp-row"><span>'+item[0]+'</span><span style="overflow-wrap:anywhere;text-align:right">'+escapeHtml(item[1])+'</span></div>';});
+    h+='<div class="tp-row"><span>今日调用次数</span><span>'+escapeHtml(s.today_calls==null?'暂无数据':s.today_calls+' 次')+'</span></div>';
+    h+='<div class="tp-row"><span>成功率</span><span>'+(rate==null?'暂无数据':escapeHtml(rate)+'%')+'</span></div>';
+    h+='<div class="tp-row"><span>平均响应</span><span>'+escapeHtml(s.avg_response_ms==null?'暂无数据':s.avg_response_ms+' ms')+'</span></div>';
+    if(s.credential_configured!==undefined)h+='<div class="tp-row"><span>凭据状态</span><span>'+(s.credential_configured ? '已配置' : '未配置')+'</span></div>';
+    if(s.runtime_ready!==undefined)h+='<div class="tp-row"><span>配置就绪</span><span>'+(s.runtime_ready===true?'可用':'尚未就绪')+'</span></div>';
+    if(!observerView)h+='<div class="tp-card-foot"><button type="button" class="btn btn-default btn-sm tp-config-btn" data-write-action data-display-name="'+escapeHtml(s.name)+'" data-svc-key="'+escapeHtml(svcKey)+'">配置</button></div>';
+    return h+'</div>';
   }
 
   function renderContentSafetyCard(s, svcKey) {
@@ -176,7 +166,7 @@
     var h = '';
     for (var i = 0; i < services.length; i++) {
       var s = services[i];
-      var svcKey = getSvcKey(s.name);
+      var svcKey = s.service_key || getSvcKey(s.name);
       if (!svcKey) continue;
       if (svcKey === 'content_safety') {
         h += renderContentSafetyCard(s, svcKey);
@@ -187,143 +177,103 @@
     grid.innerHTML = h;
   }
 
+  function renderBm25(data) {
+    var el=document.getElementById('bm25-capability');
+    if(!data){el.textContent='本地 BM25 能力状态暂不可用。';return;}
+    el.textContent='BM25 · 本地能力 · '+(data.package||'未知组件')+' '+(data.version||'版本未知')+' · 编码版本：'+(data.encoder_version||'未知')+' · '+(data.ready===true?'已就绪':'未就绪，索引尚未完成初始化或回填')+'。不需要远端 Endpoint 或 API Key。';
+  }
   async function refreshThirdPartyStatus() {
-    var res = await adminRequest('GET', '/api/admin/third-party/status');
-    if (res && res.code === 0 && res.data && res.data.services) {
-      renderServiceCards(res.data.services);
+    var sequence=++statusSequence;
+    var res=await adminRequest('GET', '/api/admin/third-party/status',null,false,{silentErrorToast:true,timeoutMs:10000});
+    if(sequence!==statusSequence)return false;
+    if(!res||res.code!==0||!res.data||!Array.isArray(res.data.services)){
+      document.getElementById('service-load-status').textContent='状态加载失败，已有信息可能过期；重新加载成功前不能打开新的配置表单。';
+      document.querySelectorAll('.tp-config-btn').forEach(function(b){b.disabled=true;});return false;
     }
+    serviceSnapshots={};res.data.services.forEach(function(s){var key=s.service_key||getSvcKey(s.name);if(key)serviceSnapshots[key]=s;});
+    renderServiceCards(res.data.services);renderBm25(res.data.bm25);document.getElementById('service-load-status').textContent='';
+    return res.data;
   }
-
   function onModalFieldChange() {
-    if (currentSvcKey === 'content_safety') return;
-    configTestPassed[currentSvcKey] = false;
-    var smb = document.getElementById('modal-save-btn');
-    if (smb) smb.disabled = true;
+    if(currentSvcKey==='content_safety')return;
+    modalTestSequence++;modalTestFingerprint='';configTestPassed[currentSvcKey]=false;
+    var btn=document.getElementById('modal-save-btn');if(btn)btn.disabled=true;
+    var box=document.getElementById('modal-test-result');if(box)box.textContent='配置已修改，请重新测试。';
+    if(modalPublication)modalPublication.changed();
   }
-
+  function fillServiceForm(s) {
+    modalSnapshot={};serviceFields(currentSvcKey).forEach(function(k){modalSnapshot[k]=s[k]==null?'':String(s[k]);document.getElementById('modal-'+(k==='collection_name'?'collection':k)).value=modalSnapshot[k];});
+    document.getElementById('modal-provider').value=s.provider||'';document.getElementById('modal-apikey').value='';
+    document.getElementById('modal-version').textContent='当前版本：'+(s.version==null?'未发布':s.version)+' · 来源：'+(s.source||'未知')+' · 凭据'+(s.credential_configured?'已配置':'未配置');
+    onModalFieldChange();
+  }
+  function modalDraft(svc) {
+    var body={};serviceFields(svc).forEach(function(k){body[k]=document.getElementById('modal-'+(k==='collection_name'?'collection':k)).value.trim();if(!body[k])throw new Error('配置字段不能为空');});
+    if(!/^https?:\/\//i.test(body.endpoint))throw new Error('请填写有效的 HTTP(S) Endpoint');
+    if(svc==='dashvector'&&body.collection_name!=='test_memory_long_collection')throw new Error('Collection 必须为 test_memory_long_collection');
+    if(svc==='embedding'&&body.model!=='text-embedding-v4')throw new Error('Embedding 模型必须为 text-embedding-v4（1024维）');
+    var key=document.getElementById('modal-apikey').value.trim();if(key){if(/\*{3,}|\[REDACTED\]|^已配置$/i.test(key))throw new Error('不可提交脱敏凭据占位值');body.api_key=key;}
+    return body;
+  }
   function openConfigModal(displayName, svcKey) {
-    currentSvcKey = svcKey;
-    configTestPassed[svcKey] = false;
-
-    var modal = document.getElementById('config-modal');
-    var titleEl = document.getElementById('config-modal-title');
-    var bodyEl = document.getElementById('config-modal-body');
-    var footEl = document.getElementById('config-modal-footer');
-    if (!modal || !titleEl || !bodyEl || !footEl) return;
-
-    titleEl.textContent = displayName + ' 配置';
-
-    if (svcKey === 'content_safety') {
-      bodyEl.innerHTML =
-        '<div class="alert alert-info" style="margin-bottom:12px">' +
-        '该服务基于项目内置 Redis，通过 Redis 关键词列表实现内容安全检测，' +
-        '无需单独配置 Endpoint 或 API Key。</div>' +
-        '<div id="content-safety-test-result" style="display:none"></div>';
-      footEl.innerHTML =
-        '<button type="button" class="btn btn-default" id="modal-test-redis-btn" data-write-action>测试 Redis 连通性</button>' +
-        '<button type="button" class="btn btn-default" id="modal-close-only-btn">关闭</button>';
-    } else {
-      bodyEl.innerHTML =
-        '<div class="form-item"><label>Endpoint</label>' +
-        '<input type="url" id="modal-endpoint" data-write-action class="form-control" placeholder="https://..." autocomplete="off"></div>' +
-        '<div class="form-item"><label>API Key</label>' +
-        '<input type="password" id="modal-apikey" data-write-action class="form-control" placeholder="留空则保留原值" autocomplete="off"></div>' +
-        '<div id="modal-test-result" style="display:none"></div>';
-      footEl.innerHTML =
-        '<button type="button" class="btn btn-default" id="modal-test-btn" data-write-action>测试连接</button>' +
-        '<button type="button" class="btn btn-primary" id="modal-save-btn" data-write-action disabled>保存</button>' +
-        '<button type="button" class="btn btn-default" id="modal-cancel-btn">取消</button>';
-
-      var ep = document.getElementById('modal-endpoint');
-      var ak = document.getElementById('modal-apikey');
-      if (ep) ep.oninput = onModalFieldChange;
-      if (ak) ak.oninput = onModalFieldChange;
+    if(observerView||!SERVICE_KEY_MAP[displayName]&&!serviceSnapshots[svcKey])return;
+    if(modalPublication)modalPublication.close();modalPublication=null;
+    currentSvcKey=svcKey;var epoch=++modalEpoch;modalTestSequence++;configTestPassed[svcKey]=false;
+    var modal=document.getElementById('config-modal'),body=document.getElementById('config-modal-body'),foot=document.getElementById('config-modal-footer');
+    document.getElementById('config-modal-title').textContent=displayName+' 配置';
+    if(svcKey==='content_safety'){
+      body.innerHTML='<div class="alert alert-info">该服务基于项目内置 Redis，通过 Redis 关键词列表检测，无需单独配置 Endpoint 或 API Key。</div><div id="content-safety-test-result" role="status"></div>';
+      foot.innerHTML='<button type="button" class="btn btn-default" id="modal-test-redis-btn" data-write-action>测试 Redis 连通性</button><button type="button" class="btn btn-default" id="modal-cancel-btn">关闭</button>';
+      document.getElementById('modal-test-redis-btn').onclick=function(){testServiceConnection(svcKey);};
+    }else{
+      body.innerHTML='<p id="modal-version" class="text-secondary"></p><div class="form-item"><label>服务商（只读）</label><input id="modal-provider" class="form-control" readonly></div>'+
+        '<div class="form-item"><label>Endpoint</label><input type="url" id="modal-endpoint" data-write-action class="form-control" autocomplete="off"></div>'+
+        (svcKey==='dashvector'?'<div class="form-item"><label>Collection（固定新目标）</label><input id="modal-collection" data-write-action class="form-control"><p class="text-secondary">同一集群目标 test_memory_long_collection，Endpoint 须与当前集群一致；不支持跨集群切换。保存或测连不代表回填已完成。</p></div>':'<div class="form-item"><label>模型'+(svcKey==='embedding'?'（text-embedding-v4，1024维）':'')+'</label><input id="modal-model" data-write-action class="form-control"></div>')+
+        '<div class="form-item"><label>API Key</label><input type="password" id="modal-apikey" data-write-action class="form-control" placeholder="留空则保留原值" autocomplete="off"></div>'+
+        '<div id="modal-test-result" role="status"></div><p id="modal-publication-status" role="status" aria-live="polite"></p>';
+      foot.innerHTML='<button type="button" class="btn btn-default" id="modal-test-btn" data-write-action>测试连接</button><button type="button" class="btn btn-primary" id="modal-save-btn" data-write-action disabled>保存</button><button type="button" class="btn btn-default" id="modal-publication-refresh">刷新当前配置</button><button type="button" class="btn btn-default" id="modal-publication-verify" hidden>核实本次发布</button><button type="button" class="btn btn-default" id="modal-cancel-btn">关闭</button>';
+      modalPublication=publicationForm({legacy:svcKey==='doubao',key:'third-party:'+svcKey,path:'/api/admin/third-party/'+svcKey+'/config',status:'modal-publication-status',save:'modal-save-btn',verify:'modal-publication-verify',refresh:'modal-publication-refresh',canSave:function(){return configTestPassed[svcKey];},lock:function(locked){document.querySelectorAll('#config-modal-body input[data-write-action]').forEach(function(input){input.disabled=locked;});document.getElementById('modal-test-btn').disabled=locked;},read:async function(){
+        var data=await refreshThirdPartyStatus();if(epoch!==modalEpoch||!data)return false;
+        var s=serviceSnapshots[svcKey];if(!s||serviceFields(svcKey).some(function(k){return typeof s[k]!=='string';}))return false;
+        fillServiceForm(s);modalPublication.observeClock(data);return true;
+      }});
+      document.querySelectorAll('#config-modal-body input[data-write-action]').forEach(function(input){input.oninput=onModalFieldChange;});
+      document.getElementById('modal-test-btn').onclick=function(){testServiceConnection(svcKey);};
+      document.getElementById('modal-save-btn').onclick=function(){saveServiceConfig(svcKey);};
+      modalPublication.start();
     }
-
-    var testBtn = document.getElementById('modal-test-btn');
-    var testRedisBtn = document.getElementById('modal-test-redis-btn');
-    var saveBtn = document.getElementById('modal-save-btn');
-    var cancelBtn = document.getElementById('modal-cancel-btn');
-    var closeOnlyBtn = document.getElementById('modal-close-only-btn');
-
-    if (testBtn) testBtn.onclick = function () { testServiceConnection(svcKey); };
-    if (testRedisBtn) testRedisBtn.onclick = function () { testServiceConnection(svcKey); };
-    if (saveBtn) saveBtn.onclick = function () { saveServiceConfig(svcKey); };
-    if (cancelBtn) cancelBtn.onclick = closeConfigModal;
-    if (closeOnlyBtn) closeOnlyBtn.onclick = closeConfigModal;
-
-    modal.classList.add('show');
+    document.getElementById('modal-cancel-btn').onclick=closeConfigModal;modal.classList.add('show');
   }
-
   function closeConfigModal() {
-    var modal = document.getElementById('config-modal');
-    if (modal) modal.classList.remove('show');
-    currentSvcKey = '';
+    if(modalPublication)modalPublication.close();modalPublication=null;modalEpoch++;modalTestSequence++;
+    document.getElementById('config-modal').classList.remove('show');currentSvcKey='';
+    var key=document.getElementById('modal-apikey');if(key)key.value='';
   }
-
   async function testServiceConnection(svcKey) {
-    var resultId = svcKey === 'content_safety' ? 'content-safety-test-result' : 'modal-test-result';
-    var box = document.getElementById(resultId);
-    if (!box) return;
-    box.style.display = 'block';
-    box.innerHTML = '<div class="alert alert-info">正在测试连接...</div>';
-
-    var payload = {};
-    if (svcKey !== 'content_safety') {
-      var ep = document.getElementById('modal-endpoint');
-      var ak = document.getElementById('modal-apikey');
-      if (ep && ep.value.trim()) payload.endpoint = ep.value.trim();
-      if (ak && ak.value.trim()) payload.api_key = ak.value.trim();
-    }
-
-    var res = await adminRequest(
-      'POST',
-      '/api/admin/third-party/' + svcKey + '/test-connection',
-      payload,
-      false,
-      { silentErrorToast: true }
-    );
-
-    if (res && res.code === 0 && res.data && res.data.connected === true) {
-      configTestPassed[svcKey] = true;
-      var smb = document.getElementById('modal-save-btn');
-      if (smb) smb.disabled = false;
-      var ms = res.data.latency_ms != null ? res.data.latency_ms : '—';
-      box.innerHTML = '<div class="alert alert-success">✅ 连接成功，延迟 ' + ms + 'ms</div>';
-    } else {
-      configTestPassed[svcKey] = false;
-      var smb2 = document.getElementById('modal-save-btn');
-      if (smb2) smb2.disabled = true;
-      var err = (res && res.data && res.data.error) ? String(res.data.error) : (res && res.message) ? String(res.message) : '请求失败';
-      box.innerHTML = '<div class="alert alert-error">❌ 连接失败：' + escapeHtml(err) + '</div>';
-    }
+    if(observerView||currentSvcKey!==svcKey||(svcKey!=='content_safety'&&!modalPublication.editable()))return;
+    var payload={};try{if(svcKey!=='content_safety')payload=modalDraft(svcKey);}catch(e){showToast(e.message,'warning');return;}
+    var seq=++modalTestSequence,epoch=modalEpoch,fingerprint=JSON.stringify(payload);
+    configTestPassed[svcKey]=false;var save=document.getElementById('modal-save-btn');if(save)save.disabled=true;
+    var box=document.getElementById(svcKey==='content_safety'?'content-safety-test-result':'modal-test-result');box.textContent='正在测试当前配置…';
+    var res=await adminRequest('POST','/api/admin/third-party/'+svcKey+'/test-connection',payload,false,{silentErrorToast:true,timeoutMs:30000});
+    if(epoch!==modalEpoch||seq!==modalTestSequence||svcKey!==currentSvcKey)return;
+    if(svcKey!=='content_safety'){try{if(JSON.stringify(modalDraft(svcKey))!==fingerprint||!modalPublication.editable())return;}catch(_){return;}}
+    if(res&&res.code===0&&res.data&&res.data.connected===true){
+      configTestPassed[svcKey]=true;modalTestFingerprint=fingerprint;if(save)save.disabled=false;box.textContent='连接测试通过。保存时服务端仍校验最终配置。';
+    }else{configTestPassed[svcKey]=false;if(save)save.disabled=true;box.textContent='连接测试失败，请核对配置、权限与凭据。';}
   }
-
   async function saveServiceConfig(svcKey) {
-    if (!configTestPassed[svcKey]) {
-      showToast('请先测试连接并通过后再保存', 'warning');
-      return;
-    }
-    var body = {};
-    var ep = document.getElementById('modal-endpoint');
-    var ak = document.getElementById('modal-apikey');
-    if (ep && ep.value.trim()) body.endpoint = ep.value.trim();
-    if (ak && ak.value.trim()) body.api_key = ak.value.trim();
-    if (Object.keys(body).length === 0) {
-      showToast('请填写至少一项配置', 'warning');
-      return;
-    }
-    var res = await adminRequest('PUT', '/api/admin/third-party/' + svcKey + '/config', body);
-    if (res && res.code === 0) {
-      showToast('配置已保存', 'success');
-      closeConfigModal();
-    }
+    if(!modalPublication||!modalPublication.editable()||!configTestPassed[svcKey]||svcKey!==currentSvcKey)return;
+    var body;try{body=modalDraft(svcKey);}catch(e){showToast(e.message,'warning');return;}
+    if(JSON.stringify(body)!==modalTestFingerprint){onModalFieldChange();return;}
+    var patch={};Object.keys(body).forEach(function(k){if(body[k]!==modalSnapshot[k])patch[k]=body[k];});await modalPublication.submit(patch);
   }
 
   document.body.innerHTML =
     renderSidebar('third-party') +
     renderHeader('第三方服务监控') +
     '<div class="admin-content">' +
+      '<p id="service-load-status" role="status"></p><div id="bm25-capability" class="page-card" role="status">正在加载本地 BM25 能力…</div>' +
       '<div id="service-grid">' +
         '<div class="skeleton"></div>' +
         '<div class="skeleton"></div>' +
@@ -361,6 +311,135 @@
   window.addEventListener('beforeunload', function () {
     if (refreshTimer) clearInterval(refreshTimer);
   });
+  // 页面仅保存发布定位；正文、凭据不进入 sessionStorage。
+  function publicationForm(options) {
+    var state = 'loading', receipt = null, timer = null, clockOffset = 0, closed = false;
+    var storageKey = 'config-publication:' + options.key;
+    var observer = getAdminRole() === 'observer';
+    function byId(id) { return document.getElementById(id); }
+    function remember() {
+      try { if (receipt) sessionStorage.setItem(storageKey, JSON.stringify(receipt)); else sessionStorage.removeItem(storageKey); } catch (_) {}
+    }
+    function stop() { if (timer) clearTimeout(timer); timer = null; }
+    function set(next, message) {
+      state = next;
+      var busy = ['loading','load_failed','submitting','submission_unverified','saved_refresh_pending'].indexOf(state) >= 0;
+      byId(options.status).textContent = message;
+      byId(options.save).disabled = observer || busy || (options.canSave && !options.canSave());
+      byId(options.verify).hidden = !!options.legacy || !receipt || receipt.commit_state === 'committed';
+      byId(options.verify).disabled = state === 'submitting';
+      byId(options.refresh).hidden = !!receipt && receipt.commit_state !== 'committed';
+      byId(options.refresh).disabled = state === 'loading' || state === 'submitting';
+      if (options.lock) options.lock(busy || observer);
+    }
+    function uuid7() {
+      var bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+      var ms = Date.now() + clockOffset;
+      for (var i = 5; i >= 0; i--) { bytes[i] = ms % 256; ms = Math.floor(ms / 256); }
+      bytes[6] = (bytes[6] & 15) | 112; bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.from(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+    }
+    function observeClock(data) {
+      var ms = data && Date.parse(data.server_time);
+      if (Number.isFinite(ms)) clockOffset = ms - Date.now();
+    }
+    async function refresh() {
+      if (receipt && receipt.commit_state !== 'committed') return;
+      set('loading', receipt ? '已保存，正在刷新当前配置…' : '正在加载…');
+      var ok = false;
+      try { ok = await options.read(); } catch (_) {}
+      if (closed) return;
+      if (!ok) {
+        set(receipt ? 'saved_refresh_pending' : 'load_failed', receipt ? '已保存（本次版本 '+receipt.committed_version+'），当前配置回读失败，待刷新；不会重新提交。' : '加载失败，暂不能保存。请刷新重试。');
+        return;
+      }
+      var message = receipt ? '已保存（本次版本 '+receipt.committed_version+'）；下方展示当前'+(options.legacy?'运行':'')+'配置及其来源。' : '已加载；只提交修改的字段。';
+      receipt = null; remember(); set('clean', message);
+    }
+    async function accept(result) {
+      if (closed) return;
+      var data = result && result.data;
+      if (data && data.publish_id === receipt.publish_id) {
+        observeClock(data);
+        if (data.commit_state === 'committed' && data.committed_version != null) {
+          stop(); receipt.commit_state = 'committed'; receipt.committed_version = data.committed_version;
+          remember(); await refresh(); return;
+        }
+        if (data.commit_state === 'rejected') {
+          stop(); receipt = null; remember(); set('error', '本次发布已拒绝，请检查输入后重新提交。'); return;
+        }
+        if (data.commit_state === 'expired') {
+          stop(); receipt.commit_state = 'expired'; remember(); set('submission_unverified', '本次回执已过保障期，需人工核实；不能重新提交本次操作。'); return;
+        }
+      }
+      set('submission_unverified', '本次发布结果待核实，输入已保留；仅查询发布 '+receipt.publish_id+'，不会重复提交。');
+    }
+    async function verify() {
+      if (options.legacy || !receipt || receipt.commit_state === 'committed' || closed || !getAdminToken()) return;
+      var id = receipt.publish_id;
+      var result = await adminRequest('GET', '/api/admin/configs/publications/' + encodeURIComponent(id), null, false, {silentErrorToast:true,returnErrorResponse:true,timeoutMs:5000});
+      if (receipt && receipt.publish_id === id) await accept(result);
+    }
+    function schedule(delay) {
+      stop();
+      if (options.legacy || !receipt || closed || receipt.commit_state === 'expired' || document.hidden || !getAdminToken()) return;
+      if (Date.now() >= receipt.observe_until) { set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+      timer = setTimeout(async function () {
+        if (!receipt || Date.now() >= receipt.observe_until) { if (receipt) set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+        await verify(); if (receipt && state === 'submission_unverified') schedule(Math.min(5000, Math.round(delay * 1.5)));
+      }, Math.min(delay, receipt.observe_until - Date.now()));
+    }
+    function legacyUnknown() {
+      set('submission_unverified', '本次保存结果待核实。该旧配置入口没有精确发布回执；输入已保留，请人工核实，不会自动重试或查询不存在的发布记录。');
+    }
+    async function submitLegacy(body) {
+      // 旧豆包保存响应只有 version；不发送或伪造持久发布身份。
+      receipt = {legacy:true,commit_state:'unknown'}; remember();
+      set('submitting', '正在保存，请勿重复操作…');
+      var result = await adminRequest('PUT', options.path, body, false, {silentErrorToast:true,returnErrorResponse:true,timeoutMs:30000});
+      if (result && result.code === 0 && result.data && result.data.version != null) {
+        receipt.commit_state = 'committed'; receipt.committed_version = result.data.version;
+        remember(); if (!closed) await refresh(); return;
+      }
+      if (result && ([400,401,403,422,5001,20120].indexOf(result.code) >= 0 || result.detail)) {
+        receipt = null; remember(); if (!closed) set('error', '本次保存被拒绝，请检查字段、连接测试和权限后重试。'); return;
+      }
+      if (!closed) legacyUnknown();
+    }
+    async function submit(body) {
+      if (observer || ['clean','dirty','error'].indexOf(state) < 0) return;
+      if (!Object.keys(body).length) { showToast('没有检测到变更', 'info'); return; }
+      if (options.legacy) { await submitLegacy(body); return; }
+      var id;
+      try { id = uuid7(); } catch (_) { set('error', '浏览器无法生成安全发布身份，未发送请求。'); return; }
+      receipt = {publish_id:id,commit_state:'unknown',observe_until:Date.now()+60000}; remember();
+      set('submitting', '正在提交，请勿重复操作…');
+      var result = await adminRequest('PUT', options.path, body, false, {idempotencyKey:id,silentErrorToast:true,returnErrorResponse:true,timeoutMs:30000});
+      // 确定的校验/准入拒绝可纠正；网络/持久化未知只能读原回执。
+      if (result && (([400,401,403,422,20120,20121,20127].indexOf(result.code) >= 0) || result.detail)) {
+        receipt = null; remember(); set('error', '本次发布被拒绝，请检查字段和权限后重试。'); return;
+      }
+      await accept(result);
+      if (state === 'submission_unverified') schedule(2000);
+    }
+    function changed() {
+      if (['clean','dirty','error'].indexOf(state) >= 0) set('dirty', '有未保存的修改。');
+    }
+    async function start() {
+      try { receipt = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch (_) { receipt = null; }
+      if (receipt && (receipt.publish_id || receipt.legacy) && receipt.commit_state !== 'committed') {
+        try { await options.read(); } catch (_) {}
+        if (options.legacy) { receipt = {legacy:true,commit_state:'unknown'}; remember(); legacyUnknown(); return; }
+        set('submission_unverified', '上次发布结果待核实；页面未保存原正文和密钥，仅可查询原发布身份。'); schedule(2000);
+      } else { await refresh(); }
+    }
+    byId(options.verify).onclick = verify; byId(options.refresh).onclick = refresh;
+    window.addEventListener('beforeunload', function () { closed = true; stop(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (state === 'submission_unverified') schedule(2000); });
+    return {start:start,submit:submit,changed:changed,observeClock:observeClock,close:function(){closed=true;stop();},sync:function(){set(state,byId(options.status).textContent);},editable:function(){return ['clean','dirty','error'].indexOf(state)>=0;}};
+  }
+
 })();
 </script>
 

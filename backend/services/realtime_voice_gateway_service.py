@@ -267,6 +267,8 @@ class VoiceGatewaySession:
     async def observe(self, connected):
         async with self.meter_lock:
             async with self.factory() as db:
+                from backend.services.memory_business_guard import guard_voice_call
+                await guard_voice_call(db, self.call)
                 return await self.quota.observe(db, self.meter, connected=connected,
                                                 monotonic=time.monotonic(), now=datetime.now(timezone.utc), muted=self.mic_muted)
 
@@ -375,6 +377,8 @@ class VoiceGatewaySession:
         while not self.stopped:
             await asyncio.sleep(params['heartbeat_interval_ms']/1000)
             async with self.factory() as db:
+                from backend.services.memory_business_guard import guard_voice_call
+                await guard_voice_call(db, self.call)
                 status = await db.scalar(select(VoiceCall.status).where(VoiceCall.call_id == self.call.call_id))
             if status not in ('deciding','ringing','connected','reconnecting'):
                 await self.stop_local()
@@ -437,6 +441,8 @@ class VoiceGatewaySession:
             self.playback = PlaybackEvidence(call_id=self.call.call_id,
                 capability_enabled=getattr(self.adapter,'capability_enabled',lambda key:False))
             async with self.factory() as db:
+                from backend.services.memory_business_guard import guard_voice_call
+                await guard_voice_call(db, self.call)
                 await db.execute(update(VoiceCall).where(VoiceCall.call_id == self.call.call_id,
                     VoiceCall.status == 'ringing').values(provider_session_id=self.adapter.session_id,
                         provider_dialog_id=getattr(self.adapter, 'dialog_id', None)))
@@ -458,6 +464,8 @@ class VoiceGatewaySession:
     async def lifecycle(self):
         await self.send('state', status='deciding')
         async with self.factory() as db:
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db, self.call)
             inputs = await call_decision_inputs(db, user_id=self.call.user_id, call_id=self.call.call_id, now=datetime.now(timezone.utc))
         decision_started = time.monotonic()
         decision = await decide_call(inputs=inputs, settings=self.script['call_answer'], model=self.decision_model, metrics=self.metrics)
@@ -466,6 +474,8 @@ class VoiceGatewaySession:
             int((time.monotonic()-decision_started)*1000))
         target = 'cancelled' if self.cancel.is_set() else 'ringing' if decision.answer else 'missed'
         async with self.factory() as db:
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db, self.call)
             changed = await transition_call(db, call_id=self.call.call_id, expected=('deciding',), target=target, now=datetime.now(timezone.utc), metrics=VoiceMetrics(self.cache), call01_fallback=decision.fallback)
         if not changed:
             return
@@ -514,6 +524,8 @@ class VoiceGatewaySession:
             logger.info('voice.call01.provider_ready_order.%s=1',
                 'before_target' if ready and warm.result()-started <= decision.delay_seconds else 'after_target' if ready else 'unavailable')
             async with self.factory() as db:
+                from backend.services.memory_business_guard import guard_voice_call
+                await guard_voice_call(db, self.call)
                 changed = await transition_call(db, call_id=self.call.call_id, expected=('ringing',), target=state, now=datetime.now(timezone.utc), metrics=VoiceMetrics(self.cache))
             if not changed:
                 return
@@ -780,6 +792,8 @@ class VoiceGatewaySession:
             await self.observe(self.connected)
             async with self.meter_lock:
                 async with self.factory() as db:
+                    from backend.services.memory_business_guard import guard_voice_call
+                    await guard_voice_call(db, self.call)
                     remaining = await self.quota.remaining(db, self.meter, now=datetime.now(timezone.utc))
             deadline = (self.meter.grace_started + self.meter.grace_limit
                         if self.meter.grace_started is not None else None)
@@ -808,6 +822,8 @@ class VoiceGatewaySession:
         await self.observe(False)
         self.reconnector.boundary('pause')
         async with self.factory() as db:
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db, self.call)
             changed = await transition_call(db, call_id=self.call_id, expected=('connected',),
                                             target='reconnecting', now=datetime.now(timezone.utc), metrics=VoiceMetrics(self.cache))
         if not changed:
@@ -844,6 +860,8 @@ class VoiceGatewaySession:
                     self.playback.release_text(reply)
             await self.turns.freeze()
             async with self.factory() as db:
+                from backend.services.memory_business_guard import guard_voice_call
+                await guard_voice_call(db, self.call)
                 await self.turns.final_flush(db)
                 await db.commit()
                 await flush_voice_metrics(db, deferred_metrics)
@@ -906,6 +924,8 @@ class VoiceGatewaySession:
             self.socket = self.reconnector.socket
             self.sequence = 0
         async with self.factory() as db:
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db, self.call)
             user = await db.scalar(select(User).where(User.id == self.user_id).with_for_update().execution_options(populate_existing=True))
             row = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == self.call_id).with_for_update().execution_options(populate_existing=True))
             if user is None or user.is_banned or row is None or row.deletion_fence_at is not None or not await self.leases.owner_matches(user_id=self.user_id, call_id=self.call_id):
@@ -915,6 +935,8 @@ class VoiceGatewaySession:
         if not changed:
             raise TicketError('call_not_reconnectable')
         async with self.factory() as db:
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db, self.call)
             await db.execute(update(VoiceCall).where(VoiceCall.call_id == self.call_id,
                 VoiceCall.status == 'connected').values(provider_session_id=self.adapter.session_id,
                     provider_dialog_id=self.adapter.dialog_id))
@@ -945,6 +967,8 @@ class VoiceGatewaySession:
             # error from a stale gateway default, or delay cleanup indefinitely.
             async with asyncio.timeout(.1):
                 async with self.factory() as db:
+                    from backend.services.memory_business_guard import guard_voice_call
+                    await guard_voice_call(db, self.call)
                     row=(await db.execute(select(VoiceCall.status,VoiceCall.end_reason).where(
                         VoiceCall.call_id==self.call_id))).first()
                     if row is not None and row.status in TERMINAL:
@@ -970,6 +994,8 @@ class VoiceGatewaySession:
             try:
                 if not self.connected:
                     async with self.factory() as db:
+                        from backend.services.memory_business_guard import guard_voice_call
+                        await guard_voice_call(db, self.call)
                         await transition_call(db, call_id=self.call.call_id, expected=('deciding','ringing'),
                                               target='cancelled' if self.user_cancelled else 'failed', now=datetime.now(timezone.utc), metrics=VoiceMetrics(self.cache))
             finally:

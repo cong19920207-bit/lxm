@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import math
+from backend.utils.memory_vector import bounded_dotproduct_score
 import time
 from functools import wraps
 from backend.services.realtime_voice_metric_service import defer_voice_metrics
@@ -48,7 +49,7 @@ def rank_results(rows, *, limit, threshold):
             continue
         try:
             identity, content = row['id'], row['content']
-            score = float(row['score'])
+            score = bounded_dotproduct_score(row['score'])
             fields = row.get('fields') or {}
             if (not isinstance(fields, dict) or not isinstance(identity, str) or not 0 < len(identity) <= 256 or
                     not isinstance(content, str) or not content.strip() or not math.isfinite(score) or

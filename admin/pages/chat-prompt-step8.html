@@ -21,6 +21,9 @@
     <p class="src-meta" id="src-meta">加载中…</p>
     <h3 style="font-size:14px;margin:0 0 8px">模块9 · 【主动发起】模板</h3>
     <pre class="prompt-pre" id="pre-tpl">加载中…</pre>
+    <p class="src-meta" id="budget-note"></p>
+    <h3 style="font-size:14px;margin:16px 0 8px">记忆选入与预算规则</h3>
+    <pre class="prompt-pre" id="pre-selection">—</pre>
     <ul class="note-list" id="note-list"></ul>
   </div>
 </div>
@@ -45,9 +48,16 @@
     document.getElementById('src-meta').textContent =
       (d.description || '') + ' · 源文件：' + (d.source_file || '');
     document.getElementById('pre-tpl').textContent = d.proactive_input_template || '';
+    document.getElementById('budget-note').textContent = d.budget_note || '';
+    document.getElementById('pre-selection').textContent = (d.selection_rules || []).join('\n');
     var notes = d.notes || [];
     var ul = document.getElementById('note-list');
-    ul.innerHTML = notes.map(function (n) { return '<li>' + n + '</li>'; }).join('');
+    ul.replaceChildren();
+    notes.forEach(function (n) {
+      var li = document.createElement('li');
+      li.textContent = n;
+      ul.appendChild(li);
+    });
   });
 })();
 </script>

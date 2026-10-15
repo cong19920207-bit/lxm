@@ -20,6 +20,11 @@ from backend.models.admin_config import AdminConfig
 from backend.models.admin_user import AdminUser
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
+from backend.services.memory_effective_config import (
+    EffectiveConfigError, load_environment, provider_public_state, resolve_provider,
+    publish_provider, server_time, bm25_capability, PROVIDER_KEYS, provider_from_record,
+)
+from backend.services.memory_provider_service import probe_provider
 from backend.utils.admin_auth import (
     deny_observer_export,
     get_current_admin,
@@ -53,23 +58,38 @@ async def _set_cached(redis_client, cache_key: str, data: dict, ttl: int):
     await redis_client.set(cache_key, json.dumps(data, ensure_ascii=False), ex=ttl)
 
 
-async def _observer_credential_status(data: dict, db: AsyncSession) -> dict:
-    """为 observer 复制第三方状态并仅附加凭据是否已配置。"""
-    service_names = {
-        "LLM（豆包）": "doubao",
-        "Embedding（阿里云）": "embedding",
-        "DashVector（向量检索）": "dashvector",
-    }
+async def _memory_provider_status(data: dict, db: AsyncSession) -> dict:
+    """Statistics cache never determines a provider's effective configuration."""
+    from backend.services.memory_config_publication import read_many
+    try:
+        records = await read_many(db, tuple(PROVIDER_KEYS.values()))
+    except Exception:
+        raise EffectiveConfigError("configuration_read_unavailable", 20129) from None
+    env = load_environment()
+    names = {"Embedding（阿里云）": "embedding", "DashVector（向量检索）": "dashvector", "Rerank（阿里云）": "rerank"}
     result = {**data, "services": [dict(item) for item in data.get("services", [])]}
+    if not any(item.get("name") == "Rerank（阿里云）" for item in result["services"]):
+        result["services"].append({"name": "Rerank（阿里云）", "status": "unknown", "today_calls": None, "today_success": None, "success_rate": None, "avg_response_ms": None})
     for item in result["services"]:
-        service_name = service_names.get(item.get("name"))
-        if service_name is None:
-            continue
-        _, config = await _get_active_third_party_record(db, service_name)
-        item["credential_configured"] = any(
-            bool(config.get(field)) for field in _SENSITIVE_FIELDS
-        )
+        service = names.get(item.get("name"))
+        if service:
+            item.update(provider_public_state(service, records[PROVIDER_KEYS[service]], env))
+        elif item.get("name") == "LLM（豆包）":
+            # LLM execution still uses env. A historical third_party row must
+            # not be advertised as an already wired runtime configuration.
+            from backend.config import get_volc_endpoint, get_volc_model, get_volc_api_key
+            item.update(service_key="doubao", endpoint=get_volc_endpoint(), provider="volcengine", model=get_volc_model(), version=0, revision=0, source="env", credential_configured=bool(get_volc_api_key()))
+        elif item.get("name") == "内容安全":
+            item.update(service_key="content_safety", provider="local", credential_configured=False)
+    result.update(bm25=bm25_capability(), server_time=server_time())
     return result
+
+
+async def _third_party_status_response(data, db):
+    try:
+        return ApiResponse.ok(data=await _memory_provider_status(data, db))
+    except EffectiveConfigError as exc:
+        return ApiResponse.fail(exc.code, message="服务配置读取不可用", data={"reason": exc.reason, "server_time": server_time()})
 
 
 @router.get(
@@ -177,9 +197,7 @@ async def get_third_party_status(
 
     cached = await _get_cached(r, cache_key)
     if cached:
-        if admin_user.role == "observer":
-            cached = await _observer_credential_status(cached, db)
-        return ApiResponse.ok(data=cached)
+        return await _third_party_status_response(cached, db)
 
     today_str = datetime.date.today().strftime("%Y%m%d")
 
@@ -314,19 +332,18 @@ async def get_third_party_status(
     }
 
     await _set_cached(r, cache_key, data, ttl=60)
-    if admin_user.role == "observer":
-        data = await _observer_credential_status(data, db)
-    return ApiResponse.ok(data=data)
+    return await _third_party_status_response(data, db)
 
 
 # ============ 第三方服务配置与测试 ============
 
-_VALID_SERVICES = {"doubao", "embedding", "dashvector", "content_safety"}
+_VALID_SERVICES = {"doubao", "embedding", "dashvector", "rerank", "content_safety"}
 
 _SERVICE_CONFIG_KEY_MAP = {
     "doubao": "third_party:doubao",
     "embedding": "third_party:embedding",
-    "dashvector": "third_party:dashvector",
+    "dashvector": "vector_db_config",
+    "rerank": "third_party:rerank",
     "content_safety": "third_party:content_safety",
 }
 
@@ -334,14 +351,24 @@ _SENSITIVE_FIELDS = {"api_key", "secret_key", "api_secret", "password", "token"}
 
 
 def _mask_sensitive(config: dict) -> dict:
-    """将配置中的敏感字段值替换为掩码，不暴露明文 API Key"""
-    masked = {}
-    for k, v in config.items():
-        if k in _SENSITIVE_FIELDS and isinstance(v, str) and len(v) > 4:
-            masked[k] = v[:3] + "*" * (len(v) - 6) + v[-3:] if len(v) > 6 else "***"
-        else:
-            masked[k] = v
-    return masked
+    """Never return short credentials or prefix/suffix fragments."""
+    result = redact_credentials(config)
+    for key in _SENSITIVE_FIELDS:
+        if key in result:
+            result[key] = REDACTED if config.get(key) else ""
+    return result
+
+
+def _merge_legacy_provider(existing: dict, patch: dict) -> dict:
+    result = dict(existing)
+    for key, value in patch.items():
+        if key in _SENSITIVE_FIELDS:
+            if value in (None, ""):
+                continue
+            if not isinstance(value, str) or "*" in value or "REDACTED" in value.upper():
+                raise EffectiveConfigError("masked_credential_rejected")
+        result[key] = value
+    return result
 
 
 async def _get_active_third_party_record(
@@ -401,13 +428,32 @@ async def update_third_party_config(
             detail="请求体不能为空",
         )
 
+    if service_name in PROVIDER_KEYS:
+        from backend.services.memory_config_publication import PublicationError, get_or_create_publish_id
+        try:
+            publish_id = get_or_create_publish_id(request.headers.get("Idempotency-Key"))
+        except (ValueError, PublicationError):
+            raise HTTPException(status_code=422, detail="Idempotency-Key 必须为规范 UUIDv7") from None
+        try:
+            receipt = await publish_provider(db, service_name, body, admin_user.id, publish_id, request.url.path)
+        except (EffectiveConfigError, PublicationError) as exc:
+            return ApiResponse.fail(exc.code, message="配置发布未完成", data={"publish_id": publish_id, "reason": exc.reason, "server_time": server_time()})
+        data = {**receipt, "service_name": service_name, "version": receipt.get("committed_version"), "server_time": server_time()}
+        if receipt["commit_state"] == "committed":
+            return ApiResponse.ok(data=data)
+        code = 20123 if receipt["commit_state"] == "expired" else 20127 if receipt.get("reason") == "publication_revision_conflict" else 20040 if receipt["commit_state"] == "rejected" else 20122
+        return ApiResponse.fail(code, message="配置未发布或结果待核实", data=data)
+
     config_key = _SERVICE_CONFIG_KEY_MAP[service_name]
     current, existing_config = await _get_active_third_party_record(db, service_name)
 
-    before_value = json.dumps(existing_config, ensure_ascii=False) if existing_config else None
+    before_value = json.dumps(_mask_sensitive(existing_config), ensure_ascii=False) if existing_config else None
 
     # 合并新配置
-    merged_config = {**existing_config, **body}
+    try:
+        merged_config = _merge_legacy_provider(existing_config, body)
+    except EffectiveConfigError as exc:
+        return ApiResponse.fail(exc.code, message="配置字段无效", data={"reason": exc.reason})
 
     # 先测试连接
     test_result = await _do_test_connection(service_name, merged_config)
@@ -485,40 +531,41 @@ async def test_third_party_connection(
     if raw:
         try:
             obj = json.loads(raw.decode("utf-8"))
-            if isinstance(obj, dict):
-                patch = obj
         except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
-            patch = {}
-
-    _, existing_config = await _get_active_third_party_record(db, service_name)
-    merged_config = {**existing_config, **patch}
-    result = await _do_test_connection(service_name, merged_config)
-    return ApiResponse.ok(data=result)
+            raise HTTPException(status_code=400, detail="请求体须为 JSON 对象") from None
+        if not isinstance(obj, dict):
+            raise HTTPException(status_code=400, detail="请求体须为 JSON 对象")
+        patch = obj
+    try:
+        if service_name in PROVIDER_KEYS:
+            config = await resolve_provider(db, service_name, patch)
+            result = await probe_provider(config)
+        else:
+            _, existing_config = await _get_active_third_party_record(db, service_name)
+            result = await _do_test_connection(service_name, _merge_legacy_provider(existing_config, patch))
+        return ApiResponse.ok(data={**result, "server_time": server_time()})
+    except EffectiveConfigError as exc:
+        return ApiResponse.fail(exc.code, message="配置无法核验", data={"connected": False, "latency_ms": 0, "reason": exc.reason, "error": "配置无效或来源不可读", "server_time": server_time()})
 
 
 async def _do_test_connection(service_name: str, config_override: dict = None) -> dict:
-    """
-    执行实际的连接测试。
-    config_override 不为空时用传入的配置创建临时客户端，否则用全局默认配置。
-    """
     start_ms = time.monotonic()
-    result = {"connected": False, "latency_ms": 0, "error": ""}
-
+    result = {"connected": False, "latency_ms": 0, "error": "", "reason": None}
     try:
+        if service_name in PROVIDER_KEYS:
+            # Runtime and test functions consume this exact validated group.
+            cfg = provider_from_record(service_name, {"raw": config_override, "source": "database" if config_override is not None else "never_published", "version": 0, "revision": 0}, load_environment())
+            return await probe_provider(cfg)
         if service_name == "doubao":
             await _test_doubao(config_override)
-        elif service_name == "embedding":
-            await _test_embedding(config_override)
-        elif service_name == "dashvector":
-            await _test_dashvector(config_override)
         elif service_name == "content_safety":
             await _test_content_safety()
-
+        else:
+            raise EffectiveConfigError("unsupported_provider")
         result["connected"] = True
-    except Exception as e:
-        result["error"] = str(e)
-        logger.warning("第三方服务连接测试失败 [%s]: %s", service_name, e)
-
+    except Exception:
+        result.update(error="连接或能力核验失败", reason="provider_test_failed")
+        logger.warning("第三方服务连接测试失败: provider_test_failed")
     result["latency_ms"] = int((time.monotonic() - start_ms) * 1000)
     return result
 
@@ -551,60 +598,6 @@ async def _test_doubao(config: dict = None):
         choices = data.get("choices", [])
         if not choices:
             raise RuntimeError("LLM 返回无 choices")
-
-
-async def _test_embedding(config: dict = None):
-    """Embedding 最小测试：向量化一个短文本"""
-    import httpx
-    from backend.config import get_aliyun_api_key, get_embedding_endpoint, get_embedding_model
-
-    api_key = (config or {}).get("api_key") or get_aliyun_api_key()
-    endpoint = (config or {}).get("endpoint") or get_embedding_endpoint()
-    model = (config or {}).get("model") or get_embedding_model()
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.post(
-            endpoint,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            json={
-                "model": model,
-                "input": {"texts": ["连接测试"]},
-                "parameters": {"text_type": "query"},
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        embeddings = data.get("output", {}).get("embeddings", [])
-        if not embeddings:
-            raise RuntimeError("Embedding 返回为空")
-
-
-async def _test_dashvector(config: dict = None):
-    """DashVector 最小测试：调用 collection 描述接口验证连通性"""
-    import httpx
-    from backend.config import (
-        get_dashvector_api_key, get_dashvector_collection, get_dashvector_endpoint,
-    )
-
-    api_key = (config or {}).get("api_key") or get_dashvector_api_key()
-    endpoint = (config or {}).get("endpoint") or get_dashvector_endpoint()
-    collection = (config or {}).get("collection") or get_dashvector_collection()
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(
-            f"{endpoint}/v1/collections/{collection}",
-            headers={
-                "Content-Type": "application/json",
-                "dashvector-auth-token": api_key,
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("code") != 0:
-            raise RuntimeError(f"DashVector 返回错误: {data.get('message', '未知')}")
 
 
 async def _test_content_safety():

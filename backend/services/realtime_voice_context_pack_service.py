@@ -4,6 +4,7 @@ Source ports return compressed facts, never raw memory documents. This module
 does not invoke the text conversation pipeline or persist a second persona.
 """
 from __future__ import annotations
+from backend.utils.memory_vector import bounded_dotproduct_score
 
 import asyncio
 import hashlib
@@ -58,7 +59,7 @@ def select_memories(rows, *, limit: int, now: datetime, lookback_days: int, dead
             if not isinstance(item['updated_at'], str) or len(item['updated_at']) > 64:
                 continue
             updated = datetime.fromisoformat(item['updated_at'].replace('Z', '+00:00'))
-            relevance, quality = float(item['score']), float(item['quality'])
+            relevance, quality = bounded_dotproduct_score(item['score']), float(item['quality'])
             if (not isinstance(content, str) or not content.strip() or identity in seen
                     or not 0 <= relevance <= 1 or not 0 <= quality <= 1
                     or not all(math.isfinite(v) for v in (relevance, quality))

@@ -8,8 +8,9 @@ import time
 
 import httpx
 
-from backend.config import get_aliyun_api_key, get_embedding_endpoint, get_embedding_model
+from backend.config import get_aliyun_api_key, get_embedding_endpoint, get_embedding_model, get_embedding_dimension
 from backend.redis_client import get_redis
+from backend.utils.memory_vector import normalize_dense
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class EmbeddingService:
             cached = await redis.get(cache_key)
             if cached:
                 logger.debug("Embedding 缓存命中: %s", cache_key)
-                return json.loads(cached)
+                return normalize_dense(json.loads(cached), get_embedding_dimension())
         except Exception as e:
             logger.warning("Redis 缓存读取失败: %s", str(e))
 
@@ -49,7 +50,7 @@ class EmbeddingService:
         if not embeddings:
             return []
 
-        result = embeddings[0]
+        result = normalize_dense(embeddings[0], get_embedding_dimension())
 
         # 写缓存
         try:
@@ -79,7 +80,7 @@ class EmbeddingService:
             cached_values = await redis.mget(cache_keys)
             for i, cached in enumerate(cached_values):
                 if cached:
-                    results[i] = json.loads(cached)
+                    results[i] = normalize_dense(json.loads(cached), get_embedding_dimension())
                 else:
                     uncached_indices.append(i)
                     uncached_texts.append(texts[i])
@@ -96,7 +97,7 @@ class EmbeddingService:
         for start in range(0, len(uncached_texts), MAX_BATCH_SIZE):
             batch = uncached_texts[start : start + MAX_BATCH_SIZE]
             batch_result = await self._call_embedding_api(batch)
-            all_embeddings.extend(batch_result)
+            all_embeddings.extend(normalize_dense(v, get_embedding_dimension()) for v in batch_result)
 
         # 填充结果并批量写入缓存
         try:

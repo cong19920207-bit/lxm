@@ -7,12 +7,12 @@ def iso(value):
 
 
 def call_content_available(call, now):
-    return (call.deleted_at is None and call.deletion_fence_at is None
+    return (not getattr(call,"cleared_run_id",None) and call.deleted_at is None and call.deletion_fence_at is None
         and (call.transcript_expires_at is None or call.transcript_expires_at > now))
 
 
 def turn_content_reason(call, turn, now):
-    if call.deleted_at is not None or call.deletion_fence_at is not None:
+    if getattr(call,"cleared_run_id",None) or call.deleted_at is not None or call.deletion_fence_at is not None:
         return 'deleted'
     if turn.effective_text_cleared_at is not None:
         return 'cleared'

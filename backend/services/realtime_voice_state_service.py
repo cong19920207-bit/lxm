@@ -41,13 +41,16 @@ def stage_transition_metric(db,before,after,reason=None):
 
 
 async def lock_call(db, call_id):
+    from backend.services.memory_business_guard import guard_business_write, guard_voice_call
+    await guard_business_write(db)
     owner = await db.scalar(select(VoiceCall.user_id).where(VoiceCall.call_id == call_id))
     if owner is None:
         return None
     # Same lock order as creation, quota and administrative finalization.
     await db.scalar(select(User.id).where(User.id == owner).with_for_update())
-    return await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id)
+    call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id)
                            .with_for_update().execution_options(populate_existing=True))
+    return await guard_voice_call(db, call)
 
 
 def final_status(row, reason):

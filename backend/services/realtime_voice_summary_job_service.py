@@ -1,3 +1,4 @@
+from backend.services.memory_business_guard import uncleared_call_condition
 """Durable CALL-SUM ownership and voice-call-only result transaction.
 
 Composition supplies the frozen DeepSeek model, safety, compensation and follow-up persistence.
@@ -55,10 +56,10 @@ class VoiceSummaryJobService:
                 VoicePostprocessJob.job_type==JOB_TYPE).exists()
             missing=list((await db.scalars(select(VoiceCall.call_id).where(VoiceCall.status=='ended',
                 VoiceCall.sort_seq.is_not(None),VoiceCall.deletion_fence_at.is_(None),
-                VoiceCall.deleted_at.is_(None),~exists).order_by(VoiceCall.id).limit(8))).all())
+                VoiceCall.cleared_run_id.is_(None),VoiceCall.deleted_at.is_(None),~exists).order_by(VoiceCall.id).limit(8))).all())
         for call_id in missing:await self.enqueue(call_id=call_id)
         async with self.factory() as db:
-            calls=list((await db.scalars(select(VoicePostprocessJob.call_id).where(
+            calls=list((await db.scalars(select(VoicePostprocessJob.call_id).where(uncleared_call_condition(VoicePostprocessJob),
                 VoicePostprocessJob.job_type==JOB_TYPE,or_(VoicePostprocessJob.status=='pending',
                     (VoicePostprocessJob.status=='processing') & or_(VoicePostprocessJob.lease_expires_at.is_(None),
                         VoicePostprocessJob.lease_expires_at<=datetime.utcnow())))
@@ -82,6 +83,9 @@ class VoiceSummaryJobService:
     async def process(self,*,call_id):
         # Finalizer already flushed in its terminal transaction. This dependency
         # checks durable missing memory jobs, without re-running existing ones.
+        async with self.factory() as db:
+            call = await lock_call(db, call_id)
+            if call is None: return "missing"
         await self.prepare(call_id=call_id)
         owner=uuid4().hex
         async with self.factory() as db:
@@ -204,7 +208,9 @@ class VoiceSummaryJobService:
 
     async def purge_reasoning(self):
         async with self.factory() as db:
-            result=await db.execute(update(VoiceCall).where(VoiceCall.reasoning_expires_at<=datetime.utcnow(),
+            from backend.services.memory_business_guard import guard_business_write
+            await guard_business_write(db)
+            result=await db.execute(update(VoiceCall).where(VoiceCall.cleared_run_id.is_(None), VoiceCall.reasoning_expires_at<=datetime.utcnow(),
                 VoiceCall.summary_reasoning.is_not(None)).values(summary_reasoning=None))
             await db.commit()
             if self.metrics is not None:
@@ -219,7 +225,7 @@ async def read_summary_reasoning(db,*,call_id,admin,request=None):
     if admin.role!='super_admin':
         raise VoiceConfigError('VOICE_REASONING_FORBIDDEN','无权查看调优信息',status_code=403)
     call=await db.scalar(select(VoiceCall).where(VoiceCall.call_id==call_id,
-        VoiceCall.deletion_fence_at.is_(None),VoiceCall.deleted_at.is_(None)))
+        VoiceCall.deletion_fence_at.is_(None),VoiceCall.cleared_run_id.is_(None),VoiceCall.deleted_at.is_(None)))
     if call is None:raise VoiceConfigError('VOICE_CALL_NOT_FOUND','通话不存在',status_code=404)
     readable=call.reasoning_expires_at is not None and call.reasoning_expires_at>datetime.utcnow()
     result=dict(call_id=call_id,reasoning=call.summary_reasoning if readable else None)
@@ -235,7 +241,7 @@ async def retry_summary_job(db,*,job_id,admin,request=None):
     from backend.utils.admin_auth import log_operation
     if admin.role not in {'super_admin','tech_ops'}:
         raise VoiceConfigError('VOICE_JOB_FORBIDDEN','无权补跑任务',status_code=403)
-    call_id=await db.scalar(select(VoicePostprocessJob.call_id).where(
+    call_id=await db.scalar(select(VoicePostprocessJob.call_id).where(uncleared_call_condition(VoicePostprocessJob),
         VoicePostprocessJob.id==job_id,VoicePostprocessJob.job_type==JOB_TYPE))
     if call_id is None:raise VoiceConfigError('VOICE_JOB_NOT_FOUND','任务不存在',status_code=404)
     call=await lock_call(db,call_id)

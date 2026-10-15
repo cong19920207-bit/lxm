@@ -442,99 +442,30 @@ def parse_kv_lines(text: str) -> list[tuple[str, str]]:
     return results
 
 
-async def upsert_step6_vectors(
-    output: Step6MemoryOutput,
-    user_id: int,
-) -> dict[str, int]:
-    """
-    将 Step6 记忆 LLM 的 4 类记忆字段按行拆分后 upsert 到 DashVector。
+from backend.services.memory_business_writer import get_memory_writer, source_identity
 
-    处理流程（每个字段独立）：
-    1. 值为「无」→ 整路跳过
-    2. 非「无」→ parse_kv_lines 拆行
-    3. 每行生成 embedding → upsert（同 key 覆盖由 upsert 语义保证）
 
-    Args:
-        output: Step6MemoryOutput 实例
-        user_id: 当前用户 ID
-
-    Returns:
-        {"character_global": 写入数, "character_private": 写入数, ...}
-    """
-    write_counts: dict[str, int] = {mt: 0 for mt in _FIELD_TO_MEMORY_TYPE.values()}
-
+async def upsert_step6_vectors(output: Step6MemoryOutput, user_id: int, *, writer=None, round_id=None) -> dict:
+    """Preserve four Stable Key routes; report source/index state per atom."""
+    writer = writer or await get_memory_writer()
+    counts = {mt: 0 for mt in _FIELD_TO_MEMORY_TYPE.values()}
+    results = []
     for field_name, memory_type in _FIELD_TO_MEMORY_TYPE.items():
         field_value = getattr(output, field_name, "无")
-
-        # 值为「无」→ 整路跳过
         if field_value.strip() == "无":
-            logger.info("Step6 向量写入跳过: field=%s, 值为「无」", field_name)
             continue
-
-        kv_pairs = parse_kv_lines(field_value)
-        if not kv_pairs:
-            logger.info("Step6 向量写入跳过: field=%s, 无合法 key：value 行", field_name)
-            continue
-
-        # 确定是否携带 user_id
-        attach_user_id = memory_type in _TYPES_WITH_USER_ID
-        effective_user_id = user_id if attach_user_id else None
-
-        for key, value in kv_pairs:
-            key_err = validate_key(key)
-            if key_err:
-                logger.info(
-                    "Step6 向量写入跳过: field=%s, key=%s, reason=%s",
-                    field_name, key, key_err,
-                )
+        for ordinal, (key, value) in enumerate(parse_kv_lines(field_value)):
+            if validate_key(key):
                 continue
-
-            doc_id = build_doc_id(memory_type, key, effective_user_id)
-
+            doc_id = build_doc_id(memory_type, key, user_id if memory_type in _TYPES_WITH_USER_ID else None)
             try:
-                vector = await embedding_service.get_embedding(value)
-                if not vector:
-                    logger.warning(
-                        "Step6 向量写入: embedding 为空, field=%s, key=%s",
-                        field_name, key,
-                    )
-                    continue
-            except Exception as e:
-                logger.error(
-                    "Step6 向量写入: embedding 失败, field=%s, key=%s, error=%s",
-                    field_name, key, str(e),
-                )
-                continue
-
-            # validate_key 通过 → key 必然是三层 XXX-XXX-XXX，segments 必有 ≥3 段
-            segments = key.split("-")
-
-            fields: dict = {
-                "content": build_content(key, value),
-                "stable_key": key,
-                # 新增前缀字段，供 Step2 主路 key_l2 IN 过滤（C9）；中文字符串直接存
-                "key_l1": segments[0],
-                "key_l2": segments[0] + "-" + segments[1],
-            }
-            if attach_user_id:
-                fields["user_id"] = user_id
-                fields["last_write_source"] = "text"
-
-            success = await dashvector_client.upsert(
-                doc_id=doc_id,
-                vector=vector,
-                fields=fields,
-                memory_type=memory_type,
-            )
-            if success:
-                write_counts[memory_type] += 1
-                logger.info(
-                    "Step6 向量写入成功: doc_id=%s, type=%s", doc_id, memory_type,
-                )
-            else:
-                logger.error(
-                    "Step6 向量写入失败: doc_id=%s, type=%s", doc_id, memory_type,
-                )
-
-    logger.info("Step6 四路向量写入完成: %s", write_counts)
-    return write_counts
+                actual = await writer.upsert(memory_type=memory_type, user_id=user_id, key=key, value=value,
+                    source='text', source_entry=source_identity('text', round_id, memory_type, doc_id, ordinal) if round_id else '')
+                result = dict(actual.receipt, memory_type=memory_type)
+            except Exception as exc:
+                result = dict(doc_id=doc_id, memory_type=memory_type, source_result='failed', index_result='not_required',
+                              reason=getattr(exc, 'reason', 'memory_write_unavailable'), internal_operation_id=None, task_id=None)
+            results.append(result)
+            if result['source_result'] == 'confirmed':
+                counts[memory_type] += 1
+    return {'counts': counts, 'items': results}

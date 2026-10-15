@@ -13,7 +13,8 @@ from backend.constants import (
     ADMIN_ERR_CHARACTER_KNOWLEDGE_VALUE_TOO_LONG,
     ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
 )
-from backend.services.embedding_service import embedding_service
+from backend.services.admin_memory_write_service import source_write, active_rows, frozen_writer
+from backend.services.memory_mutation_service import MutationError
 from backend.utils.character_knowledge_validate import (
     USER_MANAGEABLE_TYPES,
     build_content,
@@ -118,7 +119,10 @@ class UserVectorMemoryService:
             return {"error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_PARAM_INVALID, "message": type_err}
 
         filter_str = build_filter(memory_type, user_id=user_id, candidate_keys=[])
-        rows = await dashvector_client.list_by_filter(filter_str, top_k=USER_LIST_TOPK)
+        try:
+            rows = await active_rows(memory_type, user_id, USER_LIST_TOPK)
+        except MutationError as exc:
+            return {"error_code": exc.code, "message": exc.reason}
 
         merged: list[dict] = []
         seen_ids: set[str] = set()
@@ -127,11 +131,15 @@ class UserVectorMemoryService:
             if not doc_id or doc_id in seen_ids:
                 continue
             # P3 双匹配：仅保留 type 与 user_suffix 同时匹配的条目（跨类型隔离）
-            if not is_user_manageable_doc_id(doc_id, user_id=user_id, expected_type=memory_type):
+            if not row.get("legacy_read_only") and not is_user_manageable_doc_id(doc_id, user_id=user_id, expected_type=memory_type):
                 continue
             seen_ids.add(doc_id)
             fields = row.get("fields", {}) or {}
-            merged.append(_entry_from_doc(doc_id, row.get("content", ""), fields))
+            entry = _entry_from_doc(doc_id, row.get("content", ""), fields)
+            entry.update(generation=row.get("generation"), index_state=row.get("index_state"), legacy_read_only=row.get("legacy_read_only", False))
+            entry['index_maintenance'] = row.get('index_maintenance')
+            if entry["legacy_read_only"]:entry.update(key="", value=row["content"])
+            merged.append(entry)
 
         merged.sort(key=lambda x: x["doc_id"])
 
@@ -157,19 +165,13 @@ class UserVectorMemoryService:
         }
 
     async def doc_exists(self, doc_id: str) -> bool:
-        found = await dashvector_client.fetch_by_ids([doc_id])
-        return doc_id in found
+        writer = await frozen_writer()
+        fetched = await writer.mutations.remote.fetch(writer.partition, doc_id)
+        if fetched.status == 'unknown':
+            raise MutationError(20129, 'memory_source_unreadable')
+        return fetched.status == 'found' and not fetched.document['fields'].get('mr_deleted')
 
-    async def _fetch_entry_key(self, doc_id: str) -> Optional[str]:
-        """从 DashVector 读取已有条目的 stable_key。"""
-        found = await dashvector_client.fetch_by_ids([doc_id])
-        item = found.get(doc_id)
-        if not item:
-            return None
-        fields = item.get("fields", {}) or {}
-        return _resolve_stable_key(fields, item.get("content", ""))
-
-    async def create_entry(self, memory_type: str, user_id: int, key: str, value: str) -> dict:
+    async def create_entry(self, memory_type: str, user_id: int, key: str, value: str, *, actor_id=None, client_request_id=None) -> dict:
         type_err = self._validate_memory_type(memory_type)
         if type_err:
             return {"error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_PARAM_INVALID, "message": type_err}
@@ -180,39 +182,9 @@ class UserVectorMemoryService:
         if value_err:
             return {"error_code": _validation_error_code(value_err), "message": value_err}
 
-        key = key.strip()
-        value = value.strip()
-        doc_id = build_doc_id(memory_type, key, user_id)
+        return await self._write(kind="create", memory_type=memory_type, user_id=user_id, key=key, value=value, actor_id=actor_id, client_request_id=client_request_id)
 
-        if await self.doc_exists(doc_id):
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_DUPLICATE_KEY,
-                "message": "该用户该类型下 key 已存在，请直接编辑",
-            }
-
-        vector = await embedding_service.get_embedding(value)
-        if not vector:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
-                "message": "Embedding 生成失败",
-            }
-
-        content = build_content(key, value)
-        ok = await dashvector_client.upsert(
-            doc_id=doc_id,
-            vector=vector,
-            fields=_build_user_fields(key, content, user_id),
-            memory_type=memory_type,
-        )
-        if not ok:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
-                "message": "DashVector 写入失败",
-            }
-
-        return {"data": _entry_from_doc(doc_id, content, {"stable_key": key, "user_id": user_id})}
-
-    async def update_entry(self, memory_type: str, user_id: int, doc_id: str, value: str) -> dict:
+    async def update_entry(self, memory_type: str, user_id: int, doc_id: str, value: str, *, actor_id=None, client_request_id=None) -> dict:
         # C-03：仅改 value；先做 P3 双匹配校验
         if not is_user_manageable_doc_id(doc_id, user_id=user_id, expected_type=memory_type):
             return {
@@ -224,58 +196,24 @@ class UserVectorMemoryService:
         if value_err:
             return {"error_code": _validation_error_code(value_err), "message": value_err}
 
-        value = value.strip()
-        key = await self._fetch_entry_key(doc_id)
-        if not key:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_NOT_FOUND,
-                "message": "条目不存在或 key 无法解析",
-            }
+        return await self._write(kind="update", memory_type=memory_type, user_id=user_id, doc_id=doc_id, value=value, actor_id=actor_id, client_request_id=client_request_id)
 
-        vector = await embedding_service.get_embedding(value)
-        if not vector:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
-                "message": "Embedding 生成失败",
-            }
-
-        content = build_content(key, value)
-        # 与 create 共用字段组装：update 也必须补写 key_l1/key_l2/user_id
-        ok = await dashvector_client.upsert(
-            doc_id=doc_id,
-            vector=vector,
-            fields=_build_user_fields(key, content, user_id),
-            memory_type=memory_type,
-        )
-        if not ok:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
-                "message": "DashVector 更新失败",
-            }
-
-        return {"data": _entry_from_doc(doc_id, content, {"stable_key": key, "user_id": user_id})}
-
-    async def delete_entry(self, memory_type: str, user_id: int, doc_id: str) -> dict:
+    async def delete_entry(self, memory_type: str, user_id: int, doc_id: str, *, actor_id=None, client_request_id=None) -> dict:
         if not is_user_manageable_doc_id(doc_id, user_id=user_id, expected_type=memory_type):
             return {
                 "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_PARAM_INVALID,
                 "message": "doc_id 非法或不允许操作该类型/用户",
             }
 
-        if not await self.doc_exists(doc_id):
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_NOT_FOUND,
-                "message": "条目不存在",
-            }
+        return await self._write(kind="delete", memory_type=memory_type, user_id=user_id, doc_id=doc_id, actor_id=actor_id, client_request_id=client_request_id)
 
-        ok = await dashvector_client.delete([doc_id])
-        if not ok:
-            return {
-                "error_code": ADMIN_ERR_CHARACTER_KNOWLEDGE_VECTOR_WRITE_FAILED,
-                "message": "DashVector 删除失败",
-            }
+    async def _write(self, **kwargs):
+        try:
+            return await source_write(**kwargs)
+        except MutationError as exc:
+            code = ADMIN_ERR_CHARACTER_KNOWLEDGE_DUPLICATE_KEY if exc.reason == 'memory_already_exists' else exc.code
+            return {'error_code': code, 'message': exc.reason}
 
-        return {"data": {"doc_id": doc_id}}
 
 
 user_vector_memory_service = UserVectorMemoryService()

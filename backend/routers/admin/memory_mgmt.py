@@ -3,19 +3,17 @@
 
 import json
 import logging
-import random
-import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.config import (
-    get_dashvector_api_key,
-    get_dashvector_collection,
-    get_dashvector_endpoint,
+from backend.services.memory_effective_config import (
+    EffectiveConfigError, load_environment, provider_record, provider_public_state,
+    publish_provider, resolve_provider, server_time,
 )
+from backend.services.memory_provider_service import probe_provider
 from backend.database import get_db
 from backend.models.admin_user import AdminUser
 from backend.redis_client import get_redis
@@ -24,6 +22,7 @@ from backend.constants import (
     MEMORY_TYPE_USER,
 )
 from backend.schemas.common import ApiResponse
+from backend.services.admin_memory_write_service import validate_write_header
 from backend.services.admin_config_service import admin_config_service
 from backend.services.memory_llm_service import (
     STEP6_PROMPT_CONFIG_KEY,
@@ -40,7 +39,9 @@ from backend.utils.character_knowledge_validate import (
     parse_key_from_content,
     parse_value_from_content,
 )
-from backend.utils.dashvector_client import build_filter, dashvector_client
+from backend.utils.dashvector_client import build_filter
+from backend.services.admin_memory_write_service import active_rows, batch_delete
+from backend.services.memory_mutation_service import MutationError
 
 logger = logging.getLogger(__name__)
 
@@ -87,17 +88,23 @@ class Step6MemoryPromptRequest(BaseModel):
 
 
 class VectorDbConfigRequest(BaseModel):
-    api_key: Optional[str] = None
-    endpoint: str
-    collection_name: str
-    top_k: int = 5
-    need_test_first: bool = False
-
-
-class VectorDbTestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
     api_key: Optional[str] = None
     endpoint: Optional[str] = None
     collection_name: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_without_echoing_secrets(cls, value):
+        if not isinstance(value, dict) or set(value) - {"api_key", "endpoint", "collection_name"} or any(item is not None and not isinstance(item, str) for item in value.values()):
+            # Default Pydantic errors include the rejected input; credentials
+            # must never be reflected by even the malformed-body path.
+            raise HTTPException(status_code=422, detail="配置字段须为字符串或省略，且不能包含未知字段")
+        return value
+
+
+class VectorDbTestRequest(VectorDbConfigRequest):
+    pass
 
 
 class BatchDeleteRequest(BaseModel):
@@ -151,184 +158,67 @@ async def update_step6_memory_prompt(
 
 # ──────────────────── 2. 向量数据库配置 ────────────────────
 
-def _mask_api_key(api_key: str) -> str:
-    """API Key脱敏：前4位+****+后4位"""
-    if not api_key or len(api_key) < 8:
-        return "****"
-    return api_key[:4] + "****" + api_key[-4:]
-
-
-@router.get(
-    "/vector-db-config",
-    dependencies=[require_role(*_READ_ROLES)],
-)
+@router.get("/vector-db-config", dependencies=[require_role(*_READ_ROLES)])
 async def get_vector_db_config(
     admin_user: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
 ):
-    """获取向量数据库配置（API Key脱敏）"""
-    config = await admin_config_service.get_active_config("vector_db_config")
-
-    if config is None:
-        # 从环境变量读取默认值
-        config = {
-            "endpoint": get_dashvector_endpoint(),
-            "collection_name": get_dashvector_collection(),
-            "top_k": 5,
-        }
-        raw_key = get_dashvector_api_key()
-    else:
-        config = dict(config)
-        raw_key = config.get("api_key", "")
-        config.pop("api_key", None)
-
-    if admin_user.role == "observer":
-        config.pop("api_key_masked", None)
-        config["credential_configured"] = bool(raw_key)
-    else:
-        config["api_key_masked"] = _mask_api_key(raw_key)
-
-    return ApiResponse.ok(data=config)
+    """Current canonical target, including explicit pre-activation mismatch."""
+    try:
+        record = await provider_record(db, "dashvector")
+        data = provider_public_state("dashvector", record, load_environment())
+        raw = record.get("raw") or {}
+        data["legacy"] = {"top_k": raw.get("top_k", (raw.get("legacy") or {}).get("top_k"))}
+        data["server_time"] = server_time()
+        if admin_user.role != "observer":
+            data["api_key_masked"] = "[REDACTED]" if data["credential_configured"] else ""
+        return ApiResponse.ok(data=data)
+    except EffectiveConfigError as exc:
+        return ApiResponse.fail(exc.code, message="配置读取不可用", data={"reason": exc.reason, "server_time": server_time()})
 
 
-@router.put(
-    "/vector-db-config",
-    dependencies=[require_role(*_WRITE_ROLES)],
-)
+@router.put("/vector-db-config", dependencies=[require_role(*_WRITE_ROLES)])
 async def update_vector_db_config(
     body: VectorDbConfigRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
     admin_user: AdminUser = Depends(get_current_admin),
 ):
-    """更新向量数据库配置（直接发布）"""
-    # 如果 need_test_first，先进行连接测试
-    if body.need_test_first:
-        test_result = await _do_test_connection(
-            api_key=body.api_key,
-            endpoint=body.endpoint,
-            collection_name=body.collection_name,
-        )
-        if not test_result["connected"]:
-            return ApiResponse.fail(
-                ADMIN_ERR_VECTOR_DB_CONNECTION_FAILED,
-                message=f"连接测试失败：{test_result.get('error', '未知错误')}，请检查配置后重试",
-            )
-
-    # 构建配置值
-    current = await admin_config_service.get_active_config("vector_db_config")
-    config_data = {
-        "endpoint": body.endpoint,
-        "collection_name": body.collection_name,
-        "top_k": body.top_k,
-    }
-
-    # api_key 不传则保留原值
-    if body.api_key:
-        config_data["api_key"] = body.api_key
-    elif current and current.get("api_key"):
-        config_data["api_key"] = current["api_key"]
-
-    before_value = json.dumps(current, ensure_ascii=False) if current else None
-
-    # 日志中 API Key 脱敏
-    log_data = config_data.copy()
-    if "api_key" in log_data:
-        log_data["api_key"] = _mask_api_key(log_data["api_key"])
-
-    config_value = json.dumps(config_data, ensure_ascii=False)
-    result = await admin_config_service.publish_config(
-        db=db,
-        config_key="vector_db_config",
-        config_value=config_value,
-        admin_user=admin_user,
-        before_value=before_value,
-        request=request,
-        target_description=f"发布向量数据库配置 {json.dumps(log_data, ensure_ascii=False)[:200]}",
-    )
-    return ApiResponse.ok(data=result)
-
-
-# ──────────────────── 3. 连接测试 ────────────────────
-
-async def _do_test_connection(
-    api_key: str = None,
-    endpoint: str = None,
-    collection_name: str = None,
-) -> dict:
-    """执行 DashVector 连接测试"""
-    import httpx
-
-    test_endpoint = endpoint or get_dashvector_endpoint()
-    test_collection = collection_name or get_dashvector_collection()
-    test_api_key = api_key or get_dashvector_api_key()
-
-    if not test_endpoint or not test_api_key:
-        return {"connected": False, "latency_ms": 0, "error": "缺少 endpoint 或 api_key"}
-
-    # 构建随机向量（维度1536，text-embedding-v3 默认维度）
-    random_vector = [random.uniform(-1, 1) for _ in range(1536)]
-
-    start = time.monotonic()
+    from backend.services.memory_config_publication import PublicationError, get_or_create_publish_id
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                f"{test_endpoint}/v1/collections/{test_collection}/query",
-                headers={
-                    "Content-Type": "application/json",
-                    "dashvector-auth-token": test_api_key,
-                },
-                json={
-                    "vector": random_vector,
-                    "topk": 1,
-                    "include_vector": False,
-                },
-            )
-            elapsed_ms = int((time.monotonic() - start) * 1000)
-
-            if resp.status_code == 200:
-                return {"connected": True, "latency_ms": elapsed_ms, "error": ""}
-            else:
-                return {
-                    "connected": False,
-                    "latency_ms": elapsed_ms,
-                    "error": f"HTTP {resp.status_code}: {resp.text[:200]}",
-                }
-    except Exception as e:
-        elapsed_ms = int((time.monotonic() - start) * 1000)
-        return {"connected": False, "latency_ms": elapsed_ms, "error": str(e)}
+        publish_id = get_or_create_publish_id(request.headers.get("Idempotency-Key"))
+    except (ValueError, PublicationError):
+        raise HTTPException(status_code=422, detail="Idempotency-Key 必须为规范 UUIDv7") from None
+    patch = body.model_dump(exclude_unset=True)
+    if not patch:
+        return ApiResponse.fail(20120, message="须提交修改字段")
+    try:
+        receipt = await publish_provider(db, "dashvector", patch, admin_user.id, publish_id, request.url.path)
+    except (EffectiveConfigError, PublicationError) as exc:
+        return ApiResponse.fail(exc.code, message="配置发布未完成", data={"publish_id": publish_id, "reason": exc.reason, "server_time": server_time()})
+    data = {**receipt, "version": receipt.get("committed_version"), "server_time": server_time()}
+    state = receipt["commit_state"]
+    if state == "committed":
+        return ApiResponse.ok(data=data)
+    code = 20123 if state == "expired" else 20127 if receipt.get("reason") == "publication_revision_conflict" else ADMIN_ERR_VECTOR_DB_CONNECTION_FAILED if state == "rejected" else 20122
+    return ApiResponse.fail(code, message="配置未发布或结果待核实", data=data)
 
 
-@router.post(
-    "/vector-db-config/test-connection",
-    dependencies=[require_role(*_WRITE_ROLES)],
-)
+@router.post("/vector-db-config/test-connection", dependencies=[require_role(*_WRITE_ROLES)])
 async def test_vector_db_connection(
     body: VectorDbTestRequest = None,
     admin_user: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
 ):
-    """测试 DashVector 连接"""
-    api_key = None
-    endpoint = None
-    collection_name = None
-
-    if body:
-        api_key = body.api_key
-        endpoint = body.endpoint
-        collection_name = body.collection_name
-
-    # 如果未传参数，尝试从已有配置中读取
-    if not endpoint or not api_key:
-        current = await admin_config_service.get_active_config("vector_db_config")
-        if current:
-            if not endpoint:
-                endpoint = current.get("endpoint")
-            if not api_key:
-                api_key = current.get("api_key")
-            if not collection_name:
-                collection_name = current.get("collection_name")
-
-    result = await _do_test_connection(api_key, endpoint, collection_name)
-    return ApiResponse.ok(data=result)
+    try:
+        # Null form fields retain the already resolved group; never consult a
+        # different fallback source inside the HTTP adapter.
+        patch = body.model_dump(exclude_unset=True, exclude_none=True) if body else None
+        config = await resolve_provider(db, "dashvector", patch)
+        result = await probe_provider(config)
+        return ApiResponse.ok(data={**result, "server_time": server_time()})
+    except EffectiveConfigError as exc:
+        return ApiResponse.fail(exc.code, message="配置无法核验", data={"connected": False, "reason": exc.reason, "error": "配置无效或来源不可读", "latency_ms": 0, "server_time": server_time()})
 
 
 # ──────────────────── 4. 全局记忆搜索 ────────────────────
@@ -337,7 +227,7 @@ def _global_entry_from_row(row: dict) -> Optional[dict]:
     """将一条 DashVector user 向量解析为全局列表项 {doc_id, user_id, key, value, content}。"""
     doc_id = row.get("id", "")
     parsed = parse_doc_id(doc_id)
-    if not parsed:
+    if not parsed and not row.get("legacy_read_only"):
         return None
     fields = row.get("fields", {}) or {}
     content = row.get("content", "") or fields.get("content", "")
@@ -351,9 +241,12 @@ def _global_entry_from_row(row: dict) -> Optional[dict]:
     return {
         "doc_id": doc_id,
         "user_id": user_id_val,
-        "key": key,
-        "value": value,
+        "key": "" if row.get("legacy_read_only") else key,
+        "value": content if row.get("legacy_read_only") else value,
+        "legacy_read_only": row.get("legacy_read_only", False),
         "content": content,
+        "generation": row.get("generation"), "index_state": row.get("index_state"),
+        "index_maintenance": row.get("index_maintenance"),
     }
 
 
@@ -378,7 +271,10 @@ async def search_memories_global(
     """
     top_k = USER_LIST_TOPK if user_id is not None else GLOBAL_LIST_TOPK_NO_USER
     filter_str = build_filter(MEMORY_TYPE_USER, user_id=user_id, candidate_keys=[])
-    rows = await dashvector_client.list_by_filter(filter_str, top_k=top_k)
+    try:
+        rows = await active_rows(MEMORY_TYPE_USER, user_id or 0, top_k)
+    except MutationError as exc:
+        return ApiResponse.fail(exc.code, message=exc.reason)
 
     # 未传 user_id 且候选数命中上限 → 结果可能不完整
     truncated = user_id is None and len(rows) >= GLOBAL_LIST_TOPK_NO_USER
@@ -418,14 +314,14 @@ async def search_memories_global(
     }
     if truncated:
         data["truncated"] = True
-    return ApiResponse.ok(data=data)
+    return ApiResponse.ok(data={**data, "server_time": server_time()})
 
 
 # ──────────────────── 5. 批量删除记忆 ────────────────────
 
 @router.delete(
     "/memories/batch-delete",
-    dependencies=[require_role(*_WRITE_ROLES)],
+    dependencies=[require_role(*_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def batch_delete_memories(
     body: BatchDeleteRequest,
@@ -439,36 +335,13 @@ async def batch_delete_memories(
     逐条校验「以 user_ 开头 且 parse_doc_id 合法」，非法计入 failed_doc_ids 不中断；
     合法项删除并累加 deleted_count；「涉及用户」从 user_suffix 解析去重聚合。
     """
-    deleted_count = 0
-    failed_doc_ids: list[str] = []
-    affected_user_ids: set[str] = set()
-
-    for doc_id in body.doc_ids:
-        parsed = parse_doc_id(doc_id)
-        # 仅允许 user_ 前缀的用户记忆（global 不含 character_private）
-        if not doc_id.startswith(f"{MEMORY_TYPE_USER}_") or not parsed:
-            failed_doc_ids.append(doc_id)
-            continue
-
-        ok = await dashvector_client.delete([doc_id])
-        if not ok:
-            failed_doc_ids.append(doc_id)
-            continue
-
-        deleted_count += 1
-        affected_user_ids.add(parsed[1])
-
-    # 写入操作日志（module 仍用 memory）
-    await log_operation(
-        db=db,
-        admin_user=admin_user,
-        module="memory",
-        action="batch_delete",
-        target_description=f"批量删除用户记忆 {deleted_count} 条，涉及用户: {sorted(affected_user_ids)}",
-        request=request,
-    )
-
-    return ApiResponse.ok(data={
-        "deleted_count": deleted_count,
-        "failed_doc_ids": failed_doc_ids,
-    })
+    try:
+        result = await batch_delete(body.doc_ids, admin_user.id, request.headers.get('Idempotency-Key'))
+    except MutationError as exc:
+        return ApiResponse.fail(exc.code, message=exc.reason)
+    data = result['data']
+    await log_operation(db=db, admin_user=admin_user, module='memory', action='batch_delete',
+        target_description=f"批量删除用户记忆 {data.get('deleted_count', 0)} 条", request=request)
+    if result['error_code']:
+        return ApiResponse.fail(result['error_code'], message='部分结果待核实', data=data)
+    return ApiResponse.ok(data=data)

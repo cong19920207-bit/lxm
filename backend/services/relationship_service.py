@@ -5,9 +5,12 @@ import json
 import logging
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import func, select
+if TYPE_CHECKING:
+    from backend.services.future_lifecycle import Slot
+
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.conversation_log import ConversationLog
@@ -650,6 +653,7 @@ class RelationshipService:
         *,
         future_time_natural: Optional[str] = None,
         future_action: Optional[str] = None,
+        future_clear_slot: Optional["Slot"] = None,
     ) -> dict:
         """
         将 Step6 记忆 LLM 的 6 个标量字段写回 relationship 表，并处理 Future 槽。
@@ -704,6 +708,26 @@ class RelationshipService:
             )
             history_count += 1
 
+        async def clear_future():
+            if future_clear_slot is None:
+                relationship.future_slot_version = Relationship.future_slot_version + 1
+                relationship.future_timestamp = None
+                relationship.future_action = None
+                return True
+            # SQL CAS protects against a new slot even if this ORM snapshot is stale.
+            slot = future_clear_slot
+            changed = await self.db.execute(update(Relationship).where(
+                Relationship.user_id == relationship.user_id,
+                Relationship.user_id == slot.user_id,
+                Relationship.future_slot_version == slot.version,
+                Relationship.future_timestamp == slot.timestamp,
+                Relationship.future_action == slot.action,
+            ).values(future_timestamp=None, future_action=None,
+                future_slot_version=Relationship.future_slot_version + 1)
+                .execution_options(synchronize_session=False))
+            await self.db.refresh(relationship, ['future_timestamp', 'future_action', 'future_slot_version'])
+            return changed.rowcount == 1
+
         # ── 2. Future 槽处理 ──
         future_status = "no_future"
 
@@ -712,8 +736,10 @@ class RelationshipService:
             old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
             old_act = relationship.future_action
 
-            relationship.future_timestamp = None
-            relationship.future_action = None
+            if not await clear_future():
+                await self.db.flush()
+                return {"updated_fields": updated_fields, "history_count": history_count,
+                        "future_status": "preserved_newer_slot"}
             future_status = "cleared_by_action_none"
 
             # 记录清空历史
@@ -749,6 +775,7 @@ class RelationshipService:
                 old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
                 old_act = relationship.future_action
 
+                relationship.future_slot_version = Relationship.future_slot_version + 1
                 relationship.future_timestamp = parsed_ts
                 relationship.future_action = future_action
                 future_status = "written"
@@ -778,8 +805,10 @@ class RelationshipService:
                 old_ts = str(relationship.future_timestamp) if relationship.future_timestamp is not None else None
                 old_act = relationship.future_action
 
-                relationship.future_timestamp = None
-                relationship.future_action = None
+                if not await clear_future():
+                    await self.db.flush()
+                    return {"updated_fields": updated_fields, "history_count": history_count,
+                            "future_status": "preserved_newer_slot"}
                 future_status = "cleared_parse_failed"
 
                 logger.warning(

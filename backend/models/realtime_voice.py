@@ -125,6 +125,10 @@ def _optional_choice(
 
 class VoiceCall(Base):
     __tablename__ = "voice_call"
+    from backend.models.memory_control import UUID as _RESET_UUID, ref as _reset_ref
+    cleared_run_id: Mapped[str | None] = mapped_column(_RESET_UUID, _reset_ref("memory_reset_run.run_id", "fk_voice_call_cleared_run"), nullable=True, index=False)
+    _cleared_index = Index("ix_voice_call_cleared_run", "cleared_run_id")
+
     __table_args__ = (
         UniqueConstraint("call_id", name="uk_voice_call_call_id"),
         Index("ix_voice_call_user_ended", "user_id", "ended_at"),

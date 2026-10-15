@@ -2,12 +2,14 @@
 # 阿里云 DashVector 向量检索客户端
 
 import logging
+import math
 import time
 
 import httpx
 
-from backend.config import get_dashvector_api_key, get_dashvector_collection, get_dashvector_endpoint
+from backend.config import get_dashvector_api_key, get_dashvector_collection, get_dashvector_endpoint, get_embedding_dimension
 from backend.constants import VALID_MEMORY_TYPES
+from backend.utils.memory_vector import normalize_dense
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,7 @@ class DashVectorClient:
         collection = get_dashvector_collection()
 
         try:
+            vector = normalize_dense(vector, get_embedding_dimension())
             client = await self._get_client()
             response = await client.post(
                 f"{endpoint}/v1/collections/{collection}/query",
@@ -127,11 +130,13 @@ class DashVectorClient:
             elapsed = time.monotonic() - start_time
             logger.info("DashVector 检索完成，耗时 %.2fs", elapsed)
 
+            if type(data.get("code", 0)) is not int or data.get("code", 0) != 0:
+                return []
             results = []
             output = data.get("output", [])
             for item in output:
                 score = item.get("score", 0.0)
-                if score >= threshold:
+                if type(score) in (int, float) and math.isfinite(score) and score >= threshold:
                     results.append({
                         "id": item.get("id", ""),
                         "score": score,
@@ -139,6 +144,7 @@ class DashVectorClient:
                         "fields": item.get("fields", {}),
                     })
 
+            results.sort(key=lambda row: -row["score"])
             logger.info(
                 "DashVector 检索结果：共 %d 条（阈值 %.2f 过滤后 %d 条）",
                 len(output), threshold, len(results),
@@ -177,6 +183,7 @@ class DashVectorClient:
         collection = get_dashvector_collection()
 
         try:
+            vector = normalize_dense(vector, get_embedding_dimension())
             client = await self._get_client()
             response = await client.post(
                 f"{endpoint}/v1/collections/{collection}/docs/upsert",

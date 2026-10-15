@@ -4,7 +4,10 @@
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.services.future_lifecycle import Slot
 
 from sqlalchemy import select
 
@@ -52,6 +55,7 @@ class Step6Snapshot:
     recent_conversations: list = field(default_factory=list)  # list[dict{role, content}]
     future_time_natural: str = "无"
     future_action: str = "无"
+    future_clear_slot: Optional["Slot"] = None  # Step8 captured identity; main chain remains unconditional.
 
 
 @dataclass
@@ -61,21 +65,23 @@ class _ConvProxy:
     content: str
 
 
-async def execute_step6(snapshot: Step6Snapshot) -> None:
+async def execute_step6(snapshot: Step6Snapshot) -> dict | None:
     """
     Step6 异步任务入口：M2 半异步，不阻塞 SSE。
 
     调用链：记忆 LLM → 向量写入（STEP-014）→ 标量+Future 更新（STEP-015）
     重试策略：首次失败 → sleep 500ms → 重试一次 → 仍失败则写日志，任务结束。
     """
+    from backend.services.memory_llm_service import get_memory_writer
+    writer = await get_memory_writer()
     for attempt in range(2):
         try:
-            await _step6_pipeline(snapshot)
+            result = await _step6_pipeline(snapshot, writer=writer)
             logger.info(
                 "Step6 完成: user_id=%d, round_id=%s, attempt=%d",
                 snapshot.user_id, snapshot.round_id, attempt + 1,
             )
-            return
+            return result
         except Exception as e:
             if attempt == 0:
                 logger.warning(
@@ -92,9 +98,12 @@ async def execute_step6(snapshot: Step6Snapshot) -> None:
                 )
 
 
-async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
+async def _step6_pipeline(snapshot: Step6Snapshot, *, writer=None) -> dict:
     """Step6 完整管线：Prompt 拼装 → LLM → 解析 → 向量写入 → 标量更新。"""
 
+    if writer is None:
+        from backend.services.memory_llm_service import get_memory_writer
+        writer = await get_memory_writer()
     # 1. 构建代理对象给 build_step6_prompt
     conv_proxies = [_ConvProxy(role=c["role"], content=c["content"]) for c in snapshot.recent_conversations]
 
@@ -120,10 +129,12 @@ async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
     step6_output = parse_step6_output(raw_output)
 
     # 5. 四路向量写入（STEP-014）
-    await upsert_step6_vectors(step6_output, snapshot.user_id)
+    write_result = await upsert_step6_vectors(step6_output, snapshot.user_id, writer=writer, round_id=snapshot.round_id)
 
     # 6. 标量字段 + Future 槽更新（STEP-015）
     async with async_session_maker() as db:
+        from backend.services.memory_business_guard import guard_writer_transaction
+        await guard_writer_transaction(db, writer)
         stmt = select(Relationship).where(Relationship.user_id == snapshot.user_id)
         result = await db.execute(stmt)
         relationship = result.scalar_one_or_none()
@@ -133,7 +144,7 @@ async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
                 "Step6 标量更新跳过: 用户无 relationship 记录, user_id=%d",
                 snapshot.user_id,
             )
-            return
+            return write_result
 
         svc = RelationshipService(db)
         await svc.update_relationship_from_step6(
@@ -142,5 +153,8 @@ async def _step6_pipeline(snapshot: Step6Snapshot) -> None:
             round_id=snapshot.round_id,
             future_time_natural=snapshot.future_time_natural,
             future_action=snapshot.future_action,
+            future_clear_slot=snapshot.future_clear_slot,
         )
         await db.commit()
+
+    return write_result

@@ -7,6 +7,8 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
+from types import MappingProxyType
+from typing import Mapping
 
 from pydantic import BaseModel, Field
 
@@ -65,70 +67,60 @@ class QueryRewriteResult:
     fallback_embedding: list[float] = field(default_factory=list)
 
 
-# ============ Few-shot 示例（追加到 Step1.5 Prompt 末尾）============
+ROUTE_PREFIXES = MappingProxyType({
+    'cg': 'CharacterGlobal', 'cp': 'CharacterPrivate',
+    'ck': 'CharacterKnowledge', 'user': 'UserProfile',
+})
 
-# 覆盖：单条只涉及用户记忆 / 多条连发综合理解 / 私有设定路 / 纯情绪四路全无
-_STEP1_5_FEW_SHOT = (
-    "【示例（仅供参考输出格式与改写方式，不要照抄内容）】\n"
-    "\n"
-    "示例1 — 单条，只涉及用户记忆：\n"
-    "用户本轮消息：我喜欢吃什么？\n"
-    "输出：\n"
-    "{\n"
-    '  "CharacterGlobalQueryQuestion": "无",\n'
-    '  "CharacterGlobalCandidateKeys": [],\n'
-    '  "CharacterPrivateQueryQuestion": "无",\n'
-    '  "CharacterPrivateCandidateKeys": [],\n'
-    '  "CharacterKnowledgeQueryQuestion": "无",\n'
-    '  "CharacterKnowledgeCandidateKeys": [],\n'
-    '  "UserProfileQueryQuestion": "用户喜欢吃的食物和口味偏好",\n'
-    '  "UserProfileCandidateKeys": ["偏好-饮食", "偏好-口味"]\n'
-    "}\n"
-    "\n"
-    "示例2 — 多条连发，综合理解整体意图：\n"
-    "用户本轮消息：\n"
-    "我对海鲜过敏\n"
-    "今晚吃什么好\n"
-    "输出：\n"
-    "{\n"
-    '  "CharacterGlobalQueryQuestion": "无",\n'
-    '  "CharacterGlobalCandidateKeys": [],\n'
-    '  "CharacterPrivateQueryQuestion": "无",\n'
-    '  "CharacterPrivateCandidateKeys": [],\n'
-    '  "CharacterKnowledgeQueryQuestion": "无",\n'
-    '  "CharacterKnowledgeCandidateKeys": [],\n'
-    '  "UserProfileQueryQuestion": "用户的饮食禁忌和今晚的饮食偏好",\n'
-    '  "UserProfileCandidateKeys": ["偏好-饮食", "健康-过敏", "习惯-饮食"]\n'
-    "}\n"
-    "\n"
-    "示例3 — 涉及虚拟人私有设定：\n"
-    "用户本轮消息：你最近对我印象怎么样？\n"
-    "输出：\n"
-    "{\n"
-    '  "CharacterGlobalQueryQuestion": "无",\n'
-    '  "CharacterGlobalCandidateKeys": [],\n'
-    '  "CharacterPrivateQueryQuestion": "林小梦对当前用户的印象和态度",\n'
-    '  "CharacterPrivateCandidateKeys": ["用户-信任", "关系-态度", "策略-回复"],\n'
-    '  "CharacterKnowledgeQueryQuestion": "无",\n'
-    '  "CharacterKnowledgeCandidateKeys": [],\n'
-    '  "UserProfileQueryQuestion": "无",\n'
-    '  "UserProfileCandidateKeys": []\n'
-    "}\n"
-    "\n"
-    "示例4 — 纯情绪，四路全无：\n"
-    "用户本轮消息：唉\n"
-    "输出：\n"
-    "{\n"
-    '  "CharacterGlobalQueryQuestion": "无",\n'
-    '  "CharacterGlobalCandidateKeys": [],\n'
-    '  "CharacterPrivateQueryQuestion": "无",\n'
-    '  "CharacterPrivateCandidateKeys": [],\n'
-    '  "CharacterKnowledgeQueryQuestion": "无",\n'
-    '  "CharacterKnowledgeCandidateKeys": [],\n'
-    '  "UserProfileQueryQuestion": "无",\n'
-    '  "UserProfileCandidateKeys": []\n'
-    "}"
-)
+
+@dataclass(frozen=True)
+class MemoryQuery:
+    question: str
+    keywords: str
+    skipped: bool
+    question_state: str
+    keywords_state: str
+    warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class MemoryQueries:
+    routes: Mapping[str, MemoryQuery]
+    parsed: bool
+    inner_monologue: str = field(default='', repr=False)
+
+
+def parse_memory_queries(raw_text: str, original_input: str) -> MemoryQueries:
+    """Presence-aware M4 protocol; legacy callers keep their existing DTO.
+
+    No model/embedding call is made while completing missing fields. Never log
+    the provider response: it contains private input and may echo credentials.
+    """
+    if not isinstance(original_input, str):
+        raise ValueError('rewrite_input_invalid')
+    try:
+        text = raw_text.strip()
+        if text.startswith('```'):
+            text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text)
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            data = {}
+    except (ValueError, TypeError, AttributeError):
+        data = {}
+    routes = {}
+    for route, prefix in ROUTE_PREFIXES.items():
+        qkey, kkey = prefix + 'QueryQuestion', prefix + 'QueryKeywords'
+        q, k = data.get(qkey), data.get(kkey)
+        qstate = 'missing' if qkey not in data else ('present' if isinstance(q, str) else 'invalid')
+        kstate = 'missing' if kkey not in data else ('present' if isinstance(k, str) else 'invalid')
+        skipped = isinstance(q, str) and q.strip() in ('', '无')
+        question = q if isinstance(q, str) else original_input
+        keywords = k if isinstance(k, str) and k.strip() not in ('', '无') else question
+        keys = data.get(prefix + 'CandidateKeys', [])
+        warnings = () if isinstance(keys, list) and all(isinstance(v, str) for v in keys) else ('candidate_keys_invalid',)
+        routes[route] = MemoryQuery(question, keywords, skipped, qstate, kstate, warnings)
+    inner = data.get('InnerMonologue')
+    return MemoryQueries(MappingProxyType(routes), bool(data), inner if isinstance(inner, str) else '')
 
 
 # ============ Prompt 拼装 ============
@@ -223,11 +215,11 @@ def _build_step1_5_prompt(
         "{\n"
         '  "InnerMonologue": "你对用户消息的内心理解，不超过100字",\n'
         "\n"
-        '  "CharacterGlobalQueryQuestion": "用于检索角色公开设定（外貌/性格/兴趣等）的陈述句，不需要时输出\\"无\\"",\n'
+        '  "CharacterGlobalQueryQuestion": "用于检索角色自身公开设定、过去经历或当前具体事实的陈述句，不需要时输出\\"无\\"",\n'
         '  "CharacterGlobalQueryKeywords": "关键词1 关键词2 ...",\n'
         '  "CharacterGlobalCandidateKeys": ["外貌-体态", "兴趣-偏好"],\n'
         "\n"
-        '  "CharacterPrivateQueryQuestion": "用于检索角色对当前用户的私有态度/策略的陈述句，不需要时输出\\"无\\"",\n'
+        '  "CharacterPrivateQueryQuestion": "用于检索角色对当前用户的私有态度、关系或专属约定的陈述句，不需要时输出\\"无\\"",\n'
         '  "CharacterPrivateQueryKeywords": "关键词1 关键词2 ...",\n'
         '  "CharacterPrivateCandidateKeys": ["用户-信任", "策略-回复"],\n'
         "\n"
@@ -235,16 +227,36 @@ def _build_step1_5_prompt(
         '  "CharacterKnowledgeQueryKeywords": "关键词1 关键词2 ...",\n'
         '  "CharacterKnowledgeCandidateKeys": ["咖啡-萃取", "职场-边界"],\n'
         "\n"
-        '  "UserProfileQueryQuestion": "用于检索用户画像与记忆的陈述句，不需要时输出\\"无\\"",\n'
+        '  "UserProfileQueryQuestion": "用于检索事实主体为用户的画像、经历与记忆的陈述句，不需要时输出\\"无\\"",\n'
         '  "UserProfileQueryKeywords": "关键词1 关键词2 ...",\n'
         '  "UserProfileCandidateKeys": ["经历-出行", "偏好-饮食"]\n'
         "}\n"
+        "\n"
+        "分路规则：先确定事实主体及待查内容，再生成本路查询。\n"
+        "- 用户向你说的「你」指林小梦，「我」指当前用户；结合有据近期对话解析指代。消息作者为用户，不代表其中事实属于用户。\n"
+        "- CharacterGlobal：林小梦自身的设定、过去经历、当前事件或未来期待；即使涉及职业，也不能把角色经历改成通用知识。\n"
+        "- CharacterKnowledge：知识、技能、做法、原理或对地点/活动的体验评价；查评价依据与查一次经历或未来计划不同，仅因具体经历含职业词汇，不启用此路。\n"
+        "- UserProfile：当前用户自身的事实、画像与经历；不能把林小梦的经历放到用户路。\n"
+        "- CharacterPrivate：与当前用户专属的态度、关系或约定；需要实际相关事实才启用，不能仅因存在关系状态或需要回复就检索通用回复策略。\n"
+        "- 角色希望与当前用户顺利完成、落实或兑现的共同计划属于CharacterPrivate；仅查角色公开期待的地点/活动属于CharacterGlobal。共同对象不等于另问用户自身事实，不因此启用UserProfile。\n"
+        "- 同时涉及多个主体时按各自真实意图分路；不要以全部开路代替分路判断。\n"
         "\n"
         "QueryQuestion 改写规则（四路均适用）：\n"
         "- 禁止保留疑问词（什么、有没有、哪些、怎么、吗、呢）\n"
         "- 禁止以「问」「想知道」「询问」等动词开头\n"
         "- 必须改写为陈述句，语义重心落在「事实内容」上，保留所有关键语义词\n"
         "- 不需要检索该类记忆时，输出空串或字符串「无」\n"
+        "- 有依据时解析指代；保留否定与模糊时间，不补造年份、城市或其他未知事实\n"
+        "- 保留主体、有据实体、过去/当前/未来、共同对象和所有限定条件，包括明确排除的事项；去套话不能删掉否定。\n"
+        "- 具体事件的版本、地点、年份等是待查事实：改成该事件的修订版本、发生地点或发生年份，保留未知槽位，不能补答案或泛化成兴趣偏好、通用流程或建议。\n"
+        "- 问事件在什么时候、哪一天或几点安排/发生，保留该事件的待查时间；准备动作的最近/昨天不是事件排期，不能把待查时间改成用途。\n"
+        "- 核心实体必须同时保留在Question和Keywords；仅Keywords保留不能弥补Question丢失语义。\n"
+        "\n"
+        "QueryKeywords 规则（四路均适用）：\n"
+        "- 输出适合 BM25 字面检索的空格分隔字符串；保留本路实体、专名及必要限定词\n"
+        "- 去除询问套话，只添加上下文有据的有限同义词，不生成权重、词项ID或稀疏向量\n"
+        "- Question 保留完整语义，供向量与本路重排；Keywords 仅供 BM25 编码\n"
+        "- 每路始终输出 Question、Keywords、CandidateKeys；跳过路的Keywords用空串\n"
         "\n"
         "CandidateKeys 生成规则（四路均适用）：\n"
         "- 推断用户意图可能命中的记忆分类\n"
@@ -253,16 +265,43 @@ def _build_step1_5_prompt(
         "- 极度模糊或该路为「无」时，输出空数组 []\n"
         "\n"
         "各路分类参考：\n"
-        "- CharacterGlobal（角色公开设定）：外貌-体态 / 兴趣-偏好 / 价值观-待人 / 性格-特征\n"
-        "- CharacterPrivate（角色对当前用户私有态度）：用户-信任 / 策略-回复 / 关系-态度\n"
+        "- CharacterGlobal（角色自身设定与事实）：外貌-体态 / 兴趣-偏好 / 价值观-待人 / 性格-特征 / 经历-出行 / 经历-工作\n"
+        "- CharacterPrivate（角色对当前用户私有态度/关系）：用户-信任 / 策略-回复 / 关系-态度\n"
         "- CharacterKnowledge（角色知识技能）：咖啡-萃取 / 职场-边界 / 心理-情绪\n"
-        "- UserProfile（用户画像与记忆）：经历-出行 / 偏好-饮食 / 社交-朋友 / 习惯-作息"
+        "- UserProfile（用户自身画像与记忆）：经历-出行 / 偏好-饮食 / 社交-朋友 / 习惯-作息"
     )
 
     # Few-shot 示例（含多条连发综合理解示例）
-    parts.append(_STEP1_5_FEW_SHOT)
+    parts.append(_memory_few_shot())
 
     return "\n\n".join(parts)
+
+
+def _memory_few_shot() -> str:
+    examples = [
+        ('我喜欢吃什么？', '', 'user', '用户喜欢吃的食物和口味偏好', '食物 口味 偏好'),
+        ('我对海鲜过敏\n今晚吃什么好', '', 'user', '用户的海鲜过敏、饮食禁忌与今晚饮食偏好', '海鲜 过敏 饮食 禁忌'),
+        ('你最近对我印象怎么样？', '', 'cp', '林小梦最近对当前用户的印象和态度', '印象 态度 最近'),
+        ('唉', '', None, '无', ''),
+        ('还记得上个月阿青没去的那个展览吗？', '', 'user', '上个月阿青没有参加的展览', '上个月 阿青 未参加 展览'),
+        ('你昨天把报表改到第几轮了？', '', 'cg', '林小梦昨天修改报表的修订轮次', '昨天 报表 修改 修订 轮次'),
+        ('教我怎么检查报表里的公式', '', 'ck', '检查报表公式的方法', '报表 公式 检查 方法'),
+        ('不是问买票，我想知道你期待和我去哪座山徒步', '', 'cg', '林小梦期待与当前用户共同徒步的山岳地点，不涉及购票', '期待 共同 徒步 山岳 地点 非购票'),
+        ('那次是在几几年？', '用户：你上次在植物园看过睡莲。', 'cg', '林小梦上次在植物园观赏睡莲的发生年份', '上次 植物园 睡莲 观赏 年份'),
+        ('你整理的资料是给什么时候的讲座用的？', '', 'cg', '林小梦整理资料所对应讲座的安排时间', '资料 讲座 安排 时间'),
+        ('你说山间徒步最舒服的时段是什么？', '', 'ck', '山间徒步体验舒适的时段及评价依据', '山间 徒步 体验 舒适 时段 评价'),
+        ('你盼着和我顺利落实哪段短途行程？', '', 'cp', '林小梦盼望与当前用户顺利落实的短途行程', '当前用户 共同 短途 行程 顺利 落实'),
+    ]
+    parts = ['【示例（仅供参考，不照抄事实，不补全未知城市或年份）】']
+    for number, (text, context, active, question, keywords) in enumerate(examples, 1):
+        obj = {'InnerMonologue': ''}
+        for route, prefix in ROUTE_PREFIXES.items():
+            obj[prefix + 'QueryQuestion'] = question if route == active else '无'
+            obj[prefix + 'QueryKeywords'] = keywords if route == active else ''
+            obj[prefix + 'CandidateKeys'] = []
+        context_text = f'近期对话：{context}\n' if context else ''
+        parts.append(f'示例{number} — {context_text}用户本轮消息：{text}\n输出：\n' + json.dumps(obj, ensure_ascii=False, indent=2))
+    return '\n\n'.join(parts)
 
 
 # ============ JSON 解析 ============

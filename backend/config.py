@@ -139,6 +139,26 @@ def get_embedding_model() -> str:
     return os.getenv("ALIYUN_EMBEDDING_MODEL", "text-embedding-v3")
 
 
+def get_embedding_dimension() -> int:
+    """新记忆 profile 显式冻结维度，不改变旧调用的模型默认值。"""
+    return int(os.getenv("ALIYUN_EMBEDDING_DIMENSION", "1024"))
+
+
+def get_rerank_endpoint() -> str:
+    """重排接口由部署环境显式配置，不隐式选择供应商地址。"""
+    return os.getenv("ALIYUN_RERANK_ENDPOINT", "").strip()
+
+
+def get_rerank_model() -> str:
+    """重排模型可独立升级，不在代码中固定模型版本。"""
+    return os.getenv("ALIYUN_RERANK_MODEL", "").strip()
+
+
+def get_rerank_api_key() -> str:
+    """未单配重排密钥时，显式沿用现有阿里云模型服务凭据。"""
+    return os.getenv("ALIYUN_RERANK_API_KEY") or get_aliyun_api_key()
+
+
 def get_dashvector_api_key() -> str:
     """获取 DashVector API Key"""
     return os.getenv("DASHVECTOR_API_KEY", "")

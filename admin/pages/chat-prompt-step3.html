@@ -22,7 +22,11 @@
     <p class="src-meta" id="src-meta">加载中…</p>
 
     <div class="block-title">模块拼装顺序</div>
-    <table class="admin-table mod-table" id="tbl-modules"><thead><tr><th>#</th><th>模块</th><th>说明</th><th>默认 Token</th></tr></thead><tbody></tbody></table>
+    <p class="src-meta" id="budget-note">表中为代码默认值，不是当前生效预算。</p>
+    <table class="admin-table mod-table" id="tbl-modules"><thead><tr><th>#</th><th>模块</th><th>说明</th><th>代码默认 Token</th></tr></thead><tbody></tbody></table>
+
+    <div class="block-title">记忆选入与预算规则</div>
+    <pre class="prompt-pre" id="pre-selection">—</pre>
 
     <div class="block-title">裁剪优先级（先裁 → 后裁）</div>
     <pre class="prompt-pre" id="pre-trim">—</pre>
@@ -62,6 +66,8 @@
     document.getElementById('src-meta').textContent =
       (d.description || '') + ' · 源文件：' + (d.source_file || '');
     var tb = document.querySelector('#tbl-modules tbody');
+    document.getElementById('budget-note').textContent = d.budget_note || '表中为代码默认值，不是当前生效预算。';
+    document.getElementById('pre-selection').textContent = (d.selection_rules || []).join('\n');
     var mods = d.module_order || [];
     var html = '';
     for (var i = 0; i < mods.length; i++) {

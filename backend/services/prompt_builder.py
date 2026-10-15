@@ -139,6 +139,11 @@ SYSTEM_PROMPT_TEXT = (
     "在你的人格语态范围内给出有实质内容的回应，不要只给情绪性的安慰或模糊带过。\n"
     "知识性内容用你自己的说话方式表达，不要像在写说明书。\n"
     "\n"
+    "【个人事实依据】\n"
+    "问及你或用户的具体经历、时间、姓名、单位等事实时，只依据本轮提供的人格、上下文和记忆。\n"
+    "材料未说明的细节保持未知，用原本语气说没有记录或不能确定；不得为了陪伴或补全故事编造年份、地点、经历或身份。\n"
+    "知识性解释仍按原原则回答，不能把通用知识冒充亲历。\n"
+    "\n"
     "【结构化输出指令】\n"
     "你必须仅输出合法 JSON，不含任何前缀、后缀、markdown 标记或注释。\n"
     "JSON 结构如下，字段名区分大小写，严格遵守：\n"
@@ -490,6 +495,54 @@ class PromptBuilder:
             if module_texts.get(k)
         ]
         return MODULE_SEPARATOR.join(ordered)
+
+    async def build_legacy_mock_prompt(self, **kwargs) -> str:
+        """Backend-only old Prompt Test adapter; never fabricates trusted IDs."""
+        return await self.build_chat_prompt(**kwargs)
+
+    async def build_memory_prompt(
+        self, *, config, retrieval, counter, user_id, user_input,
+        recent_conversations, relationship_info, emotion_context,
+        round_context, source="main",
+    ):
+        """Opt-in structured M4 builder. M6 owns live business wiring.
+
+        Old renderers supply the established context wording only. Their
+        approximate clipping is disabled by a nonbinding local limit; every
+        resulting module is measured by the request's official counter below.
+        """
+        from backend.services.memory_prompt_builder import build_prompt, fit_context_text
+        from backend.services.memory_token_budget import validate_bound_counter
+        validate_bound_counter(config, counter)
+        if hasattr(retrieval, 'config_snapshot_id'):
+            if retrieval.config_snapshot_id != config.config_snapshot_id:
+                raise ValueError('retrieval_config_changed')
+            routes = retrieval.routes
+        else:
+            routes = retrieval
+        raw_limits = {key: 10**9 for key in MODULE_TOKEN_LIMITS}
+        modules = {
+            'system': await self._load_step5_system_template_raw(),
+            'persona': '【人格设定】\n' + (await self._get_persona_from_cache() or DEFAULT_PERSONA),
+            'relationship': self._build_relationship_prompt(relationship_info, raw_limits),
+            'emotion': self._build_emotion_prompt(emotion_context, raw_limits),
+            'time_activity': await self._build_time_prompt(round_context=round_context, max_tokens=10**9),
+            'user_nickname': self._build_user_nickname_prompt(relationship_info),
+            'user_input': (self._build_proactive_input(user_input,raw_limits) if source == 'step8'
+                           else self._build_user_input(user_input,raw_limits)),
+        }
+        recent = []
+        for conv in recent_conversations:
+            role = conv.get('role') if isinstance(conv,dict) else conv.role
+            content = conv.get('content','') if isinstance(conv,dict) else conv.content
+            recent.append(('用户' if role == 'user' else '林小梦') + '：' + content)
+        while recent and await counter.count('【最近对话】\n'+'\n'.join(recent)) > config.prompt['recent_chat']:
+            recent.pop(0)
+        modules['recent_chat'] = '【最近对话】\n'+'\n'.join(recent) if recent else ''
+        for key in ('relationship','emotion','time_activity','user_input'):
+            modules[key] = await fit_context_text(modules[key],config.prompt[key],counter)
+        return await build_prompt(config=config,routes=routes,modules=modules,counter=counter,user_id=user_id,
+            recent_entries=recent,relationship_core=self._build_relationship_prompt_core(relationship_info))
 
     async def build_active_message_prompt(
         self,

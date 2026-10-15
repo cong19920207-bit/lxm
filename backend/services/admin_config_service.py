@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 _CONFIG_CACHE_TTL = 3600
 _MAX_HISTORY_VERSIONS = 20
 _AUDIT_VALUE_UNSET = object()
+_MEMORY_VERSIONED_KEYS = frozenset({
+    "vector_retrieval_config", "prompt_token_config", "vector_db_config",
+    "third_party:dashvector", "third_party:embedding", "third_party:rerank",
+})
 
 
 class AdminConfigService:
@@ -35,6 +39,11 @@ class AdminConfigService:
         use_cache=False：仅查 MySQL，不读不写 Redis（供管理端需权威库读的场景）。
         config_value 可 JSON 解析则返回 dict/list 等，否则返回原始字符串。
         """
+        if config_key in _MEMORY_VERSIONED_KEYS:
+            # Head is authoritative even when invalidating an old Redis key failed.
+            from backend.services.memory_config_publication import read
+            async with async_session_maker() as db:
+                return (await read(db, config_key))["raw"]
         if use_cache:
             redis = await get_redis()
             cache_key = f"active_config:{config_key}"
@@ -70,6 +79,14 @@ class AdminConfigService:
 
     async def get_active_config_detail(self, config_key: str) -> dict | None:
         """获取当前生效配置的完整信息（含版本号、操作人等元数据）"""
+        if config_key in _MEMORY_VERSIONED_KEYS:
+            from backend.services.memory_config_publication import read
+            async with async_session_maker() as db:
+                value = await read(db, config_key)
+                if value["raw"] is None:
+                    return None
+                return {"version": value["version"], "content": value["raw"],
+                        "source": value["source"], "updated_by": None, "updated_at": None}
         async with async_session_maker() as db:
             stmt = select(AdminConfig).where(
                 AdminConfig.config_key == config_key,

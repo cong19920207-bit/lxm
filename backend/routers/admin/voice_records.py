@@ -67,7 +67,7 @@ async def list_records(request: Request, page: int = Query(1, ge=1), page_size: 
     for field, value in ((VoiceCall.user_id,user_id),(VoiceCall.status,status),(VoiceCall.end_reason,end_reason),
                          (VoiceCall.provider,provider),(VoiceCall.summary_status,summary_status)):
         if value is not None: filters.append(field == value)
-    if not audit_view: filters.append(VoiceCall.deleted_at.is_(None))
+    if not audit_view: filters.extend([VoiceCall.cleared_run_id.is_(None), VoiceCall.deleted_at.is_(None)])
     if deleted is not None: filters.append(VoiceCall.deleted_at.is_not(None) if deleted else VoiceCall.deleted_at.is_(None))
     if started_from: filters.append(VoiceCall.created_at >= started_from)
     if started_before: filters.append(VoiceCall.created_at < started_before)
@@ -100,7 +100,7 @@ async def list_records(request: Request, page: int = Query(1, ge=1), page_size: 
 async def export_records(payload: ExportRequest, request: Request,
                          admin=record_role(*_RECORD_EXPORT_ROLES), db=Depends(get_db)):
     # Lock selected parent rows until the snapshot and its audit are committed.
-    calls = (await db.scalars(select(VoiceCall).where(VoiceCall.call_id.in_(set(payload.call_ids)))
+    calls = (await db.scalars(select(VoiceCall).where(VoiceCall.call_id.in_(set(payload.call_ids)), VoiceCall.cleared_run_id.is_(None))
         .order_by(VoiceCall.call_id).with_for_update().execution_options(populate_existing=True))).all()
     if len(calls) != len(set(payload.call_ids)):
         raise HTTPException(404, '通话不存在')
@@ -138,7 +138,7 @@ async def record_turns(call_id: str, request: Request, after: int = Query(0, ge=
                       limit: int = Query(50, ge=1, le=200),
                       admin=record_role(*_RECORD_READ_ROLES), db=Depends(get_db)):
     call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id))
-    if call is None:
+    if call is None or getattr(call,"cleared_run_id",None):
         raise HTTPException(404, '通话不存在')
     rows = (await db.scalars(select(VoiceCallTurn).where(VoiceCallTurn.call_id == call_id,
         VoiceCallTurn.turn_index > after).order_by(VoiceCallTurn.turn_index).limit(limit+1))).all()
@@ -152,7 +152,7 @@ async def record_turns(call_id: str, request: Request, after: int = Query(0, ge=
 async def record_detail(call_id: str, request: Request,
                         admin=record_role(*_RECORD_READ_ROLES), db=Depends(get_db)):
     call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id))
-    if call is None:
+    if call is None or getattr(call,"cleared_run_id",None):
         raise HTTPException(404, '通话不存在')
     now = datetime.utcnow()
     data = overview(call, now=now)
@@ -166,10 +166,10 @@ async def record_debug(call_id: str, request: Request, after: int = Query(0, ge=
                        admin=record_role('super_admin'), db=Depends(get_db)):
     call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id)
         .with_for_update().execution_options(populate_existing=True))
-    if call is None:
+    if call is None or getattr(call,"cleared_run_id",None):
         raise HTTPException(404, '通话不存在')
     now = datetime.utcnow()
-    live = call.deleted_at is None and call.deletion_fence_at is None
+    live = not getattr(call,"cleared_run_id",None) and call.deleted_at is None and call.deletion_fence_at is None
     rows = (await db.scalars(select(VoiceCallTurn).where(VoiceCallTurn.call_id == call_id,
         VoiceCallTurn.turn_index > after).order_by(VoiceCallTurn.turn_index).limit(limit+1))).all()
     items = []
@@ -231,7 +231,7 @@ async def record_usage(call_id: str, request: Request,
     from backend.models.realtime_voice import VoiceUsageLedger
     from backend.models.relationship_growth_log import RelationshipGrowthLog
     call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id))
-    if call is None:
+    if call is None or getattr(call,"cleared_run_id",None):
         raise HTTPException(404, '通话不存在')
     ledger = (await db.scalars(select(VoiceUsageLedger).where(VoiceUsageLedger.call_id == call_id)
         .order_by(VoiceUsageLedger.segment_seq))).all()
@@ -252,7 +252,7 @@ async def record_config(call_id: str, request: Request,
                          admin=record_role(*_RECORD_READ_ROLES), db=Depends(get_db)):
     from backend.services.realtime_voice_config_service import project_voice_snapshot_for_role
     call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id))
-    if call is None:
+    if call is None or getattr(call,"cleared_run_id",None):
         raise HTTPException(404, '通话不存在')
     keys = ('config_version','config_content_sha256','config_schema_version','config_published_at',
         'script_version','script_content_sha256','script_schema_version','script_published_at',

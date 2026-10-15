@@ -51,6 +51,8 @@ class VoiceCreateService:
         return value
 
     async def create(self, db, *, user_id, idempotency_key, payload, now=None):
+        from backend.services.memory_business_guard import guard_business_write, guard_voice_call
+        runtime_context = await guard_business_write(db)
         now = now or datetime.now(timezone.utc)
         call_id = None
         acquired = False
@@ -79,6 +81,7 @@ class VoiceCreateService:
                 call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == record.call_id).with_for_update().execution_options(populate_existing=True))
                 if call is None:
                     raise VoicePreflightError('idempotency_record_incomplete', 503)
+                await guard_voice_call(db,call)
                 result = self.response(record, call, payload, now)
                 await db.commit()
                 committed = True
@@ -97,6 +100,7 @@ class VoiceCreateService:
             bundle = await self.loader.load_bundle(user_id=user_id)
             snapshot = bundle.build_snapshot(user_id=user_id, now=now)
             config_snapshot, capability_snapshot = snapshot.persistence_values()
+            if runtime_context is not None: config_snapshot["_memory_runtime"] = runtime_context
             config = config_snapshot['resolved_config']
             if bundle.should_block_new_call(user_id):
                 gate = bundle.fallback_gate_global if bundle.config.technical_fallback else config['global']

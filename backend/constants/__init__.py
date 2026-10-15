@@ -45,6 +45,8 @@ ERR_CHAT_QUEUE_FULL = 10104  # 未处理消息队列已满（无叹号时 ≤5�
 ERR_CHAT_RESEND_LIMIT = 10105  # 叹号重发超过 2 次/分钟
 ERR_CHAT_IDEMPOTENT_REPLAY = 10106  # 幂等键重复，返回已有结果语义（与实现一致）
 ERR_CHAT_NOTHING_TO_RESEND = 10107  # 当前无可重发的失败句（未闭环窗口无叹号）
+ERR_CHAT_REQUEST_ID_CONFLICT = 10109
+ERR_CHAT_SUBMISSION_UNVERIFIED = 10110
 ERR_CHAT_GENERATION_OBSOLETE = 10108  # generation 已被新 send/resend 作废（Open 同步 JSON）
 
 # ============ 对话 user 行 delivery_status（TD-015，H5 与 Admin 单点枚举）============
@@ -142,6 +144,8 @@ ERROR_MESSAGES = {
     ERR_CHAT_RESEND_LIMIT: "重试过于频繁，请稍后再试",
     ERR_CHAT_IDEMPOTENT_REPLAY: "重复请求已忽略",
     ERR_CHAT_NOTHING_TO_RESEND: "当前没有需要重试的消息",
+    ERR_CHAT_REQUEST_ID_CONFLICT: "提交标识与原输入冲突",
+    ERR_CHAT_SUBMISSION_UNVERIFIED: "结果待核实，请查询原提交状态",
     ERR_CHAT_GENERATION_OBSOLETE: "回复已被新消息取代，请拉取时间线查看后再操作",
     ERR_MEMORY_NOT_FOUND: "记忆不存在或已删除",
     ERR_MEMORY_CONTENT_EMPTY: "记忆内容不能为空",

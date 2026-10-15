@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>用户详情 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/memory-index-status.css?v=20261013">
   <style>
     /* ─── 面包屑 ─── */
     .breadcrumb {
@@ -467,6 +468,12 @@
       <div class="mem-list" id="memories-list">
         <div class="mem-empty">加载中...</div>
       </div>
+      <div class="mem-filter" aria-label="用户记忆分页">
+        <button class="btn btn-default" id="kv-user-prev" onclick="turnKvPage('user', -1)" disabled>上一页</button>
+        <span id="kv-user-page-info" role="status">尚未加载（最多500条内分页，非全库总量）</span>
+        <button class="btn btn-default" id="kv-user-next" onclick="turnKvPage('user', 1)" disabled>下一页</button>
+        <button class="btn btn-default" id="kv-user-refresh" onclick="loadKvEntries(KV_CONFIGS['user'])">只读刷新</button>
+      </div>
     </div>
     <div class="tab-pane" id="tab-private">
       <!-- 页内说明：避免运营误把用户事实写入私有状态 -->
@@ -480,6 +487,12 @@
       <!-- 私有状态列表 -->
       <div class="mem-list" id="private-list">
         <div class="mem-empty">切换到本 Tab 后自动加载</div>
+      </div>
+      <div class="mem-filter" aria-label="私有状态分页">
+        <button class="btn btn-default" id="kv-private-prev" onclick="turnKvPage('private', -1)" disabled>上一页</button>
+        <span id="kv-private-page-info" role="status">尚未加载（最多500条内分页，非全库总量）</span>
+        <button class="btn btn-default" id="kv-private-next" onclick="turnKvPage('private', 1)" disabled>下一页</button>
+        <button class="btn btn-default" id="kv-private-refresh" onclick="loadKvEntries(KV_CONFIGS['private'])">只读刷新</button>
       </div>
     </div>
     <div class="tab-pane" id="tab-emotion">
@@ -547,6 +560,8 @@
 </div>
 
 <script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/memory-write-feedback.js?v=step007-20261010"></script>
+<script src="/admin/static/js/memory-index-status.js?v=20261013"></script>
 <script>
 checkAdminLogin();
 
@@ -721,6 +736,9 @@ var convCurrentPage = 0;
 var convHasEarlier = false;
 var convLoading = false;
 var CONV_DEFAULT_DAYS = 7;
+var convQuerySeq = 0;
+var convRenderedScope = null;
+var convSeenIds = new Set();
 
 function convFormatDateInput(d) {
   var pad = function (n) { return String(n).padStart(2, '0'); };
@@ -740,15 +758,31 @@ function initConvDateFilters() {
   }
 }
 
-function convDeliveryLabel(ds) {
-  if (!ds) return '';
-  var m = {
-    delivered: '已送达',
-    pending_llm: '等待回复',
-    failed_timeout: '超时失败',
-    failed_error: '发送失败'
-  };
-  return m[ds] || ds;
+function convDeliveryLabel(item) {
+  if (typeof item !== 'object' || !item) item = { delivery_status: item };
+  if (item.state_origin === 'legacy') return '旧记录 · ' + (item.processing_state === 'success' ? '已保存' : item.processing_state === 'failed' ? '历史失败' : '状态待核实');
+  if (item.state_origin === 'unavailable') return '状态读取不可用 · 待核实';
+  var state = item.processing_state;
+  if (state === 'success') return '回复保存成功（不代表设备送达）';
+  if (state === 'pending') return '等待回复';
+  if (state === 'superseded') return '旧执行已被替代';
+  if (state === 'unverified') return '结果待核实';
+  if (state === 'failed') {
+    var reasons = { prompt_budget_exceeded: '预算超限', deadline_exceeded: '整轮超时', round_deadline_exceeded: '整轮超时', content_blocked: '安全限制' };
+    return '处理失败' + (item.status_reason ? ' · ' + (reasons[item.status_reason] || item.status_reason) : '');
+  }
+  var legacy = { delivered: '旧记录 · 已保存', pending_llm: '旧记录 · 状态待核实', failed_timeout: '旧记录 · 超时失败', failed_error: '旧记录 · 历史失败' };
+  return legacy[item.delivery_status] || '';
+}
+
+function convScope() {
+  return String(userId) + '|' + document.getElementById('conv-start-date').value + '|' + document.getElementById('conv-end-date').value;
+}
+function convIsCurrent(seq, scope) { return seq === convQuerySeq && scope === convScope(); }
+function convReadFailure(container, scope) {
+  if (convRenderedScope === scope && convSeenIds.size) {
+    container.innerHTML = '<div class="conv-empty">读取失败，以下为过期数据，请重新查询</div>' + container.innerHTML.replace(/^<div class="conv-empty">读取失败，以下为过期数据，请重新查询<\/div>/, '');
+  } else container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
 }
 
 function buildConversationsHtml(list) {
@@ -764,7 +798,7 @@ function buildConversationsHtml(list) {
     }
     var senderText = isUser ? '用户' : '林小梦';
 
-    html += '<div class="conv-item ' + roleClass + '">';
+    html += '<div class="conv-item ' + roleClass + '" data-conv-identity="' + esc(msgSrc + ':' + String(item.id)) + '">';
     html += '  <div class="conv-bubble-wrap">';
     html += '    <div class="conv-sender">' + esc(senderText) + '</div>';
     if (isAgentMsg) {
@@ -777,9 +811,9 @@ function buildConversationsHtml(list) {
       }
       html += '    </div>';
     }
-    if (isUser && item.delivery_status) {
+    if (isUser && (item.delivery_status || item.processing_state)) {
       html += '    <div class="conv-delivery" style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">' +
-        esc(convDeliveryLabel(item.delivery_status)) + '</div>';
+        esc(convDeliveryLabel(item)) + (item.state_revision != null ? ' · 修订 ' + esc(String(item.state_revision)) : '') + '</div>';
     }
     html += '    <div class="conv-bubble">' + esc(item.content) + '</div>';
     html += '    <div class="conv-time">' + formatDateTime(item.created_at) + '</div>';
@@ -802,121 +836,76 @@ function updateConvEarlierButton() {
   }
 }
 
-async function fetchConversationsPage(page) {
-  var startDate = document.getElementById('conv-start-date').value;
-  var endDate = document.getElementById('conv-end-date').value;
+async function fetchConversationsPage(page, scope) {
+  var parts = scope.split('|');
   var query = '?page=' + page;
-  if (startDate) query += '&start_date=' + encodeURIComponent(startDate);
-  if (endDate) query += '&end_date=' + encodeURIComponent(endDate);
-
-  var res = await adminRequest('GET', '/api/admin/users/' + userId + '/conversations' + query);
-  if (!res || res.code !== 0) {
-    return null;
-  }
-  return {
-    list: (res.data && res.data.list) || [],
-    total: (res.data && res.data.total) || 0,
-    pageSize: (res.data && res.data.page_size) || 20
-  };
+  if (parts[1]) query += '&start_date=' + encodeURIComponent(parts[1]);
+  if (parts[2]) query += '&end_date=' + encodeURIComponent(parts[2]);
+  try {
+    var res = await adminRequest('GET', '/api/admin/users/' + encodeURIComponent(parts[0]) + '/conversations' + query);
+    if (!res || res.code !== 0) return null;
+    return { list: (res.data && res.data.list) || [], total: (res.data && res.data.total) || 0, pageSize: (res.data && res.data.page_size) || 20 };
+  } catch (_) { return null; }
 }
 
-function searchConversations() {
-  convCurrentPage = 0;
-  convHasEarlier = false;
-  document.getElementById('conversations-list').innerHTML = '<div class="conv-empty">加载中...</div>';
-  updateConvEarlierButton();
-  loadConversationsInitial();
-}
-
+function searchConversations() { return loadConversationsInitial(); }
 function loadEarlierConversations() {
   if (convLoading || !convHasEarlier) return;
-  loadConversationsPage(convCurrentPage - 1, false);
+  return loadConversationsPage(convCurrentPage - 1, false);
 }
 
 async function loadConversationsInitial() {
-  if (convLoading) return;
-  convLoading = true;
   initConvDateFilters();
-
-  var probe = await fetchConversationsPage(1);
-  convLoading = false;
-
-  var container = document.getElementById('conversations-list');
-  if (!probe) {
-    container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
-    updateConvEarlierButton();
-    return;
-  }
-
-  if (probe.total === 0 || probe.list.length === 0) {
-    container.innerHTML = '<div class="conv-empty">暂无对话记录</div>';
-    convCurrentPage = 0;
-    convHasEarlier = false;
-    updateConvEarlierButton();
-    return;
-  }
-
-  var lastPage = Math.max(1, Math.ceil(probe.total / probe.pageSize));
-  var payload = probe;
-  if (lastPage > 1) {
-    convLoading = true;
-    var lastRes = await fetchConversationsPage(lastPage);
-    convLoading = false;
-    if (!lastRes) {
-      container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
-      updateConvEarlierButton();
-      return;
-    }
-    payload = lastRes;
-  }
-
-  convCurrentPage = lastPage;
-  convHasEarlier = lastPage > 1;
-  container.innerHTML = buildConversationsHtml(payload.list);
+  var scope = convScope(), seq = ++convQuerySeq;
+  convLoading = true;
+  convHasEarlier = false;
+  var earlier = document.getElementById('btnLoadEarlier');
+  if (earlier) { earlier.disabled = false; earlier.textContent = '加载更早'; }
   updateConvEarlierButton();
-  container.scrollTop = container.scrollHeight;
+  var container = document.getElementById('conversations-list');
+  if (convRenderedScope !== scope) {
+    convCurrentPage = 0; convSeenIds.clear(); convRenderedScope = null;
+    container.innerHTML = '<div class="conv-empty">加载中...</div>';
+  }
+  var probe = await fetchConversationsPage(1, scope);
+  if (!convIsCurrent(seq, scope)) return;
+  if (!probe) { convLoading = false; convReadFailure(container, scope); return; }
+  var lastPage = Math.max(1, Math.ceil(probe.total / probe.pageSize)), payload = probe;
+  if (probe.total && lastPage > 1) {
+    payload = await fetchConversationsPage(lastPage, scope);
+    if (!convIsCurrent(seq, scope)) return;
+    if (!payload) { convLoading = false; convReadFailure(container, scope); return; }
+  }
+  convLoading = false; convRenderedScope = scope; convSeenIds.clear();
+  payload.list.forEach(function(item) { convSeenIds.add((item.message_source || 'conversation') + ':' + item.id); });
+  convCurrentPage = payload.list.length ? lastPage : 0; convHasEarlier = payload.list.length > 0 && lastPage > 1;
+  container.innerHTML = payload.list.length ? buildConversationsHtml(payload.list) : '<div class="conv-empty">暂无对话记录</div>';
+  updateConvEarlierButton(); container.scrollTop = container.scrollHeight;
 }
 
 async function loadConversationsPage(page, replace) {
   if (convLoading) return;
-  convLoading = true;
-
+  var scope = convScope();
+  if (scope !== convRenderedScope) return loadConversationsInitial();
+  var seq = ++convQuerySeq; convLoading = true;
   var btn = document.getElementById('btnLoadEarlier');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '加载中...';
-  }
-
-  var container = document.getElementById('conversations-list');
-  var oldScrollHeight = replace ? 0 : container.scrollHeight;
-
-  var payload = await fetchConversationsPage(page);
-
+  if (btn) { btn.disabled = true; btn.textContent = '加载中...'; }
+  var container = document.getElementById('conversations-list'), oldScrollHeight = replace ? 0 : container.scrollHeight;
+  var payload = await fetchConversationsPage(page, scope);
+  if (!convIsCurrent(seq, scope)) return;
   convLoading = false;
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = '加载更早';
-  }
-
-  if (!payload) {
-    if (replace) {
-      container.innerHTML = '<div class="conv-empty">加载失败，请重试</div>';
-    }
-    updateConvEarlierButton();
-    return;
-  }
-
-  var html = buildConversationsHtml(payload.list);
-  if (replace) {
-    container.innerHTML = html;
-  } else {
-    container.insertAdjacentHTML('afterbegin', html);
-    container.scrollTop = container.scrollHeight - oldScrollHeight;
-  }
-
-  convCurrentPage = page;
-  convHasEarlier = page > 1;
-  updateConvEarlierButton();
+  if (btn) { btn.disabled = false; btn.textContent = '加载更早'; }
+  if (!payload) { convReadFailure(container, scope); updateConvEarlierButton(); return; }
+  if (replace) convSeenIds.clear();
+  var fresh = payload.list.filter(function(item) {
+    var identity = (item.message_source || 'conversation') + ':' + item.id;
+    if (convSeenIds.has(identity)) return false;
+    convSeenIds.add(identity); return true;
+  });
+  var html = buildConversationsHtml(fresh);
+  if (replace) container.innerHTML = html;
+  else { container.insertAdjacentHTML('afterbegin', html); container.scrollTop = container.scrollHeight - oldScrollHeight; }
+  convCurrentPage = page; convHasEarlier = page > 1; updateConvEarlierButton();
 }
 
 /* ─── Tab2/Tab3 用户记忆 + 私有状态（KV 向量，主键 doc_id） ─── */
@@ -944,24 +933,51 @@ function kvBaseUrl(cfg) {
   return '/api/admin/users/' + userId + '/' + cfg.path;
 }
 
-function searchUserMemories() { loadKvEntries(KV_CONFIGS.user); }
-function searchPrivateSettings() { loadKvEntries(KV_CONFIGS['private']); }
+function searchUserMemories() { return loadKvEntries(KV_CONFIGS.user, 1); }
+function searchPrivateSettings() { return loadKvEntries(KV_CONFIGS['private'], 1); }
 
-async function loadKvEntries(cfg) {
+var kvLoadRevision = {}, kvPages = {};
+function showKvPage(cfg, state, busy) {
+  var info = document.getElementById('kv-'+cfg.kind+'-page-info');
+  var count = state.total == null ? '总量待查询' : '共 '+state.total+' 条';
+  info.textContent = '第 '+state.page+' / '+(state.total == null ? '?' : Math.max(1, Math.ceil(state.total/100)))+' 页，'+count+'（最多500条内分页，非全库总量）';
+  document.getElementById('kv-'+cfg.kind+'-prev').disabled = busy || state.total == null || state.page <= 1;
+  document.getElementById('kv-'+cfg.kind+'-next').disabled = busy || state.total == null || state.page*100 >= state.total;
+  document.getElementById('kv-'+cfg.kind+'-refresh').disabled = busy;
+}
+function turnKvPage(kind, step) {
+  var state = kvPages[kind];
+  if (!state || state.total == null || state.page+step < 1 || state.page+step > Math.max(1, Math.ceil(state.total/100))) return;
+  return loadKvEntries(KV_CONFIGS[kind], state.page+step);
+}
+async function loadKvEntries(cfg, requestedPage) {
+  var revision = (kvLoadRevision[cfg.kind] || 0) + 1; kvLoadRevision[cfg.kind] = revision;
   var container = document.getElementById(cfg.listEl);
   if (!container) return;
   container.innerHTML = '<div class="mem-empty">加载中...</div>';
 
   var keyword = (document.getElementById(cfg.keywordEl).value || '').trim();
-  var query = '?keyword=' + encodeURIComponent(keyword) + '&page=1&page_size=100';
-  var res = await adminRequest('GET', kvBaseUrl(cfg) + query);
+  var base = kvBaseUrl(cfg), scope = base+'|'+keyword;
+  var previous = kvPages[cfg.kind], same = previous && previous.scope === scope;
+  var page = same ? (requestedPage || previous.page) : 1;
+  var state = {scope:scope, page:page, total:same ? previous.total : null}; kvPages[cfg.kind] = state;
+  showKvPage(cfg, state, true);
+  var query = '?keyword=' + encodeURIComponent(keyword) + '&page='+page+'&page_size=100';
+  var res;
+  try { res = await adminRequest('GET', base + query); } catch (_) { res = null; }
+  if (kvLoadRevision[cfg.kind] !== revision || base !== kvBaseUrl(cfg)) return;
+  showKvPage(cfg, state, false);
 
   if (!res || res.code !== 0) {
-    container.innerHTML = '<div class="mem-empty">加载失败，请重试</div>';
+    container.innerHTML = '<div class="mem-empty">读取失败，请只读刷新重试</div>';
     return;
   }
 
-  var list = (res.data && res.data.list) || [];
+  var data = res.data || {}, list = data.list || [];
+  state.total = Number.isInteger(data.total) && data.total >= 0 ? data.total : list.length;
+  var lastPage = Math.max(1, Math.ceil(state.total/100));
+  if (page > lastPage) return loadKvEntries(cfg, lastPage);
+  showKvPage(cfg, state, false);
   if (!list.length) {
     container.innerHTML = '<div class="mem-empty">' + esc(cfg.emptyText) + '</div>';
     return;
@@ -974,10 +990,14 @@ async function loadKvEntries(cfg) {
     html += '  <div class="mem-kv">';
     html += '    <div class="mem-key">' + esc(item.key || '') + '</div>';
     html += '    <div class="mem-content">' + esc(item.value || '') + '</div>';
+    if (item.index_state && item.index_state !== 'ready') html += MemoryIndexStatus.html(item, getAdminRole());
     html += '  </div>';
     html += '  <div class="mem-actions">';
+    if (item.legacy_read_only) html += '旧格式正文（只读）';
+    else {
     html += '    <button class="btn btn-default" data-write-action onclick="editKvEntry(this)">编辑</button>';
     html += '    <button class="btn btn-danger" data-write-action onclick="deleteKvEntry(this)">删除</button>';
+    }
     html += '  </div>';
     html += '</div>';
   }
@@ -1013,6 +1033,7 @@ async function saveKvEntry(btn) {
   var row = btn.closest('.mem-item');
   var cfg = kvCfgFromRow(row);
   var docId = row.getAttribute('data-doc-id');
+  if (MemoryWriteFeedback.blocked(kvBaseUrl(cfg)+'/'+encodeURIComponent(docId))) { btn.disabled = true; return; }
   var input = row.querySelector('.mem-content input');
   var newValue = (input.value || '').trim();
 
@@ -1024,19 +1045,14 @@ async function saveKvEntry(btn) {
   btn.disabled = true;
   btn.textContent = '保存中...';
 
-  var res = await adminRequest(
-    'PUT',
-    kvBaseUrl(cfg) + '/' + encodeURIComponent(docId),
-    { value: newValue }
-  );
+  var result = await MemoryWriteFeedback.submit({method:'PUT',path:kvBaseUrl(cfg)+'/'+encodeURIComponent(docId),
+    body:{value:newValue},button:btn,success:function () {
+      // Finish this form immediately; a failed list refresh cannot undo source success.
+      if (row.isConnected) { row.querySelector('.mem-content').textContent = newValue; row.querySelector('.mem-actions').textContent = '已保存'; }
+      loadKvEntries(cfg);
+    }});
+  if (result.state === 'failed') { btn.disabled = false; btn.textContent = '保存'; }
 
-  if (res && res.code === 0) {
-    showToast('保存成功', 'success');
-    loadKvEntries(cfg);
-  } else {
-    btn.disabled = false;
-    btn.textContent = '保存';
-  }
 }
 
 function deleteKvEntry(btn) {
@@ -1044,11 +1060,8 @@ function deleteKvEntry(btn) {
   var cfg = kvCfgFromRow(row);
   var docId = row.getAttribute('data-doc-id');
   showConfirm('确定要删除这条记录吗？删除后不可恢复。', async function () {
-    var res = await adminRequest('DELETE', kvBaseUrl(cfg) + '/' + encodeURIComponent(docId));
-    if (res && res.code === 0) {
-      showToast('删除成功', 'success');
-      loadKvEntries(cfg);
-    }
+    await MemoryWriteFeedback.submit({method:'DELETE',path:kvBaseUrl(cfg)+'/'+encodeURIComponent(docId),button:btn,
+      success:function () { loadKvEntries(cfg); }});
   }, null, { danger: true });
 }
 
@@ -1087,6 +1100,7 @@ function showKvAddModal(cfg) {
   overlay.querySelector('#__kv_cancel').onclick = close;
   overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
 
+  overlay.querySelector('#__kv_ok').disabled = MemoryWriteFeedback.blocked(kvBaseUrl(cfg)+'#create');
   overlay.querySelector('#__kv_ok').onclick = async function () {
     var key = (overlay.querySelector('#__kv_key').value || '').trim();
     var value = (overlay.querySelector('#__kv_value').value || '').trim();
@@ -1097,15 +1111,9 @@ function showKvAddModal(cfg) {
     var okBtn = this;
     okBtn.disabled = true;
     okBtn.textContent = '保存中...';
-    var res = await adminRequest('POST', kvBaseUrl(cfg), { key: key, value: value });
-    if (res && res.code === 0) {
-      showToast('新增成功', 'success');
-      close();
-      loadKvEntries(cfg);
-    } else {
-      okBtn.disabled = false;
-      okBtn.textContent = '保存';
-    }
+    var result = await MemoryWriteFeedback.submit({method:'POST',path:kvBaseUrl(cfg),source:kvBaseUrl(cfg)+'#create',
+      body:{key:key,value:value},button:okBtn,success:function () { close(); loadKvEntries(cfg); }});
+    if (result.state === 'failed') { okBtn.disabled = false; okBtn.textContent = '保存'; }
   };
 
   setTimeout(function () { overlay.querySelector('#__kv_key').focus(); }, 100);
@@ -1135,7 +1143,7 @@ async function loadAgentMessages() {
   var res = await adminRequest('GET', '/api/admin/agent-messages?user_id=' + encodeURIComponent(userId));
 
   if (!res || res.code !== 0) {
-    container.innerHTML = '<div class="mem-empty">加载失败，请重试</div>';
+    container.innerHTML = '<div class="mem-empty">读取失败，请只读刷新重试</div>';
     return;
   }
 

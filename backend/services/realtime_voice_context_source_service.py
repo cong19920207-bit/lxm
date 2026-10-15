@@ -20,11 +20,13 @@ async def strict_voice_memory_search(query, user_id):
     # Reuse transport/embedding primitives, not the text rewrite/recall node.
     from backend.services.embedding_service import embedding_service
     from backend.utils.dashvector_client import dashvector_client, build_filter
-    from backend.config import get_dashvector_endpoint, get_dashvector_collection
+    from backend.config import get_dashvector_endpoint, get_dashvector_collection, get_embedding_dimension
     async with asyncio.timeout(.8):
         vector = await embedding_service.get_embedding(query[:200])
     if not vector:
         raise ContextPackError('memory_embedding_unavailable')
+    from backend.utils.memory_vector import normalize_dense
+    vector = normalize_dense(vector, get_embedding_dimension())
     async def search(kind):
         client = await dashvector_client._get_client()
         response = await client.post(

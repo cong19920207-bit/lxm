@@ -31,6 +31,8 @@ APScheduler>=3.10.0
 
 # 阿里云 DashVector 向量库
 dashvector>=0.0.5
+# 固定中文 BM25 统计/字典（STEP-004）
+dashtext==0.0.7
 
 # 火山引擎（豆包 LLM）
 volcengine-python-sdk>=1.0.0

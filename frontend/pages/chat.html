@@ -665,6 +665,7 @@
 
     <div class="chat-messages" id="chat-messages">
       <div class="msg-sentinel" id="top-sentinel"></div>
+      <div id="chat-sync-note" role="status" hidden>有请求待核实</div>
     </div>
 
     <div class="input-area">
@@ -686,6 +687,7 @@
   <script src="/static/js/api.js"></script>
   <script src="/static/js/chat-time.js"></script>
   <script src="/static/js/voice-call-cards.js"></script>
+  <script src="/static/js/chat-submissions.js"></script>
   <script>
     /** 全屏背景随 AI 情绪切换（与 AVATAR_MAP 同源；顶栏头像固定 default） */
     function updateChatBackgroundEmotion(emotionLabel) {
@@ -708,6 +710,8 @@
     let agentTipMessageId = null
     let chatAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
     let chatResumePromise = null
+    let chatResumeUser = null
+    let chatUiEpoch = 0
     let chatShellInitialized = false
     let chatScrollObserver = null
     const visitorChatRequests = Object.freeze([])
@@ -889,6 +893,8 @@
       const nodes = []
       let prevTs = null
       items.forEach(function (item) {
+        const existing = findChatMessageRow(item.source, item.id)
+        if (existing) return
         const ts = parseMessageTimestamp(item.created_at)
         const row = renderTimelineItem(item, ts)
         if (shouldShowTimeStamp(ts, prevTs)) {
@@ -1117,11 +1123,111 @@
     let chatSendAbort = null
     /** 每次发起 send/resend 前递增；与 meta.generation_id 配合丢弃过期 SSE（对齐契约） */
     let chatSendSession = 0
-    /** 与后端 `_BUNDLE_WAIT_TIMEOUT_SEC`（120s）对齐：单次 send/resend 流式请求客户端最长等待 */
-    const CHAT_CLIENT_ABORT_MS = 120000
-    /** send 与叹号 resend 共用：通过校验后、发起 fetch 前打时间戳；300ms 内重复操作静默忽略（防连点，不挡整段 SSE） */
+    // Client total wait covers response headers AND the full SSE body; nginx read timeout is idle.
+    let chatTiming = ChatSubmissions.TIMING
+    let chatTimingReady = false
     const CHAT_SEND_DEBOUNCE_MS = 300
     let lastSendOrResendAt = 0
+    let chatTransportTimer = null
+    const chatRowVersions = new Map()
+    let chatStatusEpoch=0
+    function currentChatUser() { return ChatSubmissions.userFromToken(localStorage.getItem('token') || '') }
+    function findChatMessageRow(source, id) {
+      if (id == null) return null
+      return [...document.querySelectorAll('#chat-messages .msg-row')].find(row =>
+        row.dataset.messageSource === source && row.dataset.messageId === String(id)) || null
+    }
+    function markChatUnverified(record) {
+      record.observationUnknown=true
+      const rows = [...document.querySelectorAll('#chat-messages .msg-row.user')].filter(row =>
+        row.dataset.requestId === record.request_id || (record.source_messages || []).some(m => String(m.id) === row.dataset.messageId))
+      if (!rows.length) document.getElementById('chat-sync-note').hidden=false
+      rows.forEach(row => {
+        if (row.dataset.processing === 'success' || row.dataset.processing === 'failed' || row.dataset.processing === 'superseded') return
+        row.dataset.delivery = 'unverified'; row.dataset.processing = 'unverified'
+        row.querySelectorAll('.msg-bang').forEach(b => b.remove())
+        let label = row.querySelector('.msg-sync-status')
+        if (!label) { label=document.createElement('span'); label.className='msg-sync-status'; row.querySelector('.msg-body').appendChild(label) }
+        label.textContent = '待核实'
+      })
+    }
+    function applyChatStatus(record, status) {
+      chatStatusEpoch++
+      const revision = status.state_revision
+      const state = status.processing_state || 'unverified'
+      record.lastStatus=status
+      record.observationUnknown=state==='unverified'
+      if (record.bubble && ['success','failed','superseded'].includes(state)) record.bubble.removeRow()
+      document.getElementById('chat-sync-note').hidden=![...chatSubmissions.records.values()].some(r=>!r.terminal && r.observationUnknown && !r.source_messages.length)
+      let provisional = [...document.querySelectorAll('#chat-messages .msg-row.user')].find(row =>
+        row.dataset.requestId === record.request_id && !row.dataset.messageId)
+      ;(record.source_messages || []).forEach(message => {
+        const key='user:'+message.id, old=chatRowVersions.get(key)
+        if (old && (ChatSubmissions.compareRevision(revision,old.revision) === null ||
+          ChatSubmissions.compareRevision(revision,old.revision) < 0 ||
+          (old.terminal && ChatSubmissions.compareRevision(revision,old.revision) === 0))) return
+        let row=findChatMessageRow('user',message.id)
+        if (row && provisional && record.operation==='send') { provisional.remove();provisional=null }
+        if (!row && provisional) { row=provisional; provisional=null }
+        if (!row) return // Restore uses the ordinary timeline for user content; no local text copy.
+        row.dataset.messageSource='user'; row.dataset.messageId=String(message.id); row.dataset.sortSeq=message.sort_seq
+        row.dataset.generationId=status.effective_generation_id || ''; row.dataset.processing=state
+        if (revision) { row.dataset.stateRevision=revision; chatRowVersions.set(key,{revision,terminal:['success','failed','superseded'].includes(state)}) }
+        row.dataset.delivery=state==='success'?'delivered':state==='failed'?(status.status_reason==='deadline_exceeded'?'failed_timeout':'failed_error'):state==='pending'?'pending_llm':state
+        row.querySelectorAll('.msg-bang,.msg-sync-status').forEach(b=>b.remove())
+        row.dataset.canResend=String(state==='failed' && status.can_resend===true)
+        if (state==='failed' && status.can_resend===true) ensureUserRowBangButton(row)
+        else if (state==='failed' || state==='unverified' || state==='superseded') {
+          const label=document.createElement('span');label.className='msg-sync-status'
+          label.textContent=state==='failed'?(status.status_reason==='content_blocked'?'内容未通过安全检查':'回复失败'):state==='superseded'?'已作废':'待核实'
+          row.querySelector('.msg-body').appendChild(label)
+        }
+      })
+      if (provisional) markChatUnverified(record)
+      if (state==='success' && status.result && Array.isArray(status.result.messages)) {
+        // A newer effective generation on a source row makes an older round's SSE/result stale.
+        if ((record.source_messages || []).some(m=>{
+          const old=chatRowVersions.get('user:'+m.id)
+          return old && ChatSubmissions.compareRevision(revision,old.revision)<0
+        })) return
+        status.result.messages.forEach(message => {
+          if (message.id == null) return
+          const existing=findChatMessageRow('assistant',message.id)
+          const row=existing || appendAIBubble(message.content,false,false)
+          row.dataset.messageSource='assistant';row.dataset.messageId=String(message.id);row.dataset.sortSeq=message.sort_seq
+          row.dataset.roundId=status.result.round_id || '';row.dataset.stateRevision=revision || ''
+          row.querySelector('.msg-bubble').textContent=message.content || ''
+        })
+        if (status.result.emotion && status.result.emotion.label) updateChatBackgroundEmotion(status.result.emotion.label)
+      }
+    }
+    const chatSubmissions = new ChatSubmissions.Reconciler({
+      user:currentChatUser,
+      active:()=>isChatAuthenticated() && document.visibilityState==='visible' && navigator.onLine,
+      unknown:markChatUnverified, update:applyChatStatus,
+      fetch:async(record,signal)=>{
+        const user=currentChatUser()
+        const response=await fetch(API_BASE+'/api/chat/submissions/'+record.operation+'/'+ChatSubmissions.encodeRequestId(record.request_id),{
+          headers:{Authorization:'Bearer '+localStorage.getItem('token')},signal
+        })
+        if (user!==currentChatUser()) return null
+        if (response.status===401) { await handleUnauthorized(chatSilentAuthOptions()); return null }
+        if (!response.ok) throw new Error('status_http_'+response.status)
+        return response.json()
+      }
+    })
+    function stopChatObservation() {
+      chatSubmissions.pause();if(chatEligibilityAbort)chatEligibilityAbort.abort();chatEligibilityAbort=null;clearTimeout(chatTransportTimer);chatTransportTimer=null
+      if (chatSendAbort) { chatSendSession++;chatSendAbort.abort();chatSendAbort=null }
+      removeAiInFlightRows()
+    }
+    function armChatTransport(record, controller) {
+      clearTimeout(chatTransportTimer)
+      const serverDeadline=Date.parse(record.effective_deadline_at)
+      const end=Number.isFinite(serverDeadline)?serverDeadline+chatTiming.text_client_transport_margin_ms:
+        record.submitted_at+chatTiming.text_business_deadline_ms+chatTiming.text_client_transport_margin_ms
+      chatTransportTimer=setTimeout(()=>controller.abort(),Math.max(0,end-Date.now()))
+    }
 
     function rollbackChatSendForUnauthorized(userRow, aiBubble, content) {
       if (aiBubble) aiBubble.removeRow()
@@ -1180,236 +1286,138 @@
      * sseCtx.userRowForFailure：send 传入；failed 时标叹号态。
      * done 成功时 markOpenWindowUsersDelivered 标未闭环窗口内 user（含 resend 成功后的 failed_*）。
      */
-    async function consumeChatSse(response, aiBubble, sessionAtStart, sseCtx) {
-      const userRowForFailure = sseCtx && sseCtx.userRowForFailure
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      /** 本连接 meta 下发的代；delta 若带 generation_id 则须与此一致 */
-      let streamGenerationId = null
-      let metaReceived = false
-      while (true) {
-        const { done, value } = await reader.read()
-        if (sessionAtStart !== chatSendSession) break
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-          if (sessionAtStart !== chatSendSession) return
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.type === 'meta') {
-              metaReceived = true
-              const gid = data.generation_id
-              streamGenerationId = (typeof gid === 'string' && gid.length > 0) ? gid : null
-              // §2.9.4 CP2：记录 message_count，不预铺空气泡（§2.7.5）
-              if (typeof data.message_count === 'number' && data.message_count > 0) {
-                aiBubble.setMessageCount(data.message_count)
-              }
+    function isCurrentChatSubmission(context) {
+      const record=context.record
+      return currentChatUser()===context.owner && chatSubmissions.user===context.owner &&
+        chatSubmissions.records.get(record.operation+':'+record.request_id)===record &&
+        chatUiEpoch===context.uiEpoch && chatSendSession===context.session
+    }
+
+    async function consumeChatSse(response, aiBubble, context) {
+      const reader=response.body.getReader(),decoder=new TextDecoder()
+      let buffer='',identity=null,terminal=false
+      try {
+        while (true) {
+          const part=await reader.read()
+          if (!isCurrentChatSubmission(context) || !chatSubmissions.active()) return
+          if (part.done) break
+          buffer+=decoder.decode(part.value,{stream:true})
+          const lines=buffer.split('\n');buffer=lines.pop() || ''
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            let data;try { data=JSON.parse(line.slice(6)) } catch (_) { continue }
+            const record=context.record
+            if (data.type==='meta') {
+              if (data.operation!==record.operation || data.request_id!==record.request_id) continue
+              identity=data
+              chatSubmissions.apply(record,{...data,admission_state:'accepted',processing_state:'pending'})
+              armChatTransport(record,context.controller)
               continue
             }
-            if (!metaReceived) continue
-            if (data.type === 'delta' && data.generation_id != null && data.generation_id !== streamGenerationId) {
-              continue
-            }
-            if (data.type === 'obsolete') {
-              aiBubble.removeRow()
-              return
-            }
-            if (data.type === 'failed') {
-              aiBubble.removeRow()
-              if (userRowForFailure && userRowForFailure.parentNode) {
-                const st = mapSseFailedToDelivery(data)
-                userRowForFailure.setAttribute('data-delivery', st)
-                ensureUserRowBangButton(userRowForFailure)
-              }
-              return
-            }
-            if (data.type === 'delta') {
-              // §2.9.4：按 message_index 填槽渲染
-              const msgIdx = (typeof data.message_index === 'number') ? data.message_index : 0
-              aiBubble.appendTextAt(msgIdx, data.content)
+            if (!identity) continue
+            const rev=data.state_revision || identity.state_revision
+            const effective=data.effective_generation_id || identity.effective_generation_id
+            const stale=(record.state_revision && (ChatSubmissions.compareRevision(rev,record.state_revision)===null || ChatSubmissions.compareRevision(rev,record.state_revision)<0)) ||
+              (effective && record.effective_generation_id && effective!==record.effective_generation_id) ||
+              (data.generation_id && data.generation_id!==effective) || record.terminal ||
+              (record.source_messages || []).some(m=>{
+                const v=chatRowVersions.get('user:'+m.id)
+                return v && (ChatSubmissions.compareRevision(rev,v.revision)===null || ChatSubmissions.compareRevision(rev,v.revision)<0 || v.terminal)
+              })
+            if (stale) continue
+            if (data.type==='delta') {
+              aiBubble.appendTextAt(Number.isInteger(data.message_index)?data.message_index:0,data.content || '')
               scrollToBottom()
-            } else if (data.type === 'done') {
-              // 须在 finalize 前标记：finalize 后新 AI 在列表末尾，否则窗口 user 不会被标 delivered
-              markOpenWindowUsersDelivered()
-              const doneMessages = Array.isArray(data.messages) ? data.messages : []
-              if (doneMessages.length > 0) {
-                aiBubble.finalize(doneMessages, data.emotion)
-              } else {
-                aiBubble.markComplete()
-              }
-              if (data.emotion && data.emotion.label) updateChatBackgroundEmotion(data.emotion.label)
+            } else if (data.type==='done') {
+              aiBubble.removeRow()
+              terminal=chatSubmissions.apply(record,{...identity,...data,admission_state:'accepted',processing_state:'success',
+                result:{round_id:data.round_id,messages:data.messages || [],emotion:data.emotion},can_resend:false}) && record.terminal
               if (data.leveled_up) showLevelUpTip(data.new_level_name || '')
+            } else if (data.type==='failed' || data.type==='obsolete') {
+              // A stream error does not assert current ownership/eligibility: read the authoritative GET.
+              aiBubble.removeRow();chatSubmissions.wake();return
             }
-          } catch (e) {
-            console.error('SSE parse error:', e)
           }
+        }
+      } finally {
+        reader.cancel().catch(()=>{});reader.releaseLock()
+        if (!terminal) {
+          aiBubble.removeRow()
+          if (isCurrentChatSubmission(context)) { markChatUnverified(context.record);chatSubmissions.wake() }
         }
       }
     }
 
+    async function submitChatRequest(operation, content, userRow, button) {
+      if (!chatTimingReady || !currentChatUser()) { if (userRow) userRow.remove(); alert('聊天连接准备中，请稍后再试');return }
+      if (chatSubmissions.user!==currentChatUser()) chatSubmissions.restore(currentChatUser())
+      if (chatSendAbort) chatSendAbort.abort()
+      const sessionAtStart=++chatSendSession
+      removeAiInFlightRows()
+      const controller=new AbortController();chatSendAbort=controller
+      const id=(crypto.randomUUID && crypto.randomUUID()) || ('chat-'+Date.now()+'-'+Math.random().toString(36).slice(2))
+      let record
+      try { record=chatSubmissions.start(operation,id) } catch (_) {
+        if (userRow) userRow.remove();alert('无法保存请求标识，请检查浏览器存储后再试');return
+      }
+      if (userRow) userRow.dataset.requestId=id
+      if (button) button.disabled=true
+      const aiBubble=appendAIThinkingBubble();record.bubble=aiBubble;scrollToBottom()
+      const context={record,controller,owner:chatSubmissions.user,uiEpoch:chatUiEpoch,session:sessionAtStart}
+      armChatTransport(record,controller)
+      try {
+        const response=await fetch(API_BASE+'/api/chat/'+operation,{
+          method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('token'),'Idempotency-Key':id},
+          body:JSON.stringify(operation==='send'?{content,client_message_id:id}:{client_resend_id:id}),signal:controller.signal
+        })
+        if (!isCurrentChatSubmission(context) || !chatSubmissions.active()) return
+        if (response.status===401) {
+          await handleUnauthorized(chatInteractiveAuthOptions(()=>rollbackChatSendForUnauthorized(userRow,aiBubble,content)));return
+        }
+        if (!response.ok) throw new Error('chat_http_'+response.status)
+        if ((response.headers.get('content-type') || '').includes('application/json')) {
+          const body=await response.json()
+          if (!isCurrentChatSubmission(context) || !chatSubmissions.active()) return
+          aiBubble.removeRow()
+          if (body.data && body.data.operation) chatSubmissions.apply(record,body.data)
+          if ([10100,10101,10104,10105,10107,10109].includes(body.code) && !(body.data && body.data.admission_state==='accepted')) {
+            record.terminal=true;chatSubmissions.save()
+            if (userRow) userRow.remove()
+            alert(body.message || '请求未被接受');return
+          }
+          markChatUnverified(record);return
+        }
+        await consumeChatSse(response,aiBubble,context)
+      } catch (_) {
+        aiBubble.removeRow()
+        if (isCurrentChatSubmission(context)) markChatUnverified(record)
+      } finally {
+        if (sessionAtStart===chatSendSession) {
+          clearTimeout(chatTransportTimer);chatTransportTimer=null;chatSendAbort=null
+        }
+        if (isCurrentChatSubmission(context)) chatSubmissions.wake()
+      }
+    }
     async function handleSend() {
-      if (!isChatAuthenticated()) {
-        openChatLoginModal()
-        return
-      }
-      const input = document.getElementById('msg-input')
-      const content = input.value.trim()
+      if (!isChatAuthenticated()) { openChatLoginModal();return }
+      const input=document.getElementById('msg-input'),content=input.value.trim()
       if (!content) return
-
-      const { pending, hasBang } = countOpenPendingUsers()
-      if (pending >= 5 && !hasBang) {
-        alert('待处理消息过多，请先等待回复或处理失败提示后再发')
-        loadTimeline(true)
-        return
-      }
-
-      const now = Date.now()
-      if (now - lastSendOrResendAt < CHAT_SEND_DEBOUNCE_MS) return
-      lastSendOrResendAt = now
-
-      if (chatSendAbort) chatSendAbort.abort()
-      const sessionAtStart = ++chatSendSession
-      removeAiInFlightRows()
-      chatSendAbort = new AbortController()
-
-      const userRow = appendUserBubble(content, 'pending_llm')
-      input.value = ''
-      input.style.height = 'auto'
-      updateSendBtn()
-      clearDraft()
-      scrollToBottom()
-
-      const aiBubble = appendAIThinkingBubble()
-      scrollToBottom()
-
-      const clientMsgId = (crypto.randomUUID && crypto.randomUUID()) ||
-        ('idemp-' + Date.now() + '-' + Math.random().toString(36).slice(2))
-
-      try {
-        const timeoutId = setTimeout(() => chatSendAbort.abort(), CHAT_CLIENT_ABORT_MS)
-        const response = await fetch(API_BASE + '/api/chat/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token'),
-            'Idempotency-Key': clientMsgId
-          },
-          body: JSON.stringify({ content: content, client_message_id: clientMsgId }),
-          signal: chatSendAbort.signal
-        })
-        clearTimeout(timeoutId)
-
-        if (response.status === 401) {
-          await handleUnauthorized(chatInteractiveAuthOptions(function () {
-            rollbackChatSendForUnauthorized(userRow, aiBubble, content)
-          }))
-          return
-        }
-
-        if (!response.ok) {
-          aiBubble.removeRow()
-          if (userRow.parentNode) {
-            userRow.setAttribute('data-delivery', 'failed_error')
-            ensureUserRowBangButton(userRow)
-          }
-          return
-        }
-
-        const contentType = response.headers.get('content-type') || ''
-        if (contentType.includes('application/json')) {
-          const body = await response.json().catch(() => ({}))
-          aiBubble.removeRow()
-          if (body && body.code === 10104) {
-            if (userRow.parentNode) userRow.remove()
-            alert(body.message || '待处理消息过多，请先等待或处理失败提示')
-            loadTimeline(true)
-            return
-          }
-          if (userRow.parentNode) {
-            userRow.setAttribute('data-delivery', 'failed_error')
-            ensureUserRowBangButton(userRow)
-          }
-          return
-        }
-
-        await consumeChatSse(response, aiBubble, sessionAtStart, { userRowForFailure: userRow })
-      } catch (err) {
-        console.error('发送失败:', err)
-        aiBubble.removeRow()
-        const superseded = sessionAtStart !== chatSendSession
-        if (!superseded && userRow && userRow.parentNode) {
-          if (err.name === 'AbortError') {
-            userRow.setAttribute('data-delivery', 'failed_timeout')
-            ensureUserRowBangButton(userRow)
-          } else {
-            userRow.setAttribute('data-delivery', 'failed_error')
-            ensureUserRowBangButton(userRow)
-          }
-        }
-      }
+      const {pending,hasBang}=countOpenPendingUsers()
+      if (pending>=5 && !hasBang) { alert('待处理消息过多，请先等待回复或处理失败提示后再发');return }
+      const now=Date.now();if (now-lastSendOrResendAt<CHAT_SEND_DEBOUNCE_MS) return
+      lastSendOrResendAt=now
+      const row=appendUserBubble(content,'pending_llm')
+      input.value='';input.style.height='auto';updateSendBtn();clearDraft()
+      await submitChatRequest('send',content,row,null)
     }
-
-    document.getElementById('chat-messages').addEventListener('click', async function (e) {
-      const btn = e.target.closest('.msg-bang')
-      if (!btn || btn.disabled) return
-      if (!isChatAuthenticated()) {
-        openChatLoginModal()
-        return
-      }
-      const tNow = Date.now()
-      if (tNow - lastSendOrResendAt < CHAT_SEND_DEBOUNCE_MS) return
-      lastSendOrResendAt = tNow
-      btn.disabled = true
-      if (chatSendAbort) chatSendAbort.abort()
-      const sessionAtStart = ++chatSendSession
-      removeAiInFlightRows()
-      chatSendAbort = new AbortController()
-      const aiBubble = appendAIThinkingBubble()
-      scrollToBottom()
-      try {
-        const timeoutId = setTimeout(() => chatSendAbort.abort(), CHAT_CLIENT_ABORT_MS)
-        const rid = (crypto.randomUUID && crypto.randomUUID()) ||
-          ('resend-' + Date.now() + '-' + Math.random().toString(36).slice(2))
-        const response = await fetch(API_BASE + '/api/chat/resend', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token'),
-            'Idempotency-Key': rid
-          },
-          body: JSON.stringify({ client_resend_id: rid }),
-          signal: chatSendAbort.signal
-        })
-        clearTimeout(timeoutId)
-        if (response.status === 401) {
-          await handleUnauthorized(chatInteractiveAuthOptions(function () {
-            aiBubble.removeRow()
-            if (sessionAtStart === chatSendSession) btn.disabled = false
-          }))
-          return
-        }
-        if (!response.ok) {
-          aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) btn.disabled = false
-          return
-        }
-        const ct = response.headers.get('content-type') || ''
-        if (ct.includes('application/json')) {
-          await response.json().catch(() => ({}))
-          aiBubble.removeRow()
-          if (sessionAtStart === chatSendSession) btn.disabled = false
-          return
-        }
-        await consumeChatSse(response, aiBubble, sessionAtStart, { clearAllFailedUserRowsOnDone: true })
-      } catch (err) {
-        console.error('重发失败:', err)
-        aiBubble.removeRow()
-      }
-      if (sessionAtStart === chatSendSession) btn.disabled = false
+    document.getElementById('chat-messages').addEventListener('click',async e=>{
+      const button=e.target.closest('.msg-bang')
+      if (!button || button.disabled) return
+      if (!isChatAuthenticated()) { openChatLoginModal();return }
+      if (button.closest('.msg-row').dataset.canResend!=='true') return
+      const now=Date.now();if (now-lastSendOrResendAt<CHAT_SEND_DEBOUNCE_MS) return
+      lastSendOrResendAt=now
+      await submitChatRequest('resend',null,null,button)
     })
 
     /* ====== 加载统一时间线 ====== */
@@ -1437,6 +1445,7 @@
     async function loadTimeline(isFirstPage) {
       if (!isChatAuthenticated() || loadingTimeline || noMoreTimeline) return
       loadingTimeline = true
+      const epoch=chatUiEpoch,user=currentChatUser()
 
       let url = '/api/chat/timeline?limit=20'
       if (timelineCursor !== null) {
@@ -1444,10 +1453,7 @@
       }
 
       const res = await request('GET', url, undefined, chatSilentAuthOptions())
-      if (!isChatAuthenticated()) {
-        loadingTimeline = false
-        return
-      }
+      if (!isChatAuthenticated() || epoch!==chatUiEpoch || user!==currentChatUser()) return
       if (res.code === 0 && res.data) {
         const items = res.data.items || []
         if (items.length === 0) {
@@ -1468,7 +1474,9 @@
         const sentinel = document.getElementById('top-sentinel')
 
         if (isFirstPage) {
-          insertTimelineBatch(container, items, null)
+          const firstRow=container.querySelector('.msg-row')
+          const before=firstRow && firstRow.previousElementSibling && firstRow.previousElementSibling.classList.contains('msg-time-divider')?firstRow.previousElementSibling:firstRow
+          insertTimelineBatch(container, items, before)
         } else {
           const oldScrollHeight = container.scrollHeight
           let firstMsgNode = sentinel.nextElementSibling
@@ -1479,10 +1487,37 @@
           insertTimelineBatch(container, items, firstMsgNode || null)
           container.scrollTop = container.scrollHeight - oldScrollHeight
         }
+        chatSubmissions.records.forEach(r=>{ if (r.lastStatus) applyChatStatus(r,r.lastStatus) })
+        refreshChatResendEligibility()
         callCardRefresh.observe(items, url)
       }
 
       loadingTimeline = false
+    }
+
+    let chatEligibilityAbort=null
+    async function refreshChatResendEligibility() {
+      if (!isChatAuthenticated() || !navigator.onLine || document.visibilityState!=='visible') return
+      if (chatEligibilityAbort) chatEligibilityAbort.abort()
+      const controller=new AbortController();chatEligibilityAbort=controller
+      const epoch=chatUiEpoch,user=currentChatUser(),statusEpoch=chatStatusEpoch
+      const timer=setTimeout(()=>controller.abort(),chatTiming.text_status_probe_timeout_ms)
+      try {
+        const response=await fetch(API_BASE+'/api/chat/resend-eligibility',{headers:{Authorization:'Bearer '+localStorage.getItem('token')},signal:controller.signal})
+        if (response.status===401) { if (epoch===chatUiEpoch) await handleUnauthorized(chatSilentAuthOptions());return }
+        if (!response.ok) return
+        const result=await response.json()
+        if (epoch!==chatUiEpoch || user!==currentChatUser() || statusEpoch!==chatStatusEpoch || result.code!==0 || !result.data) return
+        const ids=result.data.can_resend===true && Array.isArray(result.data.message_ids)?result.data.message_ids.map(String):[]
+        document.querySelectorAll('#chat-messages .msg-row.user').forEach(row=>{
+          const allowed=ids.includes(row.dataset.messageId)
+          row.dataset.canResend=String(allowed)
+          row.querySelectorAll('.msg-bang').forEach(b=>b.remove())
+          if (allowed) ensureUserRowBangButton(row)
+        })
+      } catch (_) {
+        if (epoch===chatUiEpoch && statusEpoch===chatStatusEpoch) document.querySelectorAll('#chat-messages .msg-bang').forEach(b=>b.remove())
+      } finally { clearTimeout(timer);if(chatEligibilityAbort===controller)chatEligibilityAbort=null }
     }
 
     function renderTimelineItem(item, ts) {
@@ -1490,11 +1525,13 @@
       if (item.source === 'call') return VoiceCallCards.render(item, createdTs, parseMessageTimestamp(item.created_at, null))
       const row = document.createElement('div')
       row.setAttribute('data-created-at', String(createdTs))
+      row.dataset.messageSource=item.source;row.dataset.messageId=String(item.id);row.dataset.sortSeq=item.sort_seq || ''
       if (item.source === 'user') {
         row.className = 'msg-row user'
         const ds = item.delivery_status || ''
         if (ds) row.setAttribute('data-delivery', ds)
-        const needBang = ds === 'failed_timeout' || ds === 'failed_error'
+        // Timeline has no authoritative resend eligibility. A status GET supplies it.
+        const needBang = false
         const bangBtn = needBang
           ? `<button type="button" class="msg-bang" title="重试">!</button>`
           : ''
@@ -1532,13 +1569,14 @@
     /* ====== 加载未读主动消息提示条 ====== */
     async function loadAgentTip() {
       if (!isChatAuthenticated()) return
+      const epoch=chatUiEpoch,user=currentChatUser()
       const res = await request(
         'GET',
         '/api/agent/messages',
         undefined,
         chatSilentAuthOptions()
       )
-      if (!isChatAuthenticated() || res.code !== 0 || !res.data) return
+      if (!isChatAuthenticated() || epoch!==chatUiEpoch || user!==currentChatUser() || res.code !== 0 || !res.data) return
 
       const messages = res.data.messages || res.data || []
       if (messages.length === 0) return
@@ -1645,6 +1683,7 @@
 
     async function loadChatFeedBadge() {
       if (!isChatAuthenticated()) return
+      const epoch=chatUiEpoch,user=currentChatUser()
       try {
         const res = await request(
           'GET',
@@ -1652,7 +1691,7 @@
           undefined,
           chatSilentAuthOptions()
         )
-        if (!isChatAuthenticated()) return
+        if (!isChatAuthenticated() || epoch!==chatUiEpoch || user!==currentChatUser()) return
         let unread = 0
         let newCount = 0
         if (res && res.code === 0 && res.data) {
@@ -1697,6 +1736,10 @@
     }
 
     function resetPrivateChatUi(options = {}) {
+      chatUiEpoch++
+      stopChatObservation()
+      document.getElementById('chat-sync-note').hidden=true
+      chatRowVersions.clear()
       callCardRefresh.reset()
       timelineCursor = null
       loadingTimeline = false
@@ -1729,6 +1772,9 @@
     }
 
     function switchChatToVisitor(options = {}) {
+      chatTimingReady=false
+      clearDraft()
+      chatSubmissions.detach()
       chatAuthMode = 'visitor'
       if (chatSendAbort) {
         chatSendSession += 1
@@ -1749,19 +1795,26 @@
         initVisitorChat()
         return
       }
-      if (chatResumePromise) return chatResumePromise
-
-      chatResumePromise = (async function () {
+      const user=currentChatUser()
+      if (chatResumePromise && chatResumeUser===user) return chatResumePromise
+      chatResumeUser=user
+      const promise = (async function () {
         initializeChatShell()
         chatAuthMode = 'authenticated'
         resetPrivateChatUi({ preserveInput: true })
+        const epoch=chatUiEpoch
         loadDraft()
+        const timingResponse=await request('GET','/api/chat/client-timing',undefined,chatSilentAuthOptions())
+        if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch || timingResponse.code!==0 || !timingResponse.data) return
+        chatTiming=Object.freeze(timingResponse.data);chatTimingReady=true
+        chatSubmissions.configure(chatTiming)
+        chatSubmissions.restore(currentChatUser())
 
         await Promise.all([loadChatFeedBadge(), loadTimeline(true)])
-        if (!isChatAuthenticated()) return
+        if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch) return
 
         await loadAgentTip()
-        if (!isChatAuthenticated()) return
+        if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch) return
 
         syncChatBottomPadding()
         scrollToBottom()
@@ -1779,10 +1832,11 @@
         setupScrollObserver()
       })()
 
+      chatResumePromise=promise
       try {
-        await chatResumePromise
+        await promise
       } finally {
-        chatResumePromise = null
+        if(chatResumePromise===promise)chatResumePromise=null
       }
     }
 
@@ -1794,10 +1848,31 @@
       }
     }
 
+    async function recoverChatObservation() {
+      if (!isChatAuthenticated() || document.visibilityState!=='visible' || !navigator.onLine) return
+      if (!chatTimingReady || chatSubmissions.user!==currentChatUser()) {
+        // Same-account resume promises coalesce preparation; restore keeps the saved timestamps/windows.
+        await resumeAuthenticatedChat()
+        return
+      }
+      loadChatFeedBadge();chatSubmissions.wake(true);refreshChatResendEligibility()
+    }
+
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && isChatAuthenticated()) loadChatFeedBadge()
+      if (document.visibilityState === 'visible' && isChatAuthenticated()) recoverChatObservation()
+      else stopChatObservation()
     })
 
+    window.addEventListener('offline',stopChatObservation)
+    window.addEventListener('online',recoverChatObservation)
+    window.addEventListener('pagehide',stopChatObservation)
+    window.addEventListener('pageshow',recoverChatObservation)
+    window.addEventListener('storage',event=>{
+      if (event.key==='token') {
+        switchChatToVisitor({preserveInput:false})
+        if (localStorage.getItem('token')) resumeAuthenticatedChat()
+      }
+    })
     initChat()
   </script>
 </body>

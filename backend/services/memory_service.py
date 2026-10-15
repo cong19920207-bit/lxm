@@ -18,6 +18,8 @@ from backend.models.memory import Memory
 from backend.services.embedding_service import embedding_service
 from backend.services.vector_service import vector_service
 
+from backend.services.memory_business_writer import get_memory_writer
+
 logger = logging.getLogger(__name__)
 
 # ============ 重要性评分关键词规则（仍由保留的 _calculate_importance 使用）============
@@ -165,7 +167,10 @@ class MemoryService:
         new_content: str,
     ) -> bool:
         """[自定义 @deprecated 保留] 更新记忆（第一套链路，已停用）。"""
+        writer = await get_memory_writer()
         async with async_session_maker() as db:
+            from backend.services.memory_business_guard import guard_writer_transaction
+            await guard_writer_transaction(db, writer)
             memory = await self._get_valid_memory(db, memory_id, user_id)
             if not memory:
                 return False
@@ -176,7 +181,7 @@ class MemoryService:
 
             # 异步更新向量（失败不影响 MySQL 数据）
             try:
-                embedding = await embedding_service.get_embedding(new_content)
+                embedding = await writer.embed(new_content)
                 if embedding:
                     await vector_service.upsert(
                         memory_id=memory.id,
@@ -188,6 +193,7 @@ class MemoryService:
                             "created_at": memory.created_at.isoformat(),
                         },
                         memory_type=MEMORY_TYPE_USER,
+                        writer=writer,
                     )
             except Exception as e:
                 logger.error("更新记忆向量失败 memory_id=%d: %s", memory_id, str(e))
@@ -200,24 +206,47 @@ class MemoryService:
 
     async def delete_memory(self, memory_id: int, user_id: int) -> bool:
         """[自定义 @deprecated 保留] 删除记忆（第一套链路，已停用）。"""
+        writer = await get_memory_writer()
+        from backend.services.memory_business_guard import guard_writer_transaction
+        from backend.services.memory_runtime_service import MemoryControlError
+        from backend.models.memory_control import MemoryIdentity
         async with async_session_maker() as db:
+            await guard_writer_transaction(db, writer)
             memory = await self._get_valid_memory(db, memory_id, user_id)
-            if not memory:
-                return False
-
-            memory.is_deleted = True
-            memory.updated_at = datetime.utcnow()
+            if not memory:return False
+            snapshot=(memory.content,memory.updated_at,memory.dashvector_id)
+            from backend.services.vector_service import source_snapshot
+            source=await db.scalar(select(MemoryIdentity).where(
+                MemoryIdentity.target_fingerprint==bytes.fromhex(writer.config.target_fingerprint),
+                MemoryIdentity.partition_name==writer.partition,
+                MemoryIdentity.doc_id==(snapshot[2] or f'mem_{memory_id}')))
+            frozen_source=source_snapshot(source)
+            from backend.services.memory_reset_service import digest
+            sql_digest=digest(snapshot).hex()
+        # No SQL deletion until the persistent original vector intent is known.
+        # Do not hold the SQL fence across an independent mutation transaction.
+        # Canonical identity also covers a crash before SQL linkage committed.
+        receipt=await vector_service.delete(snapshot[2] or f'mem_{memory_id}',user_id=user_id,writer=writer,expected_source=frozen_source,sql_digest=sql_digest)
+        async with async_session_maker() as db:
+            await guard_writer_transaction(db, writer)
+            memory = await self._get_valid_memory(db, memory_id, user_id)
+            if not memory:return False
+            if (memory.content,memory.updated_at,memory.dashvector_id)!=snapshot:
+                raise MemoryControlError(20127,'legacy_delete_source_changed')
+            if receipt:
+                identity=await db.get(MemoryIdentity,receipt['identity_id'])
+                if (not identity or identity.source_state!='deleted' or identity.generation!=receipt['generation']
+                        or identity.current_operation_id!=receipt['internal_operation_id'] or identity.inflight_operation_id):
+                    raise MemoryControlError(20127,'legacy_delete_superseded')
+            else:
+                source=await db.scalar(select(MemoryIdentity).where(
+                    MemoryIdentity.target_fingerprint==bytes.fromhex(writer.config.target_fingerprint),
+                    MemoryIdentity.partition_name==writer.partition,
+                    MemoryIdentity.doc_id==(snapshot[2] or f'mem_{memory_id}')))
+                if source is not None:raise MemoryControlError(20127,'legacy_delete_source_changed')
+            memory.is_deleted=True;memory.updated_at=datetime.utcnow()
             await db.commit()
-
-            if memory.dashvector_id:
-                try:
-                    await vector_service.delete(memory.dashvector_id)
-                except Exception as e:
-                    logger.error(
-                        "删除记忆向量失败 memory_id=%d: %s", memory_id, str(e)
-                    )
-
-            return True
+        return True
 
     # ================================================================
     #  手动添加记忆
@@ -225,11 +254,14 @@ class MemoryService:
 
     async def add_memory_manual(self, user_id: int, content: str) -> dict:
         """[自定义 @deprecated 保留] 手动添加记忆（第一套链路，已停用）。"""
+        writer = await get_memory_writer()
         score = self._calculate_importance(content)
         if score < 2:
             score = 2  # 手动添加最低给 2 分
 
         async with async_session_maker() as db:
+            from backend.services.memory_business_guard import guard_writer_transaction
+            await guard_writer_transaction(db, writer)
             memory = Memory(
                 user_id=user_id,
                 content=content,
@@ -240,9 +272,13 @@ class MemoryService:
             db.add(memory)
             await db.flush()
 
+            # Release the SQL/fence transaction before the independent durable
+            # vector protocol acquires its own fence. The old row cannot be
+            # re-created by the later linkage transaction.
+            await db.commit()
             # 写入 DashVector
             try:
-                embedding = await embedding_service.get_embedding(content)
+                embedding = await writer.embed(content)
                 if embedding:
                     dashvector_id = await vector_service.upsert(
                         memory_id=memory.id,
@@ -254,7 +290,9 @@ class MemoryService:
                             "created_at": memory.created_at.isoformat(),
                         },
                         memory_type=MEMORY_TYPE_USER,
+                        writer=writer,
                     )
+                    await guard_writer_transaction(db, writer)
                     memory.dashvector_id = dashvector_id
             except Exception as e:
                 logger.error("手动添加记忆写入向量失败: %s", str(e))

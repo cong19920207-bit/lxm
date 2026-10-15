@@ -26,9 +26,7 @@ from backend.models.relationship import Relationship
 from backend.redis_client import get_redis
 from backend.services.chat_queue_service import (
     redis_set_generation,
-    release_bundle_lock,
     schedule_debounced,
-    try_acquire_bundle_lock,
     try_consume_resend_quota,
 )
 from backend.services.content_safety_service import check_content
@@ -77,7 +75,11 @@ async def check_content_safety(content: str) -> dict[str, Any]:
     }
 
 
-async def _max_assistant_sort_seq(session: AsyncSession, user_id: int) -> int | None:
+async def _max_assistant_sort_seq(session: AsyncSession, user_id: int, *, current=False) -> int | None:
+    if current:
+        return await session.scalar(select(ConversationLog.sort_seq).where(
+            ConversationLog.user_id==user_id,ConversationLog.role=="assistant")
+            .order_by(ConversationLog.sort_seq.desc()).limit(1).with_for_update())
     stmt = select(func.max(ConversationLog.sort_seq)).where(
         ConversationLog.user_id == user_id,
         ConversationLog.role == "assistant",
@@ -85,9 +87,9 @@ async def _max_assistant_sort_seq(session: AsyncSession, user_id: int) -> int | 
     return (await session.execute(stmt)).scalar()
 
 
-async def fetch_open_window_user_rows(session: AsyncSession, user_id: int) -> list[ConversationLog]:
+async def fetch_open_window_user_rows(session: AsyncSession, user_id: int, *, current=False) -> list[ConversationLog]:
     """最后一条 assistant 之后、尚未闭环的全部 user 行。"""
-    max_a = await _max_assistant_sort_seq(session, user_id)
+    max_a = await _max_assistant_sort_seq(session, user_id, current=current)
     q = select(ConversationLog).where(
         ConversationLog.user_id == user_id,
         ConversationLog.role == "user",
@@ -95,6 +97,7 @@ async def fetch_open_window_user_rows(session: AsyncSession, user_id: int) -> li
     if max_a is not None:
         q = q.where(ConversationLog.sort_seq > max_a)
     q = q.order_by(ConversationLog.sort_seq.asc())
+    if current:q=q.with_for_update().execution_options(populate_existing=True)
     return list((await session.execute(q)).scalars().all())
 
 
@@ -126,33 +129,14 @@ def _open_window_only_pending_llm(open_rows: list[ConversationLog]) -> bool:
     return all(r.delivery_status == DELIVERY_STATUS_PENDING_LLM for r in pending)
 
 
-async def schedule_recovery_bundle(
-    user_id: int,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> None:
-    """队列卡死或 generation 作废后，后台补跑一轮打包（带 Redis 锁，避免并行双跑）。"""
-
-    async def _guarded() -> None:
-        if not await try_acquire_bundle_lock(user_id):
-            return
-        try:
-            await run_bundle(user_id)
-        finally:
-            await release_bundle_lock(user_id)
-
-    asyncio.create_task(_guarded())
-    logger.info("已调度对话 bundle 恢复: user_id=%d", user_id)
+async def schedule_recovery_bundle(user_id, run_bundle):
+    from backend.services.chat_lifecycle_runtime import scan_once
+    await scan_once(run_bundle)
 
 
-async def trigger_recovery_if_queue_stuck(
-    user_id: int,
-    db: AsyncSession,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> None:
-    """10104 前：若满队且全为 pending_llm，尝试触发恢复 bundle。"""
-    open_rows = await fetch_open_window_user_rows(db, user_id)
-    if _should_block_new_send(open_rows) and _open_window_only_pending_llm(open_rows):
-        await schedule_recovery_bundle(user_id, run_bundle)
+async def trigger_recovery_if_queue_stuck(user_id, db, run_bundle):
+    # GETs are pure reads now. Startup/periodic SQL scanner owns recovery.
+    return None
 
 
 # ============ generation + Future ============
@@ -169,13 +153,8 @@ async def _invalidate_generation_future(old_gen: str | None) -> None:
 
 
 async def new_generation_for_user(user_id: int) -> str:
-    r = await get_redis()
-    key = f"chat:gen:{user_id}"
-    old = await r.get(key)
-    new_gen = str(uuid.uuid4())
-    await redis_set_generation(user_id, new_gen)
-    await _invalidate_generation_future(old)
-    return new_gen
+    """Retained symbol for isolation callers; generation requires SQL admission."""
+    raise RuntimeError('generation_requires_atomic_admission')
 
 
 async def _get_or_create_bundle_future(gen: str) -> asyncio.Future:
@@ -203,17 +182,26 @@ async def resolve_generation_future(gen: str, payload: dict[str, Any]) -> None:
         _generation_results[gen] = payload
 
 
-async def await_bundle_payload(generation_id: str) -> dict[str, Any]:
-    """asyncio 等待 bundle 结果（O2）；清理 Future 注册。"""
-    fut = await _get_or_create_bundle_future(generation_id)
-    try:
-        return await asyncio.wait_for(fut, timeout=BUNDLE_WAIT_TIMEOUT_SEC)
-    except asyncio.TimeoutError:
-        return {"error": True, "code": ERR_LLM_FAILED, "message": "等待回复超时"}
-    finally:
-        async with _gen_future_lock:
-            _generation_futures.pop(generation_id, None)
-            _generation_results.pop(generation_id, None)
+async def await_bundle_payload(generation_id: str, user_id: int | None = None) -> dict[str, Any]:
+    """Each observer owns its wait. SQL is authoritative after process/receipt loss."""
+    if user_id is None:
+        fut = await _get_or_create_bundle_future(generation_id)
+        try:return await asyncio.wait_for(asyncio.shield(fut), timeout=BUNDLE_WAIT_TIMEOUT_SEC)
+        except asyncio.TimeoutError:return {'error':True,'code':10110,'message':'结果待核实'}
+    from datetime import datetime
+    from backend.models.chat_lifecycle import ChatGeneration
+    from backend.services import chat_lifecycle as life
+    from backend.services.chat_timing import TIMING
+    async with async_session_maker() as db:
+        gen = (await db.execute(select(ChatGeneration).where(ChatGeneration.user_id==user_id,
+            ChatGeneration.generation_id==generation_id))).scalar_one_or_none()
+        if gen is None:return {'error':True,'code':10110}
+        end=asyncio.get_running_loop().time()+max(0,(gen.deadline_at-datetime.utcnow()).total_seconds())+TIMING.server_wait_margin_ms/1000
+    while True:
+        payload=await life.generation_payload(user_id,generation_id)
+        if payload is not None:return payload
+        if asyncio.get_running_loop().time()>=end:return {'error':True,'code':10110,'message':'结果待核实'}
+        await asyncio.sleep(.2)
 
 
 def build_done_messages_from_payload(payload: dict[str, Any]) -> tuple[list[dict], dict, str | None]:
@@ -248,61 +236,45 @@ async def _reset_proactive_times(user_id: int) -> None:
         logger.exception("proactive_times 清零失败: user_id=%d", user_id)
 
 
-async def enqueue_send(
-    user_id: int,
-    db: AsyncSession,
-    content: str,
-    persona_risk_flag: bool,
-    persona_risk_type: str | None,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> str:
-    """写入 user 行并防抖调度 bundle；返回 generation_id。"""
-    generation_id = await new_generation_for_user(user_id)
-    await _get_or_create_bundle_future(generation_id)
-
-    seqs = await allocate_sort_seq(user_id, count=1, db=db)
-    user_log = ConversationLog(
-        user_id=user_id,
-        role="user",
-        content=content,
-        memory_injected=None,
-        persona_risk_flag=persona_risk_flag,
-        persona_risk_type=persona_risk_type,
-        sort_seq=seqs[0],
-        delivery_status=DELIVERY_STATUS_PENDING_LLM,
-        skipped_in_prompt=False,
-    )
-    db.add(user_log)
-    await db.commit()
-
-    await _reset_proactive_times(user_id)
-
-    async def _debounced_run() -> None:
-        await run_bundle(user_id)
-
-    await schedule_debounced(user_id, _debounced_run)
-    return generation_id
+async def submit(user_id, db, operation, request_id, run_bundle, *, content=None, channel='h5'):
+    from backend.services import chat_lifecycle as life
+    if request_id is not None:
+        repeated = await life.duplicate(db,user_id,operation,request_id,content)
+        await db.commit()  # release the read snapshot before slow input safety
+        if repeated:return repeated
+    safety = {}
+    if operation == 'send':
+        safety = await check_content_safety(content)
+        if not safety['ok']:raise life.AdmissionError(safety['code'])
+    admission = await life.admit(db,user_id,operation,request_id,content=safety.get('content'),
+        persona_risk_flag=safety.get('persona_risk_flag',False),
+        persona_risk_type=safety.get('persona_risk_type'),channel=channel)
+    if not admission.repeated:
+        from backend.services.chat_lifecycle_runtime import dispatch, admission_confirmed
+        from backend.config import get_chat_debounce_ms
+        admission_confirmed()
+        # Outbox survives process exit before this local hint is registered.
+        dispatch(user_id,admission.generation_id,run_bundle,
+            max(1,get_chat_debounce_ms())/1000 if operation=='send' else 0)
+    return admission
 
 
-async def enqueue_resend(
-    user_id: int,
-    db: AsyncSession,
-    run_bundle: Callable[[int], Awaitable[None]],
-) -> tuple[str | None, int | None]:
-    """
-    叹号重发入队。成功返回 (generation_id, None)；失败返回 (None, error_code)。
-    """
-    from backend.constants import ERR_CHAT_NOTHING_TO_RESEND, ERR_CHAT_RESEND_LIMIT
+async def enqueue_send(user_id, db, content, persona_risk_flag, persona_risk_type, run_bundle,
+                       request_id=None, channel='h5'):
+    from backend.services import chat_lifecycle as life
+    from backend.services.chat_lifecycle_runtime import dispatch, admission_confirmed
+    from backend.config import get_chat_debounce_ms
+    admission=await life.admit(db,user_id,'send',request_id,content=content,
+        persona_risk_flag=persona_risk_flag,persona_risk_type=persona_risk_type,channel=channel)
+    if not admission.repeated:
+        admission_confirmed()
+        dispatch(user_id,admission.generation_id,run_bundle,max(1,get_chat_debounce_ms())/1000)
+    return admission.generation_id
 
-    open_rows = await fetch_open_window_user_rows(db, user_id)
-    if not open_window_has_bang(open_rows):
-        return None, ERR_CHAT_NOTHING_TO_RESEND
 
-    batch_key = str(min(r.sort_seq for r in open_rows))
-    if not await try_consume_resend_quota(user_id, batch_key):
-        return None, ERR_CHAT_RESEND_LIMIT
-
-    generation_id = await new_generation_for_user(user_id)
-    await _get_or_create_bundle_future(generation_id)
-    asyncio.create_task(run_bundle(user_id))
-    return generation_id, None
+async def enqueue_resend(user_id,db,run_bundle,request_id=None,channel='h5'):
+    from backend.services.chat_lifecycle import AdmissionError
+    try:
+        admission=await submit(user_id,db,'resend',request_id,run_bundle,channel=channel)
+        return admission.generation_id,None
+    except AdmissionError as exc:return None,exc.code

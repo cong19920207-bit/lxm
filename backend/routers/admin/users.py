@@ -31,6 +31,8 @@ from backend.constants import (
 )
 from backend.redis_client import get_redis
 from backend.schemas.common import ApiResponse
+from backend.services.memory_effective_config import server_time
+from backend.services.admin_memory_write_service import validate_write_header
 from backend.services.admin_date_filter import append_created_at_range, parse_admin_date_range
 from backend.services.admin_diary_query import fetch_admin_diary_list_page
 from backend.services.open_api_key_service import get_key_status, upsert_api_key
@@ -335,6 +337,9 @@ async def get_user_conversations(
         for row in agent_q.scalars():
             agent_by_id[row.id] = row
 
+    from backend.services.chat_lifecycle import project_chat_message_states
+    state_projection=await project_chat_message_states(user_id,
+        [(r.message_source,r.id) for r in page_rows],db)
     row_list: list[dict] = []
     for pr in page_rows:
         if pr.message_source == "conversation":
@@ -386,6 +391,10 @@ async def get_user_conversations(
                     "is_read": am.is_read,
                 }
             )
+
+    for item in row_list:
+        if item['message_source']=='conversation' and item['role']=='user':
+            item.update(state_projection.get(('conversation',item['id']),{}))
 
     return ApiResponse.ok(
         data={"total": total, "page": page, "page_size": page_size, "list": row_list},
@@ -520,7 +529,7 @@ class UserMemoryUpdateRequest(BaseModel):
 def _fail_from_user_memory_service(result: dict):
     code = result.get("error_code")
     message = result.get("message") or ADMIN_ERROR_MESSAGES.get(code, "操作失败")
-    return ApiResponse.fail(code, message=message)
+    return ApiResponse.fail(code, message=message, data=result.get("data"))
 
 
 async def _ensure_user_exists(db: AsyncSession, user_id: int) -> bool:
@@ -547,7 +556,7 @@ async def _list_user_vectors(
     )
     if "error_code" in result:
         return _fail_from_user_memory_service(result)
-    return ApiResponse.ok(data=result)
+    return ApiResponse.ok(data={**result, "server_time": server_time()})
 
 
 async def _create_user_vector(
@@ -564,6 +573,7 @@ async def _create_user_vector(
         user_id=user_id,
         key=body.key.strip(),
         value=body.value.strip(),
+        actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"),
     )
     if "error_code" in result:
         return _fail_from_user_memory_service(result)
@@ -596,6 +606,7 @@ async def _update_user_vector(
         user_id=user_id,
         doc_id=doc_id,
         value=body.value.strip(),
+        actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"),
     )
     if "error_code" in result:
         return _fail_from_user_memory_service(result)
@@ -626,6 +637,7 @@ async def _delete_user_vector(
         memory_type=memory_type,
         user_id=user_id,
         doc_id=doc_id,
+        actor_id=admin_user.id, client_request_id=request.headers.get("Idempotency-Key"),
     )
     if "error_code" in result:
         return _fail_from_user_memory_service(result)
@@ -660,7 +672,7 @@ async def list_user_memories(
 
 @router.post(
     "/users/{user_id}/user-memories",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def create_user_memory(
     user_id: int,
@@ -677,7 +689,7 @@ async def create_user_memory(
 
 @router.put(
     "/users/{user_id}/user-memories/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def update_user_memory(
     user_id: int,
@@ -695,7 +707,7 @@ async def update_user_memory(
 
 @router.delete(
     "/users/{user_id}/user-memories/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def delete_user_memory(
     user_id: int,
@@ -730,7 +742,7 @@ async def list_private_settings(
 
 @router.post(
     "/users/{user_id}/private-settings",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def create_private_setting(
     user_id: int,
@@ -747,7 +759,7 @@ async def create_private_setting(
 
 @router.put(
     "/users/{user_id}/private-settings/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def update_private_setting(
     user_id: int,
@@ -765,7 +777,7 @@ async def update_private_setting(
 
 @router.delete(
     "/users/{user_id}/private-settings/{doc_id:path}",
-    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES)],
+    dependencies=[require_role(*_USER_MEMORY_WRITE_ROLES), Depends(validate_write_header)],
 )
 async def delete_private_setting(
     user_id: int,

@@ -54,6 +54,8 @@ async def consume_voice_ticket(db, *, codec, cache, leases, ticket, call_id, dev
     from sqlalchemy import select
     from backend.models.user import User
     from backend.models.realtime_voice import VoiceCall, VoiceCallCreateIdempotency
+    from backend.services.memory_business_guard import guard_business_write, guard_voice_call
+    await guard_business_write(db)
     value = codec.verify(ticket, call_id=call_id, device_id=device_id, now=now)
     try:
         user = await db.scalar(select(User).where(User.id == value['user_id']).with_for_update().execution_options(populate_existing=True))
@@ -64,6 +66,7 @@ async def consume_voice_ticket(db, *, codec, cache, leases, ticket, call_id, dev
             VoiceCallCreateIdempotency.user_id == user.id).with_for_update().execution_options(populate_existing=True))
         call = await db.scalar(select(VoiceCall).where(VoiceCall.call_id == call_id,
                                                      VoiceCall.user_id == user.id).with_for_update().execution_options(populate_existing=True))
+        await guard_voice_call(db,call)
         if (record is None or call is None or record.ticket_jti != value['jti']
                 or record.ticket_consumed_at is not None or record.ticket_expires_at <= now.replace(tzinfo=None)
                 or call.status not in ('deciding','ringing')):

@@ -92,7 +92,7 @@ async def get_timeline(
         for item in merged:
             item.update({field: None for field in CALL_FIELDS})
         call_filter = (VoiceCall.user_id == user_id) & VoiceCall.sort_seq.is_not(None) & (
-            VoiceCall.status.in_(['ended','missed'])) & VoiceCall.deletion_fence_at.is_(None) & VoiceCall.deleted_at.is_(None)
+            VoiceCall.status.in_(['ended','missed'])) & VoiceCall.deletion_fence_at.is_(None) & VoiceCall.cleared_run_id.is_(None) & VoiceCall.deleted_at.is_(None)
         call_scope = call_filter
         if cursor is not None:
             call_filter = call_filter & (VoiceCall.sort_seq < cursor)

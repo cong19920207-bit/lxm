@@ -75,7 +75,7 @@ class VoiceRetentionService:
             raise ValueError('invalid_retention_page')
         async with self.factory() as db:
             candidates=list((await db.execute(select(VoiceCall.id,VoiceCall.call_id)
-                .where(VoiceCall.id>after_id).order_by(VoiceCall.id).limit(limit))).all())
+                .where(VoiceCall.id>after_id,VoiceCall.cleared_run_id.is_(None)).order_by(VoiceCall.id).limit(limit))).all())
         reports=[]
         for candidate in candidates:
             reports.append(await self._purge_call(candidate.call_id,now))
@@ -97,11 +97,12 @@ class VoiceRetentionService:
 
     async def _has_due_content(self,call_id,now):
         # Do not hold User/Call locks while an unrelated live memory writer
-        # owns its job lock. A later expiry/new row is picked up on the next
+        # owns its call gate. A later expiry/new row is picked up on the next
         # cursor sweep; actual cleanup rechecks current state under locks.
         async with self.factory() as db:
             call=await db.scalar(select(VoiceCall).where(VoiceCall.call_id==call_id))
             if call is None:return False
+            if getattr(call,"cleared_run_id",None):return False
             if call.deletion_fence_at or call.deleted_at:return True
             if any(self._due(expiry,now) for expiry in (call.transcript_expires_at,
                 call.generated_text_expires_at,call.reasoning_expires_at)):return True
@@ -116,7 +117,10 @@ class VoiceRetentionService:
 
     async def _purge_call(self,call_id,now,*,admin=None,request=None):
         if admin is None and not await self._has_due_content(call_id,now):return dict(call_id=call_id,changed=[],cache_keys=[])
-        async with self.factory() as db:
+        from backend.services.realtime_voice_memory_service import memory_call_session
+        # Wait for the admitted source/trace atom before acquiring runtime,
+        # user, call or job row locks; otherwise its mutation session deadlocks.
+        async with memory_call_session(self.factory,call_id) as db:
             call=await lock_call(db,call_id)
             report=dict(call_id=call_id,changed=[],cache_keys=[])
             if call is None:
@@ -133,8 +137,8 @@ class VoiceRetentionService:
                 events.append(('voice.retention.fence',{'result':'existing' if was_fenced else 'set'},1))
                 if cancelled:events.append(('voice.retention.cancel',{'kind':'memory','reason':'deletion_fence'},cancelled))
             days=self._job_days(call)
-            # Match memory deletion serialization: in-flight writes finish under
-            # their job locks before any source content/snapshot is removed.
+            # The call gate already waited for admitted source/trace writes.
+            # Lock every job before removing source content or snapshots.
             job_groups=[]
             for model in (VoiceMemoryJob,VoicePostprocessJob,VoiceFollowupJob):
                 rows=list((await db.scalars(select(model).where(model.call_id==call_id)

@@ -1,0 +1,27 @@
+{
+  "analyzer": "Jieba",
+  "b": 0.75,
+  "corpus_document_count": 606,
+  "corpus_sha256": "caafab17efd523305dfa4c93f0b62005a7b62f89f320b28ca749bdf0a907a746",
+  "k1": 1.2,
+  "package_version": "0.0.7",
+  "profile_id": "memory-bm25-zh-v1",
+  "statistics_file": "memory_bm25_zh_v1.stats.json",
+  "statistics_sha256": "62d586126746a5c8df9a218187b5200ee306055daa5af47d90b3a1b1bcce51de",
+  "stop_words": true,
+  "tokenizer_files": {
+    "tokenizer/__init__.py": "2d7b7e3f10265e744bbb0f7d073e41a6d4ea14be492dc65b3a17cc5141630341",
+    "tokenizer/_base.py": "65900d26ba5a66ed3c3c0e8b6bba4fab2c7f583af530e11df3a7b1892a3899bb",
+    "tokenizer/_jieba.py": "f5f837943bc2b3f979e6a0273bb6dd701b9d8225d2170657140a44349503bf58",
+    "tokenizer/_stopwords.py": "9aed6398f68021bf2f98ecf59e57ca0c4248ed8b004727e2a68d1df085098c64",
+    "tokenizer/auto.py": "c9e582c398f20c674a168223ed0fa3504a024532d95dd549cd48d1272797a065",
+    "tokenizer/data/jieba/dict.txt": "7197c3211ddd98962b036cdf40324d1ea2bfaa12bd028e68faa70111a88e12a8",
+    "tokenizer/data/jieba/dict.txt.big": "b16011275c42955ccd81fc1adecc93a59dbb7926af69d93fc95d4943d40f6aad",
+    "tokenizer/data/jieba/hmm_model.txt": "f17790586ac86dd048c8adffed052c4bd2b28ed0682972c1275e59040c0589a7",
+    "tokenizer/data/jieba/idf.txt.big": "5d8587c8c7775bfa63ab946dc034e991d7d40ad911caba185de638dfee546a08",
+    "tokenizer/data/jieba/stop_words.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tokenizer/data/jieba/user_dict.txt": "495bbf49270408a1234690e1e6a97328f30a482a7a72aa769e8a12e8714b0c62",
+    "tokenizer/data/stopwords.txt": "8d9c5bd41828bcc2d4111f38cbbbcdde41549c4221115195a10069d8d8bc67fa"
+  },
+  "training_source": "M1 deterministic synthetic 606 document corpus; fixed bootstrap profile, not a retrieval-quality benchmark"
+}

@@ -6,6 +6,7 @@
   <title>召回与 Token 配置 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
   <style>
+    [hidden] { display: none !important; }
     .vt-tab-header-card {
       padding-bottom: 0;
       margin-bottom: 16px;
@@ -53,220 +54,236 @@
 <div class="admin-content">
   <div id="header-mount"></div>
 
-  <div id="vt-page-wrap" class="is-loading">
+  <div id="vt-page-wrap">
     <div class="page-card vt-tab-header-card">
       <div class="tabs" id="vt-tabs">
-        <div class="tab-item active" data-target="pane-vt-vector">🔎 向量召回</div>
+        <div class="tab-item active" data-target="pane-vt-vector">🔎 混合召回</div>
         <div class="tab-item" data-target="pane-vt-token">📐 Prompt Token</div>
       </div>
     </div>
 
     <!-- Tab：向量召回（与 Step2 热配置一致） -->
     <div id="pane-vt-vector" class="tab-pane active page-card vt-disable-while-load">
-      <p class="vt-hint">对应 <code>admin_config</code> 键 <code>vector_retrieval_config</code>。保存时仅提交相对上次加载有变化的字段（部分 PATCH）。全路统一 TopK 与相似度阈值。</p>
-      <div class="vt-form-row">
-        <div class="form-item">
-          <label>TopK（1–20）</label>
-          <input type="number" id="vt-top-k" data-write-action class="form-control" min="1" max="20" step="1">
-        </div>
-        <div class="form-item">
-          <label>相似度阈值（0–1）</label>
-          <input type="number" id="vt-threshold" data-write-action class="form-control" min="0" max="1" step="0.01">
-        </div>
-      </div>
-      <div class="form-item mt-16">
-        <button type="button" class="btn btn-primary" id="btn-save-vector" data-write-action>保存向量召回配置</button>
-      </div>
+      <p class="vt-hint">每路独立获取 Dense 与 BM25 候选，重排后按 Final TopK 选入，再受 Token 预算约束。</p>
+      <p id="vt-vector-version" class="vt-hint"></p>
+      <div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>召回路</th><th>Dense TopK（1–50）</th><th>BM25 TopK（1–50）</th><th>Final TopK（1–50）</th></tr></thead><tbody id="vt-route-rows"></tbody></table></div>
+      <h3 class="mt-16">正常重排门槛</h3>
+      <p class="vt-hint">gte-rerank-v2 分值范围 0–1；仅正常完整重排结果应用门槛。降级融合不使用此门槛。</p>
+      <div id="vt-rerank-fields" class="vt-token-grid"></div>
+      <details class="mt-16"><summary>旧版参数审计（已停用，只读）</summary>
+        <div class="vt-form-row"><div class="form-item"><label>旧 TopK</label><input id="vt-top-k" class="form-control" readonly aria-readonly="true"></div>
+        <div class="form-item"><label>旧相似度阈值</label><input id="vt-threshold" class="form-control" readonly aria-readonly="true"></div></div>
+      </details>
+      <p id="vt-vector-status" role="status" aria-live="polite">正在加载…</p>
+      <button type="button" class="btn btn-primary" id="btn-save-vector" data-write-action disabled>保存混合召回配置</button>
+      <button type="button" class="btn btn-default" id="vt-vector-refresh">刷新当前配置</button>
+      <button type="button" class="btn btn-default" id="vt-vector-verify" hidden>核实本次发布</button>
     </div>
 
     <!-- Tab：Prompt Token（与 R-L1L3-19 模块上限一致） -->
     <div id="pane-vt-token" class="tab-pane page-card vt-disable-while-load">
-      <p class="vt-hint">对应 <code>admin_config</code> 键 <code>prompt_token_config</code>。保存时仅提交有变化的字段；未改动的模块继续沿用库中或代码默认值。</p>
+      <p class="vt-hint">各模块预算独立限制完整条目；模块上限之和可以大于总量。昵称预算固定 50，昵称正文不截断。</p>
+      <p id="vt-token-version" class="vt-hint"></p>
       <div class="form-item">
         <label>总 Token 上限 <code>max_total</code></label>
-        <input type="number" id="vt-max-total" data-write-action class="form-control" style="max-width:200px" min="1" max="50000" step="1">
+        <input type="number" id="vt-max-total" data-write-action class="form-control" style="max-width:200px" min="1024" max="32768" step="1">
       </div>
       <div class="vt-token-grid" id="vt-token-modules"></div>
+      <p id="vt-token-status" role="status" aria-live="polite">正在加载…</p>
       <div class="form-item mt-16">
-        <button type="button" class="btn btn-primary" id="btn-save-token" data-write-action>保存 Token 配置</button>
+        <button type="button" class="btn btn-primary" id="btn-save-token" data-write-action disabled>保存 Token 配置</button>
+        <button type="button" class="btn btn-default" id="vt-token-refresh">刷新当前配置</button>
+        <button type="button" class="btn btn-default" id="vt-token-verify" hidden>核实本次发布</button>
       </div>
     </div>
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=m3-publish-20261009"></script>
 <script>
 (function () {
   var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
-
-  // 各模块字段顺序（与后端 MODULE_TOKEN_LIMITS 一致）
-  var TOKEN_MODULE_KEYS = [
-    'system', 'persona', 'character_knowledge', 'relationship',
-    'memory', 'emotion', 'time_activity', 'recent_chat', 'user_input'
-  ];
-  var TOKEN_LABELS = {
-    system: 'System',
-    persona: 'Persona',
-    character_knowledge: '角色设定与知识',
-    relationship: 'Relationship',
-    memory: 'User Memory',
-    emotion: 'Emotion',
-    time_activity: '时间与活动',
-    recent_chat: 'Recent Chat',
-    user_input: 'User Input'
-  };
-
-  var snapVector = { top_k: 3, threshold: 0.7 };
-  var snapToken = {};
-
-  function numOr(val, fallback) {
-    var n = Number(val);
-    return isNaN(n) ? fallback : n;
+  var ROUTES = {cg:'公开设定',cp:'私有设定',ck:'角色知识',user:'用户记忆'};
+  var COUNTS = ['dense_top_k','bm25_top_k','final_top_k'];
+  var TOKEN_MODULE_KEYS = ['system','persona','character_knowledge','relationship','memory','emotion','time_activity','recent_chat','user_input'];
+  var TOKEN_LABELS = {system:'System',persona:'Persona',character_knowledge:'角色设定与知识',relationship:'关系',memory:'用户记忆',emotion:'情绪',time_activity:'时间与活动',recent_chat:'近聊',user_input:'用户输入'};
+  var snapVector = null, snapToken = null, vectorPublication, tokenPublication;
+  function el(id) { return document.getElementById(id); }
+  function finite(value, min, max, integer) {
+    if (String(value).trim() === '') throw new Error('字段不能为空');
+    var n = Number(value);
+    if (!Number.isFinite(n) || (integer && !Number.isInteger(n)) || n < min || n > max) throw new Error('请输入 '+min+'–'+max+' 的'+(integer?'整数':'有限数字'));
+    return n;
   }
-
-  function readVectorFromForm() {
-    return {
-      top_k: parseInt(document.getElementById('vt-top-k').value, 10),
-      threshold: Number(document.getElementById('vt-threshold').value)
-    };
+  function parseVector(read) {
+    var routes = {};
+    Object.keys(ROUTES).forEach(function (route) {
+      routes[route] = {};
+      COUNTS.forEach(function(k){routes[route][k]=finite(read(route,k),1,50,true);});
+      routes[route].rerank_min_score=finite(read(route,'rerank_min_score'),0,1,false);
+      if(routes[route].final_top_k>routes[route].dense_top_k+routes[route].bm25_top_k) throw new Error(ROUTES[route]+' Final TopK 不能超过两路候选数量之和');
+    });
+    return routes;
   }
-
-  function readTokenFromForm() {
-    var o = { max_total: parseInt(document.getElementById('vt-max-total').value, 10) };
-    for (var i = 0; i < TOKEN_MODULE_KEYS.length; i++) {
-      var k = TOKEN_MODULE_KEYS[i];
-      var el = document.getElementById('vt-tok-' + k);
-      if (el) o[k] = parseInt(el.value, 10);
-    }
-    return o;
+  function parseToken(read) {
+    var values={max_total:finite(read('max_total'),1024,32768,true)};
+    TOKEN_MODULE_KEYS.forEach(function(k){values[k]=finite(read(k),1,k==='recent_chat'?16384:8192,true);if(values[k]>values.max_total)throw new Error(TOKEN_LABELS[k]+'预算不能超过总上限');});
+    return values;
   }
-
-  /** 与快照比较，构造 PATCH 请求体（仅变更字段） */
-  function buildVectorPatch(current) {
-    var p = {};
-    if (current.top_k !== snapVector.top_k) p.top_k = current.top_k;
-    if (current.threshold !== snapVector.threshold) p.threshold = current.threshold;
-    return p;
+  function renderInputs() {
+    el('vt-route-rows').innerHTML=Object.keys(ROUTES).map(function(route){return '<tr><th>'+ROUTES[route]+' <code>'+route+'</code></th>'+COUNTS.map(function(k){return '<td><input type="number" id="vt-'+route+'-'+k+'" data-write-action class="form-control" min="1" max="50" step="1" aria-label="'+ROUTES[route]+' '+k+'"></td>';}).join('')+'</tr>';}).join('');
+    el('vt-rerank-fields').innerHTML=Object.keys(ROUTES).map(function(route){return '<div class="form-item"><label>'+ROUTES[route]+'门槛</label><input type="number" id="vt-'+route+'-rerank_min_score" data-write-action class="form-control" min="0" max="1" step="0.01"></div>';}).join('');
+    el('vt-token-modules').innerHTML=TOKEN_MODULE_KEYS.map(function(k){return '<div class="form-item"><label>'+TOKEN_LABELS[k]+' <code>'+k+'</code></label><input type="number" id="vt-tok-'+k+'" data-write-action class="form-control" min="1" max="'+(k==='recent_chat'?16384:8192)+'" step="1"></div>';}).join('')+'<div class="form-item"><label>用户昵称（固定）</label><input id="vt-tok-user_nickname" class="form-control" value="50" readonly aria-readonly="true"></div>';
   }
-
-  function buildTokenPatch(current) {
-    var p = {};
-    if (current.max_total !== snapToken.max_total) p.max_total = current.max_total;
-    for (var i = 0; i < TOKEN_MODULE_KEYS.length; i++) {
-      var k = TOKEN_MODULE_KEYS[i];
-      if (current[k] !== snapToken[k]) p[k] = current[k];
-    }
-    return p;
-  }
-
-  function renderTokenInputs(data) {
-    var host = document.getElementById('vt-token-modules');
-    if (!host) return;
-    host.innerHTML = '';
-    for (var i = 0; i < TOKEN_MODULE_KEYS.length; i++) {
-      var k = TOKEN_MODULE_KEYS[i];
-      var wrap = document.createElement('div');
-      wrap.className = 'form-item';
-      wrap.innerHTML =
-        '<label>' + (TOKEN_LABELS[k] || k) + ' <code>' + k + '</code></label>' +
-        '<input type="number" data-write-action class="form-control" id="vt-tok-' + k + '" min="1" max="20000" step="1">';
-      host.appendChild(wrap);
-      document.getElementById('vt-tok-' + k).value = String(data[k] != null ? data[k] : '');
-    }
-  }
-
+  function version(id, d) { el(id).textContent='当前配置版本：'+(d.version == null?'未发布':d.version)+' · 来源：'+(d.source || '未知'); }
   async function loadVector() {
-    var res = await adminRequest('GET', '/api/admin/configs/vector_retrieval_config');
-    if (!res || res.code !== 0 || !res.data) return;
-    var d = res.data;
-    snapVector.top_k = numOr(d.top_k, 3);
-    snapVector.threshold = numOr(d.threshold, 0.7);
-    document.getElementById('vt-top-k').value = String(snapVector.top_k);
-    document.getElementById('vt-threshold').value = String(snapVector.threshold);
+    var r=await adminRequest('GET','/api/admin/configs/vector_retrieval_config',null,false,{silentErrorToast:true,timeoutMs:10000});
+    if(!r||r.code!==0||!r.data||!r.data.routes) return false;
+    var d=r.data, parsed;
+    try { parsed=parseVector(function(route,k){var value=d.routes[route]&&d.routes[route][k];if(typeof value!=='number')throw new Error();return value;}); } catch(_){return false;}
+    snapVector=parsed;
+    Object.keys(ROUTES).forEach(function(route){COUNTS.concat('rerank_min_score').forEach(function(k){el('vt-'+route+'-'+k).value=parsed[route][k];});});
+    el('vt-top-k').value=d.legacy&&d.legacy.top_k!=null?d.legacy.top_k:'';el('vt-threshold').value=d.legacy&&d.legacy.threshold!=null?d.legacy.threshold:'';
+    version('vt-vector-version',d);vectorPublication.observeClock(d);return true;
   }
-
   async function loadToken() {
-    var res = await adminRequest('GET', '/api/admin/configs/prompt_token_config');
-    if (!res || res.code !== 0 || !res.data) return;
-    var d = res.data;
-    snapToken = {};
-    snapToken.max_total = numOr(d.max_total, 7373);
-    document.getElementById('vt-max-total').value = String(snapToken.max_total);
-    for (var i = 0; i < TOKEN_MODULE_KEYS.length; i++) {
-      var k = TOKEN_MODULE_KEYS[i];
-      snapToken[k] = numOr(d[k], 0);
-    }
-    renderTokenInputs(snapToken);
+    var r=await adminRequest('GET','/api/admin/configs/prompt_token_config',null,false,{silentErrorToast:true,timeoutMs:10000});
+    if(!r||r.code!==0||!r.data) return false;
+    var d=r.data, parsed;
+    try {parsed=parseToken(function(k){if(typeof d[k]!=='number')throw new Error();return d[k];});if(d.user_nickname!==50)return false;}catch(_){return false;}
+    snapToken=parsed;el('vt-max-total').value=parsed.max_total;
+    TOKEN_MODULE_KEYS.forEach(function(k){el('vt-tok-'+k).value=parsed[k];});
+    version('vt-token-version',d);tokenPublication.observeClock(d);return true;
   }
-
-  async function loadAll() {
-    await Promise.all([loadVector(), loadToken()]);
-  }
-
+  function lockPane(pane, locked) { document.querySelectorAll('#pane-vt-'+pane+' input[data-write-action]').forEach(function(input){input.disabled=locked;}); }
   document.addEventListener('DOMContentLoaded', function () {
-    if (!checkAdminLogin()) return;
-    if (ALLOWED_ROLES.indexOf(getAdminRole()) < 0) {
-      window.location.href = '/admin/pages/error.html?type=403';
-      return;
-    }
-
-    document.getElementById('sidebar-mount').innerHTML = renderSidebar('vector-token');
-    document.getElementById('header-mount').innerHTML = renderHeader('召回与 Token 配置');
-
-    initTabs('vt-tabs');
-
-    document.getElementById('btn-save-vector').onclick = async function () {
-      var cur = readVectorFromForm();
-      if (cur.top_k < 1 || cur.top_k > 20) {
-        showToast('TopK 须为 1–20 的整数', 'warning');
-        return;
-      }
-      if (isNaN(cur.threshold) || cur.threshold < 0 || cur.threshold > 1) {
-        showToast('阈值须为 0–1 之间的数字', 'warning');
-        return;
-      }
-      var patch = buildVectorPatch(cur);
-      if (Object.keys(patch).length === 0) {
-        showToast('没有检测到变更', 'info');
-        return;
-      }
-      var res = await adminRequest('PUT', '/api/admin/configs/vector_retrieval_config', patch);
-      if (res && res.code === 0) {
-        showToast('向量召回配置已保存', 'success');
-        await loadVector();
-      }
+    if(!checkAdminLogin())return;
+    if(ALLOWED_ROLES.indexOf(getAdminRole())<0){window.location.href='/admin/pages/error.html?type=403';return;}
+    el('sidebar-mount').innerHTML=renderSidebar('vector-token');el('header-mount').innerHTML=renderHeader('召回与 Token 配置');initTabs('vt-tabs');renderInputs();
+    vectorPublication=publicationForm({key:'vector_retrieval_config',path:'/api/admin/configs/vector_retrieval_config',status:'vt-vector-status',save:'btn-save-vector',verify:'vt-vector-verify',refresh:'vt-vector-refresh',read:loadVector,lock:function(v){lockPane('vector',v);}});
+    tokenPublication=publicationForm({key:'prompt_token_config',path:'/api/admin/configs/prompt_token_config',status:'vt-token-status',save:'btn-save-token',verify:'vt-token-verify',refresh:'vt-token-refresh',read:loadToken,lock:function(v){lockPane('token',v);}});
+    el('btn-save-vector').onclick=async function(){
+      if(!vectorPublication.editable())return;
+      try {var current=parseVector(function(route,k){return el('vt-'+route+'-'+k).value;}),patch={};Object.keys(ROUTES).forEach(function(route){var fields={};COUNTS.concat('rerank_min_score').forEach(function(k){if(current[route][k]!==snapVector[route][k])fields[k]=current[route][k];});if(Object.keys(fields).length)patch[route]=fields;});await vectorPublication.submit(Object.keys(patch).length?{routes:patch}:{});}catch(e){showToast(e.message,'warning');}
     };
-
-    document.getElementById('btn-save-token').onclick = async function () {
-      var cur = readTokenFromForm();
-      if (isNaN(cur.max_total) || cur.max_total < 1) {
-        showToast('max_total 须为正整数', 'warning');
+    el('btn-save-token').onclick=async function(){
+      if(!tokenPublication.editable())return;
+      try{var current=parseToken(function(k){return el(k==='max_total'?'vt-max-total':'vt-tok-'+k).value;}),patch={};Object.keys(current).forEach(function(k){if(current[k]!==snapToken[k])patch[k]=current[k];});await tokenPublication.submit(patch);}catch(e){showToast(e.message,'warning');}
+    };
+    document.querySelectorAll('#pane-vt-vector input[data-write-action]').forEach(function(input){input.addEventListener('input',vectorPublication.changed);});
+    document.querySelectorAll('#pane-vt-token input[data-write-action]').forEach(function(input){input.addEventListener('input',tokenPublication.changed);});
+    Promise.all([vectorPublication.start(),tokenPublication.start()]);
+  });
+  // 页面仅保存发布定位；正文、凭据不进入 sessionStorage。
+  function publicationForm(options) {
+    var state = 'loading', receipt = null, timer = null, clockOffset = 0, closed = false;
+    var storageKey = 'config-publication:' + options.key;
+    var observer = getAdminRole() === 'observer';
+    function byId(id) { return document.getElementById(id); }
+    function remember() {
+      try { if (receipt) sessionStorage.setItem(storageKey, JSON.stringify(receipt)); else sessionStorage.removeItem(storageKey); } catch (_) {}
+    }
+    function stop() { if (timer) clearTimeout(timer); timer = null; }
+    function set(next, message) {
+      state = next;
+      var busy = ['loading','load_failed','submitting','submission_unverified','saved_refresh_pending'].indexOf(state) >= 0;
+      byId(options.status).textContent = message;
+      byId(options.save).disabled = observer || busy || (options.canSave && !options.canSave());
+      byId(options.verify).hidden = !receipt || receipt.commit_state === 'committed';
+      byId(options.verify).disabled = state === 'submitting';
+      byId(options.refresh).hidden = !!receipt && receipt.commit_state !== 'committed';
+      byId(options.refresh).disabled = state === 'loading' || state === 'submitting';
+      if (options.lock) options.lock(busy || observer);
+    }
+    function uuid7() {
+      var bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+      var ms = Date.now() + clockOffset;
+      for (var i = 5; i >= 0; i--) { bytes[i] = ms % 256; ms = Math.floor(ms / 256); }
+      bytes[6] = (bytes[6] & 15) | 112; bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.from(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+    }
+    function observeClock(data) {
+      var ms = data && Date.parse(data.server_time);
+      if (Number.isFinite(ms)) clockOffset = ms - Date.now();
+    }
+    async function refresh() {
+      if (receipt && receipt.commit_state !== 'committed') return;
+      set('loading', receipt ? '已保存，正在刷新当前配置…' : '正在加载…');
+      var ok = false;
+      try { ok = await options.read(); } catch (_) {}
+      if (closed) return;
+      if (!ok) {
+        set(receipt ? 'saved_refresh_pending' : 'load_failed', receipt ? '已保存（本次版本 '+receipt.committed_version+'），当前配置回读失败，待刷新；不会重新提交。' : '加载失败，暂不能保存。请刷新重试。');
         return;
       }
-      for (var i = 0; i < TOKEN_MODULE_KEYS.length; i++) {
-        var k = TOKEN_MODULE_KEYS[i];
-        if (isNaN(cur[k]) || cur[k] < 1) {
-          showToast('模块「' + (TOKEN_LABELS[k] || k) + '」须为正整数', 'warning');
-          return;
+      var message = receipt ? '已保存（本次版本 '+receipt.committed_version+'）；下方展示当前配置。' : '已加载；只提交修改的字段。';
+      receipt = null; remember(); set('clean', message);
+    }
+    async function accept(result) {
+      if (closed) return;
+      var data = result && result.data;
+      if (data && data.publish_id === receipt.publish_id) {
+        observeClock(data);
+        if (data.commit_state === 'committed' && data.committed_version != null) {
+          stop(); receipt.commit_state = 'committed'; receipt.committed_version = data.committed_version;
+          remember(); await refresh(); return;
+        }
+        if (data.commit_state === 'rejected') {
+          stop(); receipt = null; remember(); set('error', '本次发布已拒绝，请检查输入后重新提交。'); return;
+        }
+        if (data.commit_state === 'expired') {
+          stop(); receipt.commit_state = 'expired'; remember(); set('submission_unverified', '本次回执已过保障期，需人工核实；不能重新提交本次操作。'); return;
         }
       }
-      var patch = buildTokenPatch(cur);
-      if (Object.keys(patch).length === 0) {
-        showToast('没有检测到变更', 'info');
-        return;
+      set('submission_unverified', '本次发布结果待核实，输入已保留；仅查询发布 '+receipt.publish_id+'，不会重复提交。');
+    }
+    async function verify() {
+      if (!receipt || receipt.commit_state === 'committed' || closed || !getAdminToken()) return;
+      var id = receipt.publish_id;
+      var result = await adminRequest('GET', '/api/admin/configs/publications/' + encodeURIComponent(id), null, false, {silentErrorToast:true,returnErrorResponse:true,timeoutMs:5000});
+      if (receipt && receipt.publish_id === id) await accept(result);
+    }
+    function schedule(delay) {
+      stop();
+      if (!receipt || closed || receipt.commit_state === 'expired' || document.hidden || !getAdminToken()) return;
+      if (Date.now() >= receipt.observe_until) { set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+      timer = setTimeout(async function () {
+        if (!receipt || Date.now() >= receipt.observe_until) { if (receipt) set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+        await verify(); if (receipt && state === 'submission_unverified') schedule(Math.min(5000, Math.round(delay * 1.5)));
+      }, Math.min(delay, receipt.observe_until - Date.now()));
+    }
+    async function submit(body) {
+      if (observer || ['clean','dirty','error'].indexOf(state) < 0) return;
+      if (!Object.keys(body).length) { showToast('没有检测到变更', 'info'); return; }
+      var id;
+      try { id = uuid7(); } catch (_) { set('error', '浏览器无法生成安全发布身份，未发送请求。'); return; }
+      receipt = {publish_id:id,commit_state:'unknown',observe_until:Date.now()+60000}; remember();
+      set('submitting', '正在提交，请勿重复操作…');
+      var result = await adminRequest('PUT', options.path, body, false, {idempotencyKey:id,silentErrorToast:true,returnErrorResponse:true,timeoutMs:30000});
+      // 确定的校验/准入拒绝可纠正；网络/持久化未知只能读原回执。
+      if (result && (([400,401,403,422,20120,20121,20127].indexOf(result.code) >= 0) || result.detail)) {
+        receipt = null; remember(); set('error', '本次发布被拒绝，请检查字段和权限后重试。'); return;
       }
-      var res = await adminRequest('PUT', '/api/admin/configs/prompt_token_config', patch);
-      if (res && res.code === 0) {
-        showToast('Prompt Token 配置已保存', 'success');
-        await loadToken();
-      }
-    };
+      await accept(result);
+      if (state === 'submission_unverified') schedule(2000);
+    }
+    function changed() {
+      if (['clean','dirty','error'].indexOf(state) >= 0) set('dirty', '有未保存的修改。');
+    }
+    async function start() {
+      try { receipt = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch (_) { receipt = null; }
+      if (receipt && receipt.publish_id && receipt.commit_state !== 'committed') {
+        try { await options.read(); } catch (_) {}
+        set('submission_unverified', '上次发布结果待核实；页面未保存原正文和密钥，仅可查询原发布身份。'); schedule(2000);
+      } else { await refresh(); }
+    }
+    byId(options.verify).onclick = verify; byId(options.refresh).onclick = refresh;
+    window.addEventListener('beforeunload', function () { closed = true; stop(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (state === 'submission_unverified') schedule(2000); });
+    return {start:start,submit:submit,changed:changed,observeClock:observeClock,close:function(){closed=true;stop();},sync:function(){set(state,byId(options.status).textContent);},editable:function(){return ['clean','dirty','error'].indexOf(state)>=0;}};
+  }
 
-    loadAll().then(function () {
-      var wrap = document.getElementById('vt-page-wrap');
-      if (wrap) wrap.classList.remove('is-loading');
-    });
-  });
 })();
 </script>
 </body>

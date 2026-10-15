@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>记忆规则配置 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/memory-index-status.css?v=20261013">
   <style>
+    [hidden] { display: none !important; }
     .memory-api-key-row {
       display: flex;
       align-items: center;
@@ -163,18 +165,19 @@
     <div id="pane-vector-db" class="tab-pane">
       <div class="page-card memory-disable-while-load">
         <div class="form-item">
-          <label>Endpoint</label>
+          <label>Endpoint（须与当前集群一致）</label>
           <input type="url" id="vector-endpoint" data-write-action class="form-control" placeholder="https://..." autocomplete="off">
         </div>
         <div class="form-item mt-16">
           <label>Collection 名称</label>
           <input type="text" id="vector-collection" data-write-action class="form-control" placeholder="集合名称" autocomplete="off">
         </div>
-        <div class="form-item mt-16">
-          <label>检索 TopK</label>
-          <input type="number" id="vector-top-k" data-write-action class="form-control memory-input-w100" min="1" step="1" title="保存与测连须在 1–20 范围内">
-          <p class="text-secondary mt-8" style="font-size:13px;margin-bottom:0">测连与保存时须在 1–20；若配置中曾大于 20，请改回范围内再保存，避免误覆盖</p>
-        </div>
+        <p class="text-secondary">新链仅使用同一集群的新 Collection <code>test_memory_long_collection</code>，不支持跨集群切换。当前旧目标如实显示；保存新目标不自动完成回填或启用新链。</p>
+        <p id="vector-version" class="text-secondary"></p>
+        <details><summary>历史 TopK 审计（已停用，只读）</summary>
+          <input id="vector-top-k" class="form-control memory-input-w100" readonly aria-readonly="true">
+          <p class="text-secondary">此项未找到业务检索消费者，不参与新链配置或测试。</p>
+        </details>
         <div class="form-item mt-16">
           <label>API Key</label>
           <div class="memory-api-key-row">
@@ -188,9 +191,12 @@
 
         <div id="vector-test-result" class="memory-vdb-test-result" style="display:none;margin-top:16px"></div>
 
+        <p id="vector-publication-status" role="status" aria-live="polite">正在加载…</p>
         <div class="memory-vector-actions">
           <button type="button" class="btn btn-default" id="btn-vector-test" data-write-action>测试连接</button>
           <button type="button" class="btn btn-primary" id="btn-vector-save" data-write-action disabled title="请先测试连接">保存</button>
+          <button type="button" class="btn btn-default" id="vector-publication-refresh">刷新当前配置</button>
+          <button type="button" class="btn btn-default" id="vector-publication-verify" hidden>核实本次发布</button>
         </div>
       </div>
     </div>
@@ -231,7 +237,9 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=m3-publish-20261009"></script>
+<script src="/admin/static/js/memory-write-feedback.js?v=step007-20261010"></script>
+<script src="/admin/static/js/memory-index-status.js?v=20261013"></script>
 <script>
 (function () {
   var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
@@ -334,88 +342,69 @@
   }
 
   /* ─────────── 向量数据库（保留） ─────────── */
-  function parseVectorTopKInput() {
-    var tk = parseInt(document.getElementById('vector-top-k').value, 10);
-    if (isNaN(tk) || tk < 1) return null;
-    return tk;
-  }
-
-  function isVectorTopKInProductRange(tk) {
-    return tk != null && tk >= 1 && tk <= 20;
-  }
-
+  var vectorSnapshot = null, vectorPublication, vectorTestSequence = 0, vectorTestFingerprint = '';
+  var VECTOR_TARGET = 'test_memory_long_collection';
   function setVectorSaveEnabled(on) {
     var btn = document.getElementById('btn-vector-save');
-    if (!btn) return;
-    if (on) {
-      btn.disabled = false;
-      btn.removeAttribute('title');
-    } else {
-      btn.disabled = true;
-      btn.setAttribute('title', '请先测试连接');
-    }
+    btn.disabled = !on || getAdminRole() === 'observer' || !vectorPublication || !vectorPublication.editable();
   }
-
-  function setVectorTestPassed(passed) {
-    vectorTestPassed = passed;
-    setVectorSaveEnabled(passed);
-  }
-
+  function setVectorTestPassed(passed) { vectorTestPassed = passed; setVectorSaveEnabled(passed); }
   function resetVectorTestResult() {
-    var el = document.getElementById('vector-test-result');
-    if (!el) return;
-    el.innerHTML = '';
-    el.style.display = 'none';
+    var el = document.getElementById('vector-test-result'); el.textContent = ''; el.style.display = 'none';
   }
-
-  function showVectorTestResult(htmlClass, text) {
-    var el = document.getElementById('vector-test-result');
-    if (!el) return;
-    el.style.display = 'block';
-    el.innerHTML = '';
-    var div = document.createElement('div');
-    div.className = 'alert ' + htmlClass;
-    div.style.marginBottom = '0';
-    div.textContent = text;
-    el.appendChild(div);
+  function showVectorTestResult(css, text) {
+    var el = document.getElementById('vector-test-result'); el.style.display = 'block';
+    el.className = 'memory-vdb-test-result alert ' + css; el.textContent = text;
   }
-
+  function invalidateVectorTest() {
+    vectorTestSequence++; vectorTestFingerprint = ''; setVectorTestPassed(false); resetVectorTestResult();
+    if (vectorPublication) vectorPublication.changed();
+  }
   function openApiKeyPlainEditor() {
-    vectorKeyPlainVisible = true;
-    var wrap = document.getElementById('vector-api-key-plain-wrap');
-    var plain = document.getElementById('vector-api-key-plain');
-    var btn = document.getElementById('btn-toggle-api-key');
-    if (!wrap || !plain || !btn) return;
-    wrap.style.display = 'block';
-    btn.textContent = '取消';
-    plain.value = '';
-    plain.focus();
-    setVectorTestPassed(false);
-    resetVectorTestResult();
+    vectorKeyPlainVisible = true; document.getElementById('vector-api-key-plain-wrap').style.display = 'block';
+    document.getElementById('btn-toggle-api-key').textContent = '取消';
+    document.getElementById('vector-api-key-plain').value = ''; document.getElementById('vector-api-key-plain').focus(); invalidateVectorTest();
   }
-
   function closeApiKeyPlainEditor() {
-    vectorKeyPlainVisible = false;
-    var wrap = document.getElementById('vector-api-key-plain-wrap');
-    var plain = document.getElementById('vector-api-key-plain');
-    var btn = document.getElementById('btn-toggle-api-key');
-    if (wrap) wrap.style.display = 'none';
-    if (plain) plain.value = '';
-    if (btn) btn.textContent = '修改';
+    vectorKeyPlainVisible = false; document.getElementById('vector-api-key-plain-wrap').style.display = 'none';
+    document.getElementById('vector-api-key-plain').value = ''; document.getElementById('btn-toggle-api-key').textContent = '修改'; invalidateVectorTest();
   }
-
+  function vectorDraft() {
+    var body={endpoint:document.getElementById('vector-endpoint').value.trim(),collection_name:document.getElementById('vector-collection').value.trim()};
+    var key=document.getElementById('vector-api-key-plain').value.trim();
+    if (!body.endpoint || !/^https?:\/\//i.test(body.endpoint)) throw new Error('请填写有效的 HTTP(S) Endpoint');
+    if (body.collection_name !== VECTOR_TARGET) throw new Error('新链 Collection 必须为 '+VECTOR_TARGET+'，不支持旧库回切');
+    if (key) { if (/\*{3,}|\[REDACTED\]|^已配置$/i.test(key)) throw new Error('请填写新凭据，不可提交脱敏占位值'); body.api_key=key; }
+    return body;
+  }
   async function loadVectorConfig() {
-    var res = await adminRequest('GET', '/api/admin/vector-db-config');
-    if (!res || res.code !== 0 || !res.data) return;
-    var d = res.data;
-    document.getElementById('vector-endpoint').value = d.endpoint != null ? String(d.endpoint) : '';
-    document.getElementById('vector-collection').value = d.collection_name != null ? String(d.collection_name) : '';
-    var tk = parseInt(d.top_k, 10);
-    document.getElementById('vector-top-k').value = (!isNaN(tk) && tk >= 1) ? tk : 5;
-    var masked = getAdminRole() === 'observer'
-      ? (d.credential_configured ? '已配置' : '未配置')
-      : (d.api_key_masked != null ? String(d.api_key_masked) : '');
-    document.getElementById('vector-api-key-masked').value = masked;
+    var res=await adminRequest('GET','/api/admin/vector-db-config',null,false,{silentErrorToast:true,timeoutMs:10000});
+    if(!res||res.code!==0||!res.data||typeof res.data.endpoint!=='string'||typeof res.data.collection_name!=='string')return false;
+    var d=res.data;vectorSnapshot={endpoint:d.endpoint,collection_name:d.collection_name};
+    document.getElementById('vector-endpoint').value=d.endpoint;document.getElementById('vector-collection').value=d.collection_name;
+    document.getElementById('vector-top-k').value=d.legacy&&d.legacy.top_k!=null?d.legacy.top_k:'';
+    document.getElementById('vector-api-key-masked').value=d.credential_configured?'已配置':'未配置';
+    document.getElementById('vector-version').textContent='当前配置版本：'+(d.version==null?'未发布':d.version)+' · 来源：'+(d.source||'未知')+' · '+(d.runtime_ready?'配置可用':'新链尚未就绪');
+    vectorPublication.observeClock(d);closeApiKeyPlainEditor();return true;
+  }
+  async function testVectorConnection() {
+    if(!vectorPublication.editable()||getAdminRole()==='observer')return;
+    var body;try{body=vectorDraft();}catch(e){showToast(e.message,'warning');return;}
+    var seq=++vectorTestSequence, fingerprint=JSON.stringify(body);
+    setVectorTestPassed(false);showVectorTestResult('alert-info','正在测试当前配置…');
+    var res=await adminRequest('POST','/api/admin/vector-db-config/test-connection',body,false,{silentErrorToast:true,timeoutMs:30000});
+    if(seq!==vectorTestSequence||!vectorPublication.editable())return;
+    try{if(JSON.stringify(vectorDraft())!==fingerprint)return;}catch(_){return;}
+    if(res&&res.code===0&&res.data&&res.data.connected===true){
+      vectorTestFingerprint=fingerprint;setVectorTestPassed(true);showVectorTestResult('alert-success','连接通过；不代表索引已回填或新链已启用。');
+    }else{setVectorTestPassed(false);showVectorTestResult('alert-error','连接测试失败，请核对目标配置与凭据。');}
+  }
+  async function saveVectorConfig() {
+    if(!vectorPublication.editable()||!vectorTestPassed)return;
+    var body;try{body=vectorDraft();}catch(e){showToast(e.message,'warning');return;}
+    if(JSON.stringify(body)!==vectorTestFingerprint){invalidateVectorTest();return;}
+    var patch={};Object.keys(body).forEach(function(k){if(body[k]!==vectorSnapshot[k])patch[k]=body[k];});
+    await vectorPublication.submit(patch);
   }
 
   /* ─────────── 全局用户记忆 ─────────── */
@@ -450,11 +439,11 @@
       var item = list[i];
       var docId = item.doc_id != null ? String(item.doc_id) : '';
       html += '<tr>';
-      html += '  <td><input type="checkbox" data-write-action class="global-row-check" data-doc-id="' + esc(docId) + '"></td>';
+      html += item.legacy_read_only ? '<td></td>' : '  <td><input type="checkbox" data-write-action class="global-row-check" data-doc-id="' + esc(docId) + '"></td>';
       html += '  <td>' + esc(item.user_id != null ? String(item.user_id) : '-') + '</td>';
       html += '  <td>' + esc(item.key || '') + '</td>';
-      html += '  <td>' + esc(item.value || '') + '</td>';
-      html += '  <td><button class="btn btn-danger" style="padding:2px 10px;height:26px;font-size:12px" ' +
+      html += '  <td>' + esc(item.value || '') + (item.index_state && item.index_state !== 'ready' ? MemoryIndexStatus.html(item, getAdminRole()) : '') + '</td>';
+      html += item.legacy_read_only ? '<td>旧格式正文（只读）</td>' : '  <td><button class="btn btn-danger" style="padding:2px 10px;height:26px;font-size:12px" ' +
               'data-write-action onclick="globalDeleteOne(this)" data-doc-id="' + esc(docId) + '">删除</button></td>';
       html += '</tr>';
     }
@@ -468,7 +457,9 @@
     pager.style.display = 'flex';
   }
 
+  var globalLoadRevision = 0;
   async function loadGlobalMemories() {
+    var revision = ++globalLoadRevision;
     var userIdRaw = (document.getElementById('global-user-id').value || '').trim();
     var keyword = (document.getElementById('global-keyword').value || '').trim();
     globalLastQuery = { userId: userIdRaw, keyword: keyword };
@@ -478,6 +469,7 @@
     if (userIdRaw) query += '&user_id=' + encodeURIComponent(userIdRaw);
 
     var res = await adminRequest('GET', '/api/admin/memories/global' + query);
+    if (revision !== globalLoadRevision) return;
     if (!res || res.code !== 0 || !res.data) {
       renderGlobalTable([]);
       return;
@@ -502,15 +494,8 @@
       return;
     }
     showConfirm('确定删除选中的 ' + docIds.length + ' 条用户记忆吗？删除后不可恢复。', async function () {
-      var res = await adminRequest('DELETE', '/api/admin/memories/batch-delete', { doc_ids: docIds });
-      if (res && res.code === 0) {
-        var data = res.data || {};
-        var failed = (data.failed_doc_ids || []).length;
-        var msg = '已删除 ' + (data.deleted_count || 0) + ' 条';
-        if (failed) msg += '，' + failed + ' 条失败';
-        showToast(msg, failed ? 'warning' : 'success');
-        loadGlobalMemories();
-      }
+      await MemoryWriteFeedback.submit({method:'DELETE',path:'/api/admin/memories/batch-delete',body:{doc_ids:docIds},
+        button:document.getElementById('btn-global-batch-delete'),partialSuccess:function () { loadGlobalMemories(); },success:function () { loadGlobalMemories(); }});
     }, null, { danger: true });
   }
 
@@ -524,7 +509,7 @@
   async function loadAll() {
     var wrap = document.getElementById('memory-page-wrap');
     if (wrap) wrap.classList.add('is-loading');
-    await Promise.all([loadStep6Prompt(), loadVectorConfig()]);
+    await Promise.all([loadStep6Prompt(), vectorPublication.start()]);
     if (wrap) wrap.classList.remove('is-loading');
   }
 
@@ -555,96 +540,14 @@
       }
     };
 
-    /* 向量数据库 */
-    document.getElementById('btn-toggle-api-key').onclick = function () {
-      if (vectorKeyPlainVisible) closeApiKeyPlainEditor();
-      else openApiKeyPlainEditor();
-    };
-
-    document.getElementById('vector-api-key-plain').addEventListener('input', function () {
-      setVectorTestPassed(false);
-      resetVectorTestResult();
-    });
-
-    document.getElementById('btn-vector-test').onclick = async function () {
-      var topK = parseVectorTopKInput();
-      if (!isVectorTopKInProductRange(topK)) {
-        showToast('检索 TopK 须为 1–20 的整数后再测试连接', 'warning');
-        return;
-      }
-      var endpoint = (document.getElementById('vector-endpoint').value || '').trim();
-      var collection = (document.getElementById('vector-collection').value || '').trim();
-      var plainKey = (document.getElementById('vector-api-key-plain').value || '').trim();
-      var body = {
-        endpoint: endpoint || null,
-        collection_name: collection || null
-      };
-      if (plainKey) body.api_key = plainKey;
-
-      showVectorTestResult('alert-info', '正在测试连接...');
-      var res = await adminRequest(
-        'POST',
-        '/api/admin/vector-db-config/test-connection',
-        body,
-        false,
-        { silentErrorToast: true }
-      );
-      if (!res || res.code !== 0) {
-        var msg0 = (res && res.message) ? String(res.message) : '请求失败';
-        showVectorTestResult('alert-error', '❌ 连接失败：' + msg0);
-        setVectorTestPassed(false);
-        return;
-      }
-      var data = res.data || {};
-      if (data.connected) {
-        var ms = data.latency_ms != null ? data.latency_ms : 0;
-        showVectorTestResult('alert-success', '✅ 连接成功，延迟 ' + ms + 'ms');
-        setVectorTestPassed(true);
-      } else {
-        var err = data.error != null ? String(data.error) : ((res.message != null) ? String(res.message) : '未知错误');
-        showVectorTestResult('alert-error', '❌ 连接失败：' + err);
-        setVectorTestPassed(false);
-      }
-    };
-
-    document.getElementById('btn-vector-save').onclick = async function () {
-      if (!vectorTestPassed) {
-        showToast('请先测试连接', 'warning');
-        return;
-      }
-      var endpoint = (document.getElementById('vector-endpoint').value || '').trim();
-      var collection = (document.getElementById('vector-collection').value || '').trim();
-      var topK = parseVectorTopKInput();
-      if (!endpoint) {
-        showToast('请填写 Endpoint', 'warning');
-        return;
-      }
-      if (!collection) {
-        showToast('请填写 Collection 名称', 'warning');
-        return;
-      }
-      if (!isVectorTopKInProductRange(topK)) {
-        showToast('检索 TopK 须为 1–20 的整数后再保存', 'warning');
-        return;
-      }
-      var plainKey = (document.getElementById('vector-api-key-plain').value || '').trim();
-      var body = {
-        endpoint: endpoint,
-        collection_name: collection,
-        top_k: topK,
-        need_test_first: false
-      };
-      if (plainKey) body.api_key = plainKey;
-
-      var res = await adminRequest('PUT', '/api/admin/vector-db-config', body);
-      if (res && res.code === 0) {
-        showToast('保存成功', 'success');
-        closeApiKeyPlainEditor();
-        setVectorTestPassed(false);
-        resetVectorTestResult();
-        await loadVectorConfig();
-      }
-    };
+    /* 原 S/A 写、V 读入口保留；测连与保存使用同一份待发布字段。 */
+    vectorPublication=publicationForm({key:'vector_db_config:memory',path:'/api/admin/vector-db-config',status:'vector-publication-status',save:'btn-vector-save',verify:'vector-publication-verify',refresh:'vector-publication-refresh',read:loadVectorConfig,canSave:function(){return vectorTestPassed;},lock:function(locked){
+      ['vector-endpoint','vector-collection','vector-api-key-plain','btn-toggle-api-key','btn-vector-test'].forEach(function(id){document.getElementById(id).disabled=locked;});
+    }});
+    document.getElementById('btn-toggle-api-key').onclick=function(){if(vectorKeyPlainVisible)closeApiKeyPlainEditor();else openApiKeyPlainEditor();};
+    ['vector-endpoint','vector-collection','vector-api-key-plain'].forEach(function(id){document.getElementById(id).addEventListener('input',invalidateVectorTest);});
+    document.getElementById('btn-vector-test').onclick=testVectorConnection;
+    document.getElementById('btn-vector-save').onclick=saveVectorConfig;
 
     /* 全局用户记忆 */
     document.getElementById('btn-global-search').onclick = function () {
@@ -670,6 +573,116 @@
 
     loadAll();
   });
+  // 页面仅保存发布定位；正文、凭据不进入 sessionStorage。
+  function publicationForm(options) {
+    var state = 'loading', receipt = null, timer = null, clockOffset = 0, closed = false;
+    var storageKey = 'config-publication:' + options.key;
+    var observer = getAdminRole() === 'observer';
+    function byId(id) { return document.getElementById(id); }
+    function remember() {
+      try { if (receipt) sessionStorage.setItem(storageKey, JSON.stringify(receipt)); else sessionStorage.removeItem(storageKey); } catch (_) {}
+    }
+    function stop() { if (timer) clearTimeout(timer); timer = null; }
+    function set(next, message) {
+      state = next;
+      var busy = ['loading','load_failed','submitting','submission_unverified','saved_refresh_pending'].indexOf(state) >= 0;
+      byId(options.status).textContent = message;
+      byId(options.save).disabled = observer || busy || (options.canSave && !options.canSave());
+      byId(options.verify).hidden = !receipt || receipt.commit_state === 'committed';
+      byId(options.verify).disabled = state === 'submitting';
+      byId(options.refresh).hidden = !!receipt && receipt.commit_state !== 'committed';
+      byId(options.refresh).disabled = state === 'loading' || state === 'submitting';
+      if (options.lock) options.lock(busy || observer);
+    }
+    function uuid7() {
+      var bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+      var ms = Date.now() + clockOffset;
+      for (var i = 5; i >= 0; i--) { bytes[i] = ms % 256; ms = Math.floor(ms / 256); }
+      bytes[6] = (bytes[6] & 15) | 112; bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.from(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+    }
+    function observeClock(data) {
+      var ms = data && Date.parse(data.server_time);
+      if (Number.isFinite(ms)) clockOffset = ms - Date.now();
+    }
+    async function refresh() {
+      if (receipt && receipt.commit_state !== 'committed') return;
+      set('loading', receipt ? '已保存，正在刷新当前配置…' : '正在加载…');
+      var ok = false;
+      try { ok = await options.read(); } catch (_) {}
+      if (closed) return;
+      if (!ok) {
+        set(receipt ? 'saved_refresh_pending' : 'load_failed', receipt ? '已保存（本次版本 '+receipt.committed_version+'），当前配置回读失败，待刷新；不会重新提交。' : '加载失败，暂不能保存。请刷新重试。');
+        return;
+      }
+      var message = receipt ? '已保存（本次版本 '+receipt.committed_version+'）；下方展示当前配置。' : '已加载；只提交修改的字段。';
+      receipt = null; remember(); set('clean', message);
+    }
+    async function accept(result) {
+      if (closed) return;
+      var data = result && result.data;
+      if (data && data.publish_id === receipt.publish_id) {
+        observeClock(data);
+        if (data.commit_state === 'committed' && data.committed_version != null) {
+          stop(); receipt.commit_state = 'committed'; receipt.committed_version = data.committed_version;
+          remember(); await refresh(); return;
+        }
+        if (data.commit_state === 'rejected') {
+          stop(); receipt = null; remember(); set('error', '本次发布已拒绝，请检查输入后重新提交。'); return;
+        }
+        if (data.commit_state === 'expired') {
+          stop(); receipt.commit_state = 'expired'; remember(); set('submission_unverified', '本次回执已过保障期，需人工核实；不能重新提交本次操作。'); return;
+        }
+      }
+      set('submission_unverified', '本次发布结果待核实，输入已保留；仅查询发布 '+receipt.publish_id+'，不会重复提交。');
+    }
+    async function verify() {
+      if (!receipt || receipt.commit_state === 'committed' || closed || !getAdminToken()) return;
+      var id = receipt.publish_id;
+      var result = await adminRequest('GET', '/api/admin/configs/publications/' + encodeURIComponent(id), null, false, {silentErrorToast:true,returnErrorResponse:true,timeoutMs:5000});
+      if (receipt && receipt.publish_id === id) await accept(result);
+    }
+    function schedule(delay) {
+      stop();
+      if (!receipt || closed || receipt.commit_state === 'expired' || document.hidden || !getAdminToken()) return;
+      if (Date.now() >= receipt.observe_until) { set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+      timer = setTimeout(async function () {
+        if (!receipt || Date.now() >= receipt.observe_until) { if (receipt) set('submission_unverified', '自动核实已停止，结果仍待核实；可手动查询原发布身份，不可重复提交。'); return; }
+        await verify(); if (receipt && state === 'submission_unverified') schedule(Math.min(5000, Math.round(delay * 1.5)));
+      }, Math.min(delay, receipt.observe_until - Date.now()));
+    }
+    async function submit(body) {
+      if (observer || ['clean','dirty','error'].indexOf(state) < 0) return;
+      if (!Object.keys(body).length) { showToast('没有检测到变更', 'info'); return; }
+      var id;
+      try { id = uuid7(); } catch (_) { set('error', '浏览器无法生成安全发布身份，未发送请求。'); return; }
+      receipt = {publish_id:id,commit_state:'unknown',observe_until:Date.now()+60000}; remember();
+      set('submitting', '正在提交，请勿重复操作…');
+      var result = await adminRequest('PUT', options.path, body, false, {idempotencyKey:id,silentErrorToast:true,returnErrorResponse:true,timeoutMs:30000});
+      // 确定的校验/准入拒绝可纠正；网络/持久化未知只能读原回执。
+      if (result && (([400,401,403,422,20120,20121,20127].indexOf(result.code) >= 0) || result.detail)) {
+        receipt = null; remember(); set('error', '本次发布被拒绝，请检查字段和权限后重试。'); return;
+      }
+      await accept(result);
+      if (state === 'submission_unverified') schedule(2000);
+    }
+    function changed() {
+      if (['clean','dirty','error'].indexOf(state) >= 0) set('dirty', '有未保存的修改。');
+    }
+    async function start() {
+      try { receipt = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch (_) { receipt = null; }
+      if (receipt && receipt.publish_id && receipt.commit_state !== 'committed') {
+        try { await options.read(); } catch (_) {}
+        set('submission_unverified', '上次发布结果待核实；页面未保存原正文和密钥，仅可查询原发布身份。'); schedule(2000);
+      } else { await refresh(); }
+    }
+    byId(options.verify).onclick = verify; byId(options.refresh).onclick = refresh;
+    window.addEventListener('beforeunload', function () { closed = true; stop(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (state === 'submission_unverified') schedule(2000); });
+    return {start:start,submit:submit,changed:changed,observeClock:observeClock,close:function(){closed=true;stop();},sync:function(){set(state,byId(options.status).textContent);},editable:function(){return ['clean','dirty','error'].indexOf(state)>=0;}};
+  }
+
 })();
 </script>
 </body>

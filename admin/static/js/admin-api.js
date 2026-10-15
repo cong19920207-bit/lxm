@@ -124,6 +124,7 @@ if (document.readyState === 'loading') {
 
 function clearAdminToken() {
   sessionStorage.clear();
+  window.dispatchEvent(new Event('admin-session-cleared'));
 }
 
 function checkAdminLogin() {
@@ -153,6 +154,16 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
       'Authorization': 'Bearer ' + getAdminToken()
     }
   };
+  // Only this named header is accepted; callers cannot inject arbitrary headers.
+  if (requestExtra && requestExtra.idempotencyKey) {
+    fetchOpts.headers['Idempotency-Key'] = requestExtra.idempotencyKey;
+  }
+  var requestTimer = null;
+  if (requestExtra && Number.isFinite(requestExtra.timeoutMs) && requestExtra.timeoutMs > 0) {
+    var requestController = new AbortController();
+    fetchOpts.signal = requestController.signal;
+    requestTimer = setTimeout(function () { requestController.abort(); }, requestExtra.timeoutMs);
+  }
 
   if (isFile) {
     // 文件上传：直接传 FormData，浏览器自动设置 Content-Type
@@ -220,8 +231,10 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
     }
     return result;
   } catch (e) {
-    showToast('网络请求失败，请检查网络连接', 'error');
+    if (!silentErrorToast) showToast('网络请求失败，请检查网络连接', 'error');
     return null;
+  } finally {
+    if (requestTimer !== null) clearTimeout(requestTimer);
   }
 }
 
@@ -353,6 +366,8 @@ var MENU_CONFIG = {
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
     { key: 'vector-token',    label: '🔎 召回与 Token', href: 'vector-token-config.html' },
+    { key: 'memory-diagnostics', label: '🧪 记忆检索诊断', href: 'memory-diagnostics.html' },
+    { key: 'memory-maintenance', label: '🛠️ 索引维护', href: 'memory-index-maintenance.html' },
     { key: 'agent',           label: '🤖 Agent配置',  href: 'agent-rules.html' },
     { key: 'relationship',    label: '💞 关系成长',   href: 'relationship-rules.html' },
     { key: 'diary',           label: '📔 日记规则',   href: 'diary-rules.html' },
@@ -381,6 +396,8 @@ var MENU_CONFIG = {
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'knowledge',       label: '📚 角色知识库', href: 'knowledge.html' },
     { key: 'vector-token',    label: '🔎 召回与 Token', href: 'vector-token-config.html' },
+    { key: 'memory-diagnostics', label: '🧪 记忆检索诊断', href: 'memory-diagnostics.html' },
+    { key: 'memory-maintenance', label: '🛠️ 索引维护', href: 'memory-index-maintenance.html' },
     { key: 'agent',           label: '🤖 Agent配置',  href: 'agent-rules.html' },
     { key: 'relationship',    label: '💞 关系成长',   href: 'relationship-rules.html' },
     { key: 'diary',           label: '📔 日记规则',   href: 'diary-rules.html' },

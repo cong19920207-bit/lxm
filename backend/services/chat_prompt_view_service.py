@@ -87,6 +87,7 @@ def get_step15_prompt_view() -> dict:
 
 def get_step3_prompt_view() -> dict:
     """Step3 Prompt 拼装：模块顺序 + 硬编码语气/共情/沉默（只读）。"""
+    from backend.services.memory_prompt_builder import SELECTION_RULES
     modules = []
     for key in MODULE_ORDER:
         modules.append({
@@ -116,6 +117,9 @@ def get_step3_prompt_view() -> dict:
         "source_file": "backend/services/prompt_builder.py",
         "module_order": modules,
         "trim_priority": list(TRIM_PRIORITY),
+        "budget_source": "code_defaults",
+        "budget_note": "表中为代码默认值，不是当前请求生效预算；新链使用冻结配置与官方计数。",
+        "selection_rules": list(SELECTION_RULES),
         "empathy_rules": dict(EMPATHY_RULES),
         "emotion_mapping": emotion_map,
         "level_definitions": level_items,
@@ -134,6 +138,7 @@ def get_step3_prompt_view() -> dict:
 
 def get_step8_prompt_view() -> dict:
     """Step8 Future：【主动发起】模块模板（其余复用主链）。"""
+    from backend.services.memory_prompt_builder import SELECTION_RULES
     return {
         "readonly": True,
         "title": "Step8 Future 主动",
@@ -143,6 +148,9 @@ def get_step8_prompt_view() -> dict:
         ),
         "source_file": "backend/services/prompt_builder.py",
         "proactive_input_template": STEP8_PROACTIVE_INPUT_TEMPLATE,
+        "budget_source": "code_defaults",
+        "budget_note": "自身 future_action 作为输入；复用新检索与硬预算，普通 Agent 规则保持。",
+        "selection_rules": list(SELECTION_RULES),
         "notes": [
             "trigger_type 落库为 FUTURE",
             "与 Agent P0～P4（规则触发）是不同链路",

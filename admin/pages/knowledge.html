@@ -167,12 +167,15 @@
 </div>
 
 <script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/memory-write-feedback.js?v=step007-20261010"></script>
 <script>
   var ALLOWED_ROLES = ['super_admin', 'ai_trainer', 'observer'];
   var _ckPage = 1;
   var _ckPageSize = 20;
   var _ckTotal = 0;
   var _ckEditDocId = null;
+  var _ckLoadRevision = 0;
+  var _ckFormRevision = 0;
 
   function escapeHtml(s) {
     if (s == null) return '';
@@ -195,6 +198,7 @@
   }
 
   async function loadKnowledgeList() {
+    var loadRevision = ++_ckLoadRevision;
     var tbody = document.getElementById('ck-table-body');
     tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">加载中…</td></tr>';
 
@@ -205,6 +209,7 @@
     if (kw) q += '&keyword=' + encodeURIComponent(kw);
 
     var res = await adminRequest('GET', '/api/admin/character-knowledge' + q);
+    if (loadRevision !== _ckLoadRevision) return;
     if (!res || res.code !== 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">加载失败，请重试</td></tr>';
       return;
@@ -231,16 +236,17 @@
       html += '<tr>' +
         '<td>' + renderTypeTag(row.type) + '</td>' +
         '<td>' + escapeHtml(row.key) + '</td>' +
-        '<td class="ck-value-cell" title="' + escapeHtml(row.value) + '">' + escapeHtml(row.value) + '</td>' +
-        '<td>' +
+        '<td class="ck-value-cell" title="' + escapeHtml(row.value) + '">' + escapeHtml(row.value) + (row.index_state && row.index_state !== 'ready' ? '<small> · 索引待修复</small>' : '') + '</td>' +
+        '<td>' + (row.legacy_read_only ? '旧格式正文（只读）' :
           '<button type="button" class="btn btn-link btn-sm" data-write-action data-action="edit" data-id="' + escapeHtml(row.doc_id) + '">编辑</button>' +
-          '<button type="button" class="btn btn-link btn-sm" style="color:#ff4d4f" data-write-action data-action="del" data-id="' + escapeHtml(row.doc_id) + '">删除</button>' +
+          '<button type="button" class="btn btn-link btn-sm" style="color:#ff4d4f" data-write-action data-action="del" data-id="' + escapeHtml(row.doc_id) + '">删除</button>') +
         '</td></tr>';
     }
     tbody.innerHTML = html;
   }
 
   function openModal(mode, row) {
+    _ckFormRevision++;
     _ckEditDocId = null;
     document.getElementById('ck-modal-title').textContent = mode === 'edit' ? '编辑条目' : '新增条目';
     document.getElementById('ck-field-type-wrap').style.display = mode === 'edit' ? 'none' : 'block';
@@ -256,11 +262,13 @@
       keyEl.value = '';
       document.getElementById('ck-modal-value').value = '';
     }
+    document.getElementById('ck-modal-save').disabled = MemoryWriteFeedback.blocked(_ckEditDocId ? '/api/admin/character-knowledge/'+encodeURIComponent(_ckEditDocId) : '/api/admin/character-knowledge#create');
     document.getElementById('ck-modal-overlay').style.display = 'flex';
     document.getElementById('ck-modal-overlay').classList.add('show');
   }
 
   function closeModal() {
+    _ckFormRevision++;
     var ov = document.getElementById('ck-modal-overlay');
     ov.style.display = 'none';
     ov.classList.remove('show');
@@ -279,22 +287,16 @@
   }
 
   async function saveModal() {
+    var formRevision = _ckFormRevision;
     var value = document.getElementById('ck-modal-value').value.trim();
     if (!value) {
       showToast('请填写 value', 'warning');
       return;
     }
     if (_ckEditDocId) {
-      var putRes = await adminRequest(
-        'PUT',
-        '/api/admin/character-knowledge/' + encodeURIComponent(_ckEditDocId),
-        { value: value }
-      );
-      if (putRes && putRes.code === 0) {
-        showToast('已更新', 'success');
-        closeModal();
-        loadKnowledgeList();
-      }
+      var path = '/api/admin/character-knowledge/' + encodeURIComponent(_ckEditDocId);
+      await MemoryWriteFeedback.submit({method:'PUT',path:path,body:{value:value},button:document.getElementById('ck-modal-save'),
+        success:function () { if (_ckFormRevision === formRevision) closeModal(); loadKnowledgeList(); }});
       return;
     }
     var key = document.getElementById('ck-modal-key').value.trim();
@@ -307,17 +309,9 @@
       showToast(keyErr, 'warning');
       return;
     }
-    var postRes = await adminRequest('POST', '/api/admin/character-knowledge', {
-      type: document.getElementById('ck-modal-type').value,
-      key: key,
-      value: value
-    });
-    if (postRes && postRes.code === 0) {
-      showToast('已新增', 'success');
-      closeModal();
-      _ckPage = 1;
-      loadKnowledgeList();
-    }
+    await MemoryWriteFeedback.submit({method:'POST',path:'/api/admin/character-knowledge',source:'/api/admin/character-knowledge#create',
+      body:{type:document.getElementById('ck-modal-type').value,key:key,value:value},button:document.getElementById('ck-modal-save'),
+      success:function () { if (_ckFormRevision === formRevision) closeModal(); _ckPage = 1; loadKnowledgeList(); }});
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -371,13 +365,8 @@
         });
       } else if (btn.getAttribute('data-action') === 'del') {
         showConfirm('确认删除该条目？删除后 Step2 检索将不再命中。', function () {
-          adminRequest('DELETE', '/api/admin/character-knowledge/' + encodeURIComponent(docId))
-            .then(function (res) {
-              if (res && res.code === 0) {
-                showToast('已删除', 'success');
-                loadKnowledgeList();
-              }
-            });
+          MemoryWriteFeedback.submit({method:'DELETE',path:'/api/admin/character-knowledge/'+encodeURIComponent(docId),button:btn,
+            success:function () { loadKnowledgeList(); }});
         }, null, { danger: true });
       }
     });

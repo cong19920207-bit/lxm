@@ -17,7 +17,6 @@ REDIS_RESEND_KEY = "chat:resend:{user_id}:{batch_key}"
 REDIS_BUNDLE_LOCK_KEY = "chat:bundle:lock:{user_id}"
 
 GEN_TTL_SEC = 86400 * 7
-BUNDLE_LOCK_TTL_SEC = 90
 
 # 本地防抖任务：仅用于取消「同进程」内重复 sleep；跨实例以 Redis token 为准
 _debounce_tasks: dict[int, asyncio.Task] = {}
@@ -78,17 +77,8 @@ async def schedule_debounced(
     _debounce_tasks[user_id] = t
 
 
-async def try_acquire_bundle_lock(user_id: int) -> bool:
-    """同用户 bundle 互斥（恢复补跑与并发防抖错开）；获取失败表示已有实例在执行。"""
-    r = await get_redis()
-    key = REDIS_BUNDLE_LOCK_KEY.format(user_id=user_id)
-    ok = await r.set(key, "1", nx=True, ex=BUNDLE_LOCK_TTL_SEC)
-    return bool(ok)
-
-
-async def release_bundle_lock(user_id: int) -> None:
-    r = await get_redis()
-    await r.delete(REDIS_BUNDLE_LOCK_KEY.format(user_id=user_id))
+# Bundle ownership moved to chat_generation's SQL owner/epoch lease. There is
+# deliberately no unowned Redis acquisition/release API left to revive.
 
 
 async def try_consume_resend_quota(

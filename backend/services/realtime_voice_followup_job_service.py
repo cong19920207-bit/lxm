@@ -1,3 +1,4 @@
+from backend.services.memory_business_guard import uncleared_call_condition
 """Durable follow-up dispatch; composition supplies quota and idempotent counting.
 
 No default quota policy is inferred here. count_sent must atomically deduplicate
@@ -44,7 +45,7 @@ class VoiceFollowupJobService:
         retry_due=or_(VoiceFollowupJob.next_retry_at.is_(None),VoiceFollowupJob.next_retry_at<=now)
         lease_free=or_(VoiceFollowupJob.lease_expires_at.is_(None),VoiceFollowupJob.lease_expires_at<=now)
         async with self.factory() as db:
-            ids=list((await db.scalars(select(VoiceFollowupJob.id).where(retry_due,or_(
+            ids=list((await db.scalars(select(VoiceFollowupJob.id).where(uncleared_call_condition(VoiceFollowupJob),retry_due,or_(
                 and_(VoiceFollowupJob.status=='pending',VoiceFollowupJob.due_at<=now),
                 and_(VoiceFollowupJob.status=='processing',lease_free),
                 and_(VoiceFollowupJob.status=='sent',VoiceFollowupJob.fail_reason=='count_pending',lease_free)
@@ -52,6 +53,8 @@ class VoiceFollowupJobService:
         return [await self.process(job_id=job_id) for job_id in ids]
 
     async def _locked(self,db,job_id):
+        from backend.services.memory_business_guard import guard_business_write, guard_voice_call
+        await guard_business_write(db)
         call_id=await db.scalar(select(VoiceFollowupJob.call_id).where(VoiceFollowupJob.id==job_id))
         if call_id is None:return None,None
         user_id=await db.scalar(select(VoiceCall.user_id).where(VoiceCall.call_id==call_id))
@@ -64,6 +67,7 @@ class VoiceFollowupJobService:
             .with_for_update().execution_options(populate_existing=True))
         job=await db.scalar(select(VoiceFollowupJob).where(VoiceFollowupJob.id==job_id)
             .with_for_update().execution_options(populate_existing=True))
+        await guard_voice_call(db,call)
         return call,job
 
     @staticmethod
@@ -167,7 +171,7 @@ class VoiceFollowupJobService:
             if topic_result is None or topic_result[0]!=self._topic_digest(topic_inputs):
                 raise RuntimeError('topic_inputs_changed')
             if topic_result[1]:return 'topic_continued'
-        sent=await db.scalar(select(VoiceFollowupJob.id).where(VoiceFollowupJob.call_id==job.call_id,
+        sent=await db.scalar(select(VoiceFollowupJob.id).where(uncleared_call_condition(VoiceFollowupJob),VoiceFollowupJob.call_id==job.call_id,
             VoiceFollowupJob.id!=job.id,VoiceFollowupJob.agent_message_id.is_not(None)).limit(1).with_for_update())
         if sent is not None:return 'already_sent'
         return None
@@ -198,6 +202,8 @@ class VoiceFollowupJobService:
             job=await db.get(VoiceFollowupJob,job_id)
             if job is None or job.status!='processing' or job.lease_owner!=owner:return None
             call=await db.scalar(select(VoiceCall).where(VoiceCall.call_id==job.call_id))
+            from backend.services.memory_business_guard import guard_voice_call
+            await guard_voice_call(db,call)
             now=self.clock()
             if (call is None or call.ended_at is None or call.deleted_at or call.deletion_fence_at
                     or (call.transcript_expires_at and call.transcript_expires_at<=now)

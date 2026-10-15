@@ -2,10 +2,17 @@
 # SQLAlchemy 数据模型包，导出所有表模型
 
 from backend.models.admin_config import AdminConfig
+from backend.models.memory_config import MemoryConfigHead, MemoryConfigPublish
+from backend.models.memory_maintenance import MemoryMaintenanceEvent
+from backend.models.memory_control import (
+    MemoryRuntimeFence, MemoryIdentity, MemoryOperation, MemoryIndexTask,
+    MemoryUseClaim, MemoryUseItem,
+)
 from backend.models.admin_operation_log import AdminOperationLog
 from backend.models.admin_user import AdminUser
 from backend.models.agent_aware_queue import AgentAwareQueue
 from backend.models.agent_message import AgentMessage, TriggerType
+from backend.models.future_consumption import FutureConsumption
 from backend.models.ai_diary import AiDiary
 from backend.models.conversation_log import ConversationLog
 from backend.models.emotion_log import EmotionLog
@@ -86,3 +93,12 @@ __all__ = [
     "FeedComment",
     "AgentAwareQueue",
 ]
+
+from backend.models.memory_backfill import MemoryResetRun, MemoryResetItem, MemoryBackfillRun, MemoryBackfillItem
+
+# Register transaction guards for worker/CLI sessions as well as HTTP imports.
+from backend.services import memory_business_guard as _memory_business_guard
+
+from backend.models.chat_lifecycle import ChatUserState, ChatGeneration, ChatSubmission, ChatSubmissionMessage, ChatMessageState, ChatGenerationMessage, ChatResendQuota, ChatLifecycleEffect
+
+from backend.models.memory_diagnostic import MemoryDiagnosticRun
