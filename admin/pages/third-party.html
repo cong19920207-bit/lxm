@@ -210,7 +210,7 @@
   function modalDraft(svc) {
     var body={};serviceFields(svc).forEach(function(k){body[k]=document.getElementById('modal-'+(k==='collection_name'?'collection':k)).value.trim();if(!body[k])throw new Error('配置字段不能为空');});
     if(!/^https?:\/\//i.test(body.endpoint))throw new Error('请填写有效的 HTTP(S) Endpoint');
-    if(svc==='dashvector'&&body.collection_name!=='test_memory_long_collection')throw new Error('Collection 必须为 test_memory_long_collection');
+    if(svc==='dashvector'&&body.collection_name!=='new_lxm_memory_long_collection')throw new Error('Collection 必须为 new_lxm_memory_long_collection');
     if(svc==='embedding'&&body.model!=='text-embedding-v4')throw new Error('Embedding 模型必须为 text-embedding-v4（1024维）');
     var key=document.getElementById('modal-apikey').value.trim();if(key){if(/\*{3,}|\[REDACTED\]|^已配置$/i.test(key))throw new Error('不可提交脱敏凭据占位值');body.api_key=key;}
     return body;
@@ -228,7 +228,7 @@
     }else{
       body.innerHTML='<p id="modal-version" class="text-secondary"></p><div class="form-item"><label>服务商（只读）</label><input id="modal-provider" class="form-control" readonly></div>'+
         '<div class="form-item"><label>Endpoint</label><input type="url" id="modal-endpoint" data-write-action class="form-control" autocomplete="off"></div>'+
-        (svcKey==='dashvector'?'<div class="form-item"><label>Collection（固定新目标）</label><input id="modal-collection" data-write-action class="form-control"><p class="text-secondary">同一集群目标 test_memory_long_collection，Endpoint 须与当前集群一致；不支持跨集群切换。保存或测连不代表回填已完成。</p></div>':'<div class="form-item"><label>模型'+(svcKey==='embedding'?'（text-embedding-v4，1024维）':'')+'</label><input id="modal-model" data-write-action class="form-control"></div>')+
+        (svcKey==='dashvector'?'<div class="form-item"><label>Collection（固定新目标）</label><input id="modal-collection" data-write-action class="form-control"><p class="text-secondary">同一集群目标 new_lxm_memory_long_collection，Endpoint 须与当前集群一致；不支持跨集群切换。保存或测连不代表回填已完成。</p></div>':'<div class="form-item"><label>模型'+(svcKey==='embedding'?'（text-embedding-v4，1024维）':'')+'</label><input id="modal-model" data-write-action class="form-control"></div>')+
         '<div class="form-item"><label>API Key</label><input type="password" id="modal-apikey" data-write-action class="form-control" placeholder="留空则保留原值" autocomplete="off"></div>'+
         '<div id="modal-test-result" role="status"></div><p id="modal-publication-status" role="status" aria-live="polite"></p>';
       foot.innerHTML='<button type="button" class="btn btn-default" id="modal-test-btn" data-write-action>测试连接</button><button type="button" class="btn btn-primary" id="modal-save-btn" data-write-action disabled>保存</button><button type="button" class="btn btn-default" id="modal-publication-refresh">刷新当前配置</button><button type="button" class="btn btn-default" id="modal-publication-verify" hidden>核实本次发布</button><button type="button" class="btn btn-default" id="modal-cancel-btn">关闭</button>';

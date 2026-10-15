@@ -14,7 +14,7 @@ from typing import Any, Mapping
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-TARGET_COLLECTION = "test_memory_long_collection"
+TARGET_COLLECTION = "new_lxm_memory_long_collection"
 PROVIDER_KEYS = {"dashvector": "vector_db_config", "embedding": "third_party:embedding", "rerank": "third_party:rerank"}
 CONFIG_KEYS = ("vector_retrieval_config", "prompt_token_config", *PROVIDER_KEYS.values())
 _FIELDS = {

@@ -172,7 +172,7 @@
           <label>Collection 名称</label>
           <input type="text" id="vector-collection" data-write-action class="form-control" placeholder="集合名称" autocomplete="off">
         </div>
-        <p class="text-secondary">新链仅使用同一集群的新 Collection <code>test_memory_long_collection</code>，不支持跨集群切换。当前旧目标如实显示；保存新目标不自动完成回填或启用新链。</p>
+        <p class="text-secondary">新链仅使用同一集群的新 Collection <code>new_lxm_memory_long_collection</code>，不支持跨集群切换。当前旧目标如实显示；保存新目标不自动完成回填或启用新链。</p>
         <p id="vector-version" class="text-secondary"></p>
         <details><summary>历史 TopK 审计（已停用，只读）</summary>
           <input id="vector-top-k" class="form-control memory-input-w100" readonly aria-readonly="true">
@@ -343,7 +343,7 @@
 
   /* ─────────── 向量数据库（保留） ─────────── */
   var vectorSnapshot = null, vectorPublication, vectorTestSequence = 0, vectorTestFingerprint = '';
-  var VECTOR_TARGET = 'test_memory_long_collection';
+  var VECTOR_TARGET = 'new_lxm_memory_long_collection';
   function setVectorSaveEnabled(on) {
     var btn = document.getElementById('btn-vector-save');
     btn.disabled = !on || getAdminRole() === 'observer' || !vectorPublication || !vectorPublication.editable();
