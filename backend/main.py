@@ -103,6 +103,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from backend.services.proxy_discovery import ProxyDiscovery, DiscoveredProxyHeadersMiddleware
+app.state.proxy_discovery = ProxyDiscovery()
+app.add_middleware(DiscoveredProxyHeadersMiddleware, discovery=app.state.proxy_discovery)
+
+from backend.routers.admin import voice_transport as admin_voice_transport
+app.include_router(admin_voice_transport.router, prefix='/api/admin/voice', tags=['admin-voice'])
+app.include_router(admin_voice_transport.socket_router, prefix='/api/voice', tags=['voice-diagnostics'])
+
 # 挂载路由
 from backend.routers.auth import router as auth_router  # noqa: E402
 from backend.routers.chat import router as chat_router  # noqa: E402

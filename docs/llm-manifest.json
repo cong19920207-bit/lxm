@@ -2138,7 +2138,9 @@
         "backend/routers/admin/voice_playback.py",
         "backend/routers/admin/voice_prompt_view.py",
         "backend/routers/admin/voice_quota.py",
-        "backend/routers/admin/voice_records.py"
+        "backend/routers/admin/voice_records.py",
+        "backend/routers/admin/voice_transport.py",
+        "backend/services/proxy_discovery.py"
       ],
       "route_prefixes": [
         "/api/voice",
@@ -2341,7 +2343,8 @@
         "admin/static/js/voice-ops-admin.js",
         "admin/static/js/voice-playback-admin.js",
         "admin/static/js/voice-prompts.js",
-        "admin/static/js/voice-records-admin.js"
+        "admin/static/js/voice-records-admin.js",
+        "admin/static/js/voice-transport-admin.js"
       ],
       "route_prefixes": [
         "/api/voice",
@@ -4193,7 +4196,7 @@
       "admin-page": 43,
       "h5-page": 8,
       "model": 38,
-      "route": 258,
+      "route": 261,
       "scheduled-job": 20
     },
     "entries": [
@@ -4912,7 +4915,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 225,
+        "line": 249,
         "symbol": "@app.get(\"/\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -4920,7 +4923,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 230,
+        "line": 254,
         "symbol": "@app.get(\"/pages/{page_name}.html\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -4928,7 +4931,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 239,
+        "line": 263,
         "symbol": "@app.get(\"/admin\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -4936,7 +4939,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 244,
+        "line": 268,
         "symbol": "@app.get(\"/admin/pages/{page_name}.html\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -4944,7 +4947,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 253,
+        "line": 277,
         "symbol": "@app.get(\"/static/images/avatar/{filename}\")",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7132,6 +7135,30 @@
         "symbol": "voice_daily_metrics_task",
         "scope": "realtime-voice",
         "contract_document": "contract-realtime-voice-data"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_transport.py",
+        "line": 55,
+        "symbol": "diagnostics",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_transport.py",
+        "line": 72,
+        "symbol": "start_probe",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/voice_transport.py",
+        "line": 97,
+        "symbol": "probe_result",
+        "scope": "realtime-voice",
+        "contract_document": "contract-realtime-voice-api"
       }
     ],
     "path": "docs/contract/code-surface-coverage.md"

@@ -14,6 +14,12 @@
 .master-toggle input:checked+.master-track{background:var(--primary)}.master-toggle input:checked+.master-track:after{transform:translateX(20px)}
 .master-toggle input:focus-visible+.master-track{outline:3px solid #91caff;outline-offset:3px}
 .master-toggle:has(input:disabled){cursor:not-allowed;opacity:.65}#voice-master-error{color:#cf1322}
+.diagnostic-panel{border-top:1px solid var(--border-color,#eee);margin-top:28px;padding-top:24px}
+.diagnostic-grid{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;margin:20px 0;line-height:1.6}
+.diagnostic-grid dt{color:var(--text-secondary)}.diagnostic-grid dd{margin:0;overflow-wrap:anywhere}
+.diagnostic-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+[data-health="error"]{color:#cf1322}[data-health="ready"]{color:#237804}
+@media(max-width:600px){.diagnostic-grid{grid-template-columns:1fr;gap:6px}.diagnostic-grid dd{margin-bottom:10px}}
 </style>
 </head>
 <body><div id="sidebar-mount"></div><div class="admin-content"><div id="header-mount"></div>
@@ -25,7 +31,23 @@
 <p id="voice-master-updated"></p><p id="voice-master-role" hidden>当前账号仅可查看，超级管理员或技术运维可修改。</p>
 <button class="btn" id="btn-voice-master-reload" type="button">刷新状态</button>
 <p>总开关独立保存，语音设置中的草稿及发布状态不受影响。开启后仍需满足已发布设置中的维护、灰度范围等通话条件。</p>
+<section class="diagnostic-panel" aria-labelledby="voice-diagnostic-title">
+<h3 id="voice-diagnostic-title">语音连接诊断</h3>
+<p>代理地址由系统自动发现并更新。重新检测会检查当前浏览器到语音服务的连接，不申请麦克风、不创建通话。</p>
+<dl class="diagnostic-grid" aria-live="polite">
+<dt>代理自动发现</dt><dd id="voice-diag-proxy">加载中</dd>
+<dt>当前信任地址</dt><dd id="voice-diag-addresses">—</dd>
+<dt>浏览器连接链路</dt><dd id="voice-diag-link">尚未检测</dd>
+<dt>最近连接异常</dt><dd id="voice-diag-rejections">加载中</dd>
+<dt>检测时间</dt><dd id="voice-diag-time">—</dd>
+</dl>
+<p id="voice-diag-message" role="status"></p>
+<div class="diagnostic-actions"><button class="btn" type="button" id="btn-voice-diag-refresh">刷新诊断状态</button><button class="btn btn-primary" type="button" id="btn-voice-diag-test" disabled data-write-action>重新检测</button><a href="/admin/pages/voice-metrics.html">查看通话指标</a></div>
+<p id="voice-diag-role" hidden>当前账号可查看诊断；超级管理员或技术运维可发起重新检测。</p>
+<p>链路通过仅表示 HTTPS / WebSocket 握手和消息往返正常。模型服务、麦克风、声音播放及真实通话仍需单独验证；模型连接可在“语音设置”中测试。</p>
+</section>
 </main></div>
 <script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
 <script src="/admin/static/js/voice-master-switch-admin.js?v=f9ee8d4ddc77"></script>
+<script src="/admin/static/js/voice-transport-admin.js?v=aacd4bc36ebb"></script>
 </body></html>

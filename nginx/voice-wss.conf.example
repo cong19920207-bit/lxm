@@ -1,7 +1,7 @@
 # M2 deployment candidate, NOT included by nginx.conf and NOT deployed.
 # Substitute the real origin/domain and certificate paths at deployment.
 # 同域部署无需 VOICE_ALLOWED_ORIGINS；显式配置时仍以其为准。
-# Backend must trust proxy headers ONLY from this gateway's private address;
+# Backend discovers the Docker service name nginx; start with --no-proxy-headers.
 # do not expose its listening port directly to public traffic.
 # This example supports hard_limit <= 3600s, grace <= 30s, reconnect <= 60s.
 # Recalculate timeouts before selecting larger business limits.
@@ -9,6 +9,8 @@ worker_processes auto;
 error_log /var/log/nginx/voice-error.log crit;
 events { worker_connections 2048; }
 http {
+    resolver 127.0.0.11 valid=5s ipv6=off;
+    resolver_timeout 2s;
     map $http_upgrade $voice_upgrade {
         default close;
         ~*^websocket$ upgrade;
@@ -23,10 +25,11 @@ http {
         ssl_certificate /etc/nginx/certs/voice-fullchain.pem;
         ssl_certificate_key /etc/nginx/certs/voice-key.pem;
         ssl_protocols TLSv1.2 TLSv1.3;
-        location ~ "^/api/voice/calls/[0-9a-f-]{36}/(stream|reconnect-stream)$" {
+        set $backend_endpoint http://backend:8000;
+        location ~ "^/api/voice/(calls/[0-9a-f-]{36}/(stream|reconnect-stream)|diagnostics/stream)$" {
             if ($args != "") { return 400; }
             limit_conn voice_clients 4;
-            proxy_pass http://backend:8000;
+            proxy_pass $backend_endpoint;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $voice_upgrade;

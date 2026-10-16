@@ -34,4 +34,5 @@ COPY alembic.ini .
 COPY alembic/ ./alembic/
 
 # 启动命令（docker-compose 会覆盖 MYSQL_HOST/REDIS_HOST）
-CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Application middleware discovers nginx dynamically; ignore stale FORWARDED_ALLOW_IPS.
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

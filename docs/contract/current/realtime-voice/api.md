@@ -33,6 +33,7 @@
 - 上行16kHz PCM、下行24kHz PCM；上行目标40ms。帧上限12000字节、每秒60帧，PCM偶数字节且上限6400；非法/过量帧按网关策略拒绝。持久化不保存 PCM。
 - 客户端控制帧包含心跳、播放 `progress`、`sentence`、`reply_complete`、`audio_complete`、`barge_in`。call/session/reply/播放进度须匹配服务端当前状态；客户端不决定 effective_text。字幕/生成正文不等于用户实际听到的正文。
 - Nginx 专门代理 `/api/voice/`，WebSocket Upgrade、原始 Origin 和实际转发链正确传递；不能套用对话 SSE 的缓冲/超时假设。服务侧票据校验仍是鉴权边界。
+- Docker 启动使用 `--no-proxy-headers`，由应用的统一代理中间件解析固定服务名 `nginx` 并校验原始连接源，再处理转发头。每5秒更新，新连接源触发最多每秒一次的提前解析；DNS失败清空信任地址，不回退到通配符或旧IP。手动诊断强制刷新，运行状态直接读取此中间件的同一快照；不再需要 `FORWARDED_ALLOW_IPS`。Nginx 经 Docker DNS 动态解析 `backend`，避免后端重建后仍转发旧IP。此机制不会迁移或恢复已经中断的通话。
 
 <a id="runtime"></a>
 ## 接通、播放、结束与恢复
@@ -98,10 +99,16 @@
 |---|---|---|
 | GET `/api/admin/voice/master-switch` | 五角色 | enabled/version/updated_at/updated_by；独立发布行，缺失或无效失败关闭 |
 | POST `/api/admin/voice/master-switch/publish` | super_admin/tech_ops；严格bool enabled，严格int expected_version>=1 | 乐观锁；相同值不升版本。开启校验已发布语音包/人格/凭据/能力条件；关闭不要求通过开启检查；DB与审计同事务 |
+| GET `/api/admin/voice/master-switch/diagnostics` | 五角色 | no-store；当前进程自动发现/信任地址、实例与版本、解析时间；最近一次诊断；UTC当日保留的首连/重连拒绝观测，缺失不视为零 |
+| POST `/api/admin/voice/master-switch/diagnostics/probes` | super_admin/tech_ops | 每账号3秒限频；强制刷新DNS并签发独立30秒单次诊断票据，返回probe_id/ticket/path，不创建通话或改变总开关 |
+| GET `/api/admin/voice/master-switch/diagnostics/probes/{probe_id}` | 五角色 | 读取该次诊断，结果保留300秒；不存在或过期404，存储不可用503 |
+| WEBSOCKET `/api/voice/diagnostics/stream` | 独立诊断票据 | 走与通话相同的Nginx入口和Origin/TLS守卫；子协议 `voice.v1,ticket.<诊断票据>,device.diagnostic`，票据放请求头不进URL，绑定Host且Redis原子消费。发送ready、等待3秒ack、再记录消息往返passed；未通过守卫拒绝握手并记录可读原因 |
 | GET `/api/admin/voice/users/{user_id}/quota` | super_admin/ops_admin/observer | quota_date,daily_free_seconds,free_remaining_seconds,extra_remaining_seconds,remaining_seconds,version |
 | POST `/api/admin/voice/users/{user_id}/quota/extra` | super_admin/ops_admin；严格int seconds 1～86400、expected_version>=0 | 单用户加时、版本冲突409，账户与审计同事务；不支持减时/批量修改 |
 
 总开关 `voice_call_master_switch` 独立于运行配置与话术，旧 `global.enabled` 仅保留兼容。开放范围、维护和软停仍独立生效。新发布每日额度对已用/未用旧账户均按当前额度减已用秒数计算，保留额外秒数，不把存量300秒账户永远冻结在300；快照中的通话规则不因此改写。
+
+诊断票据使用独立 Redis 命名空间，不能用于真实通话，真实通话票据也不能用于诊断。诊断不访问Provider、麦克风、业务通话/配额表，不混入 `voice.ws.rejection` 业务观测。结果为pending/passed/failed；60秒后、进程或信任版本变化后不得作为当前健康证明。缓存不可用、未收到结果或只有DNS成功时不报链路通过。本地显式HTTP模式单独标记，不能作为生产HTTPS验证。
 
 <a id="admin-ops"></a>
 ## 运维与危机

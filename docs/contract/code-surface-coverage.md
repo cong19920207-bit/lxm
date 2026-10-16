@@ -3,8 +3,8 @@
 - 文档 ID：`contract-code-surface-coverage`
 - 权威状态：`canonical`
 - 功能范围：`routing`
-- 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29位置核对。
-- HTTP路由 258，模型 38，后台页面 43，H5页面 8，调度 20；两条语音WebSocket另在[语音接口](current/realtime-voice/api.md#websocket)完整定义，不冒充HTTP路由。
+- 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29位置核对；2026-10-16补齐代理自动发现与连接诊断登记。
+- HTTP路由 261，模型 38，后台页面 43，H5页面 8，调度 20；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
 - 本表只建立唯一归属，不表示所有全仓测试通过；未读取或重建迁移基线。
 
 | 类型 | 代码位置 | 功能范围 | 契约文档 ID |
@@ -98,11 +98,11 @@
 | 模型 | `backend/models/world_state.py:12` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_event.py:16` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_snapshot.py:15` | `persona-prompt-world-state` | `contract-persona-data` |
-| 路由 | `backend/main.py:225` | `shared-conventions` | `contract-shared-conventions` |
-| 路由 | `backend/main.py:230` | `shared-conventions` | `contract-shared-conventions` |
-| 路由 | `backend/main.py:239` | `shared-conventions` | `contract-shared-conventions` |
-| 路由 | `backend/main.py:244` | `shared-conventions` | `contract-shared-conventions` |
-| 路由 | `backend/main.py:253` | `shared-conventions` | `contract-shared-conventions` |
+| 路由 | `backend/main.py:249` | `shared-conventions` | `contract-shared-conventions` |
+| 路由 | `backend/main.py:254` | `shared-conventions` | `contract-shared-conventions` |
+| 路由 | `backend/main.py:263` | `shared-conventions` | `contract-shared-conventions` |
+| 路由 | `backend/main.py:268` | `shared-conventions` | `contract-shared-conventions` |
+| 路由 | `backend/main.py:277` | `shared-conventions` | `contract-shared-conventions` |
 | 路由 | `backend/routers/admin/accounts.py:98` | `admin-security-accounts` | `contract-admin-security-api` |
 | 路由 | `backend/routers/admin/accounts.py:111` | `admin-security-accounts` | `contract-admin-security-api` |
 | 路由 | `backend/routers/admin/accounts.py:163` | `admin-security-accounts` | `contract-admin-security-api` |
@@ -376,3 +376,6 @@
 | 调度任务 | `backend/tasks/scheduler.py:296` | `realtime-voice` | `contract-realtime-voice-data` |
 | 调度任务 | `backend/tasks/scheduler.py:301` | `realtime-voice` | `contract-realtime-voice-data` |
 | 调度任务 | `backend/tasks/scheduler.py:306` | `realtime-voice` | `contract-realtime-voice-data` |
+| HTTP路由 | `backend/routers/admin/voice_transport.py:55` | `realtime-voice` | `contract-realtime-voice-api` |
+| HTTP路由 | `backend/routers/admin/voice_transport.py:72` | `realtime-voice` | `contract-realtime-voice-api` |
+| HTTP路由 | `backend/routers/admin/voice_transport.py:97` | `realtime-voice` | `contract-realtime-voice-api` |
