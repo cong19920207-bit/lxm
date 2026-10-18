@@ -10,6 +10,7 @@ import asyncio
 import gzip
 import hashlib
 import json
+import logging
 import math
 from functools import wraps
 import os
@@ -34,12 +35,13 @@ ENDPOINT = 'wss://openspeech.bytedance.com/api/v3/realtime/dialogue'
 # Public protocol identifier, not an account credential (official event API).
 DEFAULT_APP_KEY = 'PlgvMymc7f3tQnJ6'
 ADMIN_PLAYBACK_TIMEOUT_SECONDS = 45
+logger = logging.getLogger(__name__)
 
 
 class ProviderError(RuntimeError):
     def __init__(self, category: str):
         allowed = {'invalid_config', 'credential_missing', 'authentication_failed',
-                   'timeout', 'upstream_unavailable', 'protocol_error', 'evidence_invalid'}
+                   'timeout', 'upstream_unavailable', 'protocol_error', 'evidence_invalid', 'quota_exceeded'}
         self.category = category if category in allowed else 'upstream_unavailable'
         super().__init__(self.category)
 
@@ -331,6 +333,23 @@ class VoiceProviderAdapter:
         # operation. This never changes capability_enabled or a runtime snapshot.
         return (self._purpose == 'admin_test' and self._diagnostic_capability == key) or self.capability_enabled(key)
 
+    @staticmethod
+    def _raise_provider_rejection(msg, *, operation):
+        code = msg.get('error_code')
+        if not code and msg.get('event') not in (51, 153, 599):
+            return
+        reason = ('quota_exceeded' if code == 45000292 else
+                  'authentication_failed' if operation == 'connect' and code else
+                  'protocol_error' if operation in ('connect', 'start') else 'upstream_unavailable')
+        # Provider payloads may contain credentials or user content. Only emit
+        # the numeric wire code and an explicitly recognized quota dimension.
+        payload = msg.get('payload')
+        quota_type = ('tokens_lifetime' if reason == 'quota_exceeded' and isinstance(payload, dict)
+                      and payload.get('error') == 'quota exceeded for types: tokens_lifetime' else 'unknown')
+        logger.warning('voice.provider.rejected operation=%s reason=%s vendor_code=%s quota_type=%s',
+                       operation, reason, code if type(code) is int else 'unknown', quota_type)
+        raise ProviderError(reason)
+
     @observe_provider_operation('connect')
     async def create_connection(self, *, secret: str | None = None):
         if self._wire is not None or self._connecting:
@@ -364,6 +383,7 @@ class VoiceProviderAdapter:
                 msg = decode_frame(await wire.recv())
                 if generation != self._generation or self._wire is not wire:
                     raise ProviderError('upstream_unavailable')
+                self._raise_provider_rejection(msg, operation='connect')
                 if msg.get('event') != 50:
                     raise ProviderError('authentication_failed' if msg.get('error_code') else 'protocol_error')
                 self._connection_secret = access
@@ -440,6 +460,7 @@ class VoiceProviderAdapter:
                 msg = decode_frame(await wire.recv())
                 if generation != self._generation or self._wire is not wire:
                     raise ProviderError('upstream_unavailable')
+                self._raise_provider_rejection(msg, operation='start')
                 if msg['event'] != 150 or msg['session'] != self.session_id:
                     raise ProviderError('protocol_error')
                 self.dialog_id = str(msg['payload'].get('dialog_id', ''))
@@ -531,8 +552,7 @@ class VoiceProviderAdapter:
         await self._send(200, pcm)
 
     def _normalize(self, msg):
-        if msg.get('error_code') or msg['event'] in (51, 153, 599):
-            raise ProviderError('upstream_unavailable')
+        self._raise_provider_rejection(msg, operation='receive')
         if msg['session'] != self.session_id:
             return None
         event, payload = msg['event'], msg['payload']

@@ -119,7 +119,9 @@ class VoiceQuotaService:
             # An empty account with no ledger has no provable prior grant. Do not
             # turn a manual/failed debit into fresh free time on a read.
             if entries or free:
-                free = max(0, daily_seconds - used)
+                # MySQL SUM(integer) returns Decimal; seconds remain integers
+                # across balance calculations and direct JSONResponse callers.
+                free = max(0, daily_seconds - int(used))
         return Balance(free, account.extra_remaining_seconds)
 
     async def grant_extra(self, db, user_id, *, seconds, expected_version, daily_seconds, now):

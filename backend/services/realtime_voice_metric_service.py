@@ -150,7 +150,7 @@ EVENT_DIMENSIONS = {
     'voice.quota.transaction_conflict': {'reason':frozenset({'checkpoint','balance','database'})},
     'voice.provider.session': {'operation':frozenset({'connect','finish'}),'result':frozenset({'attempt','success','failure','cancelled'})},
     'voice.provider.start': {'result':frozenset({'attempt','success','failure','cancelled'})},
-    'voice.provider.error': {'reason':frozenset({'invalid_config','credential_missing','authentication_failed','timeout','upstream_unavailable','protocol_error','evidence_invalid'})},
+    'voice.provider.error': {'reason':frozenset({'invalid_config','credential_missing','authentication_failed','timeout','upstream_unavailable','protocol_error','evidence_invalid','quota_exceeded'})},
     'voice.provider.usage': {'result':frozenset({'received','missing','invalid','late'})},
     'voice.provider.capability': {'capability':frozenset({'supports_reply_cancel','supports_context_truncate','supports_current_turn_rag_gate','supports_session_reconnect','supports_playback_text_mapping','supports_sentence_playback_ack'}),'result':frozenset({'enabled','downgraded','not_measurable'})},
     'voice.timeline.insert': {'status':frozenset({'ended','missed'})},

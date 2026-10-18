@@ -68,7 +68,7 @@
       <p id="vt-vector-version" class="vt-hint"></p>
       <div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>召回路</th><th>Dense TopK（1–50）</th><th>BM25 TopK（1–50）</th><th>Final TopK（1–50）</th></tr></thead><tbody id="vt-route-rows"></tbody></table></div>
       <h3 class="mt-16">正常重排门槛</h3>
-      <p class="vt-hint">gte-rerank-v2 分值范围 0–1；仅正常完整重排结果应用门槛。降级融合不使用此门槛。</p>
+      <p class="vt-hint">rerank 模型分值范围 0–1；仅正常完整重排结果应用门槛。降级融合不使用此门槛。</p>
       <div id="vt-rerank-fields" class="vt-token-grid"></div>
       <details class="mt-16"><summary>旧版参数审计（已停用，只读）</summary>
         <div class="vt-form-row"><div class="form-item"><label>旧 TopK</label><input id="vt-top-k" class="form-control" readonly aria-readonly="true"></div>

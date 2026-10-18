@@ -50,6 +50,7 @@ _FAILURE_CATEGORIES = frozenset(
         "invalid_config",
         "credential_missing",
         "authentication_failed",
+        "quota_exceeded",
         "timeout",
         "upstream_unavailable",
         "protocol_error",
