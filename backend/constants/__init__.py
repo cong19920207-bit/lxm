@@ -373,3 +373,6 @@ ADMIN_ERROR_MESSAGES = {
     ADMIN_ERR_VOICE_CONFIG_PUBLISH_FAILED: "语音配置发布失败，数据库与缓存已回滚",
     ADMIN_ERR_VOICE_CONFIG_PERSONA_REQUIRED: "初始化语音配置前必须存在已发布人格",
 }
+
+from backend.constants.bgm import BGM_ERROR_MESSAGES
+ADMIN_ERROR_MESSAGES.update(BGM_ERROR_MESSAGES)

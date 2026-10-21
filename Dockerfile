@@ -12,6 +12,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     && apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖（国内构建常用清华 PyPI 镜像，避免访问 pypi.org / files.pythonhosted.org 超时）

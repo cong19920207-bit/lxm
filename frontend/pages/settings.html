@@ -483,6 +483,7 @@
       background: rgba(124, 58, 237, 0.06);
     }
   </style>
+  <link rel="stylesheet" href="/static/css/bgm.css">
 </head>
 <body class="h5-skin settings-soft-page">
   <div class="top-bar">
@@ -650,6 +651,31 @@
       </div>
     </div>
 
+    <p class="settings-section-label">音乐与陪伴</p>
+    <div class="settings-soft-card" id="settings-bgm-section">
+      <div class="settings-item">
+        <div class="settings-item-body">
+          <div class="settings-item-title" id="bgm-autoplay-title">下次打开时自动播放 BGM</div>
+          <div class="settings-item-desc" id="bgm-autoplay-desc">仅影响新访问；本次可在唱片中暂停</div>
+          <div class="settings-item-desc settings-preference-note" id="bgm-autoplay-note" aria-live="polite"></div>
+        </div>
+        <div class="settings-item-action">
+          <button type="button" class="toggle-switch active" role="switch" aria-checked="true" aria-labelledby="bgm-autoplay-title" aria-describedby="bgm-autoplay-desc bgm-autoplay-note" data-bgm-preference="autoplayEnabled" data-note="bgm-autoplay-note"></button>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-body">
+          <div class="settings-item-title" id="bgm-fade-title">音乐淡入淡出</div>
+          <div class="settings-item-desc" id="bgm-fade-desc">在开始、暂停和切换时，让声音自然过渡</div>
+          <div class="settings-item-desc settings-preference-note" id="bgm-fade-note" aria-live="polite"></div>
+        </div>
+        <div class="settings-item-action">
+          <button type="button" class="toggle-switch active" role="switch" aria-checked="true" aria-labelledby="bgm-fade-title" aria-describedby="bgm-fade-desc bgm-fade-note" data-bgm-preference="fadeEnabled" data-note="bgm-fade-note"></button>
+        </div>
+      </div>
+    </div>
+    <p class="bgm-settings-local-note"><svg class="bgm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg><span>音乐设置仅保存在当前设备和浏览器，<br>登录、退出或切换账号都不会重置。</span></p>
+
     <!-- 关于林小梦 -->
     <p class="settings-section-label">关于林小梦</p>
     <div class="settings-soft-card">
@@ -686,15 +712,20 @@
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/home-preferences.js"></script>
+  <script src="/static/js/bgm-preferences.js"></script>
+  <script src="/static/js/bgm-settings.js"></script>
   <script>
     let aboutLoaded = false
-    let settingsAuthMode = localStorage.getItem('token') ? 'authenticated' : 'visitor'
+    function settingsToken() {
+      try { return localStorage.getItem('token') } catch (_) { return null }
+    }
+    let settingsAuthMode = settingsToken() ? 'authenticated' : 'visitor'
     let settingsRestorePromise = null
     const settingsMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
     let settingsTiltEpoch = 0, settingsTiltPending = false
 
     function isSettingsAuthenticated() {
-      return settingsAuthMode === 'authenticated' && Boolean(localStorage.getItem('token'))
+      return settingsAuthMode === 'authenticated' && Boolean(settingsToken())
     }
 
     function settingsSilentAuthOptions() {
@@ -1070,5 +1101,17 @@
       renderVisitorSettings()
     }
   </script>
+  <script src="/static/js/bgm-output.js"></script>
+  <script src="/static/js/bgm-controller.js"></script>
+  <script src="/static/js/bgm-catalog.js"></script>
+  <script src="/static/js/bgm-player.js"></script>
+  <script src="/static/js/bgm-session.js"></script>
+  <script src="/static/js/bgm-ducking.js"></script>
+  <script src="/static/js/bgm-media.js"></script>
+  <script src="/static/js/bgm-preparation.js"></script>
+  <script src="/static/js/bgm-page.js"></script>
+  <script src="/static/js/bgm-record.js"></script>
+  <script src="/static/js/bgm-bubble.js"></script>
+  <script>window.BgmPage?.mount({ mode: 'content' })</script>
 </body>
 </html>

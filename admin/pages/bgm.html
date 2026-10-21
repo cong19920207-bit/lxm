@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BGM 管理 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/bgm-admin.css">
+  <script src="/admin/static/js/admin-api.js" defer></script>
+  <script src="/admin/static/js/bgm-upload-admin.js" defer></script>
+  <script src="/admin/static/js/bgm-directory-admin.js" defer></script>
+  <script src="/admin/static/js/bgm-cover-admin.js" defer></script>
+  <script src="/admin/static/js/bgm-cleanup-admin.js" defer></script>
+  <script src="/admin/static/js/bgm-admin.js" defer></script>
+</head>
+<body class="bgm-admin">
+<svg class="bgm-svg-defs" aria-hidden="true"><defs><symbol id="bgm-i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="5.5" cy="18" rx="3.5" ry="3"/><ellipse cx="17.5" cy="16" rx="3.5" ry="3"/></symbol><symbol id="bgm-i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" fill="currentColor" stroke="none"/></symbol><symbol id="bgm-i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="3"/></symbol><symbol id="bgm-i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="bgm-i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9z"/></symbol><symbol id="bgm-i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol><symbol id="bgm-i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol><symbol id="bgm-i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="bgm-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="bgm-i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></symbol><symbol id="bgm-i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol><symbol id="bgm-i-refresh" viewBox="0 0 24 24"><path d="M20 8a8.5 8.5 0 1 0 .5 7M20 3v5h-5"/></symbol><symbol id="bgm-i-arrow" viewBox="0 0 24 24"><path d="M5 19 19 5M6 5h13v13"/></symbol><symbol id="bgm-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol><symbol id="bgm-i-file" viewBox="0 0 24 24"><path d="M14 2H5v20h15V8ZM14 2v6h6M9 14v4m0-3 6-1v3"/></symbol></defs></svg>
+  <button type="button" id="bgm-nav-toggle" class="btn" aria-controls="sidebar-mount" aria-expanded="false">导航</button>
+  <div id="sidebar-mount"></div>
+  <div class="admin-content" id="bgm-content" hidden>
+    <div id="header-mount"></div>
+    <main class="bgm-library">
+      <header class="bgm-heading"><div><p class="bgm-eyebrow">MUSIC &amp; AMBIENCE</p><h1>BGM 管理<span class="bgm-heading-badge">全局歌单</span></h1><p>管理每一段陪伴的旋律，让音乐在合适的时候响起。</p></div><a href="/pages/index.html" target="_blank" rel="noopener" class="btn btn-default">查看前台体验<svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-arrow"/></svg></a></header>
+      <div class="bgm-overview">
+        <section class="bgm-ambience"><span class="bgm-pill">全局音乐库</span><h2>给日常，一点温柔的底色。</h2><p>一个歌单，连接每一个相伴的时刻。<br>上传、试听，再把喜欢的旋律交给小梦。</p><div class="bgm-default-summary"><span class="bgm-mini-record"></span>当前默认 <strong id="bgm-default-name">—</strong><span id="bgm-enabled-note">— 首正在启用</span></div><span class="bgm-vinyl-art" aria-hidden="true"></span></section>
+        <section class="bgm-summary" aria-label="音乐库概览"><div>音乐库概览<svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-music"/></svg></div><div class="bgm-summary-numbers"><div><strong id="bgm-summary-total">—</strong><span>全部音乐</span></div><div><strong id="bgm-summary-enabled">—</strong><span>已启用</span></div></div><footer>目录版本 <b id="bgm-catalog-version">—</b><span id="bgm-summary-pending">— 首待启用</span></footer></section>
+      </div>
+      <p id="bgm-read-only" hidden>观察者模式：可查看、预览和试听音乐，管理操作仅对管理员开放。</p>
+      <div class="bgm-recovery-actions"><button id="bgm-directory-pending" class="btn" type="button" data-write-action hidden>核对待确认的歌单操作</button><button id="bgm-cleanup-pending" class="btn" type="button" hidden>核对待确认的清理操作</button><button id="bgm-cover-pending" class="btn" type="button" hidden>核对待确认的封面操作</button></div>
+      <section class="bgm-library-card">
+        <header class="bgm-library-heading"><div><h2>音乐素材 <span id="bgm-count" class="bgm-count">— 首音乐</span></h2><p>处理就绪后需试听并手动启用，才会出现在用户端歌单。</p></div><button id="bgm-upload-open" class="btn btn-primary" type="button" data-write-action><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-plus"/></svg>上传音乐</button></header>
+        <form id="bgm-filters" class="bgm-toolbar">
+          <div class="bgm-filter-tabs" role="tablist" aria-label="音乐状态筛选"><button type="button" role="tab" data-filter="all" aria-selected="true" tabindex="0">全部 <span id="bgm-filter-count-all">—</span></button><button type="button" role="tab" data-filter="enabled" aria-selected="false" tabindex="-1">已启用 <span id="bgm-filter-count-enabled">—</span></button><button type="button" role="tab" data-filter="hidden" aria-selected="false" tabindex="-1">未启用 <span id="bgm-filter-count-hidden">—</span></button><button type="button" role="tab" data-filter="failed" aria-selected="false" tabindex="-1">处理失败 <span id="bgm-filter-count-failed">—</span></button></div>
+          <label class="bgm-search-box"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-search"/></svg><input id="bgm-search" name="search" maxlength="60" placeholder="搜索音乐名称" aria-label="搜索音乐名称" autocomplete="off"></label>
+          <label class="bgm-state-filter"><span class="bgm-sr-only">处理状态</span><select id="bgm-state" name="state"><option value="">全部处理状态</option><option value="receiving">接收中</option><option value="processing">处理中</option><option value="ready">已就绪</option><option value="failed">处理失败</option><option value="deleting">删除中</option><option value="delete_failed">删除失败</option></select></label>
+          <button class="bgm-icon-button" type="submit" aria-label="查询音乐"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-search"/></svg></button><button class="bgm-icon-button" type="button" id="bgm-refresh" aria-label="刷新音乐库"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-refresh"/></svg></button>
+        </form>
+        <p id="bgm-status" class="bgm-list-status" role="status" aria-live="polite">正在读取音乐库…</p><p id="bgm-error" role="alert" hidden></p>
+        <div class="bgm-table-wrap"><table class="bgm-table"><thead><tr><th scope="col">音乐名称</th><th scope="col">处理状态</th><th scope="col">启用状态</th><th scope="col">默认</th><th scope="col">顺序</th><th scope="col">音频信息</th><th scope="col">可删除时间</th><th scope="col">操作</th></tr></thead><tbody id="bgm-tracks"></tbody></table></div>
+        <div id="bgm-empty" class="bgm-empty" hidden><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-music"/></svg><h3>还没有符合条件的音乐</h3><p>试试其他筛选，或上传一段新的旋律。</p></div>
+        <footer class="bgm-table-footer"><span>默认曲目将用于新访问</span><button id="bgm-order-open" class="btn" type="button" data-write-action>调整完整歌单</button><div class="bgm-pagination"><button class="bgm-icon-button" id="bgm-prev" type="button" aria-label="上一页" disabled>‹</button><span id="bgm-page">第 1 页</span><button class="bgm-icon-button" id="bgm-next" type="button" aria-label="下一页" disabled>›</button></div></footer>
+      </section>
+      <details class="bgm-operation"><summary>核对操作结果</summary><form id="bgm-operation-form"><label>操作标识<input id="bgm-operation-id" maxlength="36" required placeholder="输入原操作标识" autocomplete="off"></label><button class="btn" type="submit">查询结果</button></form><p id="bgm-operation-result" role="status" aria-live="polite"></p></details>
+      <p class="bgm-time-note">隐藏后满足等待期才可手动删除；从未发布的曲目无需等待。时间以北京时间（UTC+8）显示，实际资格由服务端核对。</p>
+    </main>
+  </div>
+  <audio id="bgm-preview" preload="none" hidden></audio>
+  <section id="bgm-preview-player" class="bgm-preview-player" aria-label="音乐试听" hidden><button type="button" id="bgm-preview-toggle" class="bgm-preview-toggle" aria-label="暂停试听"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-pause"/></svg></button><div class="bgm-preview-copy"><strong id="bgm-preview-title"></strong><span id="bgm-preview-status" role="status">正在试听</span></div><output id="bgm-preview-time">00:00</output><button type="button" id="bgm-preview-close" class="bgm-icon-button" aria-label="关闭试听"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-close"/></svg></button></section>
+  <div id="bgm-row-menu" class="bgm-row-menu" role="menu" aria-label="曲目操作" hidden></div>
+  <dialog id="bgm-detail"><div class="bgm-detail-heading"><h2>音乐详情</h2><button class="btn" id="bgm-detail-close" type="button">关闭</button></div><div id="bgm-detail-body"></div></dialog>
+  <dialog id="bgm-upload" aria-labelledby="bgm-upload-title"><div class="bgm-detail-heading"><div><p class="bgm-eyebrow">ADD A NEW MELODY</p><h2 id="bgm-upload-title">上传音乐</h2></div><button class="bgm-icon-button" id="bgm-upload-close" type="button" aria-label="关闭上传面板"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-close"/></svg></button></div>
+    <p>从一段旋律开始，为陪伴增添一点氛围。</p>
+    <label id="bgm-pending-label" hidden>待核对提交<select id="bgm-pending"></select></label>
+    <form id="bgm-upload-form" data-write-action>
+      <label>音乐名称 <input id="bgm-upload-name" required autocomplete="off" placeholder="例如：晚风来信"></label><div class="bgm-field-meta"><span>用于用户端展示</span><output id="bgm-upload-name-count">0 / 60</output></div>
+      <label id="bgm-upload-drop" class="bgm-drop-zone" for="bgm-upload-file" tabindex="0"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-upload"/></svg><strong>点击选择，或拖入音频文件</strong><span>MP3、M4A、AAC、WAV · 最大 100 MiB</span><span class="btn btn-default">选择文件</span><input id="bgm-upload-file" type="file" accept=".mp3,.m4a,.aac,.wav" required aria-label="音频文件"></label>
+      <div id="bgm-upload-file-card" class="bgm-file-card" hidden><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-file"/></svg><div><strong id="bgm-upload-file-name"></strong><span id="bgm-upload-file-size"></span></div><button type="button" id="bgm-upload-file-remove" class="bgm-icon-button" aria-label="移除所选音频"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-close"/></svg></button></div>
+      <section class="bgm-upload-cover-section"><h3>歌曲封面 <span class="bgm-heading-badge">可选</span></h3><div class="bgm-upload-cover-picker"><div id="bgm-upload-cover-preview" class="bgm-cover-preview"></div><div><label class="btn btn-default bgm-file-label">选择封面<input id="bgm-upload-cover-file" type="file" accept=".jpg,.jpeg,.png,.webp" aria-label="选填歌曲封面"></label><button type="button" id="bgm-upload-cover-remove" class="btn" hidden>移除所选封面</button></div></div><p id="bgm-upload-cover-note">不选择时使用通用黑胶；无图也能启用。</p><small>静态 JPG、PNG、WebP；不超过 5 MiB，长边不超过 4096 像素。居中圆形预览。</small></section>
+      <p class="bgm-upload-rules">音频时长大于 0 且不超过 300 秒；处理为 AAC-LC / M4A。就绪后需试听并手动启用。</p>
+      <div id="bgm-upload-progress" role="status" class="bgm-upload-progress" hidden></div>
+      <footer class="bgm-upload-footer"><button id="bgm-upload-submit" class="btn btn-primary" type="submit"><svg class="bgm-icon" aria-hidden="true"><use href="#bgm-i-upload"/></svg>上传并处理</button></footer>
+    </form>
+    <p id="bgm-upload-status" role="status" aria-live="polite"></p><p id="bgm-upload-operation"></p><button id="bgm-upload-check" class="btn" type="button" hidden>核对原操作结果</button><button id="bgm-upload-cover" class="btn" type="button" data-write-action hidden>选填封面</button>
+  </dialog>
+  <dialog id="bgm-cover"><div class="bgm-detail-heading"><h2 id="bgm-cover-title">音乐封面</h2><button id="bgm-cover-close" class="btn" type="button">关闭</button></div>
+    <p>封面可选。已启用音乐可直接换图，不影响音频或启用状态。</p><p id="bgm-cover-versions"></p>
+    <div class="bgm-cover-comparison"><figure><div id="bgm-cover-saved" class="bgm-cover-preview"></div><figcaption>当前已保存</figcaption></figure><figure id="bgm-cover-candidate-group" hidden><div id="bgm-cover-candidate" class="bgm-cover-preview"></div><figcaption>本次预览 · 尚未保存</figcaption></figure></div>
+    <div id="bgm-cover-write" data-write-action><form id="bgm-cover-form"><label>选择静态图片<input id="bgm-cover-file" type="file" accept=".jpg,.jpeg,.png,.webp"></label><p>不超过5 MiB，长边不超过4096像素。居中裁圆显示。</p><button id="bgm-cover-remove" class="btn" type="button">移除已保存封面</button><button id="bgm-cover-save" class="btn btn-primary" type="submit">保存封面</button></form></div>
+    <p id="bgm-cover-status" role="status" aria-live="polite"></p><p id="bgm-cover-operation"></p><button id="bgm-cover-check" class="btn" type="button" hidden>核对原操作结果</button><button id="bgm-cover-refresh" class="btn" type="button">刷新已保存信息</button>
+  </dialog>
+  <dialog id="bgm-edit"><div class="bgm-detail-heading"><h2 id="bgm-edit-title">管理歌单</h2><button id="bgm-edit-close" class="btn" type="button">关闭</button></div>
+    <form id="bgm-edit-form" data-write-action><div id="bgm-edit-fields"></div><button id="bgm-edit-submit" class="btn btn-primary" type="submit">保存</button></form>
+    <p id="bgm-edit-status" role="status" aria-live="polite"></p><p id="bgm-edit-operation"></p>
+    <button id="bgm-edit-check" class="btn" type="button" hidden>核对原操作结果</button><button id="bgm-edit-replay" class="btn" type="button" data-write-action hidden>原标识原内容重发</button>
+  </dialog>
+  <dialog id="bgm-cleanup"><div class="bgm-detail-heading"><h2 id="bgm-cleanup-title">资产与清理</h2><button id="bgm-cleanup-close" class="btn" type="button">关闭</button></div>
+    <button id="bgm-cleanup-refresh" class="btn" type="button">刷新资格与资源</button><p id="bgm-cleanup-times"></p><p id="bgm-cleanup-status" role="status" aria-live="polite"></p><p id="bgm-cleanup-operation"></p>
+    <ul id="bgm-cleanup-assets"></ul><div class="bgm-pagination"><button id="bgm-assets-prev" class="btn" type="button">上一页资源</button><span id="bgm-assets-page"></span><button id="bgm-assets-next" class="btn" type="button">下一页资源</button></div>
+    <button id="bgm-cleanup-delete" class="btn" type="button" data-write-action hidden>确认删除曲目及专属资源</button><button id="bgm-cleanup-retry" class="btn" type="button" data-write-action hidden>确认清理剩余资源</button>
+    <button id="bgm-cleanup-check" class="btn" type="button" hidden>核对原操作结果</button><button id="bgm-cleanup-replay" class="btn" type="button" data-write-action hidden>原标识原内容重发</button>
+  </dialog>
+</body>
+</html>

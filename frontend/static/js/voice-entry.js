@@ -51,7 +51,52 @@
     const base = typeof API_BASE === 'string' ? API_BASE : '';
     return location.hostname === 'localhost' && base === 'http://localhost:8000' ? '' : base;
   };
-  const releaseMic = () => { stream?.getTracks().forEach(track => track.stop()); stream = null; const previous = audio; audio = null; previous?.close().catch(() => {}); };
+  // Preparation owners survive hidden panels, pending browser prompts and unknown remote results.
+  // A late cleanup can retire only its own resources/call; other owners stay occupied.
+  const audioOwners = new Set();
+  let currentAudioOwner = null;
+  function notifyAudioOccupancy() {
+    window.dispatchEvent(new CustomEvent('voice:audio-occupancy', {detail:{occupied:audioOwners.size > 0}}));
+  }
+  function acquireAudioOwner(context) {
+    const owner = {context, transport:null, stream:null, pending:0, localClean:false,
+      closing:null, remoteClean:true, attemptKey:null, callId:null, released:false};
+    audioOwners.add(owner); currentAudioOwner = owner; notifyAudioOccupancy(); return owner;
+  }
+  function releaseAudioOwner(owner) {
+    if (!owner || owner.released || owner.pending || !owner.localClean || !owner.remoteClean) return;
+    owner.released = true; audioOwners.delete(owner);
+    if (currentAudioOwner === owner) currentAudioOwner = null;
+    notifyAudioOccupancy();
+  }
+  function cleanAudioOwner(owner) {
+    if (!owner) return;
+    const ownedStream = owner.stream; owner.stream = null;
+    ownedStream?.getTracks().forEach(track => track.stop());
+    if (stream === ownedStream) stream = null;
+    if (audio === owner.transport) audio = null;
+    if (!owner.closing) {
+      const close = () => owner.transport ? owner.transport.close() : owner.context?.close();
+      try { owner.closing = Promise.resolve(close()); }
+      catch (error) { owner.closing = Promise.reject(error); }
+      owner.closing.then(() => { owner.localClean = true; releaseAudioOwner(owner); }, () => {
+        // A rejected close is not cleanup evidence. Keep this owner conservative.
+      });
+    }
+    releaseAudioOwner(owner);
+  }
+  function bindAudioCall(pending, id) {
+    if (!id) return;
+    for (const owner of audioOwners) if (owner.attemptKey === pending.key) { owner.callId = id; owner.remoteClean = false; }
+  }
+  function finishAudioCall(id) {
+    if (!id) return;
+    for (const owner of [...audioOwners]) if (owner.callId === id) { owner.remoteClean = true; releaseAudioOwner(owner); }
+  }
+  const releaseMic = () => {
+    if (currentAudioOwner) cleanAudioOwner(currentAudioOwner);
+    else { stream?.getTracks().forEach(track => track.stop()); stream = null; const previous = audio; audio = null; previous?.close().catch(() => {}); }
+  };
   const sendFrame = frame => {
     if (!socket || socket.readyState !== window.WebSocket?.OPEN) throw new Error('通话连接已断开');
     socket.send(JSON.stringify({...frame, v: 1, seq: ++seq}));
@@ -157,6 +202,7 @@
     if (!id) return;
     const result = await http('/api/voice/calls/' + id + '/end', {method:'POST'});
     if (!result.response.ok || result.body.code !== 0 || result.body.data?.cleanup_pending !== false) throw new Error('结束待确认');
+    finishAudioCall(id);
   }
   function resolveKnownCall(canReconnect = false) {
     const id = callId, current = socket;
@@ -181,6 +227,7 @@
             (cleanupRequested && !data.has_connected && finalStates.includes(data.status))) {
           cleanupRequested = true;
           const ended = await http('/api/voice/calls/' + id + '/end?only_if_unconnected=true', {method: 'POST'});
+          if (ended.response.ok && ended.body.code === 0 && ended.body.data?.cleanup_pending === false) finishAudioCall(id);
           if (!isCurrent()) return;
           if (!ended.response.ok || ended.body.code !== 0 || ended.body.data?.cleanup_pending !== false) throw new Error('结束待确认');
           data = await readStatus();
@@ -302,6 +349,7 @@
   }
   function renderResult(data) {
     if (closed || cleanupUnconfirmed) return;
+    finishAudioCall(callId);
     terminalResultRun = null;
     clearCrisis();
     callFinished = true; endingRequest = false;
@@ -410,39 +458,60 @@
       blocked('browser_unsupported'); return;
     }
     const run = {}; permissionRun = run;
+    let context;
+    try { context = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (_) {
+      // Preserve the existing microphone-denied classification for constructor failures.
+      if (!closed && permissionRun === run) { permissionRun = null; acquireAudioOwner(null); blocked('microphone_denied'); }
+      return;
+    }
+    if (!context.audioWorklet || !window.VoiceAudioTransport || !window.AudioWorkletNode) {
+      try { await context.close(); } catch (_) {}
+      if (!closed && permissionRun === run) { permissionRun = null; blocked('browser_unsupported'); }
+      return;
+    }
+    if (closed || permissionRun !== run) { try { await context.close(); } catch (_) {} return; }
+    // All actual capability checks passed. The purpose explanation is now owned preparation.
+    const owner = acquireAudioOwner(context);
     let permission = 'prompt';
     try { permission = (await navigator.permissions?.query({name:'microphone'}))?.state || 'prompt'; }
     catch (_) { /* An unavailable Permissions API still needs the purpose explanation. */ }
-    if (closed || permissionRun !== run) return;
-    if (permission === 'granted') { permissionRun = null; return prepareCall(); }
+    if (closed || permissionRun !== run) { cleanAudioOwner(owner); return; }
+    if (permission === 'granted') { permissionRun = null; return prepareCall(owner); }
     if (permission === 'denied') { permissionRun = null; blocked('microphone_denied'); return; }
     show('打开麦克风，她才能听见你', '麦克风仅在通话中启用。通话会生成文字记录和摘要，用来延续聊天。', '允许麦克风', () => {
       if (closed || permissionRun !== run) return;
       permissionRun = null;
       show('准备通话', '正在请求麦克风权限…', '', null);
-      prepareCall();
+      prepareCall(owner);
     }, '先不打了', close);
   }
-  async function prepareCall() {
+  async function prepareCall(owner) {
+    owner.pending++;
     try {
-      const context = new (window.AudioContext || window.webkitAudioContext)();
-      if (!context.audioWorklet || !window.VoiceAudioTransport || !window.AudioWorkletNode) {
-        await context.close(); blocked('browser_unsupported'); return;
-      }
-      audio = new window.VoiceAudioTransport({context, send:sendFrame, onState:renderCallState});
-      await context.resume();
-      stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video: false});
-      if (closed) { releaseMic(); busy = false; return; }
-    } catch (_) { if (!closed) blocked('microphone_denied'); else busy = false; return; }
+      audio = owner.transport = new window.VoiceAudioTransport({context:owner.context, send:sendFrame, onState:renderCallState});
+      await owner.context.resume();
+      if (closed || currentAudioOwner !== owner) { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; return; }
+      const acquired = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video: false});
+      owner.stream = acquired;
+      if (closed || currentAudioOwner !== owner) { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; return; }
+      stream = acquired;
+    } catch (_) {
+      if (!closed && currentAudioOwner === owner) blocked('microphone_denied');
+      else { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; }
+      return;
+    } finally { owner.pending--; releaseAudioOwner(owner); }
     if (!attempt) {
       let device = localStorage.getItem('voice_device_id');
       if (!device || !/^[0-9a-f-]{36}$/.test(device)) { device = crypto.randomUUID(); localStorage.setItem('voice_device_id', device); }
       attempt = {key:crypto.randomUUID(), payload:{source:'home',device_id:device,browser_supported:true,microphone_granted:true}};
     }
-    const pending = attempt;
+    const pending = attempt; owner.attemptKey = pending.key; owner.remoteClean = false;
     show('正在呼叫林小梦', '正在连接…', '取消', close, '');
     try {
       const {response,body} = await http('/api/voice/calls', {method:'POST',headers:{'Idempotency-Key':pending.key},body:JSON.stringify(pending.payload)});
+      bindAudioCall(pending, body.data?.call_id);
+      if (!body.data?.call_id && (!response.ok || body.code !== 0) && (response.status < 500 || body.data?.block_reason)) { owner.remoteClean = true; releaseAudioOwner(owner); }
       if (closed) {
         if (body.data?.call_id) await endKnownCall(body.data.call_id).catch(() => {});
         if (attempt === pending) attempt = null;
@@ -488,5 +557,5 @@
     if (permissionRun) { permissionRun = null; busy = false; if (panel) panel.hidden = true; }
     terminalResultRun = null; clearCrisis(); closed = true; clearInterval(heartbeat); socket?.close(); releaseMic();
   });
-  window.VoiceEntry = Object.freeze({begin});
+  window.VoiceEntry = Object.freeze({begin, isAudioOccupied: () => audioOwners.size > 0});
 })();

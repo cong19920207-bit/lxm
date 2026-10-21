@@ -102,3 +102,4 @@ from backend.services import memory_business_guard as _memory_business_guard
 from backend.models.chat_lifecycle import ChatUserState, ChatGeneration, ChatSubmission, ChatSubmissionMessage, ChatMessageState, ChatGenerationMessage, ChatResendQuota, ChatLifecycleEffect
 
 from backend.models.memory_diagnostic import MemoryDiagnosticRun
+from backend.models.bgm import BgmTrack, BgmCatalog, BgmOperation, BgmAsset, BgmProcessingSlot

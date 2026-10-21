@@ -78,9 +78,12 @@ async def lifespan(app: FastAPI):
     diagnostic_service().start()
     from backend.services import memory_index_runtime
     memory_index_runtime.start()
+    from backend.services import bgm_runtime
+    bgm_runtime.start()
     try:
         yield
     finally:
+        await bgm_runtime.stop()
         await memory_index_runtime.stop()
         await diagnostic_service().stop()
         await chat_lifecycle_runtime.stop()
@@ -163,6 +166,11 @@ from backend.routers.admin import feed_comment_mgmt as admin_feed_comment  # noq
 from backend.routers.admin import agent_aware_mgmt as admin_agent_aware  # noqa: E402
 from backend.routers.admin import life_config_mgmt as admin_life_config  # noqa: E402
 from backend.routers.admin import voice_config as admin_voice_config  # noqa: E402
+from backend.routers.admin import bgm as admin_bgm
+
+app.include_router(admin_bgm.router, prefix='/api/admin/bgm', tags=['admin-bgm'])
+from backend.routers.bgm import router as bgm_public_router
+app.include_router(bgm_public_router)
 
 app.include_router(admin_auth.router,
     prefix="/api/admin/auth", tags=["admin-auth"])

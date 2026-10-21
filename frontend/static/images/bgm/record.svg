@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="disk"><stop stop-color="#4b3d58"/><stop offset=".4" stop-color="#17121e"/><stop offset="1" stop-color="#08060d"/></radialGradient>
+    <linearGradient id="label" x2="1" y2="1"><stop stop-color="#f0cee8"/><stop offset=".5" stop-color="#ba99d7"/><stop offset="1" stop-color="#e8b7d5"/></linearGradient>
+    <linearGradient id="shine" x2="1" y2="1"><stop stop-color="#ead0ff" stop-opacity=".55"/><stop offset="1" stop-color="#ead0ff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#disk)" stroke="#bba0ce" stroke-width="1.2"/>
+  <g fill="none" stroke="#735e83" stroke-opacity=".35" stroke-width=".7"><circle cx="60" cy="60" r="53"/><circle cx="60" cy="60" r="49"/><circle cx="60" cy="60" r="45"/><circle cx="60" cy="60" r="41"/><circle cx="60" cy="60" r="37"/><circle cx="60" cy="60" r="33"/></g>
+  <path d="M60 60 19 22A57 57 0 0 1 47 4Z" fill="url(#shine)"/>
+  <circle cx="60" cy="60" r="25" fill="url(#label)" stroke="#f3d7ec"/>
+  <path d="m48 51 2 4 5 1-5 2-2 5-2-5-5-2 5-1Z" fill="#805c93" opacity=".8"/>
+  <circle cx="60" cy="60" r="4" fill="#20162a" stroke="#f3d7f3" stroke-width="1.2"/>
+  <path d="m66 15 1 8" stroke="#f7ddf3" stroke-width="2" stroke-linecap="round"/>
+</svg>

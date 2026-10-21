@@ -100,6 +100,7 @@
    * 模块选项：与 backend 中 log_operation 的 module= 实际写入值一致（含 admin_config_service）。
    */
   var MODULE_OPTIONS = [
+    { value: 'bgm', label: '背景音乐 (bgm)' },
     { value: 'ai_config', label: 'ai_config' },
     { value: 'memory', label: 'memory' },
     { value: 'third_party', label: 'third_party' },
@@ -112,6 +113,21 @@
    * 操作类型选项：与 backend 中 log_operation 的 action= 实际写入值一致。
    */
   var ACTION_OPTIONS = [
+    { value: 'upload_audio', label: '上传音乐' },
+    { value: 'retry_audio', label: '重试音乐处理' },
+    { value: 'add_cover', label: '新增封面' },
+    { value: 'replace_cover', label: '替换封面' },
+    { value: 'remove_cover', label: '移除封面' },
+    { value: 'upload_cover', label: '封面上传（旧记录）' },
+    { value: 'rename', label: '音乐改名' },
+    { value: 'enable', label: '启用音乐' },
+    { value: 'hide', label: '隐藏音乐' },
+    { value: 'set_default', label: '设为默认音乐' },
+    { value: 'reorder', label: '音乐排序' },
+    { value: 'delete_track', label: '删除音乐及资源' },
+    { value: 'cleanup_retry', label: '清理剩余资源' },
+    { value: 'denied', label: '请求被拒绝' },
+    { value: 'failed', label: '请求执行失败' },
     { value: 'batch_delete', label: 'batch_delete' },
     { value: 'create', label: 'create' },
     { value: 'delete', label: 'delete' },

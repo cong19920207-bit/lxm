@@ -166,7 +166,10 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
   }
 
   if (isFile) {
-    // 文件上传：直接传 FormData，浏览器自动设置 Content-Type
+    // FormData retains its browser boundary; a raw Blob has an explicit MIME.
+    if (typeof Blob !== 'undefined' && data instanceof Blob) {
+      fetchOpts.headers['Content-Type'] = data.type || 'application/octet-stream';
+    }
     fetchOpts.body = data;
   } else if (data) {
     fetchOpts.headers['Content-Type'] = 'application/json';
@@ -179,12 +182,12 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
     if (resp.status === 401) {
       clearAdminToken();
       window.location.href = '/admin/pages/login.html';
-      return null;
+      return requestExtra && requestExtra.returnAuthError ? {code:401,message:'登录状态已失效，重新登录后请核对原操作结果。',data:null} : null;
     }
 
     if (resp.status === 403) {
       showToast('权限不足，无法执行此操作', 'error');
-      return null;
+      return requestExtra && requestExtra.returnAuthError ? {code:403,message:'权限已中断，请核对原操作结果；请勿重复创建音乐。',data:null} : null;
     }
 
     if (!resp.ok) {
@@ -360,6 +363,7 @@ var MENU_CONFIG = {
     { key: 'users',           label: '👥 用户管理',   href: 'users.html' },
     { key: 'report',          label: '📈 数据报表',   href: 'data-report.html' },
     { key: 'diary-history',   label: '📜 AI 日记历史', href: 'diary-history.html' },
+    { key: 'bgm',             label: '🎵 BGM 管理', href: 'bgm.html' },
     { key: 'persona',         label: '🎭 人格管理',   href: 'persona.html' },
     { key: 'voice-call-group', group: 'voice_call' },
     { key: 'chat-prompt-group', group: 'chat_prompt' },
@@ -384,6 +388,7 @@ var MENU_CONFIG = {
     { key: 'users',           label: '👥 用户管理',   href: 'users.html' },
     { key: 'report',          label: '📈 数据报表',   href: 'data-report.html' },
     { key: 'diary-history',   label: '📜 AI 日记历史', href: 'diary-history.html' },
+    { key: 'bgm',             label: '🎵 BGM 管理', href: 'bgm.html' },
     { key: 'voice-call-group', group: 'voice_call' },
     { key: 'life-feed-group', group: 'life_feed' },
     { key: 'operation-logs',  label: '🗒️ 操作日志',  href: 'operation-logs.html' }

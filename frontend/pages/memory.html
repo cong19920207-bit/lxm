@@ -516,6 +516,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/static/css/bgm.css">
 </head>
 <body class="h5-skin memory-nebula-page">
   <div class="nebula-top-fade" aria-hidden="true"></div>
@@ -604,5 +605,19 @@
   <script src="/static/js/vendor/three-line2.js?v=20260712-2"></script>
   <script src="/static/js/memory-connection-layer.js?v=20260712-2"></script>
   <script src="/static/js/memory-nebula.js?v=20260712-2"></script>
+  <script src="/static/js/home-preferences.js"></script>
+  <script src="/static/js/bgm-preferences.js"></script>
+  <script src="/static/js/bgm-output.js"></script>
+  <script src="/static/js/bgm-controller.js"></script>
+  <script src="/static/js/bgm-catalog.js"></script>
+  <script src="/static/js/bgm-player.js"></script>
+  <script src="/static/js/bgm-session.js"></script>
+  <script src="/static/js/bgm-ducking.js"></script>
+  <script src="/static/js/bgm-media.js"></script>
+  <script src="/static/js/bgm-preparation.js"></script>
+  <script src="/static/js/bgm-page.js"></script>
+  <script src="/static/js/bgm-record.js"></script>
+  <script src="/static/js/bgm-bubble.js"></script>
+  <script>window.BgmPage?.mount({ mode: 'content', authorized: () => typeof readAuthToken === 'function' && !!readAuthToken() && !protectedLoginRedirecting })</script>
 </body>
 </html>

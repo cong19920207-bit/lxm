@@ -99,6 +99,8 @@ async def get_current_admin(
     FastAPI依赖注入：验证Token并返回当前管理员用户对象。
     完成数据库实时状态与会话版本校验后，再执行 observer 方法级写总闸。
     """
+    if getattr(request.state, 'bgm_audit_enabled', False):
+        request.state.bgm_auth_db = db
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -129,6 +131,10 @@ async def get_current_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="管理员账号不存在",
         )
+    # Identity only: this does not bypass disabled/locked/revoked-session checks.
+    if getattr(request.state, 'bgm_audit_enabled', False):
+        request.state.bgm_audit_actor = dict(
+            id=admin_user.id, username=admin_user.username, role=admin_user.role)
     if not admin_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

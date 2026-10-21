@@ -54,7 +54,11 @@ services:
       PYTHONUNBUFFERED: "1"
       MYSQL_HOST: mysql
       REDIS_HOST: redis
+      # Keep owner-lock receipts across container replacement. Every local
+      # backend replica must use the same POSIX-lock-capable runtime volume.
+      BGM_TEMP_ROOT: /var/lib/lxm-bgm-runtime
     volumes:
+      - bgm_runtime:/var/lib/lxm-bgm-runtime
       # 管理后台静态与页面：本地改 admin/ 无需每次 rebuild（API 仍在 backend/ 镜像内）
       - ./admin:/app/admin:ro
       # H5 静态与页面：直连 :8000 或与 nginx 保持一致；朋友圈 feed.html / 参考图 base.png 等
@@ -82,3 +86,4 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  bgm_runtime:

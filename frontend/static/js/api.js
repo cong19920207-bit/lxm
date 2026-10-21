@@ -238,6 +238,7 @@ function redirectToHomeLogin() {
     return true
   }
 
+  if (typeof window !== 'undefined' && window.BgmPage) window.BgmPage.suspendAccess()
   if (typeof window.location.replace === 'function') {
     window.location.replace('/pages/index.html')
   } else {
