@@ -52,6 +52,9 @@ htmlcov/
 .tox/
 .hypothesis/
 
+# Generated immutable H5 candidates; build/activation tools own retention, never Git cleanup.
+/frontend/static/app-builds/
+
 # 数据库与缓存（本地数据，勿提交）
 *.db
 *.sqlite3

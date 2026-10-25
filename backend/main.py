@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from backend.appshell import H5StaticFiles, h5_response
 
 from backend.database import create_all_tables
 
@@ -246,7 +247,7 @@ app.include_router(realtime_voice.router)
 
 # 挂载静态资源目录
 app.mount("/static",
-          StaticFiles(directory="frontend/static"),
+          H5StaticFiles(directory="frontend/static"),
           name="h5_static")
 app.mount("/admin/static",
           StaticFiles(directory="admin/static"),
@@ -256,15 +257,12 @@ app.mount("/admin/static",
 # 用户端H5页面路由
 @app.get("/")
 async def h5_index():
-    return FileResponse("frontend/pages/login.html")
+    return h5_response()
 
 
 @app.get("/pages/{page_name}.html")
 async def h5_page(page_name: str):
-    path = f"frontend/pages/{page_name}.html"
-    if not os.path.exists(path):
-        return FileResponse("frontend/pages/login.html")
-    return FileResponse(path)
+    return h5_response(page_name)
 
 
 # 管理后台页面路由

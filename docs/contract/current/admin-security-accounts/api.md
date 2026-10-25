@@ -1,5 +1,8 @@
 # Admin Security Api
 
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 - 文档 ID：`contract-admin-security-api`
 - 权威状态：`canonical`
 - 功能范围：`admin-security-accounts`
@@ -21,6 +24,7 @@
 - **管理端页面**：`admin/pages/operation-logs.html`
   - 首屏：`DOMContentLoaded`（若文档已就绪则立即执行）触发 `loadLogs(1)`。
   - 筛选：`admin_username` 输入框；`module` / `action` 下拉的选项与当前仓库内所有 `log_operation(..., module=, action=)` 写入值一致（模块：`ai_config`、`memory`、`third_party`、`用户管理`、`账号管理`、`系统`；类型：`batch_delete`、`create`、`delete`、`edit`、`login`、`logout`、`publish`、`unlock`、`update_config`）；日期 `start_date` / `end_date`；搜索/重置调用 `loadLogs(1)`；**导出 Excel** 为 `POST /api/admin/operation-logs/export` + 当前筛选的 Query 串。
+  - BGM增量（2026-10-19）：模块增加`bgm`；动作增加`upload_audio/retry_audio/add_cover/replace_cover/remove_cover/rename/enable/hide/set_default/reorder/delete_track/cleanup_retry/denied/failed`，旧封面`upload_cover`保留筛选。既有列表/详情/导出接口和角色不变，审计载荷及事务边界见[BGM接口](../bgm/api.md)。
   - 列表：`page_size=20`，列 时间 / 操作人 / 操作模块 / 操作类型 / 操作描述 / 详情；操作类型 Tag：`publish`→`tag-success`，`delete` 与 `batch_delete`→`tag-error`，`rollback`→`tag-warning`（仅当库中仍存在该 `action` 的旧记录时可能见到），其余→`tag-default`。
   - 详情：`GET /api/admin/operation-logs/{id}`，Modal 宽 680px，展示操作人/模块/类型/时间/IP，修改前（`#fff2f0`）与修改后（`#f6ffed`）`<pre>` 对比，无数据展示「（无）」。
   - **说明**：`action` 筛选下拉的选项**仅包含**当前代码路径里 `log_operation(..., action=)` 的实际写入值，**不包含** `rollback`。人格/Prompt 等「回滚」接口经 `AdminConfigService.rollback_config` → `publish_config` 记日志时，`action` 为 **`publish`**（`target_description` 等可体现回滚语义）。
@@ -60,6 +64,7 @@
   - ——**`message_source === agent`**：`role` 固定 **`assistant`**，`emotion_*` 为 null，`persona_risk_flag` 固定 **false**，`delivery_status` / `skipped_in_prompt` 为 **null**，**`trigger_type`** 为 `agent_message.trigger_type`（如 `P0`…`P4`、`FUTURE`），**`is_read`** 为布尔。与 H5 **`GET /api/chat/timeline`**：`items[]` 中对话行对应 `source` 为 `user`/`assistant`，主动消息对应 `source: agent`；
   - 管理端使用字段名 **`message_source`** 而非 `source`，语义可对齐查阅。
 - **管理端详情页「历史对话」Tab（`admin/pages/user-detail.html`）**：列表渲染读取 **`message_source`**；**`agent`** 行展示 **`trigger_type`** 标签及 **`is_read === false`** 时的「未读」标签，气泡左侧条样式与主动消息区分。**日期筛选**：**`#conv-start-date` / `#conv-end-date`** 默认 **今天 −7 天 ~ 今天**（仅输入框为空时写入）；**「查询」**与首屏均走 **`loadConversationsInitial`**：先 **`page=1`** 取 **`total`**，再请求 **`page=ceil(total/page_size)`** 渲染（区间内**最新**一页）；列表上方 **「加载更早」** 请求 **`page=当前页−1`** 并 **prepend**（保留滚动位置）；接口侧仍为 **`sort_seq` 升序**分页。
+- 本页另消费state_origin/state_revision/processing_state/status_reason，保原分页/日期/气泡字段；success不证明设备送达、scope切换/迟到隔离/失败空态规则见[历史生命周期投影](#memory-admin-history-state)。
 - **GET** `/users/{user_id}/emotion-rounds` — 鉴权 **`super_admin` / `ops_admin`**（与 **`.../conversations`** 一致）。Query：`start_date`、`end_date`（见上文 **`admin_date_filter`**）、`page`、`page_size`（1–100）。用户不存在 → **`ADMIN_ERR_USER_NOT_FOUND`**。成功 `data`：`{ total, page, page_size, list[] }`；
   - **`list[]`**：`emotion_log_id`, `round_id`, `emotion_label`, `confidence`, `created_at`, `anchor_conversation_id`, `user_text`（同 `round_id` 下 **user 行按 `sort_seq` 升序**换行拼接）, `assistant_text`（同 `round_id` 下 **assistant 行按 `sort_seq` 升序遍历后的末条** `content`；多气泡轮次与 STEP-011 一致，非首条）。排序：**`emotion_log.created_at` 降序**（最新轮在前）。
   - **管理端详情页「情绪日志」Tab** 首屏**不传**日期（全量时间、降序第一页）。
@@ -72,6 +77,7 @@
     - **PUT** `/users/{user_id}/user-memories/{doc_id:path}` — Body `{value}`（仅改 value，`doc_id` 需 URL encode，服务端 `unquote`）。
     - **DELETE** `/users/{user_id}/user-memories/{doc_id:path}`。
   - **`private-settings`（type=`character_private`）**：路径与字段同上，固定 `expected_type="character_private"`；页内说明「角色对该用户的私有设定，非用户自传事实」（§7.6）。
+- GET原cap不变，附当前generation/index_state/legacy_read_only；原分页/只读刷新、双态write_result与本人receipt、维护跳转见[历史与记忆投影](#memory-admin-history-state)，不新增目录或诊断角色。
 - **PUT** `/users/{user_id}/status` — Body `{ "action": "ban"|"unban" }`
 - **POST** `/users/{user_id}/reset-password` — `data.new_password`
 - **GET** `/voice/users/{user_id}/quota` — `super_admin` / `ops_admin` / `observer` 只读；返回当前上海日期、当前生效的每日免费秒数、今日免费剩余、额外剩余、总剩余和账户 `version`。无账户时只读返回免费余额和版本 0。
@@ -82,3 +88,19 @@
 - **状态**：已实现
 
 ---
+
+---
+
+<a id="memory-implementation-boundary"></a>
+### 本轮实现与环境边界
+
+本节记载工作区已实现、在自有隔离环境验证的增量。2026-10-13本地Docker业务环境`local-docker:lxmfor`已完成S15并开放epoch2，运行于新库`local_test_collection`；旧库和旧隔离分区已退役且不复用名称。实际验证及版本见唯一STEP §3.39。M8 的 cg=0.18/user=0.15 是隔离评测候选，共享默认仍为0.1；内置 System 修复不覆盖合法 active/draft/显式 override。AC19/AC20 原失败和未齐质量对照按最新用户决定作为本阶段非阻断风险保留，不能据功能通过宣称质量全通过。最终 M8/GATE-D 与实际部署状态见唯一 STEP §3。
+
+<a id="memory-admin-history-state"></a>
+### 后台历史生命周期状态与用户记忆分页
+
+原用户历史GET继续user/date/page/sort_seq升序、conversation/agent旧字段及identity。014有效wire新增 `state_origin=lifecycle/legacy/unavailable`、`state_revision`十进制字符串、`processing_state/status_reason`；success只证明保存成功，不证明设备送达；unknown待核实、superseded旧执行替代、legacy旧记录，不由旧时间猜新身份。管理气泡key为message_source:id，和H5同修订来源对照；日期首屏最新页与加载更早保持。
+
+查询scope(user/date)变更立即清旧正文，序号拒旧响应；同scope读失败可保原结果但标过期，空态和失败分开；仍手动GET、不新增后台轮询或生成写。新生命周期canonical见[文字API](../chat-emotion/api.md)，这里仅后台消费投影。
+
+原user/private详情CRUD角色、doc_id/type+user_suffix双隔离、value-only与500候选cap不变，GET补generation/index_state/legacy_read_only。页面上一页/下一页/只读刷新，初始page_size100，筛选新scope回page1、查询序号拒迟到，读取失败不冒空；删后超末页只GET回末页。total明确cap内非全库，observerGET可用。写操作原成功对象附source/index双态、原本人receipt/maintenance跳转，见[记忆写回执](../memory-knowledge/api.md#memory-write-receipts)，不扩大目录角色或新诊断角色。

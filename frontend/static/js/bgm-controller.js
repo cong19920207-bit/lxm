@@ -182,7 +182,7 @@
       const track = catalog.tracks.find(t => t.id === id)
       if (destroyed || !track || (closed && (!manual || source !== 'home-list' || blockers.size))) return false
       if (manual) preferences.write('lastSelectedTrackId', track.id)
-      const same = selected && selected.id === track.id && selected.media_version === track.media_version
+      const same = selected && selected.id === track.id && selected.media_version === track.media_version && selected.audio_url === track.audio_url
       if (closed) closed = false
       if (manual && source === 'home-list') { recoveryRequired = false; failure = null }
       if (resume && (manual || intent === 'play')) intent = 'play'

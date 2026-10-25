@@ -1,0 +1,74 @@
+/* Logout has its own soft presentation; other confirmations retain their skin. */
+.modal-overlay.logout-confirm-overlay {
+  align-items: flex-end;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: #281b373b;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.logout-confirm-overlay .modal-box.logout-confirm-panel {
+  --logout-text: #302839;
+  --logout-muted: #817789;
+  --logout-line: #ece6f2;
+  --logout-wash: #f2edf8;
+  --logout-purple: #8865a7;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 366px;
+  max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 28px 24px 23px;
+  border: 1px solid #fff;
+  border-radius: 27px;
+  background: #fff;
+  color: var(--logout-text);
+  box-shadow: 0 12px 45px #2d1c3e16;
+  text-align: left;
+  animation: logout-panel-enter .22s ease-out;
+}
+.logout-confirm-panel::before {
+  content: ''; position: absolute; z-index: -1; inset: 0 0 auto; height: 130px;
+  border-radius: 27px 27px 0 0;
+  background: linear-gradient(135deg, #fbf9fe, #fff 75%); pointer-events: none;
+}
+.logout-confirm-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.logout-confirm-symbol {
+  position: relative; display: grid; place-items: center; flex: 0 0 51px; width: 51px; height: 51px;
+  border: 1px solid var(--logout-line); border-radius: 17px;
+  background: linear-gradient(145deg, #fbf9fe, var(--logout-wash)); color: #785694;
+  box-shadow: inset 0 1px 0 #fff, 0 4px 12px #9675b312;
+}
+.logout-confirm-symbol::after {
+  content: ''; position: absolute; right: -3px; top: 5px; width: 6px; height: 6px;
+  box-sizing: content-box; border-radius: 50%; border: 2px solid #fff; background: #c8b1dd;
+}
+.logout-confirm-symbol svg { width: 25px; height: 25px; stroke-width: 1.5; }
+.logout-confirm-eyebrow { color: var(--logout-muted); font-size: 11px; line-height: 1.5; letter-spacing: .08em; margin-bottom: 3px; }
+.logout-confirm-panel .modal-title { font-size: 20px; line-height: 1.5; font-weight: 500; letter-spacing: -.02em; margin: 0; }
+.logout-confirm-panel .modal-content { color: var(--logout-muted); font-size: 13px; line-height: 1.85; white-space: pre-line; margin: 0 0 19px; }
+.logout-confirm-kept { background: #f7f6fa; padding: 14px 13px; margin-bottom: 23px; border-radius: 15px; }
+.logout-confirm-kept-row { display: flex; align-items: center; gap: 9px; color: var(--logout-text); font-size: 12px; line-height: 1.65; }
+.logout-confirm-kept-row + .logout-confirm-kept-row { margin-top: 10px; }
+.logout-confirm-kept-icon { display: grid; place-items: center; flex: 0 0 23px; width: 23px; height: 23px; border-radius: 8px; background: var(--logout-wash); color: var(--logout-purple); }
+.logout-confirm-kept-icon svg { width: 14px; height: 14px; stroke-width: 1.6; }
+.logout-confirm-panel .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.logout-confirm-panel .modal-actions button { min-height: 47px; border: 0; border-radius: 13px; font-size: 14px; font-weight: 500; transition: filter .15s; }
+.logout-confirm-panel .modal-cancel { background: #f2eff6; color: var(--logout-text); }
+.logout-confirm-panel .modal-confirm.danger { background: #a95668; color: #fff; box-shadow: 0 3px 8px #a9566814; }
+.logout-confirm-panel .modal-actions button:active { filter: brightness(.95); }
+.logout-confirm-panel .modal-actions button:focus-visible { outline: 2px solid var(--logout-purple); outline-offset: 3px; }
+@keyframes logout-panel-enter { from { transform: translateY(12px); } to { transform: translateY(0); } }
+@media (max-width: 359px) {
+  .logout-confirm-overlay .modal-box.logout-confirm-panel { padding: 25px 19px 20px; }
+  .logout-confirm-heading { gap: 12px; }
+  .logout-confirm-panel .modal-title { font-size: 18px; }
+  .logout-confirm-symbol { flex-basis: 47px; width: 47px; height: 47px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay.logout-confirm-overlay, .logout-confirm-overlay .modal-box.logout-confirm-panel { animation: none; opacity: 1; }
+  .logout-confirm-panel .modal-actions button { transition: none; }
+}

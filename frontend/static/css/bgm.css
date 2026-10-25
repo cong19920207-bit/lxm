@@ -28,7 +28,9 @@
 .bgm-home-caption-text{box-sizing:border-box;display:inline-block;min-width:100%;padding:0 3px;white-space:nowrap}
 .bgm-home-caption.is-overflow{text-align:left;mask-image:linear-gradient(to right,transparent,#000 4px,#000 calc(100% - 4px),transparent)}
 .bgm-backdrop{position:fixed;inset:0;z-index:2100;background:#07051140;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.bgm-panel{position:fixed;z-index:2101;bottom:var(--bgm-keyboard-inset,0px);left:50%;width:min(560px,100%);height:min(460px,48dvh);min-height:min(340px,calc(var(--bgm-viewport-height,100dvh) - 12px));max-height:calc(var(--bgm-viewport-height,100dvh) - 12px);box-sizing:border-box;transform:translateX(-50%);display:flex;flex-direction:column;padding:0 20px max(14px,env(safe-area-inset-bottom,0px));border:1px solid #e2cfef3b;border-bottom:0;border-radius:28px 28px 0 0;color:#eee5f4;background:radial-gradient(ellipse at 4% 0%,#c49bcc21,transparent 52%),radial-gradient(ellipse at 100% 100%,#9073ba1a,transparent 56%),linear-gradient(155deg,#42384dd1,#1f1c2ae3 62%,#252030db);backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%);box-shadow:0 -16px 44px #0003,inset 0 1px 0 #fff5ff1f,inset 0 0 0 1px #fff5ff06;overscroll-behavior:contain;font-family:inherit;overflow-y:auto;isolation:isolate}
+/* Content determines the sheet height; reserve song space before flex shrink.
+   Browser chrome/safe areas must not squeeze two songs into a single-row slot. */
+.bgm-panel{position:fixed;z-index:2101;bottom:var(--bgm-keyboard-inset,0px);left:50%;width:min(560px,100%);height:auto;min-height:min(340px,calc(var(--bgm-viewport-height,100dvh) - 12px));max-height:min(520px,calc(var(--bgm-viewport-height,100dvh) - 12px));box-sizing:border-box;transform:translateX(-50%);display:flex;flex-direction:column;padding:0 20px max(14px,env(safe-area-inset-bottom,0px));border:1px solid #e2cfef3b;border-bottom:0;border-radius:28px 28px 0 0;color:#eee5f4;background:radial-gradient(ellipse at 4% 0%,#c49bcc21,transparent 52%),radial-gradient(ellipse at 100% 100%,#9073ba1a,transparent 56%),linear-gradient(155deg,#42384dd1,#1f1c2ae3 62%,#252030db);backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%);box-shadow:0 -16px 44px #0003,inset 0 1px 0 #fff5ff1f,inset 0 0 0 1px #fff5ff06;overscroll-behavior:contain;font-family:inherit;overflow-y:auto;isolation:isolate}
 .bgm-panel::after{content:'';position:absolute;top:0;left:12%;width:62%;height:1px;border-radius:50%;background:linear-gradient(90deg,transparent,#ffeaff66,transparent);pointer-events:none}
 .bgm-backdrop[hidden],.bgm-panel[hidden]{display:none}
 .bgm-panel button{font-family:inherit;color:inherit;cursor:pointer}
@@ -52,7 +54,7 @@
 .bgm-next{display:grid;place-items:center;width:29px;height:34px;padding:0;border:0;border-radius:8px;background:#e6d1f406;box-shadow:inset 0 0 0 1px #ead2f80b}
 .bgm-next .bgm-icon{width:18px;height:18px}
 .bgm-list-heading{display:flex;justify-content:space-between;font-size:10px;color:#bba9c8;flex:0 0 auto;margin-bottom:7px}
-.bgm-track-list{margin:0;padding:0;list-style:none;flex:1 1 auto;min-height:44px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#76568966 transparent}
+.bgm-track-list{margin:0;padding:0;list-style:none;flex:1 1 auto;min-height:100px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#76568966 transparent}
 .bgm-track-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid transparent;border-radius:9px;padding:10px 9px;background:transparent;font-size:12px;line-height:1.5}
 .bgm-track-row[aria-pressed=true]{background:linear-gradient(105deg,#d7b1f11f,#d6b9eb09);border-color:#e4c4f71a;box-shadow:inset 0 1px 0 #ffeeff09}
 .bgm-track-number{width:17px;flex:0 0 17px;font:10px ui-monospace,monospace;color:#9b89ac;text-align:center}
@@ -64,11 +66,11 @@
 .bgm-inline-note{font-size:10px;line-height:1.5;color:#c7b3d3;margin:6px 0;flex:0 0 auto}
 .bgm-volume-row{display:flex;gap:10px;align-items:center;margin:12px 0 0;flex:0 0 auto;font-size:10px;color:#b49ac7}
 .bgm-volume-row>.bgm-icon{width:14px;height:14px}
-.bgm-volume-row input{--bgm-volume:30%;flex:1;min-width:0;height:24px;margin:0;appearance:none;-webkit-appearance:none;border:0;border-radius:10px;background:transparent;cursor:pointer}
-.bgm-volume-row input::-webkit-slider-runnable-track{height:3px;border-radius:10px;background:linear-gradient(to right,#b59acb var(--bgm-volume),#51425c var(--bgm-volume));box-shadow:0 1px 0 #f9e3ff09,0 0 7px #d0ace115}
-.bgm-volume-row input::-moz-range-track{height:3px;border-radius:10px;background:linear-gradient(to right,#b59acb var(--bgm-volume),#51425c var(--bgm-volume));box-shadow:0 1px 0 #f9e3ff09,0 0 7px #d0ace115}
-.bgm-volume-row input::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:10px;height:10px;margin-top:-3.5px;border:0;border-radius:50%;background:#e0c6ef;box-shadow:0 0 0 4px #dbb9ed0e,0 0 9px #dbb9ed26}
-.bgm-volume-row input::-moz-range-thumb{width:10px;height:10px;border:0;border-radius:50%;background:#e0c6ef;box-shadow:0 0 0 4px #dbb9ed0e,0 0 9px #dbb9ed26}
+.bgm-volume-row input{--bgm-volume:30%;flex:1;min-width:0;height:44px;margin:0;padding:0;appearance:none;-webkit-appearance:none;border:0;border-radius:10px;background:transparent;cursor:pointer;touch-action:none}
+.bgm-volume-row input::-webkit-slider-runnable-track{height:4px;border-radius:10px;background:linear-gradient(to right,#b59acb var(--bgm-volume),#51425c var(--bgm-volume));box-shadow:0 1px 0 #f9e3ff09,0 0 7px #d0ace115}
+.bgm-volume-row input::-moz-range-track{height:4px;border-radius:10px;background:linear-gradient(to right,#b59acb var(--bgm-volume),#51425c var(--bgm-volume));box-shadow:0 1px 0 #f9e3ff09,0 0 7px #d0ace115}
+.bgm-volume-row input::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;border:0;border-radius:50%;background:#e0c6ef;box-shadow:0 0 0 4px #dbb9ed0e,0 0 9px #dbb9ed26}
+.bgm-volume-row input::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#e0c6ef;box-shadow:0 0 0 4px #dbb9ed0e,0 0 9px #dbb9ed26}
 .bgm-volume-row output{min-width:30px;text-align:right}
 .bgm-volume-fallback{font-size:11px;color:#bca8c9;display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .bgm-volume-fallback button{background:transparent;border:1px solid #bba3cc66;border-radius:7px;padding:5px 9px}

@@ -1,0 +1,236 @@
+<div id="home-loading-screen" class="home-loading-screen" aria-live="polite" aria-busy="true">
+    <div class="home-loading-bg">
+      <img id="home-loading-hero" alt="" width="1024" height="1024">
+      <div class="home-loading-bg-grad"></div>
+      <div class="home-loading-vignette" aria-hidden="true"></div>
+      <div class="home-loading-glow" aria-hidden="true"></div>
+    </div>
+    <div class="home-loading-particles" id="home-loading-particles" aria-hidden="true"></div>
+    <div class="home-loading-brand">
+      <div class="loading-avatar-stack">
+        <span class="loading-avatar-glow" aria-hidden="true"></span>
+        <span class="loading-avatar-ripple" aria-hidden="true"></span>
+        <span class="loading-avatar-ripple loading-avatar-ripple--delay" aria-hidden="true"></span>
+        <span class="loading-avatar-ring" aria-hidden="true"></span>
+        <img id="loading-avatar"
+             src="/static/images/home-thumbnails/v2/loader_avatar.68494af2b4bf.jpg"
+             alt="林小梦"
+             width="96"
+             height="96">
+      </div>
+      <h1 class="home-loading-title">林小梦</h1>
+      <span class="home-loading-subtitle">正在靠近你的世界</span>
+    </div>
+    <div class="home-loading-footer">
+      <p id="home-loading-message">我在。别急。</p>
+      <div class="home-loading-bar" aria-hidden="true">
+        <div id="home-loading-bar-fill"></div>
+      </div>
+      <span id="home-loading-percent">0%</span>
+    </div>
+  </div>
+
+  <div class="page h5-home-page">
+    <div class="home-scene">
+      <template id="home-scene-markup">
+      <img class="home-scene-core home-scene-background" src="/static/images/home-scene/v4/background.c094490a4d8e.webp" alt="" width="853" height="1844">
+      <img class="home-scene-lamp" data-src="/static/images/home-scene/v4/lamp_glow.a1425ca6fb0a.webp" alt="" hidden>
+      <canvas class="home-scene-environment" aria-hidden="true"></canvas>
+      <div class="home-scene-position">
+        <div class="home-scene-parallax"><div class="home-scene-gesture"><div class="home-scene-breathe">
+          <img class="home-scene-core home-scene-character" src="/static/images/home-scene/v4/character.2816096f87aa.webp" alt="" width="853" height="1844">
+          <img class="home-scene-patch home-scene-hair-front" data-src="/static/images/home-scene/v4/hair_front_physics.584d824b1097.webp" alt="" hidden>
+          <img class="home-scene-patch home-scene-hair-side" data-src="/static/images/home-scene/v4/hair_side_physics.bdbce85d79df.webp" alt="" hidden>
+          <img class="home-scene-patch home-scene-hair-back" data-src="/static/images/home-scene/v4/hair_back_physics.5e44234c710b.webp" alt="" hidden>
+          <button class="home-scene-hit" type="button" aria-label="轻触林小梦" disabled></button>
+          <img class="home-scene-patch home-scene-blink" data-src="/static/images/home-scene/v4/blink_crop.33f4a94e6931.webp" alt="" hidden>
+        </div></div></div>
+      </div>
+      </template>
+    </div>
+
+
+    <section class="home-hero" aria-label="林小梦">
+      <span class="home-good-night" id="good-night" aria-hidden="true">Good night</span>
+
+      <div class="top-bar home-top-bar home-enter-item" style="--enter-delay: 0.1s">
+        <div class="bar-left home-top-left">
+          <img id="linxiaomeng-avatar"
+               src="/static/images/home-thumbnails/v2/default.0d3cb97c2162.webp"
+               alt="林小梦，点击进入设置"
+               width="42"
+               height="42"
+               role="button"
+               tabindex="0"
+               data-home-action="settings">
+          <div class="home-top-meta">
+            <div class="home-top-identity">
+              <span class="home-top-name">林小梦</span>
+              <svg class="home-top-heart" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <span class="home-known-days" id="known-days">陪伴你的第 — 天</span>
+          </div>
+        </div>
+        <div class="bar-right">
+          <button type="button" class="home-intimacy-pill" data-home-action="relationship" aria-label="关系状态，点击进入关系页">
+            <span class="home-intimacy-label">
+              <svg class="home-intimacy-heart" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <span id="relationship-level-name">—</span>
+            </span>
+            <div class="home-intimacy-progress-row">
+              <div class="progress-bar home-intimacy-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+              <span class="home-intimacy-value" id="progress-info">—</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="home-hero-float home-enter-item" style="--enter-delay: 0.18s">
+        <div class="home-hero-clock" aria-live="polite">
+          <span class="home-clock-time" id="beijing-time">00<span class="home-clock-colon">:</span>00</span>
+          <span class="home-clock-period-wrap">
+            <svg class="home-clock-moon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+            </svg>
+            <span class="home-clock-period" id="beijing-period">深夜</span>
+          </span>
+        </div>
+
+        <div class="home-hero-info">
+          <div class="home-status-bubble" aria-live="polite">
+            <p class="status-text" id="status-text">正在连接...</p>
+          </div>
+        </div>
+
+        <div class="home-waveform" aria-hidden="true">
+          <span class="home-waveform-bar"></span>
+          <span class="home-waveform-bar"></span>
+          <span class="home-waveform-bar"></span>
+          <span class="home-waveform-bar"></span>
+          <span class="home-waveform-bar"></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="main-content h5-home-main" id="main-content">
+      <div class="skeleton-wrap">
+        <div class="skeleton skeleton-quick-bar"></div>
+        <div class="skeleton-card-stack">
+          <div class="skeleton skeleton-preview-card" style="height:120px"></div>
+          <div class="skeleton skeleton-preview-card"></div>
+        </div>
+      </div>
+
+      <div class="home-real-content">
+        <div class="home-quick-actions-wrap home-glass-card home-enter-item" style="--enter-delay: 0.26s">
+          <div class="home-quick-actions" role="toolbar" aria-label="快捷互动">
+            <button type="button" class="home-quick-btn" data-home-action="quick-voice">
+              <span class="home-quick-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </span>
+              <span>语音通话</span>
+            </button>
+            <button type="button" class="home-quick-btn" data-home-action="quick-video">
+              <span class="home-quick-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </span>
+              <span>视频通话</span>
+            </button>
+            <button type="button" class="home-quick-btn" data-home-action="quick-memory">
+              <span class="home-quick-icon" aria-hidden="true">
+                <img src="/static/images/chat/icon-memory-nebula.png" alt="">
+              </span>
+              <span>记忆星云</span>
+            </button>
+            <button type="button" class="home-quick-btn" data-home-action="quick-sleep">
+              <span class="home-quick-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+              </span>
+              <span>陪我入睡</span>
+            </button>
+            <div class="home-quick-btn bgm-home-entry" id="bgm-home-entry">
+              <span class="bgm-home-slot" id="bgm-home-slot"></span>
+              <span class="bgm-home-caption" id="bgm-home-caption"><span class="bgm-home-caption-text">BGM</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-cards-scroll">
+          <article class="home-preview-card home-glass-card home-feed-card home-feed-card--rich home-enter-item" style="--enter-delay: 0.34s" role="button" tabindex="0" id="feed-entry-card" data-home-action="feed">
+            <div class="home-feed-main">
+              <div class="home-feed-left">
+                <div class="home-feed-left-head">
+                  <div class="home-card-icon home-card-icon--feed" aria-hidden="true">
+                    <img src="/static/images/Index/home-feed-icon.png" alt="" width="44" height="44">
+                  </div>
+                  <div class="home-feed-head-text">
+                    <div class="home-card-title-row">
+                      <h3 class="home-card-title">朋友圈</h3>
+                      <span class="home-feed-reply-pill" id="feed-reply-pill" style="display:none">NEW · 0条新回复</span>
+                    </div>
+                    <p class="home-card-sub">看看她的日常分享</p>
+                    <p class="home-feed-updated" id="feed-updated"></p>
+                  </div>
+                </div>
+                <p class="home-feed-body" id="feed-preview-text"></p>
+              </div>
+              <div class="home-feed-thumbs" id="feed-thumbs" aria-hidden="true"></div>
+            </div>
+            <div class="home-feed-footer">
+              <p class="home-feed-footer-text" id="feed-footer-text">快来看看她分享了什么吧</p>
+              <span class="home-card-chevron" aria-hidden="true">›</span>
+            </div>
+          </article>
+
+          <article class="home-preview-card home-glass-card home-diary-card home-enter-item" style="--enter-delay: 0.42s" role="button" tabindex="0" data-home-action="diary">
+            <div class="home-card-icon home-card-icon--diary" aria-hidden="true">
+              <img src="/static/images/Index/home-diary-icon.png" alt="" width="44" height="44">
+            </div>
+            <div class="home-card-body">
+              <div class="home-card-title-row">
+                <h3 class="home-card-title">她的日记</h3>
+                <span class="home-card-badge" id="diary-new" style="display:none">NEW</span>
+              </div>
+              <p class="home-card-sub">记录她的心情和生活</p>
+            </div>
+            <div class="home-card-right">
+              <div class="home-card-right-text">
+                <p class="home-card-preview" id="diary-preview">今天记录点什么好呢...</p>
+                <div class="home-card-meta-row">
+                  <p class="home-card-meta" id="diary-time"></p>
+                  <span class="home-card-lock" id="diary-lock" style="display:none" aria-label="未解锁">🔒</span>
+                </div>
+              </div>
+              <div class="home-card-thumb">
+                <img src="/static/images/home-thumbnails/v2/diary_1.1ff65a5fb6c1.webp" alt="" loading="lazy">
+              </div>
+              <span class="home-card-chevron" aria-hidden="true">›</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="action-section home-enter-item" style="--enter-delay: 0.6s">
+          <div class="home-chat-btn-wrap">
+            <button class="btn-primary chat-btn home-cta-btn" type="button" data-home-action="chat">
+              <div class="home-cta-text">
+                <span>和她说说话吧</span>
+                <span class="home-cta-sub">她在等你哦</span>
+              </div>
+              <span class="home-cta-arrow">
+                <span id="unread-badge" class="unread-badge" style="display:none" aria-label="未读主动消息">0</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,128 @@
+<div class="top-bar page-back-bar">
+  <div class="bar-left">
+    <button class="page-back page-back--dark" type="button" data-settings-action="back" aria-label="返回">
+      <span class="page-back__surface" aria-hidden="true">
+        <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
+          <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+  <div class="bar-center">设置</div>
+  <div class="bar-right"></div>
+</div>
+
+<div class="settings-page-body">
+  <div class="profile-card">
+    <div class="profile-avatar-wrap"><img id="linxiaomeng-avatar" src="/static/images/avatar/default.png" alt="林小梦"></div>
+    <div class="profile-info">
+      <div class="profile-name-row"><span class="profile-name">林小梦</span><span class="profile-online-dot" aria-label="在线"></span></div>
+      <div class="profile-status-text" id="profile-status">正在连接...</div>
+    </div>
+    <span class="profile-flower" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"></path><circle cx="12" cy="8" r="2"></circle><path d="M12 10v12"></path><path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z"></path><path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"></path></svg></span>
+  </div>
+
+  <div id="settings-private-sections" data-settings-private hidden>
+    <section class="settings-section" aria-labelledby="settings-companion-title">
+      <div class="settings-section-heading"><h2 class="settings-section-label" id="settings-companion-title">陪伴方式</h2></div>
+      <div class="settings-soft-card">
+        <div class="settings-item">
+          <span class="settings-item-icon settings-icon-message"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"></path><path d="M7.828 13.07A3 3 0 0 1 12 8.764a3 3 0 0 1 5.004 2.224 3 3 0 0 1-.832 2.083l-3.447 3.62a1 1 0 0 1-1.45-.001z"></path></svg></span>
+          <div class="settings-item-body"><div class="settings-item-title" id="agent-setting-title">主动消息</div><div class="settings-item-desc" id="agent-setting-desc">让她在合适的时候，主动找你</div></div>
+          <div class="settings-item-action"><button type="button" class="toggle-switch active" id="toggle-agent" role="switch" aria-checked="true" aria-labelledby="agent-setting-title" aria-describedby="agent-setting-desc" data-settings-action="agent"></button></div>
+        </div>
+      </div>
+      <p class="settings-memory-note"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg><span>对话结束后会自动整理记忆，无需手动设置。</span></p>
+    </section>
+
+    <section class="settings-section" aria-labelledby="settings-motion-title">
+      <div class="settings-section-heading"><h2 class="settings-section-label" id="settings-motion-title">画面与动效</h2></div>
+      <div class="settings-soft-card">
+        <div class="settings-item">
+          <span class="settings-item-icon settings-icon-motion"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg></span>
+          <div class="settings-item-body"><div class="settings-item-title" id="home-motion-setting-title">主页动效</div><div class="settings-item-desc" id="home-motion-setting-desc">人物与场景的轻微动态</div><div class="settings-item-desc settings-preference-note" id="home-motion-storage-note" aria-live="polite"></div></div>
+          <div class="settings-item-action"><button type="button" class="toggle-switch active" id="toggle-home-motion" role="switch" aria-checked="true" aria-labelledby="home-motion-setting-title" aria-describedby="home-motion-setting-desc home-motion-storage-note" data-settings-action="motion"></button></div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-icon settings-icon-tilt"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg></span>
+          <div class="settings-item-body"><div class="settings-item-title" id="home-tilt-setting-title">倾斜视差</div><div class="settings-item-desc" id="home-tilt-setting-desc">轻转手机，换个角度看看她</div><div class="settings-item-desc settings-preference-note" id="home-tilt-setting-status" aria-live="polite"></div></div>
+          <div class="settings-item-action"><button type="button" class="toggle-switch" id="toggle-home-tilt" role="switch" aria-checked="false" aria-labelledby="home-tilt-setting-title" aria-describedby="home-tilt-setting-desc home-tilt-setting-status" data-settings-action="tilt"></button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="settings-section" aria-labelledby="settings-music-title">
+    <div class="settings-section-heading"><h2 class="settings-section-label" id="settings-music-title">背景音乐</h2><span class="settings-section-meta">当前设备</span></div>
+    <div class="settings-soft-card" id="settings-bgm-section">
+      <div class="settings-item">
+        <span class="settings-item-icon settings-icon-music"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="8" cy="18" r="4"></circle><path d="M12 18V2l7 4"></path></svg></span>
+        <div class="settings-item-body"><div class="settings-item-title" id="bgm-autoplay-title">下次打开时自动播放</div><div class="settings-item-desc" id="bgm-autoplay-desc">仅影响下次访问，本次播放不变</div><div class="settings-item-desc settings-preference-note" id="bgm-autoplay-note" aria-live="polite"></div></div>
+        <div class="settings-item-action"><button type="button" class="toggle-switch active" role="switch" aria-checked="true" aria-labelledby="bgm-autoplay-title" aria-describedby="bgm-autoplay-desc bgm-autoplay-note" data-bgm-preference="autoplayEnabled" data-note="bgm-autoplay-note"></button></div>
+      </div>
+      <div class="settings-item">
+        <span class="settings-item-icon settings-icon-fade"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 10v3"></path><path d="M6 6v11"></path><path d="M10 3v18"></path><path d="M14 8v7"></path><path d="M18 5v13"></path><path d="M22 10v3"></path></svg></span>
+        <div class="settings-item-body"><div class="settings-item-title" id="bgm-fade-title">音乐淡入淡出</div><div class="settings-item-desc" id="bgm-fade-desc" data-supported-description="开始、暂停和切换时自然过渡">开始、暂停和切换时自然过渡</div><div class="settings-item-desc settings-preference-note" id="bgm-fade-note" aria-live="polite"></div></div>
+        <div class="settings-item-action"><button type="button" class="toggle-switch active" role="switch" aria-checked="true" aria-labelledby="bgm-fade-title" aria-describedby="bgm-fade-desc bgm-fade-note" data-bgm-preference="fadeEnabled" data-note="bgm-fade-note"></button></div>
+      </div>
+    </div>
+    <p class="bgm-settings-local-note">仅保存在当前设备和浏览器，退出或换账号不重置。</p>
+  </section>
+
+  <section class="settings-section" aria-labelledby="settings-account-title">
+    <div class="settings-section-heading"><h2 class="settings-section-label" id="settings-account-title">关于</h2></div>
+    <div class="settings-soft-card settings-account-card">
+      <div class="settings-account-private" data-settings-private hidden>
+        <button class="settings-item settings-item-short clickable" type="button" aria-expanded="false" aria-controls="password-form" id="pwd-row" data-settings-action="password">
+          <span class="settings-item-icon settings-icon-lock"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="16" r="1"></circle><rect x="3" y="10" width="18" height="12" rx="2"></rect><path d="M7 10V7a5 5 0 0 1 10 0v3"></path></svg></span><span class="settings-item-body"><span class="settings-item-title">修改密码</span></span><span class="settings-item-action settings-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"></path></svg></span>
+        </button>
+      <div class="settings-expand-wrap" id="password-form">
+        <div class="pwd-field-group">
+          <label for="old-password">原密码</label>
+          <div class="pwd-input-wrap">
+            <input id="old-password" type="password" placeholder="请输入原密码" autocomplete="current-password">
+            <button type="button" class="pwd-eye-btn" data-settings-action="eye" data-input="old-password" aria-label="显示密码">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="pwd-field-group">
+          <label for="new-password">新密码</label>
+          <div class="pwd-input-wrap">
+            <input id="new-password" type="password" placeholder="8-20位，含字母和数字" autocomplete="new-password">
+            <button type="button" class="pwd-eye-btn" data-settings-action="eye" data-input="new-password" aria-label="显示密码">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="pwd-field-group">
+          <label for="confirm-password">确认新密码</label>
+          <div class="pwd-input-wrap">
+            <input id="confirm-password" type="password" placeholder="再次输入新密码" autocomplete="new-password">
+            <button type="button" class="pwd-eye-btn" data-settings-action="eye" data-input="confirm-password" aria-label="显示密码">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button type="button" class="save-pwd-btn" data-settings-action="save-password">保存</button>
+      </div>
+      </div>
+      <button class="settings-item settings-item-short clickable" type="button" aria-expanded="false" aria-controls="about-content" id="about-row" data-settings-action="about">
+        <span class="settings-item-icon settings-icon-heart"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg></span><span class="settings-item-body"><span class="settings-item-title">关于林小梦</span></span><span class="settings-item-action settings-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"></path></svg></span>
+      </button>
+      <div class="about-expand-wrap" id="about-content"><p class="about-text loading" id="about-text">加载中...</p></div>
+    </div>
+  </section>
+
+  <div class="logout-card"><button type="button" class="logout-card-btn" id="settings-auth-action" data-settings-action="auth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg><span id="settings-auth-action-text">登录，继续陪伴</span></button></div>
+  <p class="settings-brand-note">林小梦 · 陪你过好每一个日常</p>
+</div>

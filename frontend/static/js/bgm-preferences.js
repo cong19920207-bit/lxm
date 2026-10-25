@@ -47,6 +47,10 @@
     const [local, session] = sources(field)
     if (session.record && (!local.record || session.record.revision > local.record.revision)) return choice(session.record.value, 'session')
     if (local.record) return choice(local.record.value, 'local')
+    // A future preference is not permission to regain sound on a version rollback.
+    if (field === 'autoplayEnabled' && (local.unknown || session.unknown)) {
+      return choice(false, 'default', '已保存的设置版本暂不支持，自动播放保持关闭。')
+    }
     const note = local.unknown || session.unknown ? '已保存的设置版本暂不支持，本次采用默认值。'
       : !local.ok ? '无法读取已保存的选择，本次采用默认值。' : ''
     return choice(defaults[field], 'default', note)

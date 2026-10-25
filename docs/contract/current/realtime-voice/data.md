@@ -57,6 +57,7 @@
 | `deletion_fence_at` | DATETIME | 是 | — |
 | `deleted_at` | DATETIME | 是 | — |
 | `deleted_by` | INTEGER | 是 | — |
+| `cleared_run_id` | CHAR(36), ASCII/`ascii_bin` | 是 | — | S15 清后来源；FK `memory_reset_run.run_id` / `fk_voice_call_cleared_run`，RESTRICT |
 | `created_at` | DATETIME | 否 | ORM utcnow |
 | `updated_at` | DATETIME | 否 | ORM utcnow |
 
@@ -68,6 +69,7 @@
 - `ix_voice_call_transcript_expires`：`transcript_expires_at`。
 - `ix_voice_call_user_ended`：`user_id, ended_at`。
 - `uk_voice_call_call_id`：UNIQUE `call_id`。
+- `ix_voice_call_cleared_run`：`cleared_run_id`（显式索引；列本身 `index=False`）。
 
 <a id="voice_call_create_idempotency"></a>
 ### voice_call_create_idempotency
@@ -391,7 +393,7 @@ end_reason等开放字符串不擅自转成封闭数据库枚举。历史新增�
 创建先预检、取用户租约，再以24小时SQL幂等记录锁定请求哈希与call。租约、owner和设备共同保证单用户并发；票据与缓存不能替代SQL事实。状态终结、计费账本、账户、时间线卡片和成长使用共同finalizer事务，先按固定顺序锁用户/call/账本与账户，再释放owner/缓存。无法可靠恢复计量时不猜秒数补账（TD-038）。
 
 - 服务端单调时钟记录connected片段，保留小数余量，不按心跳重复向上取整；跨北京时间零点拆到账本quota_date。reconnecting暂停计量；静音不计成长；grace不计费/不计成长。硬上限默认3600秒从首次connected_at计；免费默认300秒/日，grace默认30秒，均以当前发布值和通话规则为准。
-- 读余额以当前发布daily_free_seconds减当日已用免费秒数，再加额外剩余秒数；存量账户的旧daily值不会屏蔽新发布额度。发布300→600后，已用100显示免费剩500，未用显示600；不清空已用或额外时长。GET为只读投影，结算/加时才更新账户。
+- 读余额以当前发布daily_free_seconds减当日已用免费秒数，再加额外剩余秒数；存量账户的旧daily值不会屏蔽新发布额度。发布300→600后，已用100显示免费剩500，未用显示600；不清空已用或额外时长。GET为只读投影，结算/加时才更新账户。MySQL整数秒数的SUM结果在余额服务内归一为int，余额查询和管理员加时响应中的秒数字段均为JSON整数，避免结算后Decimal导致序列化500。
 - 账本区分free/extra/grace、有效成长秒数与用户计时总duration，唯一键约束重复结算。v8d旧行duration/quota_date为NULL时保留unknown，不能推断日归属；provider usage保留单位事实，不当免费时长或财务成本。
 - 成长默认每30个有效秒5分、北京时间每日100分上限，只认合格有效文本；技术失败/无有意义互动不增长。终结同事务按call来源幂等，更新关系最近互动与主动次数事实。详情的今日语音分数和文字成长边界见[关系接口](../relationship/api.md#voice-growth)。
 
@@ -458,7 +460,9 @@ voice_followup_job独立管理topic_continuation/emotional_followup/missed_expla
 
 模拟价格仅显式选择时为CNY 0.06/分钟，单独dimension hash并标simulated；常规未配置价格仍null。模拟账单最多31个业务日、同周期/币种、非负金额，ROUND_HALF_UP6位，只预览不持久化真实财务数据。
 
-Redis观测按**UTC观测发送日**保留172800秒，包含重试，不替代业务日任务统计。reply_observed按session/question/reply去重，最多4096个标识；primary/extra/overflow分开，额外回复率只统计能力有效样本。截断分success/failure/unknown且校验能力；effective证据分布是观测快照样本，混杂/未知不能伪造成确定比率。Provider usage单位未确认时cost ratio保持null。各阶段同期事件覆盖配置fallback、创建/网关/状态/播放/打断、危机、安全、记忆/召回、摘要/卡片/成长/followup、后台授权/结果/审计/固定投影、保留期/删除。独立voice.config.fallback.v1只允许两key和封闭来源/结果维度，TTL172800秒。持久化转换事件在commit后发送，重放不伪增send/insert/expiry；观测失败不反向改变业务结果。向量source_observation只说明写前250ms有界观察，unknown不是0冲突，不能据此算精确跨渠道并发覆盖率。事件字典与样本来源由metric_read/observation服务定义。
+Redis观测按**UTC观测发送日**保留172800秒，包含重试，不替代业务日任务统计。reply_observed按session/question/reply去重，最多4096个标识；primary/extra/overflow分开，额外回复率只统计能力有效样本。截断分success/failure/unknown且校验能力；effective证据分布是观测快照样本，混杂/未知不能伪造成确定比率。Provider usage单位未确认时cost ratio保持null。各阶段同期事件覆盖配置fallback、创建/网关/状态/播放/打断、危机、安全、记忆/召回、摘要/卡片/成长/followup、后台授权/结果/审计/固定投影、保留期/删除。
+
+独立voice.config.fallback.v1只允许两key和封闭来源/结果维度，TTL172800秒。持久化转换事件在commit后发送，重放不伪增send/insert/expiry；观测失败不反向改变业务结果。向量source_observation只说明写前250ms有界观察，unknown不是0冲突，不能据此算精确跨渠道并发覆盖率。事件字典与样本来源由metric_read/observation服务定义。
 
 <a id="schedulers"></a>
 ## 调度
@@ -474,3 +478,14 @@ Redis观测按**UTC观测发送日**保留172800秒，包含重试，不替代�
 | daily metrics | 1分钟 | 先昨日，再扫描最多7个历史已结束业务日；游标循环、失败保留重试；普通和显式模拟维度都物化 |
 
 APScheduler采用single-instance/coalesce避免同进程叠跑；跨进程仍依赖数据库/Redis幂等与lease，不承诺调度器本身是分布式锁。
+
+<a id="memory-write-context"></a>
+### 语音提取快照内的冻结 writer 上下文
+
+本节登记已实现契约；2026-10-13本地Docker环境`local-docker:lxmfor`已完成S15清理/保留核验并开放epoch2，旧库及旧隔离分区已退役。实际版本、验证和保留风险见唯一STEP §3.39。
+
+原 extraction_snapshot 在提取前保存无凭据 write_context：epoch、target、encoder、config_snapshot_id 与 publication versions。ready快照恢复先核原配置，不能借新配置重发旧payload。source_entry按原call/turn/doc（文字对应round/type/doc/ordinal）摘要确定原operation，不另存正文。
+
+源确认/索引pending分开；prepared仅在确证未发送时dispatch原intent，unknown只核原tag。trace源确认后保存，取消/超时/trace失败不重问提取模型；索引独立恢复，已有trace不能当索引ready。回执与20秒source/gate等待唯一见[语音写入恢复](api.md#memory-write-recovery)，原45秒请求、50秒模型墙钟、210秒任务lease和2次退避保持。
+
+trace前后短事务核原writer epoch、call/cleared/删除围栏、任务token/lease/turn及trace顺序；原call/doc gate使已开始写与删除收口，不能扩展成全部渠道的事实时间全局排序。任务列表仍不暴露snapshot/正文/凭据。[voice_call](#voice_call)保留cleared_run_id指向确切S15 run，既有读写/任务/失败回调识别cleared并拒迟到回写；回填不启动第二套提取或改变原保留策略。

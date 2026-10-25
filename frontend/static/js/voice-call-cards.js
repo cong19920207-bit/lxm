@@ -1,5 +1,8 @@
 (function (root) {
   'use strict';
+  function create(context) {
+  const cardRoot=context?.root || document;
+  const listen=(target,type,handler)=>context ? context.scope.listen(target,type,handler) : target.addEventListener(type,handler);
   var resourceFetcher = null, resourceGeneration = 0;
   function appendResource(row, crisis) {
     if (!crisis || typeof crisis.resource !== 'string' || !(Date.parse(crisis.expires_at) > Date.now())) return;
@@ -47,7 +50,7 @@
         toggle.textContent = '展开摘要';
         toggle.setAttribute('aria-hidden', 'true');
         card.setAttribute('aria-expanded', 'false');
-        card.addEventListener('click', function () {
+        listen(card,'click', function () {
           var expanded = card.getAttribute('aria-expanded') !== 'true';
           card.setAttribute('aria-expanded', String(expanded));
           toggle.textContent = expanded ? '收起摘要' : '展开摘要';
@@ -90,30 +93,35 @@
       }
     };
   }
-  root.VoiceCallCards = { render: render, pendingRefresh: pendingRefresh,
+  const api = { render: render, pendingRefresh: pendingRefresh,
     configureResourceRefresh: function (fetcher) { resourceFetcher = fetcher; } };
   function clearResources() {
     resourceGeneration++;
-    document.querySelectorAll('.voice-crisis-resource').forEach(function (node) { node.remove(); });
+    cardRoot.querySelectorAll('.voice-crisis-resource').forEach(function (node) { node.remove(); });
   }
   async function refreshResources() {
     clearResources();
     if (!resourceFetcher || !navigator.onLine) return;
     var current = resourceGeneration;
-    await Promise.all(Array.from(document.querySelectorAll('.voice-call-row')).map(async function (row) {
+    await Promise.all(Array.from(cardRoot.querySelectorAll('.voice-call-row')).map(async function (row) {
       try {
         var crisis = await resourceFetcher(row.dataset.callId);
         if (current === resourceGeneration && navigator.onLine && row.isConnected) appendResource(row, crisis);
       } catch (_) { /* An unavailable/deleted source never restores a cached card. */ }
     }));
   }
-  root.addEventListener('pagehide', clearResources);
-  root.addEventListener('offline', clearResources);
-  root.addEventListener('online', refreshResources);
-  root.addEventListener('pageshow', function (event) { if (event.persisted) refreshResources(); });
-  root.setInterval(function () {
-    document.querySelectorAll('.voice-crisis-resource').forEach(function (node) {
+  if(!context)root.addEventListener('pagehide', clearResources);
+  listen(root,'offline', clearResources);listen(root,'online', refreshResources);
+  if(!context)root.addEventListener('pageshow', function (event) { if (event.persisted) refreshResources(); });
+  const expire=function () {
+    cardRoot.querySelectorAll('.voice-crisis-resource').forEach(function (node) {
       if (Date.parse(node.dataset.expiresAt) <= Date.now()) node.remove();
     });
-  }, 1000);
+  };
+  const stop=context ? context.scope.interval(expire,1000) : (()=>{const timer=root.setInterval(expire,1000);return()=>root.clearInterval(timer)})();
+  api.destroy=()=>{resourceFetcher=null;clearResources();stop()};
+  if(context)context.cleanup(api.destroy);
+  return api;
+  }
+  root.VoiceCallCards=root.AppShell ? {create} : {...create(),create};
 })(globalThis);

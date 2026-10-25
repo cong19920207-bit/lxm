@@ -1,0 +1,45 @@
+<div class="diary-page-wrap">
+    <header class="diary-hero" role="banner">
+      <div class="diary-hero-bar page-back-bar">
+        <button type="button" class="page-back page-back--dark" data-diary-action="back" aria-label="返回">
+          <span class="page-back__surface" aria-hidden="true">
+            <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
+              <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <main class="diary-main">
+      <div id="diary-list"></div>
+      <div class="load-more-sentinel" id="bottom-sentinel"></div>
+      <div class="no-more-text" id="no-more" style="display:none">没有更多日记了</div>
+
+      <div class="empty-state" id="empty-active" style="display:none">
+        <div class="empty-icon">
+          <div class="empty-bubble"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+        </div>
+        <div class="empty-text">今天林小梦还没写新日记哦<br>多和我聊聊吧</div>
+        <button class="btn-primary" type="button" data-diary-action="chat">去聊天</button>
+      </div>
+
+      <div class="empty-state" id="empty-new" style="display:none">
+        <div class="empty-icon">
+          <div class="empty-bubble"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+          <div class="empty-dot"></div>
+        </div>
+        <div class="empty-text">和我多聊聊天<br>我会把我们的故事都记下来</div>
+      </div>
+
+      <div class="empty-state" id="empty-error" style="display:none">
+        <div class="empty-text" id="empty-error-text">日记加载失败，请检查网络后重试</div>
+        <button type="button" class="btn-primary" id="btn-retry-diary">重新加载</button>
+      </div>
+    </main>
+  </div>

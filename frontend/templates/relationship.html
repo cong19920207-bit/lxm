@@ -1,0 +1,112 @@
+<div class="rel-page" id="page-body">
+    <div class="skeleton-wrap">
+      <div class="skeleton skeleton-hero"></div>
+      <div class="skeleton-stats">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+      <div class="skeleton skeleton-block"></div>
+      <div class="skeleton skeleton-block"></div>
+    </div>
+
+    <div class="real-content">
+      <section class="rel-hero" aria-label="林小梦">
+        <div class="rel-hero-bar page-back-bar">
+          <button type="button" class="page-back" data-action="back" aria-label="返回">
+            <span class="page-back__surface" aria-hidden="true">
+              <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="rel-hero-pill" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#e9d5ff" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span>我们的关系</span>
+          </div>
+        </div>
+        <div class="rel-hero-profile">
+          <div class="rel-name-row">
+            <h1 class="rel-name">林小梦</h1>
+            <span class="rel-level-badge" id="rel-level-badge"></span>
+          </div>
+          <p class="rel-desc" id="rel-desc"></p>
+          <div class="rel-perks" id="rel-perks"></div>
+          <div class="rel-hero-foot" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <div class="rel-main">
+        <div class="rel-stats" id="milestone-grid">
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-known-days">0</div>
+            <div class="m-label">相识时间</div>
+            <div class="m-sub" id="m-known-sub"></div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-conv-rounds">0</div>
+            <div class="m-label">聊天记录</div>
+            <div class="m-sub">我们聊过的点滴</div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-login-days">0</div>
+            <div class="m-label">连续登录</div>
+            <div class="m-sub">连续陪伴你</div>
+          </div>
+          <div class="rel-stat-item">
+            <div class="m-value" id="m-silence-days">0</div>
+            <div class="m-label">距上次</div>
+            <div class="m-sub" id="m-silence-sub"></div>
+          </div>
+        </div>
+
+        <div class="rel-card" id="progress-section">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 亲密进度</div>
+            <span class="rel-handwrite" aria-hidden="true">继续加油哦~ ♡</span>
+          </div>
+          <div id="progress-content" class="rel-progress-wrap"></div>
+          <div class="rel-polaroid" aria-hidden="true">
+            <div class="rel-polaroid-frame">
+              <img id="linxiaomeng-avatar"
+                   src="/static/images/avatar/default.png"
+                   alt="">
+              <div class="rel-polaroid-caption">想和你去看海。</div>
+            </div>
+            <span class="rel-polaroid-heart">♥</span>
+          </div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 今日成长</div>
+            <div class="rel-today-total" id="today-total"></div>
+          </div>
+          <div class="rel-today-grid" id="today-list"></div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 成长历程</div>
+          </div>
+          <div class="rel-timeline-wrap">
+            <p class="rel-timeline-deco rel-handwrite" aria-hidden="true">未来有很多故事<br>我们一起写下去吧 ♡</p>
+            <div id="timeline-content"></div>
+          </div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-head">
+            <div class="rel-section-title"><span class="spark">✦</span> 成长记录</div>
+            <span class="rel-log-total" id="log-total"></span>
+          </div>
+          <div id="log-list"></div>
+          <div class="load-more-sentinel" id="log-sentinel"></div>
+          <div class="no-more-text" id="log-no-more" style="display:none">已经到底啦 ✨</div>
+        </div>
+      </div>
+    </div>
+  </div>

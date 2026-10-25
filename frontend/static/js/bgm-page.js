@@ -3,6 +3,10 @@
   'use strict'
   if (window.BgmPage) return
   function create(options = {}) {
+    if (window.AppShell?.services.audio) {
+      const context = options.context || window.AppShell.router.current?.context
+      return context && options.authorized !== false ? window.AppShell.services.audio.attachPage(context, options.mode) : null
+    }
     const mode = options.mode || 'content', doc = options.document || document, host = options.window || window
     if (!['home', 'content', 'login'].includes(mode) || options.authorized === false) return null
     const session = options.session || window.BgmSession.create()
@@ -93,6 +97,7 @@
     try { if (typeof options.authorized === 'function' && !options.authorized()) return null } catch (_) { return null }
     current = create(options)
     if (!current) return null
+    const mounted = current
     const render = state => {
       let warning = document.querySelector('[data-bgm-session-note]')
       if (state.sessionNote && !warning) {
@@ -107,7 +112,7 @@
         if (!button) {
           button = document.createElement('button'); button.type = 'button'; button.dataset.bgmLoaderPause = ''; button.textContent = '暂停音乐'
           button.style.cssText = 'position:absolute;z-index:3;right:16px;top:calc(env(safe-area-inset-top,0px) + 16px);background:transparent;border:1px solid #ffffff40;color:#eee;border-radius:18px;padding:7px 12px;font-size:12px'
-          button.addEventListener('click', () => current.player.pause()); loader.appendChild(button)
+          button.addEventListener('click', () => mounted.player.pause()); loader.appendChild(button)
         }
         button.hidden = state.intent !== 'play' || state.closed || !['playing', 'loading', 'pausing'].includes(state.actual)
       }
@@ -117,5 +122,5 @@
     return current
   }
   window.BgmPage = Object.freeze({ create, mount, getCurrent: () => current,
-    suspendAccess() { if (current) current.suspend('access') } })
+    suspendAccess() { if (window.AppShell?.services.audio) window.AppShell.services.audio.suspend('access'); else if (current) current.suspend('access') } })
 })()

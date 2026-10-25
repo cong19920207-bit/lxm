@@ -1,0 +1,60 @@
+<div class="chat-page">
+    <div class="chat-bg" aria-hidden="true">
+      <div class="chat-bg__image" id="chat-bg-image"></div>
+      <div class="chat-bg__mask"></div>
+    </div>
+
+    <div class="chat-top-bar page-back-bar">
+      <button type="button" class="page-back" data-chat-action="back" aria-label="返回">
+        <span class="page-back__surface" aria-hidden="true">
+          <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
+            <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </button>
+      <div class="bar-profile">
+        <div class="avatar-wrapper">
+          <img id="chat-header-avatar"
+               src="/static/images/avatar/default.png"
+               alt="林小梦">
+          <span class="online-dot" aria-hidden="true"></span>
+        </div>
+        <div class="bar-titles">
+          <span class="name">林小梦</span>
+          <span class="online-text">在线</span>
+        </div>
+      </div>
+      <div class="bar-actions">
+        <button type="button" class="bar-action" id="btn-feed" data-chat-action="feed" aria-label="朋友圈">
+          <img src="/static/images/chat/icon-feed.png" alt="">
+          <span class="feed-badge" id="feed-badge" aria-hidden="true">0</span>
+        </button>
+        <span class="bar-divider" aria-hidden="true"></span>
+        <button type="button" class="bar-action" data-chat-action="memory" aria-label="记忆星云">
+          <img src="/static/images/chat/icon-memory-nebula.png" alt="">
+        </button>
+      </div>
+    </div>
+
+    <div class="agent-tip hidden" id="agent-tip">
+      <div class="tip-line"></div>
+      <div class="tip-content" id="tip-content"></div>
+      <div class="tip-close" id="tip-close">×</div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg-sentinel" id="top-sentinel"></div>
+      <div id="chat-sync-note" role="status" hidden>有请求待核实</div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-area-inner">
+        <textarea id="msg-input" placeholder="想和我吐槽什么…" rows="1" enterkeyhint="send"></textarea>
+        <button type="button" class="send-btn disabled" id="send-btn" disabled data-chat-action="send" aria-label="发送">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.4 20.6L21 12 3.4 3.4 3.4 10.2 14 12 3.4 13.8z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>

@@ -111,9 +111,17 @@
 
 ### H5 可选鉴权例外（2026-08-13）
 
-H5 用户端默认仍为 `Authorization: Bearer`。仅以下三个 GET 允许完全缺少 `Authorization` 头时匿名访问；头存在但无效仍返回 HTTP `401`。细则见 `contract-h5-app-api` 与 `contract-life-feed-api`。
+H5 用户端默认仍为 `Authorization: Bearer`。以下三个可选鉴权 GET 允许完全缺少 `Authorization` 头时匿名访问；头存在但无效仍返回 HTTP `401`。细则见 `contract-h5-app-api` 与 `contract-life-feed-api`。
 
 - `GET /api/feed/list`
 - `GET /api/feed/config/header`
 - `GET /api/app/persona-background`
 
+
+### BGM 错误码增量（2026-10-19 STEP-002）
+
+`backend/constants/bgm.py` 通过 `backend/constants/__init__.py` 汇入 Admin 错误表。20200曲目/操作不存在，20201动作资格非法，20202记录版本冲突，20203同标识内容冲突，20205共享处理名额忙碌，20206处理资格过期，20207运行基础未就绪。20204/20208仍为后续补充使用预留；源大小错误由请求校验422或操作失败分类表达，超时未知由客户端保留标识。鉴权仍返回HTTP401/403；写业务冲突通常409、忙碌429、不可用503，读取不存在沿现行HTTP200+业务码。详见[BGM接口](../bgm/api.md)。
+
+### BGM 独立匿名读取（2026-10-19 STEP-007）
+
+`GET /api/bgm/catalog`为完全公开的同一音乐元数据快照，不调用用户/Admin鉴权，Authorization内容不影响结果；H5调用须显式不附Token。它不改变上方三个可选鉴权接口“无效头401”的规则，也不开放任何私有或管理接口。复用ApiResponse；目录基础不可用明确HTTP503/20207，合法空目录HTTP200/code=0。只返回完整版本、默认、有序成员和必要媒体字段，见[BGM接口](../bgm/api.md)。

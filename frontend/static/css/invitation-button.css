@@ -1,0 +1,102 @@
+/* Standalone invitation button. No JavaScript, external fonts or layout dependencies. */
+.lxm-invitation-button {
+  --invitation-breath: 2.6s;
+  --invitation-sweep: 3.6s;
+  --invitation-color-cycle: 5.2s;
+  --invitation-glow-strength: .86;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  min-height: 55px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  color: #fff7ff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: .05em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 350ms ease;
+}
+.lxm-invitation-button:focus-visible { outline: 2px solid #d9bcff; outline-offset: 4px; }
+.lxm-invitation-button:disabled { opacity: .45; cursor: default; }
+.lxm-invitation-button__aura,
+.lxm-invitation-button__surface,
+.lxm-invitation-button__wash,
+.lxm-invitation-button__shine { position: absolute; pointer-events: none; }
+.lxm-invitation-button__aura {
+  inset: -1px;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(105deg,#69c9f0 0%,#8861eb 34%,#b35ce3 63%,#ee83c0 100%);
+  box-shadow: -12px 4px 28px 4px #698ef242,12px 5px 30px 6px #db6cb744;
+  filter: blur(12px);
+  opacity: .3;
+}
+.lxm-invitation-button__surface {
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  background: linear-gradient(108deg,#3277a9 0%,#595ad1 20%,#8b43c6 47%,#b73da0 75%,#c45c94 100%) padding-box,
+    linear-gradient(108deg,#99e5f7 0%,#baa6ff 43%,#f7a3d3 100%) border-box;
+  background-size: 140% 100%;
+  background-position: 0% 50%;
+  box-shadow: inset 0 1px 0 #f8ddff36;
+}
+.lxm-invitation-button__wash {
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 5% 0%,#9be5ff45,transparent 55%),
+    radial-gradient(ellipse at 100% 100%,#ffaddd38,transparent 55%);
+  opacity: .22;
+}
+.lxm-invitation-button__shine {
+  left: 0;
+  top: -80%;
+  width: 38%;
+  height: 260%;
+  background: linear-gradient(90deg,transparent 0%,#d9f7ff0d 16%,#e4f3ff35 40%,#ffffff52 51%,#ffdeff24 68%,transparent 100%);
+  filter: blur(3px);
+  transform: translateX(-160%) skewX(-20deg);
+  opacity: 0;
+}
+.lxm-invitation-button__label,
+.lxm-invitation-button__arrow { position: relative; z-index: 2; transition: transform 160ms ease; }
+.lxm-invitation-button__label { text-shadow: 0 1px 4px #32144555; }
+.lxm-invitation-button__arrow { width: 17px; height: 17px; flex: none; opacity: .82; }
+/* Starting only when enabled keeps the first sweep visible after page preparation. */
+.lxm-invitation-button:not(:disabled) .lxm-invitation-button__aura { animation: lxm-invitation-breathe var(--invitation-breath) ease-in-out infinite; }
+.lxm-invitation-button:not(:disabled) .lxm-invitation-button__surface { animation: lxm-invitation-color var(--invitation-color-cycle) ease-in-out infinite alternate; }
+.lxm-invitation-button:not(:disabled) .lxm-invitation-button__wash { animation: lxm-invitation-wash var(--invitation-breath) ease-in-out infinite; }
+.lxm-invitation-button:not(:disabled) .lxm-invitation-button__shine { animation: lxm-invitation-shimmer var(--invitation-sweep) cubic-bezier(.3,0,.35,1) infinite; }
+.lxm-invitation-button:not(:disabled) .lxm-invitation-button__arrow { animation: lxm-invitation-arrow var(--invitation-sweep) ease-in-out infinite; }
+.lxm-invitation-button:not(:disabled):active .lxm-invitation-button__label,
+.lxm-invitation-button:not(:disabled):active .lxm-invitation-button__arrow { transform: translateY(1px); }
+.lxm-invitation-button:not(:disabled):active .lxm-invitation-button__surface { box-shadow: inset 0 2px 7px #25103d38; }
+@keyframes lxm-invitation-breathe { 0%,100% { opacity: .3; } 45% { opacity: var(--invitation-glow-strength); } }
+@keyframes lxm-invitation-wash { 0%,100% { opacity: .22; } 45% { opacity: .85; } }
+@keyframes lxm-invitation-color { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes lxm-invitation-shimmer {
+  0%,6% { transform: translateX(-160%) skewX(-20deg); opacity: 0; }
+  12%,39% { opacity: .92; }
+  46%,100% { transform: translateX(400%) skewX(-20deg); opacity: 0; }
+}
+@keyframes lxm-invitation-arrow { 0%,24%,50%,100% { opacity: .82; } 37% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .lxm-invitation-button,
+  .lxm-invitation-button * { animation: none !important; transition: none !important; }
+  .lxm-invitation-button:not(:disabled):active .lxm-invitation-button__label,
+  .lxm-invitation-button:not(:disabled):active .lxm-invitation-button__arrow { transform: none; }
+}

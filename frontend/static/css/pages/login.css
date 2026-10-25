@@ -1,0 +1,119 @@
+
+:where([data-app-page="login"]) .h5-auth-wrap .brand {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+:where([data-app-page="login"]) .form-container {
+      width: 100%;
+      max-width: 100%;
+    }
+:where([data-app-page="login"]) .form-panel {
+      display: none;
+    }
+:where([data-app-page="login"]) .form-panel.active {
+      display: block;
+    }
+:where([data-app-page="login"]) .form-group {
+      margin-bottom: 16px;
+    }
+:where([data-app-page="login"]) .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--color-gray);
+      margin-bottom: 6px;
+    }
+:where([data-app-page="login"]) .input-wrapper {
+      position: relative;
+    }
+:where([data-app-page="login"]) .input-wrapper .input-field {
+      padding-right: 44px;
+    }
+:where([data-app-page="login"]) .toggle-pwd {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-gray);
+      font-size: 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+:where([data-app-page="login"]) .remember-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--color-gray);
+    }
+:where([data-app-page="login"]) .remember-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-primary);
+    }
+:where([data-app-page="login"]) .submit-btn {
+      width: 100%;
+      height: 48px;
+      font-size: 16px;
+    }
+:where([data-app-page="login"]) .switch-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--color-gray);
+    }
+:where([data-app-page="login"]) .switch-links a {
+      color: #E8938A;
+      cursor: pointer;
+      margin: 0 6px;
+    }
+/* 登录页专用桌面外壳：移动端保持现有 H5 页面不变。 */
+    :where([data-app-page="login"]) .desktop-login-header,
+:where([data-app-page="login"]) .desktop-login-footer {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+html[data-app-route="login"] body.h5-skin {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+:where([data-app-page="login"]) .desktop-login-header {
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        padding: 0 clamp(32px, 6vw, 96px);
+        background: rgba(255, 255, 255, 0.82);
+        border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+        color: var(--color-text);
+        font-size: 19px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+      }
+:where([data-app-page="login"]) .h5-auth-wrap {
+        min-height: 0;
+        flex: 1;
+        padding: 48px 32px;
+      }
+:where([data-app-page="login"]) .desktop-login-footer {
+        display: flex;
+        justify-content: center;
+        padding: 18px 32px 24px;
+        color: #8b8b96;
+        font-size: 12px;
+      }
+:where([data-app-page="login"]) .desktop-login-footer a:hover {
+        color: var(--color-text);
+      }
+    }
+
+@media (min-width:768px) {
+html[data-app-route="login"] #app-root { flex:1; display:flex; flex-direction:column; }
+[data-app-page="login"] { flex:1; display:flex; flex-direction:column; min-height:100vh; } }
+:where([data-app-page="login"]) .toggle-pwd { border:0; background:transparent; padding:0; }
+:where([data-app-page="login"]) .switch-links button { border:0; background:transparent; padding:0; color:#db2777; cursor:pointer; margin:0 6px; font:inherit; font-weight:700; }

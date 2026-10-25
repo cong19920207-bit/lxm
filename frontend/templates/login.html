@@ -1,0 +1,100 @@
+<header class="desktop-login-header">个人虚拟人模拟</header>
+  <div class="h5-auth-wrap">
+    <div class="h5-auth-decor" aria-hidden="true"><div class="h5-auth-spark"></div></div>
+    <div class="h5-auth-inner">
+      <div class="brand">
+        <h1 class="h5-brand-title">林小梦</h1>
+        <p class="h5-brand-sub">你专属的数字人格陪伴</p>
+      </div>
+
+      <div class="form-container h5-auth-card">
+    <!-- 登录表单 -->
+    <div class="form-panel active" id="panel-login">
+      <div class="form-group">
+        <label for="login-username">账号</label>
+        <input class="input-field" id="login-username" type="text" placeholder="请输入账号" maxlength="20">
+        <div class="field-error" id="login-username-error"></div>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <div class="input-wrapper">
+          <input class="input-field" id="login-password" type="password" placeholder="请输入密码" maxlength="20">
+          <button type="button" class="toggle-pwd" data-login-eye="login-password" aria-label="显示密码">👁</button>
+        </div>
+        <div class="field-error" id="login-password-error"></div>
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="remember-me">
+        <label for="remember-me">记住我</label>
+      </div>
+      <button class="btn-primary submit-btn disabled" id="btn-login" type="button" data-login-submit="login" disabled>登录</button>
+      <div class="switch-links">
+        <button type="button" data-login-panel="register">注册账号</button>
+        <span>|</span>
+        <button type="button" data-login-panel="reset">找回密码</button>
+      </div>
+    </div>
+
+    <!-- 注册表单 -->
+    <div class="form-panel" id="panel-register">
+      <div class="form-group">
+        <label for="reg-username">账号</label>
+        <input class="input-field" id="reg-username" type="text" placeholder="6-20位字母数字" maxlength="20">
+        <div class="field-error" id="reg-username-error"></div>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <div class="input-wrapper">
+          <input class="input-field" id="reg-password" type="password" placeholder="8-20位，含字母和数字" maxlength="20">
+          <button type="button" class="toggle-pwd" data-login-eye="reg-password" aria-label="显示密码">👁</button>
+        </div>
+        <div class="field-error" id="reg-password-error"></div>
+      </div>
+      <div class="form-group">
+        <label>确认密码</label>
+        <div class="input-wrapper">
+          <input class="input-field" id="reg-password2" type="password" placeholder="请再次输入密码" maxlength="20">
+          <button type="button" class="toggle-pwd" data-login-eye="reg-password2" aria-label="显示密码">👁</button>
+        </div>
+        <div class="field-error" id="reg-password2-error"></div>
+      </div>
+      <button class="btn-primary submit-btn disabled" id="btn-register" type="button" data-login-submit="register" disabled>注册</button>
+      <div class="switch-links">
+        <button type="button" data-login-panel="login">返回登录</button>
+      </div>
+    </div>
+
+    <!-- 找回密码表单 -->
+    <div class="form-panel" id="panel-reset">
+      <div class="form-group">
+        <label for="reset-username">账号</label>
+        <input class="input-field" id="reset-username" type="text" placeholder="请输入账号" maxlength="20">
+        <div class="field-error" id="reset-username-error"></div>
+      </div>
+      <div class="form-group">
+        <label>新密码</label>
+        <div class="input-wrapper">
+          <input class="input-field" id="reset-password" type="password" placeholder="8-20位，含字母和数字" maxlength="20">
+          <button type="button" class="toggle-pwd" data-login-eye="reset-password" aria-label="显示密码">👁</button>
+        </div>
+        <div class="field-error" id="reset-password-error"></div>
+      </div>
+      <div class="form-group">
+        <label>确认密码</label>
+        <div class="input-wrapper">
+          <input class="input-field" id="reset-password2" type="password" placeholder="请再次输入密码" maxlength="20">
+          <button type="button" class="toggle-pwd" data-login-eye="reset-password2" aria-label="显示密码">👁</button>
+        </div>
+        <div class="field-error" id="reset-password2-error"></div>
+      </div>
+      <button class="btn-primary submit-btn disabled" id="btn-reset" type="button" data-login-submit="reset" disabled>重置密码</button>
+      <div class="switch-links">
+        <button type="button" data-login-panel="login">返回登录</button>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+  <footer class="desktop-login-footer">
+    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">浙ICP备2026035072号-1</a>
+  </footer>

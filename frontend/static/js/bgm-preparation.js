@@ -15,7 +15,7 @@
     }
     function eligible() {
       const s = player.state(), connection = network.connection || network.mozConnection || network.webkitConnection
-      if (destroyed || s.destroyed || doc.hidden || doc.readyState !== 'complete' || doc.getElementById('home-loading-screen') ||
+      if (destroyed || s.destroyed || doc.hidden || doc.readyState !== 'complete' || (options.isHomeLoading ? options.isHomeLoading() : doc.getElementById('home-loading-screen')) ||
           s.actual !== 'playing' || s.intent !== 'play' || s.closed || s.recoveryRequired || s.blockers.length ||
           !['ready', 'stale', 'loading'].includes(s.catalogStatus) || !Number.isFinite(s.catalogAgeMs) || s.catalogAgeMs < 0 || s.catalogAgeMs >= maxAge ||
           !s.track || s.tracks.length < 2 || network.onLine === false || connection && (connection.saveData === true ||
@@ -83,7 +83,7 @@
       if (destroyed) return
       destroyed = true; unsubscribe(); bindings.forEach(fn => fn()); cancel(); status = 'idle'
     }
-    return Object.freeze({ destroy, state: () => ({ status, reason, candidate: current ? { id: current.track.id, mediaVersion: current.track.media_version } : null }) })
+    return Object.freeze({ destroy, update, state: () => ({ status, reason, candidate: current ? { id: current.track.id, mediaVersion: current.track.media_version } : null }) })
   }
   window.BgmPreparation = Object.freeze({ create })
 })()

@@ -1,10 +1,11 @@
+(function () {
 /* One owner for scene layout, motion, subscriptions, and optional enhancements. */
 (function () {
   'use strict'
   let instance, nextId = 0
-  function mount() {
+  function mount(context) {
     if (instance) return instance
-    const page = document.querySelector('.h5-home-page')
+    const page = (context?.root || document).querySelector('.h5-home-page')
     const scene = page?.querySelector('.home-scene')
     const rig = scene?.querySelector('.home-scene-position')
     const hero = page?.querySelector('.home-hero'), bar = page?.querySelector('.home-top-bar')
@@ -87,7 +88,7 @@
       effects.add(effect);invoke(effect,'resize',page.getBoundingClientRect());invoke(effect,running?'resume':'pause')
       return ()=>{effects.delete(effect);invoke(effect,'destroy')}
     }
-    function startup() {pause('loading',window.HomeStartup?.phase!=='ready')}
+    function startup() {pause('loading',window.HomeStartup?.phase!=='ready'||!!context?.services.entry?.pending)}
     function sceneMode() {pause('legacy',window.HomeStartup?.sceneMode==='legacy')}
     function refreshMotionPreference(refreshSaved = false) {
       const saved = readMotionPreference(refreshSaved)
@@ -105,6 +106,7 @@
       for(const effect of [...effects])invoke(effect,'destroy');effects.clear()
       for(const clean of cleaners.splice(0))try{clean()}catch(_){}
       reasons.clear();last=null
+      if(instance?.id===id){instance=null;delete HomeScene.motion;delete HomeScene.tilt;delete HomeScene.quality}
     }
     instance={id,pause,addEffect,listen,later,clearLater,destroy,
       own:clean=>{cleaners.push(clean);return clean},
@@ -129,28 +131,31 @@
       else if(reducedQuery?.addListener){const fn=event=>pause('reduced',event.matches);reducedQuery.addListener(fn);cleaners.push(()=>reducedQuery.removeListener(fn))}
       listen(window,'home-startup-change',startup)
       listen(window,'home-scene-mode-change',sceneMode)
-      listen(document,'visibilitychange',visible)
+      if(!context)listen(document,'visibilitychange',visible)
       listen(window,'resize',resized,{passive:true});listen(window.visualViewport,'resize',resized,{passive:true})
-      listen(window,'pagehide',event=>event.persisted?pause('bfcache'):destroy())
-      listen(window,'pageshow',()=>{refreshMotionPreference();window.HomeStartup?.checkDeadline();startup();visible();pause('bfcache',false);resized()})
-      listen(window,'storage',event=>{if(event.key===null||event.key===preferenceKey)refreshMotionPreference(true)})
+      if(!context)listen(window,'pagehide',event=>event.persisted?pause('bfcache'):destroy())
+      if(!context)listen(window,'pageshow',()=>{refreshMotionPreference();window.HomeStartup?.checkDeadline();startup();visible();pause('bfcache',false);resized()})
+      if(context) { const remove=context.services.audio.observeMotion(context,()=>refreshMotionPreference());cleaners.push(remove) }
+      else listen(window,'storage',event=>{if(event.key===null||event.key===preferenceKey)refreshMotionPreference(true)})
       if(typeof ResizeObserver==='function'){
         const observer=new ResizeObserver(resized);[page,hero,bar].forEach(el=>observer.observe(el));cleaners.push(()=>observer.disconnect())
       }
     }catch(error){console.warn('Home scene optional lifecycle unavailable',error)}
     try{layout()}catch(error){layoutDirty=false;console.warn('Home scene layout unavailable',error)}
     reconcile()
+    for(const install of [installMotion,installFeedback,installTilt,installPanels,installQuality])try{install(context)}catch(error){console.warn('Home enhancement unavailable',error)}
     return instance
   }
   window.HomeScene={mount,get current(){return instance}}
-  try{mount()}catch(error){console.warn('Home scene unavailable',error)}
+
 })();
 
 /* Progressive effects own no additional RAF, intervals, or untracked delayed actions. */
-(function () {
+function installMotion(context) {
+  const root=context?.root || document
   'use strict'
   const controller=window.HomeScene?.current, core=window.HomeSceneCore
-  const scene=document.querySelector('.home-scene')
+  const scene=root.querySelector('.home-scene')
   if(!controller||!core||!scene||window.HomeStartup?.sceneMode==='legacy')return
   const breathe=scene.querySelector('.home-scene-breathe'),gesture=scene.querySelector('.home-scene-gesture')
   const parallax=scene.querySelector('.home-scene-parallax'),character=scene.querySelector('.home-scene-character')
@@ -286,22 +291,24 @@
     setQuality(value){quality=Math.max(quality,core.clamp(value,0,3));if(quality>=1&&env)env.ctx.clearRect(0,0,env.width,env.height);if(quality>=2)for(const h of hair){h.el.style.opacity='0';h.el.style.transform='none'}if(quality>=3)controller.pause('quality')},
     inspect:()=>({loaded:[...loaded],failed:[...failed],environmentFrames,blinkCount,idleCount,responseCount,action:action?.response?'response':action?'idle':null,quality,responseLatencyMs,pixelBudget,canvas:env?{width:env.width,height:env.height,dpr:env.dpr,pixels:env.width*env.height}:null})}
   controller.addEffect(effect)
-})();
+}
 
 /* Restrict local feedback to the visible character; cards and overlays retain priority. */
-(function () {
-  const c=window.HomeScene?.current,hit=document.querySelector('.home-scene-hit'),page=document.querySelector('.h5-home-page')
+function installFeedback(context) {
+  const root=context?.root || document
+  const c=window.HomeScene?.current,hit=root.querySelector('.home-scene-hit'),page=root.querySelector('.h5-home-page')
   if(!c||!hit)return
   const sync=()=>{hit.disabled=!c.running||c.disposed}
   c.listen(hit,'click',()=>{if(!hit.disabled)window.HomeScene.motion?.respond()})
   c.listen(page,'home-scene-state',sync)
   sync()
-})();
+}
 
 /* Settings owns explicit permission; the homepage owns sensor input and RAF. */
-(function () {
+function installTilt(context) {
+  const root=context?.root || document
   const c=window.HomeScene?.current
-  const page=document.querySelector('.h5-home-page'),preferences=window.HomePreferences
+  const page=root.querySelector('.h5-home-page'),preferences=window.HomePreferences
   if(!c)return
   let intent=false,permissionGranted=false,listening=false,baseline=null,input={x:0,y:0}
   let state='off',message='已关闭',epoch=0,removeOrientation=null,dataTimer=null
@@ -393,11 +400,11 @@
   }
   c.listen(window,'orientationchange',rotated,{passive:true})
   c.listen(window.screen.orientation,'change',rotated,{passive:true})
-  c.listen(window,'pageshow',reconcilePreference)
-  c.listen(window,'pageshow',flushNotice)
+  if(!context)c.listen(window,'pageshow',reconcilePreference)
+  if(!context)c.listen(window,'pageshow',flushNotice)
   c.listen(window,'home-startup-change',flushNotice)
-  c.listen(document,'DOMContentLoaded',flushNotice,{once:true})
-  c.listen(document,'visibilitychange',flushNotice)
+  if(!context)c.listen(document,'DOMContentLoaded',flushNotice,{once:true})
+  if(!context)c.listen(document,'visibilitychange',flushNotice)
   c.listen(page,'home-scene-state',reconcilePreference)
   c.listen(window,'storage',event=>{if(event.key===null||event.key===preferences?.tiltKey)reconcilePreference()})
   window.HomeScene.tilt={disable,inspect:()=>({state,listening,intent,permissionGranted,input:{...input}})}
@@ -406,10 +413,11 @@
     if(selected)setState('paused','返回主页后，轻转手机试试')
   }})
   reconcilePreference()
-})();
+}
 
 /* Observe only the real modal roots, never the scene's per-frame style changes. */
-(function () {
+function installPanels(context) {
+  const root=context?.root || document
   const c=window.HomeScene?.current
   if(!c)return
   if(typeof MutationObserver!=='function'){console.warn('Home panel observation unavailable');return}
@@ -430,12 +438,14 @@
   }
   const observer=new MutationObserver(sync)
   observer.observe(document.body,{childList:true,attributes:true,attributeFilter:['class']})
+  if(context)observer.observe(window.AppShell.overlayRoot,{childList:true})
   c.own(()=>observer.disconnect());c.listen(window,'pageshow',sync)
   sync()
-})();
+}
 
 /* Q201 measurement adapter. Production parameters remain unset until real devices are measured. */
-(function () {
+function installQuality(context) {
+  const root=context?.root || document
   const c=window.HomeScene?.current,motion=window.HomeScene?.motion
   if(!c||!motion)return
   let calibration=null,level=0,windowElapsed=0,windowFrames=0,lastWindow=null
@@ -465,4 +475,7 @@
   window.HomeScene.quality={configure,inspect:()=>({level,calibrated:!!calibration,calibration:calibration?{...calibration}:null,lastWindow:lastWindow?{...lastWindow}:null,
     metrics:{...metrics,meanFps:metrics.elapsedMs?metrics.frames*1000/metrics.elapsedMs:null,heapBytes:performance.memory?.usedJSHeapSize??null}})}
   if(window.HomeSceneCalibration)configure(window.HomeSceneCalibration)
+}
+
+if(!window.AppShell)try{HomeScene.mount()}catch(error){console.warn('Home scene unavailable',error)}
 })();

@@ -1,0 +1,682 @@
+
+/* ========== 关系页独立暗黑主题（scoped，不影响其他 H5 页） ========== */
+    html[data-app-route="relationship"]:has(> body.relationship-page),
+html[data-app-route="relationship"] body.h5-skin.relationship-page {
+      background: #050508;
+      color: #f3f4f6;
+    }
+html[data-app-route="relationship"] body.relationship-page .top-bar {
+      display: none;
+    }
+html[data-app-route="relationship"] body.relationship-page .page-body {
+      padding: 0 0 calc(24px + env(safe-area-inset-bottom, 0px));
+      animation: none;
+    }
+:where([data-app-page="relationship"]) .rel-page {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #050508 0%, #0c0a12 40%, #050508 100%);
+    }
+/* Hero */
+    :where([data-app-page="relationship"]) .rel-hero {
+      position: relative;
+      min-height: 52vh;
+      max-height: 480px;
+      background: #0a0810 url('/static/images/relationship/Relationship_Lxm.png') center top / cover no-repeat;
+    }
+:where([data-app-page="relationship"]) .rel-hero::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 55%;
+      background: linear-gradient(180deg, rgba(5, 5, 8, 0) 0%, rgba(5, 5, 8, 0.75) 55%, #050508 100%);
+      pointer-events: none;
+    }
+:where([data-app-page="relationship"]) .rel-hero-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+:where([data-app-page="relationship"]) .rel-hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(88, 28, 135, 0.55);
+      border: 1px solid rgba(192, 132, 252, 0.45);
+      color: #f5f3ff;
+      font-size: 13px;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+:where([data-app-page="relationship"]) .rel-hero-pill svg {
+      flex-shrink: 0;
+    }
+:where([data-app-page="relationship"]) .rel-hero-profile {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 50px;
+      z-index: 3;
+      padding: 0 20px 16px;
+    }
+:where([data-app-page="relationship"]) .rel-name-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+:where([data-app-page="relationship"]) .rel-name {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+:where([data-app-page="relationship"]) .rel-level-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e9d5ff;
+      background: rgba(126, 34, 206, 0.55);
+      border: 1px solid rgba(192, 132, 252, 0.65);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+    }
+:where([data-app-page="relationship"]) .rel-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.88);
+      margin-bottom: 14px;
+    }
+:where([data-app-page="relationship"]) .rel-perks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+:where([data-app-page="relationship"]) .rel-perk-tag {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.55);
+      background: rgba(88, 28, 135, 0.25);
+    }
+:where([data-app-page="relationship"]) .rel-hero-foot {
+      min-height: 22px;
+    }
+/* 主内容区（统计 + 各卡片整体上移，Hero 林小梦区不动） */
+    :where([data-app-page="relationship"]) .rel-main {
+      position: relative;
+      z-index: 4;
+      margin-top: -50px;
+      padding: 8px 16px 0;
+    }
+:where([data-app-page="relationship"]) .rel-section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+:where([data-app-page="relationship"]) .rel-section-title .spark {
+      color: #c084fc;
+      font-size: 14px;
+    }
+/* 统计四列 */
+    :where([data-app-page="relationship"]) .rel-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 20px;
+      padding: 16px 8px;
+      border-radius: 16px;
+      background: rgba(26, 26, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+:where([data-app-page="relationship"]) .rel-stat-item {
+      text-align: center;
+      padding: 4px 2px;
+    }
+:where([data-app-page="relationship"]) .rel-stat-item .m-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #c084fc;
+      line-height: 1.2;
+      text-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+    }
+:where([data-app-page="relationship"]) .rel-stat-item .m-value.warn {
+      color: #fb923c;
+      text-shadow: 0 0 16px rgba(251, 146, 60, 0.4);
+    }
+:where([data-app-page="relationship"]) .rel-stat-item .m-label {
+      font-size: 11px;
+      color: #fff;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+:where([data-app-page="relationship"]) .rel-stat-item .m-sub {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+/* 卡片通用 */
+    :where([data-app-page="relationship"]) .rel-card {
+      position: relative;
+      background: rgba(22, 22, 30, 0.95);
+      border-radius: 18px;
+      padding: 18px 16px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+:where([data-app-page="relationship"]) .rel-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+:where([data-app-page="relationship"]) .rel-card-head .rel-section-title {
+      margin-bottom: 0;
+    }
+:where([data-app-page="relationship"]) .rel-handwrite {
+      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
+      color: #e879f9;
+      font-size: 17px;
+      line-height: 1.25;
+      opacity: 0.95;
+      text-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+      flex-shrink: 0;
+      white-space: nowrap;
+      text-align: right;
+    }
+:where([data-app-page="relationship"]) #progress-section .rel-handwrite {
+      transform: translateX(-50px);
+    }
+
+    @media (max-width: 360px) {
+:where([data-app-page="relationship"]) #progress-section .rel-handwrite {
+        transform: translateX(-28px);
+      }
+    }
+/* 亲密进度 */
+    :where([data-app-page="relationship"]) .rel-progress-wrap {
+      padding-right: 104px;
+    }
+:where([data-app-page="relationship"]) .rel-progress-bar {
+      width: 100%;
+      height: 13px;
+      background: #2a2a34;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+:where([data-app-page="relationship"]) .rel-progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.45);
+      transition: width 0.6s ease-out;
+    }
+:where([data-app-page="relationship"]) .rel-progress-stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 9px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-num {
+      font-style: normal;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-muted {
+      color: #9ca3af;
+      font-weight: 400;
+    }
+:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-upgrade {
+      font-weight: 600;
+    }
+:where([data-app-page="relationship"]) .rel-progress-tip {
+      text-align: center;
+      font-size: 13px;
+      color: #e879f9;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+:where([data-app-page="relationship"]) .rel-progress-tip.visible {
+      opacity: 1;
+    }
+:where([data-app-page="relationship"]) .rel-next-toggle {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.45;
+    }
+:where([data-app-page="relationship"]) .rel-next-toggle .arrow {
+      display: none;
+    }
+:where([data-app-page="relationship"]) .rel-next-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+:where([data-app-page="relationship"]) .rel-next-list.open {
+      max-height: 200px;
+    }
+:where([data-app-page="relationship"]) .rel-next-list .perk-item {
+      padding: 6px 0;
+      font-size: 13px;
+      color: #d1d5db;
+    }
+:where([data-app-page="relationship"]) .rel-max-badge {
+      text-align: center;
+      padding: 12px 0;
+    }
+:where([data-app-page="relationship"]) .rel-max-badge .big {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+:where([data-app-page="relationship"]) .rel-max-badge .sub {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+/* 拍立得（-8deg + 极窄底边留白，多露照片） */
+    :where([data-app-page="relationship"]) .rel-polaroid {
+      position: absolute;
+      right: 6px;
+      top: 44%;
+      transform: translateY(-50%) rotate(-8deg);
+      width: 92px;
+      z-index: 2;
+      pointer-events: none;
+    }
+:where([data-app-page="relationship"]) .rel-polaroid-frame {
+      background: #fff;
+      padding: 4px 4px 5px;
+      border-radius: 2px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5),
+                  0 12px 32px rgba(88, 28, 135, 0.32);
+    }
+:where([data-app-page="relationship"]) .rel-polaroid-frame img {
+      width: 84px;
+      height: 108px;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+      background: #1f1f28;
+      transform: translateY(-8px);
+    }
+:where([data-app-page="relationship"]) .rel-polaroid-caption {
+      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
+      font-size: 11px;
+      color: #d8b4fe;
+      text-align: center;
+      margin-top: 2px;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+:where([data-app-page="relationship"]) .rel-polaroid-heart {
+      position: absolute;
+      right: 2px;
+      bottom: 16px;
+      font-size: 15px;
+      color: #c084fc;
+      filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.55));
+    }
+/* 今日成长横排四列 */
+    :where([data-app-page="relationship"]) .rel-today-total {
+      font-size: 14px;
+      color: #c084fc;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+:where([data-app-page="relationship"]) .rel-today-total.empty {
+      color: #6b7280;
+      font-weight: 500;
+    }
+:where([data-app-page="relationship"]) .rel-today-grid {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      align-items: stretch;
+    }
+:where([data-app-page="relationship"]) .rel-task-card {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      background: #1e1e28;
+      border-radius: 12px;
+      padding: 10px 6px 26px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-icon {
+      font-size: 18px;
+      margin-bottom: 6px;
+      filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.35));
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      padding-right: 2px;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-sub {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 3px;
+      line-height: 1.3;
+      padding-right: 2px;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-status {
+      position: absolute;
+      right: 6px;
+      bottom: 8px;
+      text-align: right;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-foot {
+      font-size: 13px;
+      font-weight: 600;
+      color: #c084fc;
+      line-height: 1;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .tc-done {
+      font-size: 12px;
+      color: #4ade80;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+:where([data-app-page="relationship"]) .rel-task-card .streak-tag {
+      font-size: 9px;
+      color: #fb923c;
+      margin-top: 3px;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 360px) {
+:where([data-app-page="relationship"]) .rel-task-card .tc-title {
+        font-size: 11px;
+      }
+:where([data-app-page="relationship"]) .rel-task-card .tc-sub {
+        font-size: 9px;
+      }
+    }
+/* 时间轴 */
+    :where([data-app-page="relationship"]) .rel-timeline-wrap {
+      position: relative;
+    }
+:where([data-app-page="relationship"]) .rel-timeline-deco {
+      position: absolute;
+      right: 0;
+      top: 0;
+      max-width: 38%;
+      text-align: right;
+      pointer-events: none;
+    }
+:where([data-app-page="relationship"]) .timeline-empty {
+      text-align: center;
+      font-style: italic;
+      color: #9ca3af;
+      font-size: 14px;
+      line-height: 1.8;
+      padding: 12px 0;
+      white-space: pre-line;
+    }
+:where([data-app-page="relationship"]) .timeline-list {
+      position: relative;
+      padding-left: 24px;
+      padding-right: 0;
+    }
+:where([data-app-page="relationship"]) .timeline-list::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: rgba(168, 85, 247, 0.35);
+    }
+:where([data-app-page="relationship"]) .timeline-node {
+      position: relative;
+      padding: 10px 0;
+    }
+:where([data-app-page="relationship"]) .timeline-node::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 16px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #7c3aed;
+      border: 2px solid #16161e;
+      box-shadow: 0 0 0 2px #a855f7;
+    }
+:where([data-app-page="relationship"]) .timeline-node.current::before {
+      background: #fb923c;
+      box-shadow: 0 0 0 2px #fb923c, 0 0 10px rgba(251, 146, 60, 0.5);
+    }
+:where([data-app-page="relationship"]) .timeline-node .tn-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #f3f4f6;
+    }
+:where([data-app-page="relationship"]) .timeline-node.current .tn-title {
+      font-weight: 600;
+      color: #fff;
+    }
+:where([data-app-page="relationship"]) .timeline-node .tn-time {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+/* 成长记录 */
+    :where([data-app-page="relationship"]) .rel-log-total {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+:where([data-app-page="relationship"]) .log-date-sep {
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+      padding: 10px 0 6px;
+    }
+:where([data-app-page="relationship"]) .log-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+:where([data-app-page="relationship"]) .log-item:last-child {
+      border-bottom: none;
+    }
+:where([data-app-page="relationship"]) .log-item .li-icon-slot {
+      width: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+:where([data-app-page="relationship"]) .log-item .li-body {
+      flex: 1;
+      min-width: 0;
+      padding-left: 4px;
+    }
+:where([data-app-page="relationship"]) .log-item .li-label {
+      font-size: 14px;
+      color: #f3f4f6;
+    }
+:where([data-app-page="relationship"]) .log-item .li-time {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+:where([data-app-page="relationship"]) .log-item .li-points {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c084fc;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+:where([data-app-page="relationship"]) .no-more-text {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      padding: 16px 0 8px;
+    }
+/* 骨架屏 */
+    :where([data-app-page="relationship"]) .skeleton-wrap {
+      padding: 16px;
+    }
+:where([data-app-page="relationship"]) .skeleton-hero {
+      height: 280px;
+      border-radius: 0;
+      margin: 0 -16px 16px;
+    }
+:where([data-app-page="relationship"]) .skeleton-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+:where([data-app-page="relationship"]) .skeleton-stats .skeleton {
+      height: 72px;
+      border-radius: 12px;
+    }
+:where([data-app-page="relationship"]) .skeleton-block {
+      height: 140px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+html[data-app-route="relationship"] body.relationship-page .skeleton {
+      background: linear-gradient(90deg, #1a1a22 25%, #252530 50%, #1a1a22 75%);
+      background-size: 200% 100%;
+    }
+:where([data-app-page="relationship"]) .content-loaded .skeleton-wrap { display: none; }
+:where([data-app-page="relationship"]) .content-loaded .real-content { display: block !important; }
+:where([data-app-page="relationship"]) .real-content { display: none !important; }
+/* 升级弹窗（暗黑） */
+    :where([data-app-page="relationship"]) .levelup-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      animation: rel-fade-in 0.3s forwards;
+    }
+:where([data-app-page="relationship"]) .levelup-overlay.closing {
+      animation: rel-fade-out 0.3s forwards;
+    }
+:where([data-app-page="relationship"]) .levelup-box {
+      width: 300px;
+      background: linear-gradient(165deg, #1e1e28 0%, #121218 100%);
+      border-radius: 24px;
+      padding: 32px 24px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-title {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-subtitle {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-perks {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-perks .lu-perk {
+      padding: 6px 0;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(90deg, #7c3aed, #c084fc);
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+    }
+:where([data-app-page="relationship"]) .levelup-box .lu-btn:active {
+      transform: scale(0.97);
+    }
+:where([data-app-page="relationship"]) .particles {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+:where([data-app-page="relationship"]) .particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: particle-float 2s ease-out forwards;
+    }
+
+    @keyframes particle-float {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
+    }
+
+    @keyframes rel-fade-in {
+      to { opacity: 1; }
+    }
+
+    @keyframes rel-fade-out {
+      to { opacity: 0; }
+    }
+/* 覆盖 h5-theme 对本页旧 class 的全局 neo 样式 */
+    html[data-app-route="relationship"] body.relationship-page .milestone-item,
+html[data-app-route="relationship"] body.relationship-page .level-card,
+html[data-app-route="relationship"] body.relationship-page .progress-section,
+html[data-app-route="relationship"] body.relationship-page .today-section,
+html[data-app-route="relationship"] body.relationship-page .timeline-section,
+html[data-app-route="relationship"] body.relationship-page .log-section {
+      border: none;
+      box-shadow: none;
+      background: transparent;
+    }
+
+:where([data-app-page="relationship"]) .rel-next-toggle:focus-visible {outline:2px solid #c084fc;}

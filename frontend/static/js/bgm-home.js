@@ -19,13 +19,16 @@
       <label class="bgm-volume-row">${icon('volume')}<input type="range" min="0" max="100" step="1" aria-label="音乐音量"><output></output></label>
       <div class="bgm-volume-fallback" hidden><span>此环境请使用设备音量</span><button type="button" class="bgm-mute">静音</button></div>
       <footer class="bgm-panel-footer"><span>让音乐陪你一会儿</span><button type="button" class="bgm-close-session">关闭本次 BGM</button></footer>`
-    document.body.append(backdrop, panel)
+    ;(window.AppShell?.overlayRoot || document.body).append(backdrop, panel)
     const $ = selector => panel.querySelector(selector), caption = document.getElementById('bgm-home-caption'), captionText = caption.querySelector('span')
     const background = document.querySelector('.page.h5-home-page'), sheetSlot = $('.bgm-panel-slot'), playButton = $('.bgm-play'), nextButton = $('.bgm-next')
     const list = $('.bgm-track-list'), message = $('.bgm-catalog-message'), slider = $('input[type=range]')
     let open = false, transition = 0, panelAnimation = null, recordAnimation = null, captionAnimation = null, captionSignature = '', rowsSignature = '', volumeNote = ''
-    let pageOverflow = null
+    let pageOverflow = null, overlayLease = null, focusFrame = null
+    const bindings = []
+    function bind(target, name, callback) { target.addEventListener(name, callback); bindings.push(() => target.removeEventListener(name, callback)) }
     function scrollLock(lock) {
+      if (overlayLease) return
       if (lock && !pageOverflow) { pageOverflow = [document.documentElement.style.overflow, document.body.style.overflow]; document.documentElement.style.overflow = document.body.style.overflow = 'hidden' }
       else if (!lock && pageOverflow) { [document.documentElement.style.overflow, document.body.style.overflow] = pageOverflow; pageOverflow = null }
     }
@@ -70,20 +73,21 @@
     }
     function setOpen(next, { historyChange = true } = {}) {
       if (destroyed || next && player.state().blockers.includes('call')) return
+      if (overlayLease && historyChange) return next ? overlayLease.open() : overlayLease.close()
       if (open === next) return
       const from = record.element.getBoundingClientRect(), epoch = ++transition, duration = reduced.matches ? 0 : 400
       if (panelAnimation) panelAnimation.cancel()
       open = next; scrollLock(next); window.BgmOutput.commitVolume(); viewport()
       if (next) {
-        if (background) { previousInert = background.inert; background.inert = true }
+        if (background && !overlayLease) { previousInert = background.inert; background.inert = true }
         backdrop.hidden = panel.hidden = false; panel.style.pointerEvents = ''; panel.style.transform = 'translateX(-50%)'; panel.setAttribute('aria-modal', 'true'); panel.removeAttribute('aria-hidden')
         if (duration && panel.animate) panelAnimation = animate(panel, [{ transform: 'translate(-50%,100%)' }, { transform: 'translate(-50%,0)' }], { duration, easing: 'cubic-bezier(.2,.75,.25,1)' })
         moveRecord(sheetSlot, from, duration)
         if (historyChange) pushHistory()
         void player.event('panel')
-        requestAnimationFrame(() => { if (open) (playButton.disabled ? $('.bgm-panel-collapse') : playButton).focus({ preventScroll: true }) })
+        focusFrame = requestAnimationFrame(() => { focusFrame = null; if (!destroyed && open) (playButton.disabled ? $('.bgm-panel-collapse') : playButton).focus({ preventScroll: true }) })
       } else {
-        if (background) background.inert = previousInert
+        if (background && !overlayLease) background.inert = previousInert
         backdrop.hidden = true; panel.style.pointerEvents = 'none'; panel.removeAttribute('aria-modal'); panel.setAttribute('aria-hidden', 'true')
         moveRecord(homeSlot, from, duration)
         if (historyChange && ownedHistory) { ownedHistory = false; historyBackPending = true; history.back() }
@@ -92,7 +96,7 @@
           panelAnimation = animate(panel, [{ transform: panel.style.transform || 'translateX(-50%)' }, { transform: 'translate(-50%,100%)' }], { duration, easing: 'cubic-bezier(.2,.75,.25,1)' })
           if (panelAnimation) panelAnimation.finished.then(finish).catch(() => {}); else finish()
         } else finish()
-        record.element.focus({ preventScroll: true })
+        if (!overlayLease) record.element.focus({ preventScroll: true })
       }
       record.setLabel(open ? '收起背景音乐面板' : '打开背景音乐面板'); record.element.setAttribute('aria-expanded', String(open)); syncCaption()
     }
@@ -152,15 +156,15 @@
       syncCaption()
     }
     function refresh() { render(page.state()) }
-    function commitVolume() { const saved = window.BgmOutput.commitVolume(); volumeNote = saved.note || ''; refresh() }
-    slider.addEventListener('input', () => { window.BgmOutput.previewVolume(Number(slider.value) / 100); refresh() })
-    for (const event of ['change', 'pointerup', 'blur']) slider.addEventListener(event, commitVolume)
-    slider.addEventListener('pointercancel', () => { window.BgmOutput.cancelVolumePreview(); refresh() })
-    $('.bgm-mute').onclick = () => { const result = window.BgmOutput.capabilities().muted ? window.BgmOutput.unmute() : window.BgmOutput.setVolume(0); volumeNote = result.note || ''; refresh() }
+    function commitVolume() { if (destroyed) return; const saved = window.BgmOutput.commitVolume(); volumeNote = saved.note || ''; refresh() }
+    bind(slider, 'input', () => { if (destroyed) return; window.BgmOutput.previewVolume(Number(slider.value) / 100); refresh() })
+    for (const event of ['change', 'pointerup', 'blur']) bind(slider, event, commitVolume)
+    bind(slider, 'pointercancel', () => { if (destroyed) return; window.BgmOutput.cancelVolumePreview(); refresh() })
+    $('.bgm-mute').onclick = () => { if (destroyed) return; const result = window.BgmOutput.capabilities().muted ? window.BgmOutput.unmute() : window.BgmOutput.setVolume(0); volumeNote = result.note || ''; refresh() }
     playButton.onclick = () => pausable(player.state()) ? player.pause() : void player.play('home')
     nextButton.onclick = () => void player.next(); $('.bgm-close-session').onclick = () => player.close()
     $('.bgm-retry').onclick = () => void player.event('panel'); $('.bgm-panel-collapse').onclick = () => setOpen(false)
-    backdrop.onclick = () => setOpen(false); entry.addEventListener('click', () => setOpen(!open))
+    backdrop.onclick = () => setOpen(false); bind(entry, 'click', () => setOpen(!open))
     function keys(event) {
       if (!open) return
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(false) }
@@ -189,17 +193,21 @@
       if (dy > 54) setOpen(false)
       else { if (!reduced.matches && panel.animate) animate(panel, [{ transform: panel.style.transform }, { transform: 'translateX(-50%)' }], { duration: 180 }); panel.style.transform = 'translateX(-50%)' }
     }
-    for (const handle of [$('[data-bgm-handle]'), $('.bgm-panel-heading')]) { handle.addEventListener('pointerdown', pointerDown); handle.addEventListener('pointermove', pointerMove); handle.addEventListener('pointerup', pointerUp); handle.addEventListener('pointercancel', () => { drag = null; panel.style.transform = 'translateX(-50%)' }) }
-    document.addEventListener('keydown', keys); window.addEventListener('popstate', popped); window.addEventListener('resize', viewport); document.addEventListener('visibilitychange', syncCaption); reduced.addEventListener('change', syncCaption)
+    for (const handle of [$('[data-bgm-handle]'), $('.bgm-panel-heading')]) { bind(handle, 'pointerdown', pointerDown); bind(handle, 'pointermove', pointerMove); bind(handle, 'pointerup', pointerUp); bind(handle, 'pointercancel', () => { drag = null; panel.style.transform = 'translateX(-50%)' }) }
+    if (page.context) overlayLease = page.context.services.overlays.register({ kind: 'bgm', ownerId: page.ownerId, element: panel, background: page.context.root,
+      open: () => setOpen(true, { historyChange: false }), close: () => setOpen(false, { historyChange: false }) })
+    document.addEventListener('keydown', keys); if (!overlayLease) window.addEventListener('popstate', popped); window.addEventListener('resize', viewport); document.addEventListener('visibilitychange', syncCaption); reduced.addEventListener('change', syncCaption)
     if (window.visualViewport) { visualViewport.addEventListener('resize', viewport); visualViewport.addEventListener('scroll', viewport) }
     let resize = null
     try { if (typeof ResizeObserver === 'function') { resize = new ResizeObserver(syncCaption); resize.observe(caption); resize.observe(captionText) } } catch (_) { if (resize) resize.disconnect(); resize = null }
     const unsubscribe = page.subscribe(render); viewport()
     instance = Object.freeze({ setOpen, isOpen: () => open, record, panel,
-      destroy() { destroyed = true; scrollLock(false); unsubscribe(); stopCaption(); if (resize) resize.disconnect(); if (panelAnimation) panelAnimation.cancel(); if (recordAnimation) recordAnimation.cancel(); record.destroy(); backdrop.remove(); panel.remove(); if (background && open) background.inert = previousInert; document.removeEventListener('keydown', keys); window.removeEventListener('popstate', popped); window.removeEventListener('resize', viewport); document.removeEventListener('visibilitychange', syncCaption); reduced.removeEventListener('change', syncCaption); if (window.visualViewport) { visualViewport.removeEventListener('resize', viewport); visualViewport.removeEventListener('scroll', viewport) } } })
+      destroy() { if (destroyed) return; overlayLease?.dispose(); destroyed = true; instance = null; bindings.forEach(remove => remove()); if (focusFrame !== null) cancelAnimationFrame(focusFrame); scrollLock(false); unsubscribe(); stopCaption(); if (resize) resize.disconnect(); if (panelAnimation) panelAnimation.cancel(); if (recordAnimation) recordAnimation.cancel(); record.destroy(); backdrop.remove(); panel.remove(); if (background && open && !overlayLease) background.inert = previousInert; document.removeEventListener('keydown', keys); window.removeEventListener('popstate', popped); window.removeEventListener('resize', viewport); document.removeEventListener('visibilitychange', syncCaption); reduced.removeEventListener('change', syncCaption); if (window.visualViewport) { visualViewport.removeEventListener('resize', viewport); visualViewport.removeEventListener('scroll', viewport) } } })
     return instance
   }
   window.BgmHome = Object.freeze({ mount, current: () => instance })
+  if (!window.AppShell) {
   window.addEventListener('bgm:ready', event => mount(event.detail))
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => mount(), { once: true }); else mount()
+  }
 })()

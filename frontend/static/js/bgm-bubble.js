@@ -131,14 +131,20 @@
     function discover() {
       const nodes = new Set(document.querySelectorAll(observedSelector))
       if (nodes.size === observed.size && [...nodes].every(node => observed.has(node))) return
-      mutations.disconnect(); mutations.observe(document.body, { childList: true })
+      mutations.disconnect(); observeOverlayParents()
       if (resize) for (const node of observed) resize.unobserve(node)
       observed.clear()
       for (const node of nodes) {
         observed.add(node); mutations.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] }); if (resize) resize.observe(node)
       }
     }
-    mutations.observe(document.body, { childList: true }); discover()
+    function observeOverlayParents() {
+      mutations.observe(document.body, { childList: true })
+      // AppShell overlays are owned by the page root, not appended to the document body.
+      const pageRoot = document.querySelector('[data-app-page="' + name + '"]')
+      if (pageRoot) mutations.observe(pageRoot, { childList: true })
+    }
+    observeOverlayParents(); discover()
     bind(window, 'resize', schedule); bind(window, 'scroll', schedule, { passive: true }); bind(document, 'visibilitychange', schedule); bind(document, 'fullscreenchange', schedule); bind(window, 'pageshow', schedule)
     if (window.visualViewport) { bind(visualViewport, 'resize', schedule); bind(visualViewport, 'scroll', schedule) }
     const unsubscribe = page.subscribe(render)
@@ -148,6 +154,8 @@
     return current
   }
   window.BgmBubble = Object.freeze({ mount, current: () => current })
+  if (!window.AppShell) {
   window.addEventListener('bgm:ready', event => mount(event.detail))
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => mount(), { once: true }); else mount()
+  }
 })()

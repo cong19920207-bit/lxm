@@ -15,17 +15,18 @@
     feedBadge: data => Number.isFinite(data.unread_reply_count) && Number.isFinite(data.new_post_count),
   }
   let instance
-  function mount(render) {
+  function mount(render, context) {
     if (instance) return instance
     const states = Object.fromEntries(Object.keys(paths).map(key => [key, { status:'pending', data:null, version:0 }]))
     const batches = new Set()
     let snapshot, disposed = false, generation = 0
-    const same = (a,b) => a && b && a.known === b.known && a.token === b.token
-    const auth = () => window.HomeStartup.auth()
+    const same = (a,b) => a && b && a.known === b.known && a.token === b.token && a.authEpoch === b.authEpoch
+    const startup = window.HomeStartup
+    const auth = () => startup.auth()
     function notify(key) { render.state(key, states[key]) }
     function valid(batch, key) {
       if (batch.active && Date.now() >= batch.deadline) deadline(batch)
-      return !disposed && batch.active && same(batch.auth, auth()) && (!key || states[key].version === batch.versions[key])
+      return !disposed && (!context || context.valid()) && batch.active && same(batch.auth, auth()) && (!key || states[key].version === batch.versions[key])
     }
     function finish(batch) {
       if (!batch.active) return
@@ -76,9 +77,10 @@
       batch.timer = setTimeout(()=>deadline(batch),8000)
       for (const key of keys) {
         const version = states[key].version
-        const isViewCurrent = () => !disposed && same(batch.auth,auth()) && states[key].version === version
+        const isViewCurrent = () => !disposed && (!context || context.valid()) && same(batch.auth,auth()) && states[key].version === version
         request('GET',paths[key],null,{signal:batch.controller.signal,isCurrent:()=>valid(batch,key),
-          authPolicy:AUTH_401_POLICIES.SILENT_VISITOR,onUnauthorized:changeAuth})
+          authPolicy:AUTH_401_POLICIES.SILENT_VISITOR,onUnauthorized:changeAuth,
+          routeCurrent:context ? ()=>context.router.current?.context.routeEpoch===context.routeEpoch : undefined,routeEpoch:context?.routeEpoch})
           .then(result=>{
             if (!valid(batch,key)) return
             if (result.code === 0 && result.data != null && validData[key](result.data)) {
@@ -108,15 +110,17 @@
     const onShow = () => { for (const batch of [...batches]) deadline(batch); if(!same(snapshot,auth())) changeAuth() }
     function destroy() {
       if(disposed) return
-      disposed=true; for(const batch of [...batches]) cancel(batch)
+      disposed=true; instance=null; for(const batch of [...batches]) cancel(batch)
       window.removeEventListener('home-auth-change',changeAuth); window.removeEventListener('storage',onStorage)
       window.removeEventListener('pageshow',onShow); window.removeEventListener('pagehide',onHide)
       document.removeEventListener('visibilitychange',onVisible)
     }
     const onHide = event => { if(!event.persisted) destroy() }
-    window.addEventListener('home-auth-change',changeAuth); window.addEventListener('storage',onStorage)
-    window.addEventListener('pageshow',onShow); window.addEventListener('pagehide',onHide)
-    document.addEventListener('visibilitychange',onVisible)
+    if(!context){
+      window.addEventListener('home-auth-change',changeAuth); window.addEventListener('storage',onStorage)
+      window.addEventListener('pageshow',onShow); window.addEventListener('pagehide',onHide)
+      document.addEventListener('visibilitychange',onVisible)
+    } else context.cleanup(destroy)
     instance = {load:()=>{if(!same(snapshot,auth())){changeAuth();return Promise.all([...batches].map(b=>b.promise))}return start(snapshot.token?Object.keys(paths):['feedList'])},
       feed:()=>start(snapshot?.token?['feedList','feedBadge']:['feedList']),retry:key=>start([key]),destroy,
       inspect:()=>({generation,batches:batches.size,disposed,modules:Object.fromEntries(Object.entries(states).map(([k,v])=>[k,{status:v.status,hasData:v.data!=null}]))})}

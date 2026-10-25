@@ -1,15 +1,24 @@
 (() => {
   'use strict';
   class VoiceAudioTransport {
-    constructor({context, send, onState = () => {}}) {
+    constructor({context, send, onState = () => {}, resources = window.AppShell?.resources}) {
       this.context = context; this.send = send; this.onState = onState; this.closed = false; this.started = false; this.paused = false;
       this.playback = null; this.microphone = null; this.source = null;
       this.track = null; this.muted = false; this.reportMic = () => {};
+      this.resources = resources;
+      this.versionRequired = !!window.AppShell || resources !== undefined;
     }
     async start(callId, stream) {
       if (this.closed || this.started) return;
       this.started = true;
-      await this.context.audioWorklet.addModule('/static/js/voice-microphone-worklet.js');
+      let workletURL = '/static/js/voice-microphone-worklet.js';
+      if (this.versionRequired) {
+        if (!this.resources) throw new Error('缺少通话构建资源描述');
+        await this.resources.verify('js/voice-microphone-worklet.js');
+        workletURL = this.resources.url('js/voice-microphone-worklet.js');
+      }
+      if (this.closed) return;
+      await this.context.audioWorklet.addModule(workletURL);
       if (this.closed) return;
       this.playback = new window.VoicePlaybackOutput({callId, context: this.context, send: this.send, onState:this.onState});
       this.source = this.context.createMediaStreamSource(stream);
@@ -64,14 +73,19 @@
       this.reportMic();
       return this.muted;
     }
-    async close() {
-      if (this.closed) return;
+    close() {
+      if (this.closing) return this.closing;
       this.closed = true;
       for (const name of ['mute','unmute','ended']) this.track?.removeEventListener(name, this.reportMic);
       this.context.removeEventListener('statechange', this.reportMic);
-      this.source?.disconnect(); this.microphone?.disconnect(); this.microphone?.port.close();
-      if (this.playback) await this.playback.close();
-      else await this.context.close();
+      for (const dispose of [() => this.source?.disconnect(), () => this.microphone?.disconnect(), () => this.microphone?.port.close()]) {
+        try { dispose(); } catch (_) { /* Context closure still must run. */ }
+      }
+      this.source = this.microphone = this.track = null;
+      const playback = this.playback; this.playback = null;
+      try { this.closing = Promise.resolve(playback ? playback.close() : this.context.state === 'closed' ? undefined : this.context.close()); }
+      catch (error) { this.closing = Promise.reject(error); }
+      return this.closing;
     }
   }
   window.VoiceAudioTransport = VoiceAudioTransport;

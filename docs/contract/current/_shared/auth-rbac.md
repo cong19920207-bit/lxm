@@ -1,5 +1,8 @@
 # Shared Auth Rbac
 
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 - 文档 ID：`contract-shared-auth-rbac`
 - 权威状态：`canonical`
 - 功能范围：`shared-auth-rbac`
@@ -117,3 +120,36 @@
 - 阶段 B 于 2026-07-16 17:02 CST 独立部署，项目所有者于 2026-07-17 确认暂无问题；STEP-040 临时 observer 验收账号已删除。
 
 ---
+
+---
+
+<a id="memory-implementation-boundary"></a>
+### 本轮实现与环境边界
+
+本节记载工作区已实现、在自有隔离环境验证的增量。2026-10-13本地Docker业务环境`local-docker:lxmfor`已完成S15并开放epoch2，运行于新库`local_test_collection`；旧库和旧隔离分区已退役且不复用名称。实际验证及版本见唯一STEP §3.39。M8 的 cg=0.18/user=0.15 是隔离评测候选，共享默认仍为0.1；内置 System 修复不覆盖合法 active/draft/显式 override。AC19/AC20 原失败和未齐质量对照按最新用户决定作为本阶段非阻断风险保留，不能据功能通过宣称质量全通过。最终 M8/GATE-D 与实际部署状态见唯一 STEP §3。
+
+<a id="memory-role-matrix"></a>
+### M3–M8记忆域五角色矩阵
+
+缩写S=super_admin、O=ops_admin、A=ai_trainer、T=tech_ops、V=observer；下表仅当前已实现记忆增量，既有域与observer总闸继续有效。JWT/实时账号/角色仍后端权威，页面隐藏不赋权；未列能力不扩展。
+
+| 域/动作 | S | O | A | T | V |
+|---|---|---|---|---|---|
+| 召回/Token/向量配置GET | 读 | 无新增 | 读 | 无新增 | 读 |
+| 召回/Token/向量配置PUT或测连POST | 写/测 | 无新增 | 写/测 | 无新增 | 403 |
+| 第三方原配置GET（含embedding/rerank/dashvector） | 读 | 无新增 | 无新增 | 读 | 读 |
+| 第三方原PUT/测连POST | 写/测 | 无新增 | 无新增 | 写/测 | 403 |
+| 诊断/历史/维护/回填GET | 读 | 403 | 读 | 403 | 读 |
+| 诊断执行、维护retry、诊断或维护history DELETE | 写 | 403 | 写 | 403 | 403 |
+| 原全局/角色知识CRUD GET及本人receipt | 读 | 无新增 | 读 | 无新增 | 读 |
+| 原全局/角色知识CRUD写 | 写 | 无新增 | 写 | 无新增 | 403 |
+| 原user/private CRUD GET及本人receipt | 读 | 读 | 读 | 无新增 | 读 |
+| 原user/private CRUD写 | 写 | 写 | 写 | 无新增 | 403 |
+
+发布GET必须原本人actor并重新核原来源角色：third_party S/T/V，configs/vector S/A/V。write-operation GET同样本人且核原来源角色，mtglobal/knowledge/batch S/A/V、user/private S/O/A/V；不可借receipt跨域。诊断共享历史读取/删除按上表，不新增原admin_id本人限制；诊断user存在性由本域后端核实，不借用户目录授权给A。retry/delete资格另由后端当前代/修订/未完成引用判断，role有权不代表动作有资格。历史快照不扩大源CRUD权限。observer只读GET不触发模型、回填、修复或业务状态写。
+
+原Prompt Test/preview、用户详情/历史、语音等保留原角色域；不由新表/新menu扩大O/T。凭据公开边界沿本文件observer条款：只有配置状态，不返回原文、掩码片段、hash或可推断元数据；其他有权角色也无明文凭据DTO/错误/日志/诊断/维护记录。详情见[配置](../memory-knowledge/api.md#memory-config-publication)、[原写回执](../memory-knowledge/api.md#memory-write-receipts)、[诊断](../memory-knowledge/api.md#memory-diagnostic-lifecycle)。
+
+### BGM 管理读写门禁（2026-10-19 STEP-002～006）
+
+BGM 菜单、直链页面与五个管理 GET 仅 S/O/V 可访问，A/T拒绝。音频/封面上传、封面移除、目录维护、删曲与剩余清理使用 S/O allowlist，保留 observer 统一写总闸。BGM 范围拒绝/失败审计接点在业务回滚后独立持久化，实时撤权同样拒绝；GET不创建、恢复、清理或写业务记录。上传接纳、接收、完成提交及每个对象删除前重核权限；已用实际路由验证角色拒绝和处理期间撤权。删除已发生的外部事实仍登记，撤权阻止后续对象执行。详见 [BGM接口](../bgm/api.md)。

@@ -145,7 +145,6 @@
   var _tmpColor3 = new THREE.Color()
   var _flowPos = null
   var _flowCol = null
-  var _softTex = null
 
   function hashStr(s) {
     var h = 2166136261
@@ -204,8 +203,8 @@
     return a < b ? a + '|' + b : b + '|' + a
   }
 
-  function getSoftTexture() {
-    if (_softTex) return _softTex
+  function getSoftTexture(owner) {
+    if (owner.softTexture) return owner.softTexture
     var size = 64
     var canvas = document.createElement('canvas')
     canvas.width = size
@@ -218,9 +217,9 @@
     g.addColorStop(1, 'rgba(255,255,255,0)')
     ctx.fillStyle = g
     ctx.fillRect(0, 0, size, size)
-    _softTex = new THREE.CanvasTexture(canvas)
-    _softTex.needsUpdate = true
-    return _softTex
+    owner.softTexture = new THREE.CanvasTexture(canvas)
+    owner.softTexture.needsUpdate = true
+    return owner.softTexture
   }
 
   function buildCurve(id, startPos, endPos, startRadius, endRadius, samples) {
@@ -1020,7 +1019,7 @@
 
     // 端点接触亮点
     var endPt = segments[segments.length - 1].endPoint
-    var tex = getSoftTexture()
+    var tex = getSoftTexture(this)
     this.endpointGlow = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: tex,
@@ -1094,7 +1093,7 @@
     this._clearRing()
     this.ringSprite = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        map: getSoftTexture(),
+        map: getSoftTexture(this),
         color: new THREE.Color(colorB),
         transparent: true,
         opacity: ep.ringOpacity,
@@ -1481,6 +1480,8 @@
   }
 
   MemoryConnectionLayer.prototype.dispose = function () {
+    if (this.disposed) return
+    this.disposed = true
     this.animToken += 1
     this._clearAmbient()
     this._clearActiveVisuals()
@@ -1491,6 +1492,9 @@
     this.planets = []
     this.connections = []
     this.activePlanetId = null
+    if (this.softTexture) { this.softTexture.dispose(); this.softTexture = null }
+    this.clusters = []; this.planetClusterId = {}
+    this.parentGroup = this.camera = this.onArrivalFlash = null
   }
 
   root.MemoryConnectionLayer = MemoryConnectionLayer

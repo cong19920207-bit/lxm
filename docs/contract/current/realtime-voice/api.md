@@ -1,11 +1,13 @@
 # 实时语音接口契约
 
+> 材料边界：文中标注“本地留存”的过程稿、测试报告、截图及运行证据未随本次提交。历史验证结论保留原日期、环境和未验边界，不代表远端可复现或生产已验收。
+
 - 文档 ID：`contract-realtime-voice-api`
 - 权威状态：`canonical`
 - 功能范围：`realtime-voice`
 - 必读依赖：`contract-shared-conventions`, `contract-shared-auth-rbac`, `contract-realtime-voice-data`
 - 相关技术债：[TD-038～043](../../../tech-debt/active/realtime-voice.md)
-- 更新：2026-09-29；合并 P1 M1～M7 与本地人工验收后已完成增量。状态以[执行记录](../../../design/realtime_voice/P1/execution/实时语音通话开发执行记录.md)为准；开发验收不等于生产发布授权。
+- 更新：2026-09-29；合并 P1 M1～M7 与本地人工验收后已完成增量。状态以执行记录（本地留存，未随本次提交；原引用：`../../../design/realtime_voice/P1/execution/实时语音通话开发执行记录.md`）为准；开发验收不等于生产发布授权。
 
 <a id="user-http"></a>
 ## 用户 HTTP 接口
@@ -65,6 +67,17 @@
 
 结束卡片和危机资源卡在[H5 timeline](../chat-emotion/api.md#voice-timeline)定义。Open API v1沿用[原协议](../openapi/api.md#voice-compatibility)。相邻 `refreshCrisis()` 旧GET401竞态仍为已记录风险，本契约不将其记成已修复。
 
+<a id="bgm-audio-ownership"></a>
+### BGM 准备与清理占用（STEP-016）
+
+`VoiceEntry.isAudioOccupied()`只读返回本页是否仍有未清理的准备/通话归属；`voice:audio-occupancy`通知消费者重新读取该值，不能凭旧事件的detail释放新归属。全部静态检查及无声AudioContext的audioWorklet动态预检通过后，进入用途说明/权限查询前同步建立归属，早于首次resume/getUserMedia/通话输出。能力拒绝不建立归属；AudioContext构造异常保持原microphone_denied分类，仍关闭本次BGM。
+
+每次准备独立持有context、transport、stream与未完成采麦操作。归属仅在本地close Promise成功且所有迟到采麦停止、远端无需清理或已有可信确认时幂等释放；隐藏面板、busy=false、发出end或调用releaseMic都不等于完成。未知创建保留占用，同幂等键重查可绑定原call；精确end的cleanup_pending=false或既有可信终态结果按call_id确认，旧归属不能释放新通话。拒绝的本地close和未知远端结果保持保守，不增加清账/重试后台协议。
+
+BgmPage收到占用立即停止并关闭本次；释放仅解除call阻断，不自动复播。用途说明取消、拒麦、创建/连接失败、重连和单轮回复结束均不重开音乐；清理后只有主页明确播放/选曲可重开。BGM与语音context保持独立，后台配额/Provider/结束结算语义未变。本地Docker/Chrome正式页已核对原生context.resume/getUserMedia及通话输出前BGM停止、32秒真实接通后挂断、等待接听取消和人工重开；另有两次回复结束、短暂reconnecting与silence_timeout终态保持关闭的局部证据。实际权限拒绝、成功重连/恢复流、完整失败创建清理及Safari/手机/微信通话仍未验证；CALL-01决策兜底记录如实保留，不等同runtime technical_fallback，也不证明全部语音业务决策主路径。
+
+2026-10-21 用户明确批准BGM本版按“开发交付完成、未验项保留”结项；这是BGM交付范围决定，不修改语音原有协议或将未验分支标为通过。人工测试反馈未说明逐项范围，详细证据和剩余项唯一见[BGM结项记录](../../../design/bgm_music/steps-verified.md#bgm-v13-closure)。
+
 <a id="admin-config"></a>
 ## 后台配置、证据与发布
 
@@ -86,7 +99,9 @@
 
 测连接受空JSON或省略Body；能力测试精确Body `{capability_key}`，每次一项；请求开始冻结草稿，默认服务端60秒期限，取消/超时清理runner。
 
-测试结果用 `data.status=passed|failed|error` 表达，Provider失败仍可为 HTTP200/code0；包含 nullable latency_ms、failure_category、`test_version=admin-voice-test/v1`、tested_draft_revision、tested_at，能力测试另含key/run/report引用。failure_category为none/invalid_config/credential_missing/authentication_failed/timeout/upstream_unavailable/protocol_error/evidence_invalid/internal_error。不回传密钥。通用schema错误422、权限401/403；业务错误20071～20078分别为参数、冲突、未找到、无草稿、缺凭据、危机配置无效、发布失败、人格缺失，以服务错误信封为准。
+测试结果用 `data.status=passed|failed|error` 表达，Provider失败仍可为 HTTP200/code0；包含 nullable latency_ms、failure_category、`test_version=admin-voice-test/v1`、tested_draft_revision、tested_at，能力测试另含key/run/report引用。failure_category为none/invalid_config/credential_missing/authentication_failed/quota_exceeded/timeout/upstream_unavailable/protocol_error/evidence_invalid/internal_error。不回传密钥。通用schema错误422、权限401/403；业务错误20071～20078分别为参数、冲突、未找到、无草稿、缺凭据、危机配置无效、发布失败、人格缺失，以服务错误信封为准。
+
+Provider连接、启动会话及收流收到错误码45000292时，分类为`quota_exceeded`，并计入`voice.provider.error`。日志`voice.provider.rejected`记录operation、reason、vendor_code及白名单quota_type；已识别累计Token额度为`tokens_lifetime`，其他为`unknown`，不记录供应商原始错误正文、凭据或上下文。这是供应商额度，独立于用户通话秒数，不据此修改用户余额或改变现有通话终态枚举。
 
 测试passed写verified草稿投影、failed写failed/off、error写unverified/off，替换旧强制锚；测连不写能力状态，测试不发布active。强测需非空测试用户名单且仅允许unverified/stale，failed/verified/all拒绝；reason仅留长度与hash审计，当前运行消费缺口TD-042不被强测成功响应掩盖。
 
@@ -159,3 +174,32 @@
 - POST `/api/admin/voice/config/test-playback/{test_id}/ack`、`/api/admin/voice/config/test-playback/{test_id}/stop-ack`：同角色且原管理员；绑定call/session/reply/audio_bytes（最多4MiB），仅实际音频播放完成后ACK；stop-ack包含真实播放时长与停止事实，played_ms与字节/48取整一致。过期/身份/状态冲突409，格式422。Redis只存短效身份，默认60秒；单管理员一个探针，Provider45秒/总体60秒上限。收到音频不等于实际播放成功。
 
 能力测试同时支持Accept: application/x-ndjson：复用audio/playback_end/result和播放ACK，独立事务提交证据/草稿投影/审计。管理截断按实际已播前缀512查询→513截断→512读回，目标/ACK/前缀不唯一或不匹配为error/unverified；音频只在本请求内使用，不保存PCM。每次探针只获一个指定操作权限，不进入业务snapshot或自动重试；keep_alive不发送push_to_talk专用515。命中回答不证明RAG生成等待门，未知/超时不当成可信不支持。
+
+<a id="memory-write-recovery"></a>
+### 语音记忆源写入、索引与恢复边界
+
+本节登记已实现契约；2026-10-13本地Docker环境`local-docker:lxmfor`已完成S15清理/保留核验并开放epoch2，旧库及旧隔离分区已退役。实际版本、验证和保留风险见唯一STEP §3.39。
+
+原doc_id/embedding、Stable Key、排名及配额保持。writer回执区分源结果与索引结果，`MemoryWriteResult(str)`/`VoiceAtomResult(str)`保留旧字符串兼容并携同一receipt；准确字段唯一见[记忆写入接口](../memory-knowledge/api.md)。trace仅证明源曾确认，不等于BM25索引ready。
+
+prepared且确证未发送时只dispatch原intent；unknown仅reconcile原tag。源确认后才提交trace；source外层20秒wait保持，取消/超时/trace提交失败后复读原operation、补trace及独立修索引，不重新提取。提取ready快照中的原writer配置与source_entry见[语音持久上下文](data.md#memory-write-context)。
+
+原子写与retention/删除清理共用call gate，先gate再SQL，写入另持doc gate。trace前后两段短事务都核原writer epoch、call/cleared/deletion、job token/lease/turn与trace顺序；独立源事务期间不持同fence行锁。已开始原子写先完成再删除，删除先完成则拒绝后续新写。MySQL连接级call gate最多等待20秒后busy拒绝，SQL提交不释放gate，退出释放失败使连接失效；这不改变提取模型45秒请求/50秒墙钟/任务lease210秒/原2次退避策略，不新增全渠道事实排序保证。
+
+明确environment时语音HTTP/WS、scheduler及迟到失败回调核原env/epoch/target，识别cleared。业务fence、外部排空确证及停写维护资格见[记忆接口](../memory-knowledge/api.md)，不能由不明外部结果推定安全开放，也不重派未发送旧intent。
+
+<a id="memory-dotproduct"></a>
+### 既有实时/会前消费者的 DotProduct 兼容
+
+实际query严格L2归一化，会前直接HTTP不依赖上游已归一化。实时/会前分数消费 `bounded_dotproduct_score`，合法[-1,1]及绝对1e-6传输舍入容差，边界夹到±1；拒绝非有限、布尔和真正越界。分数越大越相关，实时原0.7门槛、会前原非负选择保持。
+
+原TopK、时间/quality/expiry过滤、去重、数量、缓存、前述会前构建/实时投递预算和迟到丢弃保持；本步只适配DotProduct，不升级延期读取算法。此函数不用于新链rerank或BM25。target与embedding参数来源及普通Agent/直接HTTP/缓存/CRUD/星云/后台测连的公共适配唯一见[记忆接口](../memory-knowledge/api.md)；本轮准备配置同目标证据不代表所有业务入口已激活。
+
+## AppShell 源码增量（2026-10-23）
+
+仅同步H5退出/本地清理与占用接点，不改变Provider、配额、计费、服务器结束/核实协议。Safari/Chrome的iPhone真实接通、听到远端语音、主动挂断后麦克风指示消失且BGM不恢复已有用户证据；其余权限/时序/目标环境仍按[唯一记录](../../../design/h5-appshell/steps-verified.md#8-h5-appshell-step进度)保留待验。
+
+<a id="appshell-delta-08"></a>
+### BGM准备与清理占用
+
+语音能力通过后取得 call 租约并关闭本次 BGM；实际暂停/静音/gain归零屏障确认后才 resume/getUserMedia。离页先同步停止本地输入/输出/计时，异步未知清理保留原身份、原attempt、原call；原key核实不创造新拨号。远端cleanup_pending=false和本地实际清理共同构成释放依据，不以401/WS断开/终态文字替代。 CallOwners按原principalId/authEpoch/attemptKey/requestIdentity持有清理，页面卸载不丢unknown；旧key只核实/结束原call。VoiceAudioTransport通过当前build的Resources取得锁定Worklet URL，无可变路径fallback；通话独立context不会销毁BGM图。

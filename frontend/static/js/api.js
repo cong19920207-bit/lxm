@@ -2,7 +2,7 @@
 /* 林小梦 H5 公共工具函数 */
 
 // 同域部署（Nginx）用空串；本地开发（不同端口）用 localhost:8000
-const API_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost' && !['80','443',''].includes(window.location.port))
+const API_BASE = (typeof window !== 'undefined' && !window.AppShell && window.location.hostname === 'localhost' && !['80','443',''].includes(window.location.port))
   ? 'http://localhost:8000'
   : ''
 
@@ -82,10 +82,12 @@ function resolveStatusText(data) {
  */
 // Home-only recovery; default storage behavior on other pages stays unchanged.
 function readAuthToken() {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.readToken()
   if (typeof window !== 'undefined' && window.HomeStartup) return window.HomeStartup.auth().token
   return localStorage.getItem('token')
 }
 function authStorage(operation, key, value) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.storage(operation, key, value).value
   if (typeof window !== 'undefined' && window.HomeStartup) {
     return window.HomeStartup.storage('localStorage', operation, key, value).value
   }
@@ -93,6 +95,7 @@ function authStorage(operation, key, value) {
 }
 
 async function request(method, path, data, requestOptions = {}) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.request(method, path, data, requestOptions)
   const token = readAuthToken()
   const headers = { 'Content-Type': 'application/json' }
   if (token) {
@@ -138,6 +141,10 @@ function assertRequestCurrent(options) {
 }
 
 async function handleUnauthorized(requestOptions = {}) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) {
+    if (!requestOptions.requestContext) throw new Error('AppShell 401 requires its original request context')
+    return window.AppShell.services.auth.unauthorized(requestOptions.requestContext, requestOptions)
+  }
   const options = requestOptions || {}
   const policy = options.authPolicy || AUTH_401_POLICIES.LEGACY_LOGIN_PAGE
   clearToken()
@@ -169,12 +176,14 @@ async function handleUnauthorized(requestOptions = {}) {
 }
 
 function saveToken(token) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.accept(token)
   if (typeof window !== 'undefined' && window.HomeStartup) window.HomeStartup.rememberAuth(token)
   authStorage('setItem', 'token', token)
   if (typeof window !== 'undefined' && window.HomeStartup) window.dispatchEvent(new Event('home-auth-change'))
 }
 
 function clearToken() {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.clear()
   if (typeof window !== 'undefined' && window.HomeStartup) window.HomeStartup.rememberAuth(null)
   authStorage('removeItem', 'token')
   try {
@@ -186,6 +195,7 @@ function clearToken() {
 }
 
 function checkLogin() {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.requireLogin({ authPolicy: AUTH_401_POLICIES.PROTECTED_HOME_MODAL })
   if (!readAuthToken()) {
     window.location.href = '/pages/login.html'
   }
@@ -195,6 +205,7 @@ function checkLogin() {
  * 主动交互登录门禁。返回 true 表示已有登录态，false 表示已触发登录处理。
  */
 function requireLogin(options = {}) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.requireLogin(typeof options === 'function' ? { onSuccess: options } : options)
   if (readAuthToken()) return true
   const normalized = typeof options === 'function' ? { onSuccess: options } : options
   const policy = normalized.authPolicy || AUTH_401_POLICIES.INTERACTIVE_MODAL
@@ -208,6 +219,7 @@ function requireLogin(options = {}) {
 
 /** 受保护页入口门禁：无 token 时立即写单次信号并替换到首页。 */
 function requireProtectedPage() {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.requireLogin({ authPolicy: AUTH_401_POLICIES.PROTECTED_HOME_MODAL })
   if (readAuthToken()) return true
   redirectToHomeLogin()
   return false
@@ -223,6 +235,7 @@ function protectedPageAuthOptions(onUnauthorized) {
 
 /** 受保护页统一回首页，并写入仅消费一次的弹窗信号。 */
 function redirectToHomeLogin() {
+  if (typeof window !== 'undefined' && window.AppShell?.services.auth) { window.AppShell.services.auth.redirectToLogin(); return true }
   if (protectedLoginRedirecting) return false
   protectedLoginRedirecting = true
   clearToken()
@@ -385,6 +398,11 @@ function normalizeAuthModalOptions(options) {
 }
 
 function openLoginModal(options = {}) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.openLogin(options)
+  return renderLoginModal(options)
+}
+
+function renderLoginModal(options = {}) {
   const normalized = normalizeAuthModalOptions(options)
   const overlay = ensureLoginModal()
   if (!overlay) return false
@@ -409,7 +427,10 @@ function openLoginModal(options = {}) {
     overlay.querySelector('#auth-modal-remember-me').checked = true
     updateAuthModalSubmitState('login')
   }
-  window.setTimeout(() => {
+  clearTimeout(authModalState.focusTimer)
+  const focusSession = authModalState.focusSession = (authModalState.focusSession || 0) + 1
+  authModalState.focusTimer = window.setTimeout(() => {
+    if (focusSession !== authModalState.focusSession || !overlay.classList.contains('is-open')) return
     const input = overlay.querySelector('[data-auth-modal-panel].is-active input')
     if (input) input.focus()
   }, 0)
@@ -417,12 +438,20 @@ function openLoginModal(options = {}) {
 }
 
 function closeLoginModal(options = {}) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.closeLogin()
+  return renderCloseLoginModal(options)
+}
+
+function renderCloseLoginModal(options = {}) {
+  clearTimeout(authModalState.focusTimer)
+  authModalState.focusSession = (authModalState.focusSession || 0) + 1
   const overlay = typeof document === 'undefined'
     ? null
     : document.getElementById('auth-login-modal')
   if (overlay) {
     overlay.classList.remove('is-open')
     overlay.setAttribute('aria-hidden', 'true')
+    overlay.querySelectorAll('input[id*="password"]').forEach(input => { input.value = ''; input.type = 'password' })
   }
   if (typeof document !== 'undefined') document.body.classList.remove('auth-modal-open')
   authModalState.submitting = false
@@ -433,6 +462,11 @@ function closeLoginModal(options = {}) {
 }
 
 function switchAuthModalPanel(name) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.switchPanel(name)
+  return renderSwitchAuthModalPanel(name)
+}
+
+function renderSwitchAuthModalPanel(name) {
   const overlay = ensureLoginModal()
   if (!overlay) return
   const copy = {
@@ -563,6 +597,7 @@ async function finishAuthModal(token, username) {
 }
 
 async function submitAuthModalLogin(event) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.submit('login', event)
   event.preventDefault()
   if (authModalState.submitting || !validateAuthModalPanel('login')) return
   const values = authModalPanelValues('login')
@@ -584,6 +619,7 @@ async function submitAuthModalLogin(event) {
 }
 
 async function submitAuthModalRegister(event) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.submit('register', event)
   event.preventDefault()
   if (authModalState.submitting || !validateAuthModalPanel('register')) return
   const values = authModalPanelValues('register')
@@ -602,6 +638,7 @@ async function submitAuthModalRegister(event) {
 }
 
 async function submitAuthModalReset(event) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.submit('reset', event)
   event.preventDefault()
   if (authModalState.submitting || !validateAuthModalPanel('reset')) return
   const values = authModalPanelValues('reset')
@@ -678,6 +715,7 @@ function updateAvatarEmotion(emotionLabel, avatarOptions = {}) {
  * @param {number} duration 持续时间(ms)
  */
 function showToast(message, type = 'info', duration = 2000) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.toast(message, type, duration)
   let container = document.querySelector('.toast-container')
   if (!container) {
     container = document.createElement('div')
@@ -706,6 +744,7 @@ function showToast(message, type = 'info', duration = 2000) {
  * @returns {Promise<boolean>}
  */
 function showConfirm(title, content, confirmText = '确认', isDanger = false) {
+  if (typeof window !== 'undefined' && window.AppShell?.services.ui) return window.AppShell.services.ui.confirm(title, content, confirmText, isDanger)
   return new Promise(resolve => {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'

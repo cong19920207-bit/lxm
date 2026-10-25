@@ -1,6 +1,21 @@
 # Docker 环境部署与管理后台访问（增量说明）
 
+> 材料边界：文中标注“本地留存”的过程稿、测试报告、截图及运行证据未随本次提交。历史验证结论保留原日期、环境和未验边界，不代表远端可复现或生产已验收。
+
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 本文档描述在**不改动业务代码**前提下，通过 Dockerfile / nginx / compose 增量配置后，如何在 Docker 上跑全栈并访问管理后台。
+
+2026-10-21，BGM V1.3 按用户人工测试反馈及明确结项决定完成本版开发交付，保留手机／微信及尚缺专项证据的验收项。唯一结项、证据与后续待办见 [BGM V1.3 版本完结](../design/bgm_music/steps-verified.md#bgm-v13-closure)；现行行为分见 [接口与播放器](../contract/current/bgm/api.md)、[数据与迁移](../contract/current/bgm/data.md)、[管理后台](../contract/current/bgm/admin-ui.md)。
+
+当前本地 backend 为 `lxm_for-backend:bgm-ui-alignment-20261021`，镜像摘要 `sha256:16ca91cbb5bbe50ec10e379c98f82fb5f0727924d9df41ef11e2905cc2437039`；它在已部署 CORS/Range 修复镜像上叠加三份 BGM 列表／筛选后端文件，已核对部署证据及当前运行容器一致。Alembic 为 `v9h_bgm_001`，前端与管理页采用原只读源码挂载。Nginx 与 backend 分别仅绑定 `127.0.0.1:80`／`127.0.0.1:8000`，不涉及线上发布。工作区还有其他改动，不能将这次增量本地部署解释为整仓已发布。
+
+BGM 五表须先通过 Alembic 迁移，应用启动不代建；本地已在明确授权后从 v9g 升级 v9h。上传、清理及 worker 共享 `lxm_for_bgm_runtime` 归属卷与 POSIX 锁，不能因重建丢失执行者证明而直接释放处理槽。当前私有运行配置由 UI 对齐部署记录定位，含凭据的配置不复制到仓库或日志；旧镜像保留用于授权回退，不执行迁移降级或删除数据卷。
+
+音频发布前必须配置 `BGM_MEDIA_ORIGINS`，本地采用 `http://localhost:8000,http://127.0.0.1`。配置含义、拒绝分类及逐来源匿名 HTTPS/Range 校验见 [处理边界](../contract/current/bgm/api.md#处理与运行边界)。用户已另行批准并完成本地两来源的 OSS CORS 设置：GET/HEAD、请求头 Range，暴露 ETag/Content-Range/Accept-Ranges，预检 600 秒及 Vary: Origin；没有更改 ACL。部署到新来源时仍须单独配置并核对，不能将本地规则外推至线上。
+
+既有证据包含实际两音频／两封面、正式后台上传／试听／启用／隐藏、前台播放／换图、Chrome／Safari HTTP 缓存与 Range 局部链路，以及真实通话互斥。当前用户歌单继续保留，原两条验收曲目已隐藏；四对象的最新等待门和精确清理定位只维护在 [唯一结项待办](../design/bgm_music/steps-verified.md#bgm-v13-closure)，未到期不删除、不自动创建清理任务。真实 Nginx 的接收与分阶段预算隔离证据不代表主业务容量、完整跨环境或生产验收通过。
 
 ## 一、架构说明
 
@@ -125,7 +140,7 @@ docker compose exec -T backend sh -c 'test -n "$DOUBAO_S2S_APP_ID" && test -n "$
 
 第二条命令只检查非空，不打印密钥。若还修改了 `backend/` 代码，先按「九、日常更新」构建后端镜像；单纯补凭据不需要数据库迁移。
 
-语音总开关的后台入口为 **语音通话 → 总开关**。开关独立生效，不发布“语音设置”中的其他草稿；开启前会检查已发布语音设置及其 `credential_ref` 指向的环境变量。开启后仍按已发布的维护、软停止、开放范围配置决定是否接受新通话。相关已完成行为记录在 [P1 人工验收临时契约增量](../design/realtime_voice/P1/execution/contract-drafts/P1-本地Docker人工验收已完成变更增量-20260927.md)。
+语音总开关的后台入口为 **语音通话 → 总开关**。开关独立生效，不发布“语音设置”中的其他草稿；开启前会检查已发布语音设置及其 `credential_ref` 指向的环境变量。开启后仍按已发布的维护、软停止、开放范围配置决定是否接受新通话。相关已完成行为记录在 P1 人工验收临时契约增量（本地留存，未随本次提交；原引用：`../design/realtime_voice/P1/execution/contract-drafts/P1-本地Docker人工验收已完成变更增量-20260927.md`）。
 
 ### 本机语音 WebSocket 联调
 
@@ -189,4 +204,17 @@ RUN_VOICE_NGINX_RUNTIME=1 MEMORY_RUNTIME_ENVIRONMENT_ID='' .venv-step001/bin/pyt
 - 已同步到本地 `lxm_for-backend:voice-response-20261016-c37ba43e28d6`，`lxm_for-backend:latest` 指向该版本。只在原本地镜像上替换诊断路由模块，确认环境逐项不变、更新前无活跃通话、鉴权路由就绪，并在运行容器中核实标准响应。未重启Nginx；回退镜像仍保留，权限600的本地部署/回退配置位于 `/private/tmp/lxm-voice-response-deploy/`，不入库。
 - 最后以 `contract-change-review` 只读复查上述修复范围：七项通过，必须修0、待验证0、建议项0，门禁通过。未受本轮影响的TLS/容器IP变更/浏览器及用户真实接通证据复用前述结果；未重新发起真实通话，线上未改动、仍待单独部署验收。
 
-GitHub提交范围说明（2026-10-16）：本次语音修复沿用 `codex/deploy-memory-v32-20261015`，基于其既有提交 `1f3b028` 合入。其他本地未提交工作保留。上文278条HTTP登记及旧扫描差异是完整本地工作区的验证事实；本次提交不一并推送其他待整理契约，本分支新增3条HTTP诊断路由后登记为261条，以本分支manifest与覆盖表为准。推送源码不代表线上部署。
+
+## 记忆召回新链本地部署（2026-10-13）
+
+本地验证曾使用 `linux/amd64` 以支持已冻结的 dashtext 0.0.7；这是本机运行条件，本次未向共享 Compose 加入架构固定。部署构建仍须核对目标架构与依赖 wheel 的兼容性。`.dockerignore` 只向构建器提交 Dockerfile、依赖、backend/admin/frontend 与 Alembic，排除本地凭据、日志、恢复归档、文档和 macOS 元数据文件。
+
+新链升级须先停写并完成S15，再开放；不要用上文普通 `up -d` 命令绕过首次切换。当前精确清理run、保留摘要、开放状态及恢复位置以[唯一STEP §3](../design/memory-retrieval/steps-verified-v3.2-后台闭环修正版.md#3-step总览依赖与进度)为准。普通后续发布读取既有完成标记，不再执行S15，也不导回旧对话/向量内容。
+
+v9a 的 revision 长33字符，旧MySQL的Alembic版本列必须随该迁移先扩宽至128；不要手工 stamp 掩盖未完成DDL。本轮为该路径补入独立MySQL CLI回归，覆盖重复进入及保留数据不变。
+
+本地历史数据库、S15 run、镜像及入口定位留在原工作区；不作为共享部署默认值。历史验收边界见唯一 STEP；生产部署须核对自身 fence、迁移与批准范围。
+
+本机凭据刷新与容器恢复使用原本地覆盖配置，本次不发布该配置或启动命令。共享部署更新应保留既有数据库/Redis卷，不重新初始化、不重做已完成S15。
+
+生产提交保留既有生产向量目标；环境标识与运行目标须与已激活 fence 一致，变更目标不是普通凭据刷新。离线审计与备份留在本地，不挂载进应用、不恢复旧对话/向量；原 unknown 锚点与退役名称限制继续有效。

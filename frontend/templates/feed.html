@@ -1,0 +1,69 @@
+<!-- 进页全屏 loading：列表+首屏图就绪后关闭 -->
+  <div class="feed-boot-loading is-visible" id="feed-boot-loading" role="status" aria-live="polite">
+    <div class="feed-boot-spinner" aria-hidden="true"></div>
+    <div class="feed-boot-text">正在进入她的生活…</div>
+  </div>
+  <div class="feed-wrap">
+    <header class="feed-hero" id="feed-hero" role="banner">
+      <div class="feed-hero-bar page-back-bar">
+        <button type="button" class="page-back" data-feed-action="back" aria-label="返回">
+          <span class="page-back__surface" aria-hidden="true">
+            <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
+              <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <button type="button" class="msg-btn" data-feed-action="chat" aria-label="消息">
+          <!-- 设计图同款线框气泡（无切图，内联 SVG） -->
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6.5 17.2V8.6A2.6 2.6 0 0 1 9.1 6h7.8A2.6 2.6 0 0 1 19.5 8.6v5.2a2.6 2.6 0 0 1-2.6 2.6H10.2L6.5 19.2v-2z"
+              stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+            <circle cx="10.2" cy="11.2" r="0.85" fill="currentColor"/>
+            <circle cx="13" cy="11.2" r="0.85" fill="currentColor"/>
+            <circle cx="15.8" cy="11.2" r="0.85" fill="currentColor"/>
+          </svg>
+          <span class="msg-badge" id="msg-badge" style="display:none">0</span>
+        </button>
+      </div>
+      <div class="feed-hero-identity">
+        <div class="feed-hero-avatar-wrap">
+          <img class="feed-hero-avatar" id="feed-avatar" src="/static/images/avatar/character-ref/base.png" alt="林小梦">
+          <span class="avatar-spark" aria-hidden="true"></span>
+        </div>
+        <div class="feed-hero-meta">
+          <div class="nickname" id="feed-nickname">林小梦</div>
+          <div class="sig" id="feed-signature"></div>
+          <div class="home-city-pill" id="feed-home-city" aria-label="主场城市"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="feed-main">
+      <div id="pull-tip">松开刷新</div>
+      <div id="new-feed-bar" role="button" tabindex="0">
+        <span aria-hidden="true">✨</span>
+        <span>林小梦更新了 <span id="new-feed-count">0</span> 条动态</span>
+        <span class="new-feed-go">查看 &gt;</span>
+      </div>
+      <div id="feed-skeleton"></div>
+      <div id="feed-list"></div>
+      <div class="no-more-text" id="no-more" style="display:none">没有更多啦</div>
+
+      <div class="feed-state" id="state-empty" style="display:none">这里还没有内容哦～</div>
+      <div class="feed-state" id="state-error" style="display:none">
+        <div id="state-error-text">加载失败，请检查网络后重试</div>
+        <button type="button" class="btn-retry" id="btn-retry">重新加载</button>
+      </div>
+      <div class="load-more-sentinel" id="bottom-sentinel" style="height:1px"></div>
+    </main>
+  </div>
+
+  <!-- 评论输入面板 -->
+  <div class="comment-mask" id="comment-mask"></div>
+  <div class="comment-panel" id="comment-panel">
+    <div class="row">
+      <textarea id="comment-input" rows="1" maxlength="200" placeholder="说点什么..." inputmode="text"></textarea>
+      <button type="button" class="send" id="comment-send">发送</button>
+    </div>
+    <div class="counter"><span id="comment-count">0</span> / 200</div>
+  </div>

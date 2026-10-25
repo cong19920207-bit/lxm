@@ -1,0 +1,529 @@
+/* The shell adds two ancestors to the original full-height flex layout. */
+html[data-app-route="chat"] #app-root,
+html[data-app-route="chat"] [data-app-page="chat"] { height: 100%; min-height: 0; }
+html[data-app-route="chat"],
+html[data-app-route="chat"] body {
+      height: 100%;
+      overflow: hidden;
+    }
+:where([data-app-page="chat"]) .chat-page {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: transparent;
+    }
+/* 全屏背景：情绪图 + 模糊 + 遮罩 */
+    :where([data-app-page="chat"]) .chat-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+:where([data-app-page="chat"]) .chat-bg__image {
+      position: absolute;
+      inset: 0;
+      background-image: url('/static/images/avatar/default.png');
+      background-size: cover;
+      background-position: center 72%;
+      background-repeat: no-repeat;
+    }
+:where([data-app-page="chat"]) .chat-bg__mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+    }
+/* 顶部栏：三块独立胶囊（图2结构），无整条底栏 */
+    :where([data-app-page="chat"]) .chat-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      min-height: 66px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+    }
+/* 身份与功能胶囊共用：高透毛玻璃 + 亮边高光 */
+    :where([data-app-page="chat"]) .chat-top-bar .bar-profile,
+:where([data-app-page="chat"]) .chat-top-bar .bar-actions {
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(180, 160, 255, 0.08) 40%,
+        rgba(40, 28, 70, 0.18) 100%
+      );
+      border: 1px solid rgba(230, 220, 255, 0.42);
+      -webkit-backdrop-filter: blur(28px) saturate(1.35);
+      backdrop-filter: blur(28px) saturate(1.35);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(120, 90, 200, 0.12),
+        0 0 0 0.5px rgba(200, 180, 255, 0.18),
+        0 4px 16px rgba(0, 0, 0, 0.18);
+    }
+/* 身份胶囊 */
+    :where([data-app-page="chat"]) .chat-top-bar .bar-profile {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 14px 4px 4px;
+      border-radius: 999px;
+      box-sizing: border-box;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-profile .avatar-wrapper {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-profile .avatar-wrapper img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+      display: block;
+    }
+/* 在线绿点叠在头像右下 */
+    :where([data-app-page="chat"]) .chat-top-bar .bar-profile .online-dot {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #A6FF7B;
+      border: 2px solid rgba(20, 12, 40, 0.55);
+      box-sizing: border-box;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-titles {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      min-width: 0;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-titles .name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+    }
+:where([data-app-page="chat"]) .chat-top-bar .online-text {
+      font-size: 12px;
+      color: rgba(166, 255, 123, 0.9);
+      line-height: 1.2;
+    }
+/* 右侧功能胶囊：朋友圈 + 记忆星云（无文案） */
+    :where([data-app-page="chat"]) .chat-top-bar .bar-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 4px;
+      border-radius: 999px;
+      box-sizing: border-box;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-action {
+      position: relative;
+      width: 40px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 18px;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-action:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-action img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      display: block;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .bar-actions .bar-divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(196, 181, 253, 0.28);
+      flex-shrink: 0;
+    }
+/* 朋友圈未读角标（回复+新动态之和） */
+    :where([data-app-page="chat"]) .chat-top-bar .feed-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 8px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 16px;
+      text-align: center;
+      box-sizing: border-box;
+      display: none;
+    }
+:where([data-app-page="chat"]) .chat-top-bar .feed-badge.is-on {
+      display: block;
+    }
+/* 未读提示条（沉浸风） */
+    :where([data-app-page="chat"]) .agent-tip {
+      position: fixed;
+      top: 66px;
+      left: 12px;
+      right: 12px;
+      z-index: 99;
+      background: rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+:where([data-app-page="chat"]) .agent-tip.hidden {
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+    }
+:where([data-app-page="chat"]) .agent-tip .tip-line {
+      width: 3px;
+      align-self: stretch;
+      background: #A6FF7B;
+      border-radius: 2px;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+:where([data-app-page="chat"]) .agent-tip .tip-content {
+      flex: 1;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.92);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+:where([data-app-page="chat"]) .agent-tip .tip-close {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.65);
+      flex-shrink: 0;
+    }
+/* 聊天记录区 */
+    :where([data-app-page="chat"]) .chat-messages {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      overflow-y: auto;
+      padding: 72px 16px 88px;
+      -webkit-overflow-scrolling: touch;
+    }
+:where([data-app-page="chat"]) .chat-messages.has-tip {
+      padding-top: 105px;
+    }
+:where([data-app-page="chat"]) .msg-sentinel {
+      height: 1px;
+    }
+:where([data-app-page="chat"]) .msg-loading {
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+/* 消息行 */
+    :where([data-app-page="chat"]) .msg-row {
+      display: flex;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+:where([data-app-page="chat"]) .msg-row.user {
+      flex-direction: row-reverse;
+    }
+:where([data-app-page="chat"]) .msg-row .msg-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-top: 2px;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+:where([data-app-page="chat"]) .msg-row.ai { gap: 10px; }
+:where([data-app-page="chat"]) .msg-row.user { gap: 10px; }
+:where([data-app-page="chat"]) .msg-row .msg-body {
+      flex: 1;
+      min-width: 0;
+    }
+:where([data-app-page="chat"]) .msg-row.user .msg-body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+:where([data-app-page="chat"]) .msg-row.ai .msg-body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+/* 气泡主体：大圆角毛玻璃（对齐效果图） */
+    :where([data-app-page="chat"]) .msg-bubble {
+      max-width: 72%;
+      padding: 12px 16px;
+      border-radius: 24px;
+      font-size: 15px;
+      line-height: 1.55;
+      overflow-wrap: break-word;
+      word-break: normal;
+      position: relative;
+      -webkit-backdrop-filter: blur(22px) saturate(1.25);
+      backdrop-filter: blur(22px) saturate(1.25);
+    }
+/* 用户气泡：半透明紫玻璃 + 白字 + 右下紫菱形角标 */
+    :where([data-app-page="chat"]) .msg-row.user .msg-bubble {
+      color: #fff;
+      background: linear-gradient(
+        160deg,
+        rgba(210, 190, 255, 0.42) 0%,
+        rgba(130, 100, 200, 0.38) 45%,
+        rgba(100, 75, 175, 0.40) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(80, 50, 150, 0.15),
+        0 8px 22px rgba(40, 20, 80, 0.28);
+      text-shadow: 0 1px 2px rgba(40, 20, 80, 0.25);
+    }
+/* AI 气泡：半透明白玻璃 + 深色字 + 左下紫菱形角标 */
+    :where([data-app-page="chat"]) .msg-row.ai .msg-bubble {
+      color: #1A1A1A;
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(245, 240, 255, 0.58) 55%,
+        rgba(230, 220, 250, 0.52) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        inset 0 -1px 0 rgba(160, 140, 220, 0.12),
+        0 8px 22px rgba(0, 0, 0, 0.18);
+    }
+/* 角标紫菱形：按产品要求隐藏，样式保留便于以后打开 */
+    :where([data-app-page="chat"]) .msg-row.ai .msg-bubble::after,
+:where([data-app-page="chat"]) .msg-row.user .msg-bubble::after {
+      content: '';
+      display: none;
+      position: absolute;
+      bottom: -3px;
+      width: 9px;
+      height: 9px;
+      background: linear-gradient(145deg, #F8F0FF 0%, #D8B4FE 35%, #A78BFA 70%, #7C3AED 100%);
+      transform: rotate(45deg);
+      border-radius: 1.5px;
+      border: 0.5px solid rgba(255, 255, 255, 0.55);
+      box-shadow:
+        0 0 5px 1.5px rgba(196, 181, 253, 1),
+        0 0 12px 4px rgba(139, 92, 246, 0.65);
+      pointer-events: none;
+      z-index: 2;
+    }
+:where([data-app-page="chat"]) .msg-row.ai .msg-bubble::after {
+      left: 14px;
+    }
+:where([data-app-page="chat"]) .msg-row.user .msg-bubble::after {
+      right: 14px;
+    }
+:where([data-app-page="chat"]) .msg-row.agent .msg-bubble {
+      border-left: 3px solid rgba(166, 255, 123, 0.85);
+    }
+:where([data-app-page="chat"]) .msg-unread-tag {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #FF8C00;
+      color: #fff;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+/* 居中分组时间戳（微信式胶囊） */
+    :where([data-app-page="chat"]) .msg-time-divider {
+      width: fit-content;
+      max-width: 90%;
+      margin: 12px auto;
+      padding: 4px 10px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.2;
+      color: rgba(255, 255, 255, 0.62);
+      background: rgba(0, 0, 0, 0.28);
+      border-radius: 999px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+/* 底部输入区：浮起玻璃面板 + 白 pill + 紫发送 */
+    :where([data-app-page="chat"]) .input-area {
+      position: fixed;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      z-index: 100;
+      padding: 6px 12px calc(10px + var(--safe-area-bottom));
+      background: rgba(28, 18, 48, 0.62);
+      -webkit-backdrop-filter: blur(30px);
+      backdrop-filter: blur(30px);
+      border-radius: 28px 28px 20px 20px;
+      border: 1px solid rgba(196, 181, 253, 0.18);
+      box-sizing: border-box;
+    }
+/* 仅视觉：上沿短横线 */
+    :where([data-app-page="chat"]) .input-area::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      margin: 2px auto 8px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.28);
+    }
+:where([data-app-page="chat"]) .input-area-inner {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+:where([data-app-page="chat"]) .input-area textarea {
+      flex: 1;
+      min-height: 40px;
+      max-height: 33vh;
+      padding: 10px 16px;
+      background: #fff;
+      border: none;
+      border-radius: 22px;
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      color: #1A1A1A;
+      overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+:where([data-app-page="chat"]) .input-area textarea::placeholder {
+      color: rgba(0, 0, 0, 0.35);
+    }
+:where([data-app-page="chat"]) .send-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: #7C5CFF;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+      box-shadow: 0 2px 10px rgba(124, 92, 255, 0.45);
+    }
+:where([data-app-page="chat"]) .send-btn svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+:where([data-app-page="chat"]) .send-btn:disabled,
+:where([data-app-page="chat"]) .send-btn.disabled {
+      background: #D8D8DC;
+      color: #8E8E93;
+      cursor: not-allowed;
+      pointer-events: none;
+      opacity: 1;
+      box-shadow: none;
+    }
+:where([data-app-page="chat"]) .send-btn:disabled svg,
+:where([data-app-page="chat"]) .send-btn.disabled svg {
+      opacity: 0.7;
+    }
+:where([data-app-page="chat"]) .thinking-bubble .msg-content .loading-dots {
+      padding: 2px 0;
+    }
+:where([data-app-page="chat"]) .msg-error {
+      color: #ff6b6b;
+      font-size: 15px;
+    }
+:where([data-app-page="chat"]) .msg-user-with-side {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+:where([data-app-page="chat"]) .msg-bang {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 22px;
+      text-align: center;
+      padding: 0;
+      flex-shrink: 0;
+      cursor: pointer;
+      align-self: center;
+    }
+:where([data-app-page="chat"]) .msg-bang:active { opacity: 0.85; }
+:where([data-app-page="chat"]) .levelup-tip {
+      position: fixed;
+      bottom: 70px;
+      left: 16px;
+      right: 16px;
+      z-index: 99;
+      background: linear-gradient(135deg, #fff3e0, #fce4ec);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: toast-in 0.3s forwards;
+      cursor: pointer;
+    }
+:where([data-app-page="chat"]) .levelup-tip .lt-text {
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+:where([data-app-page="chat"]) .levelup-tip .lt-btn {
+      font-size: 13px;
+      color: #fa8c16;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 12px;
+    }

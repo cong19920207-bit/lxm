@@ -1,6 +1,12 @@
 /* Home call entry with M3 PCM transport and renderer acknowledgements. */
 (() => {
   'use strict';
+  function create(pageContext = null) {
+  const services = pageContext?.services, documentAudio = services?.audio, owners = services?.voice
+  let disposed = false, callRequestIdentity = null, crisisResize = null, delayTimers = new Map()
+  const pageValid = () => !disposed && (!pageContext || pageContext.valid())
+  const live = () => pageValid() && (!callRequestIdentity || callRequestIdentity.current())
+  const rejectStale = () => Object.assign(new Error('通话归属已失效'), {name:'StaleRequestError'})
   const messages = {
     microphone_denied: ['还听不见你的声音', '允许麦克风后，才能继续和她通话。'],
     browser_unsupported: ['换个浏览器，再和她说话', '请使用 Safari 或 Chrome 打开本页，再试一次。'],
@@ -59,46 +65,71 @@
     window.dispatchEvent(new CustomEvent('voice:audio-occupancy', {detail:{occupied:audioOwners.size > 0}}));
   }
   function acquireAudioOwner(context) {
-    const owner = {context, transport:null, stream:null, pending:0, localClean:false,
-      closing:null, remoteClean:true, attemptKey:null, callId:null, released:false};
+    const owner = {ownerId:crypto.randomUUID(), requestIdentity:callRequestIdentity, resources:new Set(), handoff:null, context, transport:null, stream:null, pending:0, localClean:false,
+      closing:null, remoteClean:true, remoteEvidence:{kind:'not-created'}, attemptKey:attempt?.key || crypto.randomUUID(), callId:null, released:false};
+    if (owners) owner.verification = owners.createVerification({identity:owner.requestIdentity,attemptKey:owner.attemptKey,apiBase:api()})
+    if (documentAudio) documentAudio.acquireCall(owner.ownerId)
     audioOwners.add(owner); currentAudioOwner = owner; notifyAudioOccupancy(); return owner;
   }
+  function handoff(owner) {
+    if (!owners || owner.handoff) return owner?.handoff
+    owner.handoff = owners.accept({ownerId:owner.ownerId, principalId:owner.requestIdentity.principalId, authEpoch:owner.requestIdentity.authEpoch,
+      attemptKey:owner.attemptKey, requestIdentity:owner.requestIdentity, callId:owner.callId,
+      pendingResources:[...owner.resources].filter(resource=>!resource.settled),
+      localClose:{status:owner.localClean?'closed':'pending'},
+      remoteCleanup:{status:owner.remoteClean?'complete':'unknown',evidence:owner.remoteEvidence}, verifyOriginal:owner.verification.verify})
+    return owner.handoff
+  }
+  function trackPending(owner, promise, dispose) {
+    const resource = {promise,dispose,settled:false}; owner.resources.add(resource)
+    Promise.resolve(promise).then(()=>{resource.settled=true},()=>{resource.settled=true})
+    if (owner.handoff) owner.handoff.adopt(promise,dispose)
+    return promise
+  }
+  const stopStream = value => {
+    let stopped=true;for(const track of value?.getTracks() || []) {try {track.stop()} catch(_) {stopped=false}}
+    return stopped && (!value || value.getTracks().every(track=>track.readyState==='ended'))
+  }
+  const closeContext = async context => { if (context && context.state!=='closed') { try { await context.close() } catch(error) { if(context.state!=='closed')throw error } } return !context || context.state==='closed' }
   function releaseAudioOwner(owner) {
     if (!owner || owner.released || owner.pending || !owner.localClean || !owner.remoteClean) return;
+    if (owners) { handoff(owner);void owners.verify(owner.ownerId) }
     owner.released = true; audioOwners.delete(owner);
     if (currentAudioOwner === owner) currentAudioOwner = null;
     notifyAudioOccupancy();
   }
   function cleanAudioOwner(owner) {
     if (!owner) return;
-    const ownedStream = owner.stream; owner.stream = null;
-    ownedStream?.getTracks().forEach(track => track.stop());
+    const ownedStream = owner.stream, streamStopped = stopStream(ownedStream); owner.stream = streamStopped ? null : ownedStream;
     if (stream === ownedStream) stream = null;
     if (audio === owner.transport) audio = null;
     if (!owner.closing) {
       const close = () => owner.transport ? owner.transport.close() : owner.context?.close();
       try { owner.closing = Promise.resolve(close()); }
       catch (error) { owner.closing = Promise.reject(error); }
-      owner.closing.then(() => { owner.localClean = true; releaseAudioOwner(owner); }, () => {
+      if (owners) trackPending(owner, owner.closing, async()=>!owner.context || owner.context.state==='closed')
+      owner.closing.then(() => { owner.localClean = !owners || streamStopped && (!owner.context || owner.context.state==='closed'); owner.handoff?.updateLocal({status:owner.localClean?'closed':'unknown'}); releaseAudioOwner(owner); }, () => {
+        owner.handoff?.updateLocal({status:'unknown'});
         // A rejected close is not cleanup evidence. Keep this owner conservative.
       });
     }
+    if (owners) handoff(owner)
     releaseAudioOwner(owner);
   }
   function bindAudioCall(pending, id) {
     if (!id) return;
-    for (const owner of audioOwners) if (owner.attemptKey === pending.key) { owner.callId = id; owner.remoteClean = false; }
+    for (const owner of audioOwners) if (owner.attemptKey === pending.key) { owner.callId = id; owner.verification?.bind(id); owner.remoteClean = false; owner.remoteEvidence=null; owners?.updateCall?.(owner.ownerId,id); }
   }
-  function finishAudioCall(id) {
+  function finishAudioCall(id, evidence = null) {
     if (!id) return;
-    for (const owner of [...audioOwners]) if (owner.callId === id) { owner.remoteClean = true; releaseAudioOwner(owner); }
+    for (const owner of [...audioOwners]) if (owner.callId === id) { if (owners && !evidence) continue; owner.verification?.ended(id); owner.remoteClean = true; owner.remoteEvidence=evidence; releaseAudioOwner(owner); }
   }
   const releaseMic = () => {
     if (currentAudioOwner) cleanAudioOwner(currentAudioOwner);
     else { stream?.getTracks().forEach(track => track.stop()); stream = null; const previous = audio; audio = null; previous?.close().catch(() => {}); }
   };
   const sendFrame = frame => {
-    if (!socket || socket.readyState !== window.WebSocket?.OPEN) throw new Error('通话连接已断开');
+    if (!pageValid() && frame.type !== 'cancel' || !socket || socket.readyState !== window.WebSocket?.OPEN) throw new Error('通话连接已断开');
     socket.send(JSON.stringify({...frame, v: 1, seq: ++seq}));
   };
   const send = type => { try { sendFrame({type}); } catch (_) {} };
@@ -123,7 +154,7 @@
     crisisBanner = document.createElement('p');
     crisisBanner.className = 'voice-crisis-banner'; crisisBanner.hidden = true;
     crisisBanner.setAttribute('role', 'status'); panel.appendChild(crisisBanner);
-    new ResizeObserver(() => panel.style.setProperty('--voice-crisis-height', crisisBanner.getBoundingClientRect().height + 'px')).observe(crisisBanner);
+    crisisResize = new ResizeObserver(() => panel.style.setProperty('--voice-crisis-height', crisisBanner.getBoundingClientRect().height + 'px')); crisisResize.observe(crisisBanner);
     title = panel.querySelector('h1'); description = panel.querySelector('.voice-entry-description');
     primary = panel.querySelector('.voice-entry-primary'); secondary = panel.querySelector('.voice-entry-secondary');
     closeButton = panel.querySelector('.voice-entry-close'); guide = panel.querySelector('.voice-entry-guide');
@@ -162,7 +193,7 @@
     });
   }
   function show(head, text, label, action, secondLabel = '暂时不用', secondAction = close) {
-    if (returningToChat) return;
+    if (returningToChat || !live()) return;
     elements(); panel.hidden = false; panel.classList.remove('is-in-call'); controls.hidden = true; clockLabel.hidden = true;
     title.textContent = head; description.textContent = text;
     guide.hidden = true; primary.textContent = label; primary.onclick = action;
@@ -183,26 +214,30 @@
       show(...copy, reason === 'network' ? '重新检查' : '稍后重试', begin, '回聊天找她', returnToChat);
     }
   }
-  async function http(path, options = {}, isCurrent = null) {
-    const response = await fetch(api() + path, {...options, headers: {'Content-Type':'application/json',
-      'Authorization':'Bearer ' + (localStorage.getItem('token') || ''), ...options.headers}});
+  async function http(path, options = {}, isCurrent = null, original = callRequestIdentity, cleanup = false) {
+    if (original && (!original.current() || !cleanup && !live())) throw rejectStale()
+    const headers = original ? original.headers({'Content-Type':'application/json',...options.headers}) : {'Content-Type':'application/json',
+      'Authorization':'Bearer ' + (localStorage.getItem('token') || ''), ...options.headers}
+    const response = await fetch(api() + path, {...options, headers});
     const body = await response.json();
     // A late result must not close a newer call or reopen its login modal.
-    if (isCurrent && !isCurrent()) return {response, body};
+    if (original && (!original.current() || cleanup || !live()) || isCurrent && !isCurrent()) return {response, body};
     if (response.status === 401) {
       if (body.detail === '账号已被禁用') {
         return {response, body:{code:401,data:{block_reason:'user_banned'}}};
       }
-      close(); if (typeof openHomeLoginModal === 'function') openHomeLoginModal();
+      close();
+      if (services) await services.auth.unauthorized(original,{authPolicy:'interactive-modal'})
+      else if (typeof openHomeLoginModal === 'function') openHomeLoginModal();
       throw Object.assign(new Error('unauthorized'), {unauthorized: true});
     }
     return {response, body};
   }
-  async function endKnownCall(id) {
+  async function endKnownCall(id, original = callRequestIdentity) {
     if (!id) return;
-    const result = await http('/api/voice/calls/' + id + '/end', {method:'POST'});
+    const result = await http('/api/voice/calls/' + id + '/end', {method:'POST'}, null, original, true);
     if (!result.response.ok || result.body.code !== 0 || result.body.data?.cleanup_pending !== false) throw new Error('结束待确认');
-    finishAudioCall(id);
+    finishAudioCall(id, {kind:'end',callId:id,cleanup_pending:false});
   }
   function resolveKnownCall(canReconnect = false) {
     const id = callId, current = socket;
@@ -227,7 +262,7 @@
             (cleanupRequested && !data.has_connected && finalStates.includes(data.status))) {
           cleanupRequested = true;
           const ended = await http('/api/voice/calls/' + id + '/end?only_if_unconnected=true', {method: 'POST'});
-          if (ended.response.ok && ended.body.code === 0 && ended.body.data?.cleanup_pending === false) finishAudioCall(id);
+          if (ended.response.ok && ended.body.code === 0 && ended.body.data?.cleanup_pending === false) finishAudioCall(id, {kind:'end',callId:id,cleanup_pending:false});
           if (!isCurrent()) return;
           if (!ended.response.ok || ended.body.code !== 0 || ended.body.data?.cleanup_pending !== false) throw new Error('结束待确认');
           data = await readStatus();
@@ -271,12 +306,12 @@
     let terminal = false;
     socket = current; seq = 0;
     current.onopen = () => {
-      if (closed || socket !== current) { current.close(); return; }
+      if (closed || !live() || socket !== current) { current.close(); return; }
       heartbeat = setInterval(() => send('heartbeat'), 1000);
     };
     let incoming = Promise.resolve();
     current.onmessage = event => { incoming = incoming.then(async () => {
-      if (closed || socket !== current) return;
+      if (closed || !live() || socket !== current) return;
       let frame; try { frame = JSON.parse(event.data); } catch (_) { return; }
       if (frame.v !== 1) return;
       if (cleanupUnconfirmed) return;
@@ -302,9 +337,12 @@
         hasConnected = true;
         reconnectWindowMs = frame.reconnect_timeout_ms;
         reconnectDeadline = null;
-        await audio.start(callId, stream);
-        audio.resumeTransport();
-        if (closed || socket !== current) return;
+        const transport = audio, owner = currentAudioOwner
+        const start = transport.start(callId, stream)
+        if (owners && owner) trackPending(owner,start,async()=>{await transport.close();return transport.context.state==='closed'})
+        await start;
+        if (closed || !live() || socket !== current || audio !== transport) return;
+        transport.resumeTransport();
         renderCallState('listening');
         refreshCrisis();
         window.dispatchEvent(new CustomEvent('voice:connected', {detail:{callId, stream}}));
@@ -331,7 +369,7 @@
     return String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
   }
   function renderCallState(state) {
-    if (closed || callFinished || !hasConnected || endingRequest) return;
+    if (!live() || closed || callFinished || !hasConnected || endingRequest) return;
     if (visibleCallState === state && panel.classList.contains('is-in-call')) return;
     const moveFocus = state === 'reconnecting' && [muteButton, outputButton].includes(document.activeElement);
     visibleCallState = state;
@@ -348,7 +386,7 @@
     if (moveFocus) hangupButton.focus();
   }
   function renderResult(data) {
-    if (closed || cleanupUnconfirmed) return;
+    if (!live() || closed || cleanupUnconfirmed) return;
     finishAudioCall(callId);
     terminalResultRun = null;
     clearCrisis();
@@ -438,7 +476,7 @@
             return;
           }
         } catch (_) { if (!isCurrent()) return; }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => { const timer=setTimeout(()=>{delayTimers.delete(timer);resolve()},500);delayTimers.set(timer,resolve) });
       }
       if (isCurrent()) {
         releaseMic(); busy = false;
@@ -447,7 +485,8 @@
     } finally { if (recoveryRun === run) reconnecting = false; }
   }
   async function begin() {
-    if (returningToChat) return;
+    if (!pageValid() || returningToChat) return;
+    if (services) callRequestIdentity = services.auth.requestContext({routeCurrent:()=>true})
     if (busy) return;
     elements(); closed = false; busy = true; hasConnected = false; callFinished = false; endingRequest = false; cleanupUnconfirmed = false; visibleCallState = ''; reconnectDeadline = null; returnFocus = document.activeElement;
     clockLabel.textContent = '00:00';
@@ -489,38 +528,46 @@
   async function prepareCall(owner) {
     owner.pending++;
     try {
+      if (documentAudio) await documentAudio.stopForCall(owner.ownerId,()=>live()&&!closed&&currentAudioOwner===owner)
+      if (!live() || closed || currentAudioOwner!==owner) { cleanAudioOwner(owner); return }
       audio = owner.transport = new window.VoiceAudioTransport({context:owner.context, send:sendFrame, onState:renderCallState});
-      await owner.context.resume();
+      const resumed = owner.context.resume();
+      if (owners) trackPending(owner,resumed,()=>closeContext(owner.context))
+      await resumed;
       if (closed || currentAudioOwner !== owner) { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; return; }
-      const acquired = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video: false});
+      const acquisition = navigator.mediaDevices.getUserMedia({audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video: false});
+      if (owners) trackPending(owner,acquisition,stopStream)
+      const acquired = await acquisition;
       owner.stream = acquired;
       if (closed || currentAudioOwner !== owner) { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; return; }
       stream = acquired;
-    } catch (_) {
-      if (!closed && currentAudioOwner === owner) blocked('microphone_denied');
+    } catch (error) {
+      if (!closed && currentAudioOwner === owner) blocked(error.code === 'BGM_STOP_UNCONFIRMED' ? 'default' : 'microphone_denied');
       else { cleanAudioOwner(owner); if (currentAudioOwner === owner) busy = false; }
       return;
     } finally { owner.pending--; releaseAudioOwner(owner); }
     if (!attempt) {
       let device = localStorage.getItem('voice_device_id');
       if (!device || !/^[0-9a-f-]{36}$/.test(device)) { device = crypto.randomUUID(); localStorage.setItem('voice_device_id', device); }
-      attempt = {key:crypto.randomUUID(), payload:{source:'home',device_id:device,browser_supported:true,microphone_granted:true}};
+      attempt = {key:owner.attemptKey, payload:{source:'home',device_id:device,browser_supported:true,microphone_granted:true}};
     }
-    const pending = attempt; owner.attemptKey = pending.key; owner.remoteClean = false;
+    const pending = attempt; owner.attemptKey = pending.key; owner.remoteClean = false; owner.remoteEvidence=null;
+    owner.verification?.start(pending.payload)
     show('正在呼叫林小梦', '正在连接…', '取消', close, '');
     try {
       const {response,body} = await http('/api/voice/calls', {method:'POST',headers:{'Idempotency-Key':pending.key},body:JSON.stringify(pending.payload)});
       bindAudioCall(pending, body.data?.call_id);
-      if (!body.data?.call_id && (!response.ok || body.code !== 0) && (response.status < 500 || body.data?.block_reason)) { owner.remoteClean = true; releaseAudioOwner(owner); }
+      if (owner.verification?.rejected(response,body)) { owner.remoteClean = true; releaseAudioOwner(owner); }
+      if (!owners && !body.data?.call_id && (!response.ok || body.code !== 0) && (response.status < 500 || body.data?.block_reason)) { owner.remoteClean = true; releaseAudioOwner(owner); }
       if (closed) {
-        if (body.data?.call_id) await endKnownCall(body.data.call_id).catch(() => {});
+        if (body.data?.call_id) await endKnownCall(body.data.call_id,owner.requestIdentity).catch(() => {});
         if (attempt === pending) attempt = null;
         return;
       }
       if (!response.ok || body.code !== 0) { attempt = null; blocked(body.data?.block_reason || 'default'); return; }
       await connect(body.data);
     } catch (error) { if (!closed && !error.unauthorized) blocked('network'); }
-    finally { if (closed) busy = false; }
+    finally { owner.verification?.settle(); if(owner.handoff)void owners.verify(owner.ownerId); if (closed) busy = false; }
   }
   function returnToChat() {
     if (returningToChat) return;
@@ -531,18 +578,21 @@
     primary.textContent = '正在返回聊天…';
     primary.setAttribute('aria-busy', 'true');
     primary.disabled = secondary.disabled = closeButton.disabled = true;
-    location.href = '/pages/chat.html';
+    if (pageContext) void pageContext.router.navigate('/pages/chat.html',{safety:true})
+    else location.href = '/pages/chat.html';
   }
-  window.addEventListener('pageshow', event => {
+  const onPageShow = event => {
     if (event.persisted && returningToChat) {
       returningToChat = false;
       if (panel) panel.hidden = true;
     }
-  });
-  function close() {
+  };
+  if (!pageContext) window.addEventListener('pageshow', onPageShow)
+  function close({focus = true} = {}) {
     if (returningToChat) return;
     if (permissionRun) { permissionRun = null; busy = false; }
     terminalResultRun = null; clearCrisis();
+    for (const owner of audioOwners) owner.verification?.authorizeEnd()
     closed = true; recoveryRun = null; reconnecting = false; clearInterval(heartbeat); send('cancel'); socket?.close(); socket = null;
     releaseMic(); const id = callId; callId = null;
     if (panel) panel.hidden = true;
@@ -551,11 +601,27 @@
       attempt = null; busy = false;
     }
     // Pending create resolves to its original call and cancels it; no new key/retry.
-    returnFocus?.focus?.();
+    if (focus && pageValid()) returnFocus?.focus?.();
   }
-  window.addEventListener('pagehide', () => {
+  const onPageHide = () => {
     if (permissionRun) { permissionRun = null; busy = false; if (panel) panel.hidden = true; }
     terminalResultRun = null; clearCrisis(); closed = true; clearInterval(heartbeat); socket?.close(); releaseMic();
-  });
-  window.VoiceEntry = Object.freeze({begin, isAudioOccupied: () => audioOwners.size > 0});
+  };
+  if (!pageContext) window.addEventListener('pagehide', onPageHide)
+  const leave = () => {
+    returningToChat = false; close({focus:false});
+    for (const [timer,resolve] of delayTimers) {clearTimeout(timer);resolve()} delayTimers.clear()
+    for (const owner of audioOwners) {cleanAudioOwner(owner);handoff(owner)}
+  }
+  const controller = Object.freeze({begin, close, leave, needsLeaveConfirmation:()=>!closed&&!callFinished&&(busy||!!permissionRun||hasConnected||!!callId),
+    isAudioOccupied:()=>audioOwners.size>0 || !!documentAudio?.callLeases.size,
+    destroy() { if(disposed)return;leave();disposed=true;crisisResize?.disconnect();panel?.remove();
+      if(!pageContext){window.removeEventListener('pageshow',onPageShow);window.removeEventListener('pagehide',onPageHide)}
+    }})
+  if (pageContext) { const unregister=owners.registerController(controller,pageContext,services.ui);pageContext.cleanup(()=>{controller.destroy();unregister()},{priority:100}) }
+  return controller
+  }
+  if (!window.AppShell) window.VoiceEntry = create()
+  else { let current=null; window.VoiceEntry=Object.freeze({create, mount(context){current?.destroy();current=create(context);return current},
+    begin:()=>current?.begin(),isAudioOccupied:()=>!!window.AppShell.services.audio.callLeases.size,current:()=>current}) }
 })();

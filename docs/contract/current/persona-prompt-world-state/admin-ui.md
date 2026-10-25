@@ -1,5 +1,8 @@
 # Persona Admin
 
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 - 文档 ID：`contract-persona-admin`
 - 权威状态：`canonical`
 - 功能范围：`persona-prompt-world-state`
@@ -31,7 +34,7 @@
 - **首屏加载**：`GET /api/admin/prompt/step5`、`GET /api/admin/prompt/step5-5/fragments`；草稿优先：`GET .../step5/draft`、`GET .../step5-5/draft` 与生效内容合并后填入编辑区。
 - **保存草稿**：Step5 — `PUT /api/admin/prompt/step5/draft`；Step5.5 — `PUT /api/admin/prompt/step5-5/draft/{fragment_key}`（仅当前子 Tab）。
 - **丢弃草稿**：`DELETE /api/admin/prompt/step5/draft`、`DELETE /api/admin/prompt/step5-5/draft`。
-- **在线测试**：Modal；`POST /api/admin/prompt/test`，Body 含 `use_draft`（为 `true` 时使用 **`step5_system_prompt`** 草稿覆盖模块1）。服务端 **`PromptBuilder.build_chat_prompt`** 与主链一致；成功展示 `ai_reply`（messages 合并）、人格匹配条、内容安全、`full_prompt` 折叠区。
+- **在线测试**：Modal；`POST /api/admin/prompt/test`，Body 含 `use_draft`（为 `true` 时使用 **`step5_system_prompt`** 草稿覆盖模块1）。服务端 **`build_legacy_mock_prompt`** 保留旧mock用途，不接真实召回（见[当前测试边界](#memory-persona-test-and-preview)）；成功展示 `ai_reply`（messages 合并）、人格匹配条、内容安全、`full_prompt` 折叠区。
 - **testPassed**：每次「开始测试」前置 `false`；**成功**且 `ai_reply` 去空白非空 → `true`，用于解锁 **发布 Step5** 与 **发布 Step5.5**；编辑任意 textarea / 切换草稿语义变更时应重新测试。
 - **发布**：`POST /api/admin/prompt/step5/publish` / `POST /api/admin/prompt/step5-5/publish`，Body `confirm_text:'CONFIRM'`、`test_passed:true`（须先在线测试通过）。
 - **版本历史**：两块独立列表 — **`GET /api/admin/prompt/step5/history`** 与 **`GET /api/admin/prompt/step5-5/history`**；查看 `GET .../history/{version}`；回滚 `POST .../rollback` + `CONFIRM`。
@@ -63,7 +66,7 @@
 
 - **实现状态**：已实现。主布局 **grid 40% : 60%**（`gap:16px`）；左侧自上而下：`测试参数配置` 卡片、`最近测试记录` 卡片（`margin-top:16px`）；右侧 `测试结果` 卡片。`activeKey='test'`，顶栏标题「AI测试工具」。`super_admin` / `ai_trainer` 可测试与保存，`observer` 仅可读配置和历史结果。样式入口：`admin-common.css` + 页内 `<style>`。
 - **测试参数**：`使用配置` 单选——当前生效（`use_draft:false`）/ 草稿（`use_draft:true`）；关系等级、用户情绪；模拟记忆 `textarea`（按换行计非空行数，展示「已输入 n/5 条」，n>5 时 `.alert-warning`）；测试输入必填。
-- **开始测试**：校验测试输入非空；`POST /api/admin/prompt/test`，Body 与 `PromptTestRequest` 一致（`mock_memories` 取前 5 条非空行）。服务端拼装与线上一致：**`PromptBuilder.build_chat_prompt`**（STEP-026）；`use_draft:true` 时使用 **`step5_system_prompt`** 草稿作为模块1。成功：右侧淡入展示 AI 气泡（头像「梦」）、人格匹配总分+等级 Tag、三维进度条（40%/40%/20%）、内容安全区块、`full_prompt` 折叠区（Token 数 `Math.ceil(full_prompt.length * 1.5)`）；底部「保存为测试用例」可用。
+- **开始测试**：校验测试输入非空；`POST /api/admin/prompt/test`，Body 与 `PromptTestRequest` 一致（`mock_memories` 取前 5 条非空行）。服务端拼装保留旧mock用途：**`build_legacy_mock_prompt`**（不接真实召回，见[当前测试边界](#memory-persona-test-and-preview)）；`use_draft:true` 时使用 **`step5_system_prompt`** 草稿作为模块1。成功：右侧淡入展示 AI 气泡（头像「梦」）、人格匹配总分+等级 Tag、三维进度条（40%/40%/20%）、内容安全区块、`full_prompt` 折叠区（Token 数 `Math.ceil(full_prompt.length * 1.5)`）；底部「保存为测试用例」可用。
 - **测试历史**：`localStorage` key=`admin_test_history`，最多 10 条，项含 `time`（ISO）、`test_input`、`use_draft`、`relationship_level`、`emotion_label`、`mock_memories`。点击行回填左侧表单；「清空」经 `showConfirm` 后清除并重绘。
 - **保存测试用例**：Modal（宽约 480px）填写 `expected_pass_criteria`；`POST /api/admin/test-cases/persona`，Body 使用最近一次**成功**测试快照中的 `test_input`→`input`、`emotion_label`、`relationship_level` 及弹窗中的期望标准。成功 Toast「已保存为测试用例」并关闭 Modal。
 
@@ -89,3 +92,17 @@
 - **新增**：Modal — type 下拉、**三层 key**（前端 `validateKeyFormat` 预检）、`value`；`POST` Body `{ type, key, value }`。
 - **编辑**：`key` 与 type **只读**（`#ck-modal-key[readonly]`，隐藏 type 行）；仅改 `value`；`PUT /api/admin/character-knowledge/{encodeURIComponent(doc_id)}`。
 - **删除**：`showConfirm(..., { danger: true })` 后 `DELETE` 同上路径。
+
+---
+
+<a id="memory-implementation-boundary"></a>
+### 本轮实现与环境边界
+
+本节记载工作区已实现、在自有隔离环境验证的增量。2026-10-13本地Docker业务环境`local-docker:lxmfor`已完成S15并开放epoch2，运行于新库`local_test_collection`；旧库和旧隔离分区已退役且不复用名称。实际验证及版本见唯一STEP §3.39。M8 的 cg=0.18/user=0.15 是隔离评测候选，共享默认仍为0.1；内置 System 修复不覆盖合法 active/draft/显式 override。AC19/AC20 原失败和未齐质量对照按最新用户决定作为本阶段非阻断风险保留，不能据功能通过宣称质量全通过。最终 M8/GATE-D 与实际部署状态见唯一 STEP §3。
+
+<a id="memory-persona-test-and-preview"></a>
+### 旧在线测试、只读预览与知识反馈
+
+原在线测试仍使用当前/step5草稿及原mock文本、原回复模型；页面显示reply/persona/content_safety/full_prompt/token_estimate等旧反馈。后端改为build_legacy_mock_prompt，不能标“与真实召回主链相同”；无真实召回/chat/Step6副作用，原角色不增。默认System事实约束只在默认参与时适用，合法active/draft/override继续优先。
+
+Step1.5/3/8三个GET只读预览沿实际模板/装载规则，标清代码默认与有效版本区别；不提供启动真实召回或业务写的按钮。角色知识原CRUD保持key不可改、value-only；显示source/index分态、未知查询原回执，maintenance_task_id跳原维护页GET当前任务，原observer只读总闸保持。唯一API定义见[旧测试](api.md#memory-legacy-prompt-test)、[预览](api.md#memory-readonly-previews)、[知识CRUD](api.md#memory-character-crud)。

@@ -115,7 +115,11 @@
           if (core.state().track) job.attempted.add(core.state().track.id)
           core.halt(); job.forced++
         }
-        data = await read(job, { force: kind === 'resource', manual: !!args.manual })
+        // The opening preloads the catalog without output. A usable prepared
+        // track must reach media.play()/AudioContext.resume() in the click stack.
+        const prepared = args.gesture && catalog.peek()
+        if (prepared && prepared.usable) data = prepared.catalog
+        else data = await read(job, { force: kind === 'resource', manual: !!args.manual })
         check(job); apply(data)
         if (!data.tracks.length) return false
         const s = core.state()
@@ -180,11 +184,11 @@
       if (recovery) core.requireRecovery(['permission', 'catalog'].includes(savedRecovery.category) ? savedRecovery.category : 'resource')
       return begin('initialize')
     }
-    function play(source = 'home') {
+    function play(source = 'home', { gesture = false } = {}) {
       if (!initialized || destroyed || !['home', 'home-list', 'bubble', 'retry'].includes(source)) return Promise.resolve(false)
       if (core.state().blockers.length || core.state().closed && source !== 'home') return Promise.resolve(false)
       stopJob(); notice = null; void core.play({ source, defer: true })
-      return begin('play', { manual: true })
+      return begin('play', { manual: true, gesture })
     }
     function select(id) {
       if (!initialized || destroyed || !core.state().tracks.some(t => t.id === id) || core.state().blockers.length) return Promise.resolve(false)

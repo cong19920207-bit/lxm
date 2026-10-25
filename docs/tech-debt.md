@@ -5,10 +5,11 @@
 - 默认详情：`docs/tech-debt/active/`
 - 归档门禁：只有代码核验完成且用户明确确认后才移入 `archive/`
 
-本文件保留全部 43 个编号，但不再承载详情正文。TD-001～TD-037 状态文字来自迁移源，未在本次迁移中改判；TD-038 为 2026-09-27 经确认新增，TD-039～TD-040 为 2026-09-28 核实的语音技术债；TD-041～TD-043 为 2026-09-29 经用户决定延期的 P1 问题 R03、R05、R09。
+本文件保留全部 44 个编号，但不再承载详情正文。TD-001～TD-037 状态文字来自迁移源，未在本次迁移中改判；TD-038 为 2026-09-27 经确认新增，TD-039～TD-040 为 2026-09-28 核实的语音技术债；TD-041～TD-043 为 2026-09-29 经用户决定延期的 P1 问题 R03、R05、R09；TD-044 为 2026-10-16 经用户确认的 Collection 库名配置技术债，优先级最高（P0）。
 
 | 编号 | 原标题 | 迁移状态 | 主要功能 | 唯一详情 |
 |---|---|---|---|---|
+| TD-044 | DashVector Collection 名称硬编码，需改为统一配置 | 待清偿（最高优先级 P0） | `memory-knowledge` | [docs/tech-debt/active/memory-knowledge.md](tech-debt/active/memory-knowledge.md#td-044) |
 | TD-001 | users 表遗留字段待清理 | 待清偿 | `core-user-auth` | [docs/tech-debt/active/core-user-auth.md](tech-debt/active/core-user-auth.md#td-001) |
 | TD-002 | 后台 Prompt 与主链 Step5 / Step5.5 热加载 — **已清偿（STEP-026，2026-05-07）** | 已清偿（原文状态，待用户确认归档） | `persona-prompt-world-state` | [docs/tech-debt/active/persona-prompt-world-state.md](tech-debt/active/persona-prompt-world-state.md#td-002) |
 | TD-003 | Prompt 管理页版本历史分页失败时列表不刷新 | 待清偿 | `persona-prompt-world-state` | [docs/tech-debt/active/persona-prompt-world-state.md](tech-debt/active/persona-prompt-world-state.md#td-003) |

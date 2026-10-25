@@ -1,12 +1,32 @@
 # memory-knowledge 技术债
 
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 - 文档 ID：`tech-debt-memory-knowledge`
 - 权威状态：`canonical`
 - 功能范围：`memory-knowledge`
 - 必读依赖：无
-- 相关技术债：`TD-017`, `TD-022`, `TD-023`, `TD-026`, `TD-027`, `TD-028`, `TD-029`
+- 相关技术债：`TD-017`, `TD-022`, `TD-023`, `TD-026`, `TD-027`, `TD-028`, `TD-029`, `TD-044`
 
-> 状态完全沿用迁移源；本次迁移不确认清偿、不执行归档。
+> TD-017～TD-029 状态沿用迁移源；TD-044 为后续经用户确认新增。本次记录不确认既有条目清偿、不执行归档。
+
+<a id="td-044"></a>
+
+### [TD-044] DashVector Collection 名称硬编码，需改为统一配置（待清偿 · P0）
+
+- **优先级**：**最高（P0，2026-10-16 用户指定）**。
+- **背景**：[2026-10-15 生产发布记录](../../design/memory-retrieval/steps-verified-v3.2-后台闭环修正版.md#memory-v32-followup-closure)明确决定“临时固定生产库名、通用配置修复延期”。生产快照在后端常量及两处后台表单将测试库名替换为 `new_lxm_memory_long_collection`，本地主工作区保留 `local_test_collection`。
+- **当前处理（2026-10-16 核验）**：库名虽有 `DASHVECTOR_COLLECTION_NAME` 环境读取入口，但后端固定目标校验及前端固定值仍限制目标，单改 env 不能完成环境适配。这项技术债针对 Collection 库名；rerank 模型及接口已支持 env，不属于本条。
+- **实现见**：[backend/config.py](../../../backend/config.py) 的 `get_dashvector_collection`；[backend/services/memory_effective_config.py](../../../backend/services/memory_effective_config.py) 的 `TARGET_COLLECTION`（本次核验第 17 行）及 `_validate_provider`（第 200 行）；[admin/pages/memory-rules.html](../../../admin/pages/memory-rules.html) 的 `VECTOR_TARGET`（第 346 行）及固定库名文案；[admin/pages/third-party.html](../../../admin/pages/third-party.html) 的 `modalDraft`（第 245 行）及固定库名文案。
+- **当前影响**：不同环境发布仍需修改源码中的库名；env、后端校验与页面限制存在多处维护成本，可能出现目标不一致或合法配置被拒绝。
+- **待处理**：
+  1. 统一 Collection 目标的配置来源，支持通过 env 配置环境目标；沿用并明确后台已发布配置与 env 的优先级，后端校验不再依赖环境专用库名常量。
+  2. 两处后台表单从同源有效配置读取目标，去除固定库名校验与文案；生产发布不再通过替换源码库名适配环境。
+  3. 验证不同环境目标的读取、后台展示、测连、保存及运行时一致性；保留现有 fence/epoch、目标绑定及防误切保护。改造不等于允许仅改 env 就切换已激活的数据目标。
+  4. 实施后同步记忆与第三方配置的现行契约及必要发布说明。
+- **风险等级**：**中**（多处目标配置易漂移，错误切换可能影响记忆读写）。最高优先级为用户排期决定，不表示已发生生产故障。
+- **当前状态**：待清偿；本轮仅记录，不实施配置改造、不变更运行目标或部署。
 
 ### [TD-017] 记忆检索：查询改写 / LLM 重写检索 query（**部分清偿 · 2026-05-30**）
 

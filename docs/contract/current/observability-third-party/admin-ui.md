@@ -1,5 +1,8 @@
 # Observability Admin
 
+> 提交范围说明：生产快照继续使用 `new_lxm_memory_long_collection`；本文 `local_test_collection` 仅代指历史本地隔离目标，不是可直接复制的部署配置。本地验收结果不代表生产验收。
+
+
 - 文档 ID：`contract-observability-admin`
 - 权威状态：`canonical`
 - 功能范围：`observability-third-party`
@@ -33,12 +36,14 @@
 
 - **权限**：`super_admin` / `tech_ops` / `observer`；observer 仅读状态与非敏感配置，凭据仅显示已/未配置，不可保存或测试连接。
 - **调用**：`GET /api/admin/third-party/status`（**60 秒缓存**，后端 Redis key `cache:third_party_status`，已处理）；定时 **60s** 刷新；`beforeunload` 时 `clearInterval` 防泄漏。
+- **BM25卡片**：与其他服务复用`tp-card/tp-card-head/tp-row`，独立展示本地组件/编码版本、本地编码器、索引初始化、当前索引与待处理数量、回填状态/阶段及扫描进度、检查时间；窄屏改为单列。判定消费[BM25真实状态接口](api.md#bm25-runtime-status)，编码器加载成功不推定初始化或回填完成；无回填记录、总量待确认、需人工处理及状态未知分别显示。读取失败清除旧卡片中的确定状态，缺失字段不默认未初始化/已完成，不能仅凭旧版ready标志亮绿灯。编码版本与所有动态值转义显示，保留完整版本但可换行；只读「查看索引维护」链接不执行修复或回填。BM25状态不复用统计缓存，页面刷新周期仍为60秒。
+- **本地真实验收（2026-10-15）**：本次修复已部署local-docker:lxmfor；真实浏览器显示编码器已就绪、初始化已完成并开放、索引114/115与来源待核实1条、无回填记录，黄色汇总状态与HTTP/MySQL一致。验证期间未执行初始化/回填，7张相关状态表前后摘要不变；镜像、截图与证据见[API部署核验记录](api.md#bm25-runtime-status)。生产环境未操作。
 - **卡片**：`#service-grid` 为 2×2 栅格；首屏 4 个 `.skeleton`（高 200px）；成功后渲染服务卡。**标题**使用接口返回的 `name`（不硬编码展示文案）；`svcKey` 由前端 `SERVICE_KEY_MAP` 与后端 `_VALID_SERVICES` 路径对齐（`doubao` / `embedding` / `dashvector` / `content_safety`）。
 - **内容安全卡**：独立布局，仅 `today_blocked` + 状态灯；代码注释 **TD-003**（与全局 `tech-debt.md` 中 [TD-003] 编号不同指代）：无真实第三方 HTTP 后端，探测为 Redis `banned_keywords`；配置弹窗为说明 +「测试 Redis 连通性」+「关闭」，无保存。
 - **配置弹窗（非 content_safety）**：Endpoint（`type=url`）、API Key（留空保留原值）；**保存**初始禁用；**测试连接** 发 `POST .../test-connection`，Body 含表单中**非空**的 `endpoint` / `api_key`（可与已发布配置合并探测）；`connected===true` 后启用保存。**保存**：`PUT .../config`，Body 仅传非空字段；`api_key` 空则不传；须本弹窗内测试通过后才提交（前端校验）；服务端仍会再次测试合并结果。
 - **技术债记录**
   - **TD-003（本页注释口径）**：内容安全无独立第三方 API，探测走 Redis；若未来接入真实内容安全服务需后端字段与探测实现。
-  - **TD-012**：`third_party:*` 已可落库与热键 `active_config:third_party:*`，**对话/向量/Embedding 等业务运行时仍以环境变量等现有路径为准**，与后台保存易不一致；清偿时见 `docs/tech-debt.md` [TD-012]。
+  - **TD-012作用域**：embedding/rerank/dashvector当前已实现同源resolver/canonical发布，生效仍受具体environment/fence与部署约束；旧业务容器未部署，doubao/content-safety等原流程保留。不能用全体“仍只读环境变量”描述这些工作区增量，见[当前Provider页面](#memory-provider-admin)。
 
 ### `admin/pages/dashboard.html`（数据看板）
 
@@ -59,3 +64,17 @@
 - **图表**：ECharts；`chartInstances` + `getChart`；`window.resize` 时 `resize()`。
 - **Tab 切换与「查询」**：`initTabs` 切换后 **`setTimeout(0, onQuery)`**，且 **`onQuery()` 返回的 Promise 完成后再 `setTimeout(50ms, resizeAllCharts)`**，避免请求未完成时提前 `resize` 导致图表尺寸异常；「查询」按钮同样 **`onQuery().then` → 延迟 `resize`**。首屏加载同逻辑。
 - **用户报表饼图**：`extra.level_distribution` 为全量用户等级分布，**与日期筛选无关**；页面饼图标题下灰色说明与接口语义一致。
+
+---
+
+<a id="memory-implementation-boundary"></a>
+### 本轮实现与环境边界
+
+本节记载工作区已实现、在自有隔离环境验证的增量。2026-10-13本地Docker业务环境`local-docker:lxmfor`已完成S15并开放epoch2，运行于新库`local_test_collection`；旧库和旧隔离分区已退役且不复用名称。实际验证及版本见唯一STEP §3.39。M8 的 cg=0.18/user=0.15 是隔离评测候选，共享默认仍为0.1；内置 System 修复不覆盖合法 active/draft/显式 override。AC19/AC20 原失败和未齐质量对照按最新用户决定作为本阶段非阻断风险保留，不能据功能通过宣称质量全通过。最终 M8/GATE-D 与实际部署状态见唯一 STEP §3。
+
+<a id="memory-provider-admin"></a>
+### 记忆Provider页面与未知保存
+
+embedding/rerank/dashvector表单消费同源有效配置/version/source与credential_configured；dirty合并、原入口role、UTF8纯文本显示和测试/保存双反馈保持。dashvector固定新目标/维度/FLOAT/DotProduct，旧TopK只读。api_key未修改不提交；observer仅配置状态，写/测控件data-write-action及后端403。服务端保存仍重新探测，不信前端testPassed；dirty/Key变化重置测连结果与允许保存状态。
+
+发布前校时+UUIDv7，unknown保原publish_id，GET本人原来源回执核实，不用active新版本或刷新成功冒充原保存成功。保存确认才显示成功，未知/失败/过期分别显示。运行resolver已接三类配置但生效依具体environment/fence/部署；旧业务容器未部署，不能延续“所有记忆消费者仍只读环境变量”的笼统说法，也不能宣称本轮热切换上线。doubao/content-safety旧流程保持，详见[API](api.md#memory-provider-config)。

@@ -1,4 +1,6 @@
 ---
+
+> 材料边界：文中标注“本地留存”的过程稿、测试报告、截图及运行证据未随本次提交。历史验证结论保留原日期、环境和未验边界，不代表远端可复现或生产已验收。
 title: "steps-verified"
 mode: "standalone"
 phase_status: "verified"
@@ -43,20 +45,20 @@ prd: "PRD-林小梦主页改版-v2.md"
 | SRC-08 | `nginx/nginx.conf` · `existing` | REPO_BASELINE | server／location（27—81 行） | 1f53e0b85c09 | 仓库配置监听 80，根路径跳 /pages/index.html；不是外层 HTTPS 证据 |
 | SRC-09 | `tests/test_h5_static_contract.py` · `existing` | REPO_BASELINE | 文件说明@1；test_index_html_home_surface_contract@407；test_index_guest_mode_contract@483 | 21dec126aab8 | 已有 pytest 静态入口；子串断言不等于浏览器集成验收 |
 | SRC-10 | `requirements.txt` · `existing` | REPO_BASELINE | Pillow@48；pytest@52；pytest-asyncio@53 | 79d5196a84c6 | 已有依赖声明，不能据此推定执行环境可用 |
-| SRC-11 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` · `existing` | REPO_BASELINE | renderParallax@89；enableTilt@130；scheduleBlink@182；acknowledge@227；启动循环@416—437 | a6bb07bfc2be | demo 动效参考；独立循环、计时器和传感器接入需重组 |
-| SRC-12 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js` · `existing` | REPO_BASELINE | normalizeOrientation@48；createBlinkPlan@58；createAcknowledgePlan@80 | d9eb388f8ce1 | 参考计算与动效计划；参数不是新的业务决定 |
-| SRC-13 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css` · `existing` | REPO_BASELINE | scene@4；hair-front/side/back@22—24；blink@26 | 959a10405861 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
-| SRC-14 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/index.html` · `existing` | REPO_BASELINE | 分层素材 DOM | c59d82c2f5da | 七图图层和参考结构 |
+| SRC-11 | `<本地目录>` · `existing` | REPO_BASELINE | renderParallax@89；enableTilt@130；scheduleBlink@182；acknowledge@227；启动循环@416—437 | a6bb07bfc2be | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| SRC-12 | `<本地目录>` · `existing` | REPO_BASELINE | normalizeOrientation@48；createBlinkPlan@58；createAcknowledgePlan@80 | d9eb388f8ce1 | 参考计算与动效计划；参数不是新的业务决定 |
+| SRC-13 | `<本地目录>` · `existing` | REPO_BASELINE | scene@4；hair-front/side/back@22—24；blink@26 | 959a10405861 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
+| SRC-14 | `<本地目录>` · `existing` | REPO_BASELINE | 分层素材 DOM | c59d82c2f5da | 七图图层和参考结构 |
 | SRC-15 | `tests/test_realtime_voice_step036_states.cjs` · `existing` | REPO_BASELINE | Playwright 导入@3；setup@38；page.route@50 | bb93e2b1b10e | 已有受控浏览器测试写法，含模拟传输；不证明真实音频或设备通过 |
 | SRC-16 | `docs/INDEX.md` · `existing` | REPO_BASELINE | §产品需求与设计 | 179cf230fc39 | 当前 v2 入口及读取边界 |
 | SRC-17 | `docs/llm-manifest.json` · `existing` | REPO_BASELINE | documents 中 contract-h5-app-api／contract-shared-conventions | 15819acc2ae0 | 本轮读取的当前契约在白名单内 |
-| ASSET-01 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGB、165630 字节 | c094490a4d8e | 场景原素材及画布／alpha 基线 |
-| ASSET-02 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGBA、284604 字节 | 2816096f87aa | 场景原素材及画布／alpha 基线 |
-| ASSET-03 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png` · `existing` | REPO_BASELINE | 文件头／元数据：456×417、RGBA、358769 字节 | b1e1d3d8534d | 场景原素材及画布／alpha 基线 |
-| ASSET-04 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png` · `existing` | REPO_BASELINE | 文件头／元数据：220×512、RGBA、120267 字节 | c1aa3d65e058 | 场景原素材及画布／alpha 基线 |
-| ASSET-05 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png` · `existing` | REPO_BASELINE | 文件头／元数据：168×445、RGBA、146555 字节 | cb856237a6f6 | 场景原素材及画布／alpha 基线 |
-| ASSET-06 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png` · `existing` | REPO_BASELINE | 文件头／元数据：263×134、RGBA、70797 字节 | 3365f66905d3 | 场景原素材及画布／alpha 基线 |
-| ASSET-07 | `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGBA、140176 字节 | a1425ca6fb0a | 场景原素材及画布／alpha 基线 |
+| ASSET-01 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGB、165630 字节 | c094490a4d8e | 场景原素材及画布／alpha 基线 |
+| ASSET-02 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGBA、284604 字节 | 2816096f87aa | 场景原素材及画布／alpha 基线 |
+| ASSET-03 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：456×417、RGBA、358769 字节 | b1e1d3d8534d | 场景原素材及画布／alpha 基线 |
+| ASSET-04 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：220×512、RGBA、120267 字节 | c1aa3d65e058 | 场景原素材及画布／alpha 基线 |
+| ASSET-05 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：168×445、RGBA、146555 字节 | cb856237a6f6 | 场景原素材及画布／alpha 基线 |
+| ASSET-06 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：263×134、RGBA、70797 字节 | 3365f66905d3 | 场景原素材及画布／alpha 基线 |
+| ASSET-07 | `<本地目录>` · `existing` | REPO_BASELINE | 文件头／元数据：853×1844、RGBA、140176 字节 | a1425ca6fb0a | 场景原素材及画布／alpha 基线 |
 | ASSET-08 | `frontend/static/images/Index/Index.png` · `existing` | REPO_BASELINE | 精确目录名 Index.png；550814 字节 | 0b072904c320 | 语音和首页回退使用的原背景 |
 
 PRD 完整 SHA256：`165e84076e14016073e92b4c2284a0ada52321fe8c6d753061ceda81e4ce9ed6`。源码证据定位对应本轮读取，实施或复审前如源码变化，复核受影响的定位与结论；不能把旧读取状态当本轮运行通过。
@@ -92,13 +94,13 @@ PRD 完整 SHA256：`165e84076e14016073e92b4c2284a0ada52321fe8c6d753061ceda81e4c
 
 | source_id | 实际素材（均 existing／REPO_BASELINE） | 像素 | 模式 | 字节 |
 |---|---|---|---|---|
-| ASSET-01 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp | 853×1844 | RGB | 165630 |
-| ASSET-02 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp | 853×1844 | RGBA | 284604 |
-| ASSET-03 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png | 456×417 | RGBA | 358769 |
-| ASSET-04 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png | 220×512 | RGBA | 120267 |
-| ASSET-05 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png | 168×445 | RGBA | 146555 |
-| ASSET-06 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png | 263×134 | RGBA | 70797 |
-| ASSET-07 | /Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp | 853×1844 | RGBA | 140176 |
+| ASSET-01 | <本地目录> | 853×1844 | RGB | 165630 |
+| ASSET-02 | <本地目录> | 853×1844 | RGBA | 284604 |
+| ASSET-03 | <本地目录> | 456×417 | RGBA | 358769 |
+| ASSET-04 | <本地目录> | 220×512 | RGBA | 120267 |
+| ASSET-05 | <本地目录> | 168×445 | RGBA | 146555 |
+| ASSET-06 | <本地目录> | 263×134 | RGBA | 70797 |
+| ASSET-07 | <本地目录> | 853×1844 | RGBA | 140176 |
 
 本轮元数据读取合计 1,286,798 字节，核心两图 450,234 字节，与 PRD 基线一致。这里没有压缩输出，也没有检查新导出图的脸部、透明边缘或真机内存；这些仍由 Q202 对应验收完成。
 
@@ -289,15 +291,15 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 路径或符号 | 状态 | 来源证据 | source_id／locator | 用途 |
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css` | existing | REPO_BASELINE | SRC-13／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css::hair-front/side/back@22—24；blink@26 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/index.html` | existing | REPO_BASELINE | SRC-14／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/index.html::素材分层 DOM | 七图图层和参考结构 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp` | existing | REPO_BASELINE | ASSET-01／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/background.webp::文件头／元数据：853×1844、RGB、165630 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp` | existing | REPO_BASELINE | ASSET-02／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/character.webp::文件头／元数据：853×1844、RGBA、284604 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png` | existing | REPO_BASELINE | ASSET-03／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_front_physics.png::文件头／元数据：456×417、RGBA、358769 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png` | existing | REPO_BASELINE | ASSET-04／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_side_physics.png::文件头／元数据：220×512、RGBA、120267 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png` | existing | REPO_BASELINE | ASSET-05／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/hair_back_physics.png::文件头／元数据：168×445、RGBA、146555 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png` | existing | REPO_BASELINE | ASSET-06／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/blink_crop.png::文件头／元数据：263×134、RGBA、70797 字节 | 场景原素材及画布／alpha 基线 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp` | existing | REPO_BASELINE | ASSET-07／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets/lamp_glow.webp::文件头／元数据：853×1844、RGBA、140176 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-13／<本地目录>；blink@26 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-14／<本地目录> DOM | 七图图层和参考结构 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-01／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-02／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-03／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-04／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-05／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-06／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
+| `<本地目录>` | existing | REPO_BASELINE | ASSET-07／<本地目录> 字节 | 场景原素材及画布／alpha 基线 |
 | `frontend/static/images/home-scene/v4/` | planned | PLANNED | 不适用 | PRD §9.1；新场景版本化导出资源 |
 | `requirements.txt` | existing | REPO_BASELINE | SRC-10／requirements.txt::Pillow@48 | 已有依赖声明，不能据此推定执行环境可用 |
 
@@ -447,7 +449,7 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
 | `frontend/pages/index.html` | existing | REPO_BASELINE | SRC-04／frontend/pages/index.html::主页 DOM@1283—1468 | 主页结构、加载门闩、权限入口、页面取数与 Feed 刷新 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css` | existing | REPO_BASELINE | SRC-13／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css::scene@4；贴片@22—26 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-13／<本地目录>；贴片@22—26 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
 | `frontend/static/css/home-scene.css` | planned | PLANNED | 不适用 | PRD §9.1；限定场景作用域的样式 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
 | `frontend/static/images/home-scene/v4/` | planned | PLANNED | 不适用 | PRD §9.1；新场景版本化导出资源 |
@@ -764,7 +766,7 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
 | `frontend/pages/index.html` | existing | REPO_BASELINE | SRC-04／frontend/pages/index.html::runHomeLoader@1687；initHomePage@1769 | 主页结构、加载门闩、权限入口、页面取数与 Feed 刷新 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` | existing | REPO_BASELINE | SRC-11／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js::启动循环@416—437 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-11／<本地目录> | demo 动效参考；独立循环、计时器和传感器接入需重组 |
 | `frontend/static/js/home-scene-core.js` | planned | PLANNED | 不适用 | PRD §9.1；可独立验证的坐标、时间与动效规则 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
 
@@ -843,9 +845,9 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 路径或符号 | 状态 | 来源证据 | source_id／locator | 用途 |
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` | existing | REPO_BASELINE | SRC-11／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js::scheduleBlink@182；idleAction@199；启动循环@416—437 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js` | existing | REPO_BASELINE | SRC-12／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js::createBlinkPlan@58；createIdleDelay@76；createTwinklePlan@93 | 参考计算与动效计划；参数不是新的业务决定 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css` | existing | REPO_BASELINE | SRC-13／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/styles.css::呼吸及贴片样式 | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-11／<本地目录>；idleAction@199；启动循环@416—437 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-12／<本地目录>；createIdleDelay@76；createTwinklePlan@93 | 参考计算与动效计划；参数不是新的业务决定 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-13／<本地目录> | 参考坐标与锚点；全场景 touch-action:none 不能照搬 |
 | `frontend/static/css/home-scene.css` | planned | PLANNED | 不适用 | PRD §9.1；限定场景作用域的样式 |
 | `frontend/static/js/home-scene-core.js` | planned | PLANNED | 不适用 | PRD §9.1；可独立验证的坐标、时间与动效规则 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
@@ -924,8 +926,8 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 路径或符号 | 状态 | 来源证据 | source_id／locator | 用途 |
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` | existing | REPO_BASELINE | SRC-11／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js::acknowledge@227；characterRig click@265 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js` | existing | REPO_BASELINE | SRC-12／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js::createAcknowledgePlan@80 | 参考计算与动效计划；参数不是新的业务决定 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-11／<本地目录>；characterRig click@265 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-12／<本地目录> | 参考计算与动效计划；参数不是新的业务决定 |
 | `frontend/pages/index.html` | existing | REPO_BASELINE | SRC-04／frontend/pages/index.html::业务按钮／卡片 DOM@1283—1468 | 主页结构、加载门闩、权限入口、页面取数与 Feed 刷新 |
 | `frontend/static/css/home-scene.css` | planned | PLANNED | 不适用 | PRD §9.1；限定场景作用域的样式 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
@@ -1087,8 +1089,8 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 路径或符号 | 状态 | 来源证据 | source_id／locator | 用途 |
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` | existing | REPO_BASELINE | SRC-11／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js::onOrientation@119；enableTilt@130 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js` | existing | REPO_BASELINE | SRC-12／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/idle-core.js::normalizeOrientation@48 | 参考计算与动效计划；参数不是新的业务决定 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-11／<本地目录>；enableTilt@130 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-12／<本地目录> | 参考计算与动效计划；参数不是新的业务决定 |
 | `frontend/static/js/home-scene-core.js` | planned | PLANNED | 不适用 | PRD §9.1；可独立验证的坐标、时间与动效规则 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
 
@@ -1246,7 +1248,7 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 路径或符号 | 状态 | 来源证据 | source_id／locator | 用途 |
 |---|---|---|---|---|
 | `docs/design/home-redesign/PRD-林小梦主页改版-v2.md` | existing | PRD | SRC-01／docs/design/home-redesign/PRD-林小梦主页改版-v2.md::本 STEP 所列需求／验收 | 已确认需求、验收、排除项及待核验项 |
-| `/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js` | existing | REPO_BASELINE | SRC-11／/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/app.js::renderParallax@89；独立绘制循环启动@425—427；ResizeObserver@416 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
+| `<本地目录>` | existing | REPO_BASELINE | SRC-11／<本地目录>；独立绘制循环启动@425—427；ResizeObserver@416 | demo 动效参考；独立循环、计时器和传感器接入需重组 |
 | `frontend/static/js/home-scene-core.js` | planned | PLANNED | 不适用 | PRD §9.1；可独立验证的坐标、时间与动效规则 |
 | `frontend/static/js/home-scene.js` | planned | PLANNED | 不适用 | PRD §9.1；场景资源、调度、生命周期与传感器 |
 | `frontend/static/css/home-scene.css` | planned | PLANNED | 不适用 | PRD §9.1；限定场景作用域的样式 |
@@ -1766,15 +1768,17 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 > 路径：本文件内嵌进度区块。
 > PRD 来源：`PRD-林小梦主页改版-v2.md`（existing／PRD／SRC-01）。
 > STEP 来源：`steps-verified.md`（当前验证版；候选快照为 steps-candidate-r1.md，只读原稿为 steps-draft.md）。
-> 当前文档状态：`STEPS_VERIFIED`；完整复审结果 `PASS_WITH_RISKS`；原 STEP 验收完成数仍为 10/18。主要本地实现、M5 文档同步及 Docker 交付已完成；设置页偏好和人物稳定性后续变更已补充证据。本轮按开发交付收口，发布候选已生成但尚未上传；用户最新决定暂不需要代推线上，发布另行安排。Q201 正式配置及真实环境完整验收仍待补，不将开发交付收口写成原计划全部 DONE。当前状态以 §9.20 为准，之前执行回传保留历史边界。
+> 当前文档状态：`STEPS_VERIFIED`；完整复审结果 `PASS_WITH_RISKS`。本期主页改版及倾斜增强已由用户确认真机人工验收通过，验收记录与相关契约已收尾，当前结论以 §9.21 为准。原 STEP 全项证据完成数保留 10/18，Q201 正式配置及专项量测仍待后续跟进；本次人工确认不将原计划逐环境、量化指标及配置完成条件全部改为 DONE。§9.20 及之前回传保留当时的执行和发布边界。
 
 ### 9.1 进度总览
 
-| 完成数 | 总数 | 当前状态 |
+| 原 STEP 全项证据完成数 | 总数 | 本期状态与证据边界 |
 |---|---|---|
-| 10 | 18 | M4 缓存／回退和本地回归已落地；M3—M4 真机／HTTPS／声音／Q201 选参待补 |
+| 10 | 18 | 本期主页人工真机验收通过，记录与契约收尾完成（§9.21）；Q201 未启用及专项量测后续跟进，原逐项证据统计未重新结算 |
 
 ### 9.2 STEP 明细
+
+下表保留原 STEP 逐项证据的结算状态及其历史缺口；其中“真机待验”等表述不作为本期人工验收的最新结论。本期已由用户确认人工通过，统一见 §9.21；未提供的逐环境用例明细和量化指标不据此补填。
 
 | STEP | 功能名称 | 需求 ID | 验收 ID | 前置 STEP | 状态 | 证据 |
 |---|---|---|---|---|---|---|
@@ -1809,16 +1813,16 @@ RQ、G 和 V2-D 的覆盖见 §2 的独立表；CSTR 覆盖见 §2.1。它们不
 | 2026-10-02 | STEP-011—013 | 当前真实环境缺口 | HTTPS 测试地址、四类机型／版本、真实声音、Q201 量测未提供 | 局部实现及受控验证完成，保留 IN_PROGRESS；生产自动降级正式参数未配置，见 §9.12 |
 | 2026-10-02 | STEP-014—017 | USER_DECISION／RUNTIME | 用户授权继续 M4；本地 Linux Nginx／Chrome 缓存、回退、桌面采样和业务回归已执行，见 §9.14 | 旧大小写兼容已落地；前两行的 NOT_STARTED 为规划历史。014—017 当前 IN_PROGRESS，不替代真实 HTTPS／设备／声音／Q201 事实门 |
 
-当前恢复位置：用户已明确“完成 M5，M6—8 是我记错了”，并接受当前缺少可信 HTTPS 时先继续开发、延期倾斜真机验收。M5 契约同步、文档一致性验证和记录收口已完成；011—017 的未测范围保留，具体恢复清单见 §9.17。M4 与完整功能闸门仍 NOT_REACHED，不能以继续开发授权代替验收结果。
+当前恢复位置：本期主页已人工验收通过，最新确认及文档收尾见 §9.21。后续按实际需要处理 Q201 正式配置、性能／加载专项量测及原逐环境证据，复用仍有效的既有结果。§9.17 的延期决定已被本次人工确认更新；原计划全项技术闸门尚未逐项重新判定。
 
 
 ### 9.4 已确认实施计划与里程碑
 
-> **计划状态**：IMPLEMENTATION_PLAN_READY。  
-> **规划结果**：PASS_WITH_RISKS；Q201—Q203、测试运行及真实声音等原风险保留。  
-> **计划路径**：[林小梦主页改版 v2开发里程碑文档.md](execution/林小梦主页改版%20v2开发里程碑文档.md)。  
-> **唯一共享进度**：本文件 §9，继续复用；不另建执行记录。  
-> **当前执行**：STEP-001—010 已验证；10/18。M5 文档收口已完成并提交 CONTRACT_VERIFICATION_READY，见 §9.17；M3—M4 真机和 Q201 证据待补，整体完成条件未满足。没有对外发布授权。
+> **计划状态**：IMPLEMENTATION_PLAN_READY。
+> **规划结果**：PASS_WITH_RISKS；Q201—Q203、测试运行及真实声音等原风险保留。
+> **计划路径**：林小梦主页改版 v2开发里程碑文档.md（本地留存，未随本次提交；原引用：`execution/林小梦主页改版%20v2开发里程碑文档.md`）。
+> **唯一共享进度**：本文件 §9，继续复用；不另建执行记录。
+> **当前执行**：本期主页人工验收及文档收尾完成，见 §9.21；原 STEP 全项证据统计仍为 10/18。下列里程碑表保留原技术闸门记录，Q201 未启用及专项量测继续跟进；本次记录不新增部署操作授权。
 
 USER_DECISION（2026-10-02）：确认 M1—M5 分组、每次一个 STEP 串行，以及 M1—M4 业务总验收通过后在 M5 内完成 STEP-018 的正式契约整合、验证和最终闸门。该顺序仅为本阶段已确认的局部例外，不修改源 STEP、验收口径或长期技能规则。milestone-step-execution 负责整合与判定，execute-approved-work 在整合后提交 CONTRACT_VERIFICATION_READY；只有最终判定 CONTRACT_MERGED_VERIFIED 才结算整个功能完成。
 
@@ -1841,9 +1845,9 @@ USER_DECISION（2026-10-02）：确认 M1—M5 分组、每次一个 STEP 串行
 
 ### 9.6 STEP-001：七图导出与验收证据（2026-10-02）
 
-> 执行来源：已确认实施计划 M1／STEP-001；本轮用户引用该计划并调用 execute-approved-work，按“每次一个 STEP”启动。  
-> 工作项状态：BLOCKED（验收证据缺口）；素材产物 IMPLEMENTED，本地验证通过，真机结果待回传，尚未 VERIFIED／DONE。  
-> 闸门交接：NOT_REACHED；本轮不结算 M1，不启动 STEP-002。正式契约 NOT_STARTED。  
+> 执行来源：已确认实施计划 M1／STEP-001；本轮用户引用该计划并调用 execute-approved-work，按“每次一个 STEP”启动。
+> 工作项状态：BLOCKED（验收证据缺口）；素材产物 IMPLEMENTED，本地验证通过，真机结果待回传，尚未 VERIFIED／DONE。
+> 闸门交接：NOT_REACHED；本轮不结算 M1，不启动 STEP-002。正式契约 NOT_STARTED。
 > 当前用户配合：已回复“有设备，可配合验收”；四类环境的机型、版本、DPR 和观察结果仍未收到。
 
 **来源复核与变更边界**
@@ -1894,14 +1898,14 @@ USER_DECISION（2026-10-02）：确认 M1—M5 分组、每次一个 STEP 串行
 **运行方式与证据范围**
 
 ```sh
-/Users/umark/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 scripts/export_home_scene_assets.py --source '/Users/umark/Desktop/lxm-tm/lxm-4/主页改版/lxm_idle_demo_v4/assets'
-/Users/umark/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 docs/design/home-redesign/execution/evidence/step-001-assets/serve_preview.py --host 0.0.0.0
-HOME_PLAYWRIGHT_PATH=/Users/umark/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright /Users/umark/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node docs/design/home-redesign/execution/evidence/step-001-assets/verify_browser.cjs
+<本地目录> scripts/export_home_scene_assets.py --source '<本地目录>
+<本地目录> docs/design/home-redesign/execution/evidence/step-001-assets/serve_preview.py --host 0.0.0.0
+HOME_PLAYWRIGHT_PATH=<本地目录> <本地目录> docs/design/home-redesign/execution/evidence/step-001-assets/verify_browser.cjs
 ```
 
 - 系统 Python 缺 Pillow／pytest，项目 `.venv-step001` 有 pytest、无 Pillow；本轮使用桌面捆绑 Python 3.12.14／Pillow 12.3.0。未安装依赖或改变全局配置。
 - Playwright 默认浏览器二进制缺失；改用本机 Chrome 独立无头实例，未复用用户浏览器账号。素材不是应用行为改动，未机械运行无关后端或语音全量测试。
-- 素材对照页：[preview.html](execution/evidence/step-001-assets/preview.html)，本轮临时同 Wi-Fi 地址 `http://192.168.1.3:54322/`；服务只允许对照页、manifest 和明确列出的原／导出图片，不暴露仓库目录。
+- 素材对照页：[preview.html](execution/evidence/step-001-assets/preview.html)，本轮临时同 Wi-Fi 地址 `http://LOCAL_DEVICE_HOST:54322/`；服务只允许对照页、manifest 和明确列出的原／导出图片，不暴露仓库目录。
 - 本地 RUNTIME 证据仅覆盖素材浏览器解码与显示；对照页采用 demo 参考静态构图，未接生产主页、未运行人物动态、未核验线上 HTTPS／缓存／加载性能／声音。
 - 用户已确认设备可配合，已发送四类浏览器验收操作；版本、DPR、检查结果及人工观察尚待回传，缺项不记通过。
 
@@ -1924,7 +1928,7 @@ HOME_PLAYWRIGHT_PATH=/Users/umark/.cache/codex-runtimes/codex-primary-runtime/de
 **续验检查（2026-10-02，用户“继续任务”）**
 
 - 重新核对 7 个原图和导出文件的 SHA256，以及 §9 前源正文摘要，均未变化；上轮 28 项桌面素材检查继续有效，本轮未重复运行。
-- 临时对照服务实测 HTTP 200／Cache-Control: no-store；本机局域网地址仍为 `192.168.1.3`，手机入口仍为 `http://192.168.1.3:54322/`。
+- 临时对照服务实测 HTTP 200／Cache-Control: no-store；本机局域网地址仍为 `LOCAL_DEVICE_HOST`，手机入口仍为 `http://LOCAL_DEVICE_HOST:54322/`。
 - 当前没有新增手机验收文件或用户真机结果回传，已请求回传已测环境和未测项。STEP-001 保持 BLOCKED（验收证据缺口），不把“继续任务”视为真实验收通过或验收范围变更。
 - 本轮仅复核并更新同一进度记录，素材、应用源码、源 STEP、实施计划和正式契约未改变。恢复位置仍为 STEP-001 的四类真机显示质量证据收集。
 
@@ -2003,7 +2007,7 @@ handoff_state = **GATE_EVIDENCE_READY**。这是执行器证据交接，**不是
 
 恢复点：接收上述完整 M1 证据并判定阶段闸门；用户已收到一次异步确认，询问是否本轮明确调用 milestone-step-execution 以覆盖所有后续闸门并按既有顺序推进。调用确认未到时，不擅自判定通过或进入 M2／STEP-004。具体依据：execute-approved-work 的“到达里程碑边界时提交 GATE_EVIDENCE_READY 和闸门证据并停止，只有 milestone-step-execution 判定闸门通过后才能进入下一里程碑”；该闸门技能“仅在用户显式调用或明确点名技能时使用”。这是调用边界，不是新增产品／每 STEP 的确认，也不修改长期规则。
 
-临时预览继续运行：素材对照端口 54322；静态首页端口 54323（同 Wi-Fi 可用 http://192.168.1.3:54323/pages/index.html）。后续真实部署、四类真机动态／倾斜、性能和加载／声音仍按各原 STEP 收集，不由本轮资源质量确认替代。未使用全量后端测试推定首页运行通过，未发布。
+临时预览继续运行：素材对照端口 54322；静态首页端口 54323（同 Wi-Fi 可用 http://LOCAL_DEVICE_HOST:54323/pages/index.html）。后续真实部署、四类真机动态／倾斜、性能和加载／声音仍按各原 STEP 收集，不由本轮资源质量确认替代。未使用全量后端测试推定首页运行通过，未发布。
 
 
 ### 9.11 本轮范围与恢复决定（2026-10-02）
@@ -2137,9 +2141,9 @@ USER_DECISION：用户明确要求“继续m4开发”。本轮按原 014—017 
 
 USER_DECISION：用户反馈手机通过 IP 无法连接，明确手机与电脑处于同一 Wi-Fi。本次只读排查连接条件，未更改 Docker 端口、防火墙、网络、信任证书或对外发布。
 
-RUNTIME：静态 Python 预览监听 `*:54323`；本项目 Docker 主入口实际监听 `127.0.0.1:80`，与 docker-compose.voice-local.yml 的显式本机覆盖一致。电脑当前 Wi-Fi 接口 en0、局域网地址 `192.168.1.3`、网关 `192.168.1.1`；macOS 应用防火墙当前关闭，未操作它。地址可能随网络变化，不能长期写成固定部署配置。
+RUNTIME：静态 Python 预览监听 `*:54323`；本项目 Docker 主入口实际监听 `127.0.0.1:80`，与 docker-compose.voice-local.yml 的显式本机覆盖一致。电脑当前 Wi-Fi 接口 en0、局域网地址 `LOCAL_DEVICE_HOST`、网关 `LOCAL_DEVICE_HOST`；macOS 应用防火墙当前关闭，未操作它。地址可能随网络变化，不能长期写成固定部署配置。
 
-从电脑通过 `http://192.168.1.3:54323` 对首页及背景／人物两个核心图执行实际 HTTP HEAD，三项均 200，Content-Type 正确。已提供手机访问地址 `http://192.168.1.3:54323/pages/index.html`；尚未获得手机端连接成功证据。若手机此前使用不带端口的 IP，访问的是 80，本机限定入口不能接受该连接；其他访问失败原因仍需按实际手机结果核对，不能仅凭本机回环测试排除 Wi-Fi 隔离或客户端网络条件。
+从电脑通过 `http://LOCAL_DEVICE_HOST:54323` 对首页及背景／人物两个核心图执行实际 HTTP HEAD，三项均 200，Content-Type 正确。已提供手机访问地址 `http://LOCAL_DEVICE_HOST:54323/pages/index.html`；尚未获得手机端连接成功证据。若手机此前使用不带端口的 IP，访问的是 80，本机限定入口不能接受该连接；其他访问失败原因仍需按实际手机结果核对，不能仅凭本机回环测试排除 Wi-Fi 隔离或客户端网络条件。
 
 该入口只服务前端静态文件，不提供真实 API，也不是可信 HTTPS。可用于先检查画面／普通动效；真实倾斜／麦克风／业务流程仍需适当 HTTPS 和同域 API 环境。下一恢复动作：用户在同 Wi-Fi 手机打开上述精确地址并反馈结果，再据证据准备真实验收入口；§9.14 的真实环境待验项、10/18 和 M4 NOT_REACHED 保持。
 
@@ -2151,9 +2155,9 @@ USER_DECISION：用户回传手机上微信和 Chrome 均有眨眼、点击有�
 
 已核对并停止本任务旧 Python 静态预览 PID 27589，以 Node 模拟预览接替原端口；当前 PID 71444，监听 `*:54323`。启动命令：`node scripts/serve_home_preview.cjs --host 0.0.0.0 --port 54323`。从电脑通过 LAN 实际请求 Feed 与切换页均 200；应用浏览器新标签核对两张图片加载成功、模拟登录显示“亲密／陪伴你的第 12 天”，更多互动面板可打开，倾斜初始关闭。手机刷新原地址即可使用新预览，新的两图／状态切换尚未收到手机端回传。
 
-- 切换入口：`http://192.168.1.3:54323/__home_preview`。
-- 访客：`http://192.168.1.3:54323/pages/index.html?__home_preview=visitor`。
-- 模拟登录：`http://192.168.1.3:54323/pages/index.html?__home_preview=authenticated`。
+- 切换入口：`http://LOCAL_DEVICE_HOST:54323/__home_preview`。
+- 访客：`http://LOCAL_DEVICE_HOST:54323/pages/index.html?__home_preview=visitor`。
+- 模拟登录：`http://LOCAL_DEVICE_HOST:54323/pages/index.html?__home_preview=authenticated`。
 
 **验证与倾斜结论**：新增真实桌面前端集成验证通过，见 [preview-results.json](execution/evidence/home-m4/preview-results.json) 及 [模拟登录两图截图](execution/evidence/home-m4/preview-authenticated-two-images.png)、[访客两图截图](execution/evidence/home-m4/preview-visitor-two-images.png)：公共 Feed 两图及图片 200、匿名无私有字段／私有请求、无效 token 返回 401、原更多入口登录门禁、登录表单不发送凭据、切换后模拟私有展示／返回访客清 token、无页面异常。模拟界面证据不能代替真实账号验收。
 
@@ -2211,13 +2215,13 @@ RUNTIME：从 `http://127.0.0.1` 读取首页、共享 API JS、首页专用模�
 
 ### 9.19 Docker 同 Wi-Fi 手机入口（2026-10-03）
 
-USER_DECISION：用户希望同一网络下用手机访问 Docker 并登录，同时要求不要占用其他项目端口。新增独立本地覆盖文件 `docker-compose.lan-local.yml`，叠加在现有基础与 voice-local 配置之后；仅重建 `lxm_nginx`。电脑原 `127.0.0.1:80` 保留，最终手机入口为 `http://192.168.1.3:54324/pages/index.html`，反向代理现有本地真实后端，使用本地环境账号登录。
+USER_DECISION：用户希望同一网络下用手机访问 Docker 并登录，同时要求不要占用其他项目端口。新增独立本地覆盖文件 `docker-compose.lan-local.yml`，叠加在现有基础与 voice-local 配置之后；仅重建 `lxm_nginx`。电脑原 `127.0.0.1:80` 保留，最终手机入口为 `http://LOCAL_DEVICE_HOST:54324/pages/index.html`，反向代理现有本地真实后端，使用本地环境账号登录。
 
-端口核对：新增前宿主机和已发布 Docker 端口均未使用 54324；另核对两个其他运行 Compose 项目的端口配置，未发现 54324 配置。临时测试用过的 8080 已从本项目释放。最终 Docker 实际仅绑定 `127.0.0.1:80` 与 `192.168.1.3:54324` 到 Nginx 80；后端直连仍为 `127.0.0.1:8000`，其他容器、数据库和项目配置未修改。
+端口核对：新增前宿主机和已发布 Docker 端口均未使用 54324；另核对两个其他运行 Compose 项目的端口配置，未发现 54324 配置。临时测试用过的 8080 已从本项目释放。最终 Docker 实际仅绑定 `127.0.0.1:80` 与 `LOCAL_DEVICE_HOST:54324` 到 Nginx 80；后端直连仍为 `127.0.0.1:8000`，其他容器、数据库和项目配置未修改。
 
 RUNTIME：通过最终 LAN 地址核对首页、登录页和三个脚本，5 项均 200 且响应字节与当前源码一致；公共 Feed／persona 为 200／code=0，未登录私有关系接口为预期 401。以 GET 只读探测登录路由，收到预期 405／Allow POST，确认请求到达真实登录接口，未提交凭据或代用户登录。电脑原入口仍 200。见 [local-docker-lan.json](execution/evidence/home-m5/local-docker-lan.json)。这是电脑经实际 LAN 地址访问的证据，手机端结果仍待用户操作，未推定路由器客户端隔离不存在。
 
-启动时显式设置当前 Wi-Fi IP：`LXM_LAN_IP=192.168.1.3 docker compose -f docker-compose.yml -f docker-compose.voice-local.yml -f docker-compose.lan-local.yml up -d --no-deps --no-build nginx`。IP 变化后以新值重建；覆盖文件包含恢复仅本机入口的命令。HTTP 可访问页面和普通账号登录；倾斜和手机麦克风仍按安全上下文要求待 HTTPS 验收，§9.17 未测项保持。`54323` 继续是独立模拟预览，不与 Docker 新入口混用。
+启动时显式设置当前 Wi-Fi IP：`LXM_LAN_IP=LOCAL_DEVICE_HOST docker compose -f docker-compose.yml -f docker-compose.voice-local.yml -f docker-compose.lan-local.yml up -d --no-deps --no-build nginx`。IP 变化后以新值重建；覆盖文件包含恢复仅本机入口的命令。HTTP 可访问页面和普通账号登录；倾斜和手机麦克风仍按安全上下文要求待 HTTPS 验收，§9.17 未测项保持。`54323` 继续是独立模拟预览，不与 Docker 新入口混用。
 
 ### 9.20 本轮开发交付与正式服发布准备（2026-10-03）
 
@@ -2230,3 +2234,15 @@ RUNTIME：通过最终 LAN 地址核对首页、登录页和三个脚本，5 项
 **发布候选**：已在本机生成包含 25 个前端文件的增量包，附发布清单、缓存配置片段及备份／回滚说明；包内逐文件摘要和 17 张内容摘要图片校验通过。完整清单与临时包位置见 [production-release-candidate.json](execution/evidence/home-m5/production-release-candidate.json)。不包含后端、数据库、密钥、本地 Compose／端口覆盖、模拟预览或含本机源路径的素材构建 manifest。Nginx 仅提供缓存片段供核对现网后合并，不以本地 HTTP 配置覆盖正式 SSL、端口或既有代理路由。
 
 **运行事实与恢复点**：状态 `PREPARED_NOT_DEPLOYED`，本轮代推已按用户最新决定停止，不再等待部署入口或自动发布。用户随后提供正式域名 `cllxm.com`，并再次明确不需要代为上传；本轮未访问验证该域名、没有连接或修改正式服，也未改变本地及其他项目端口。后续重新安排发布时，需核对该域名的正式 HTTPS 页面路径、发布入口、目标目录、线上基础版本与共享 api.js 兼容性、备份及回滚目标；验证 HTTPS 响应／缓存／文件摘要后，再补真实手机倾斜、语音、布局／输入和性能量测。自动降级机制仍未配置 Q201 正式参数，不把这一配置缺口写成单纯待验。最终契约闸门仍 `NOT_REACHED`。
+
+### 9.21 本期主页人工验收通过与文档收尾（2026-10-03）
+
+**USER_DECISION／人工验收结果**：用户在本期主页改版及人物倾斜增强完成后，明确确认“我实际测试已经通过验收”，随后授权“我真机测试通过了，你可以记录为人工通过”。据此记录本期主页使用体验为 **人工验收通过**，并完成本次验收记录和相关契约收尾。验收人是用户本人，结果来源是本次对话；此前真机倾斜延期及整体体验尚未确认的状态由本条更新。
+
+**范围与版本**：本期主页改版及提交 `9c6f985` 的人物倾斜增强。人物位移上限为横向 `±12 CSS px`、纵向 `±8 CSS px`；`xRange=20°`、`yRange=25°`，竖屏按相对初始姿态满幅，横屏继续旋转映射与重校准；指数跟随时间常数为 `140ms`。渲染层读取 `HomeSceneCore.CONFIG.parallax`，背景层当前不随倾斜移动。
+
+**证据边界**：用户报告真实手机测试通过，本记录如实保存人工结论；机型、系统／客户端版本及逐项操作明细未提供，不补造四类目标环境、权限异常、声音链路或量化指标的逐项结果。原本地与受控验证按各自范围保留，不改写为本次重新运行或人工实测。§9.2 的 10/18 是原 STEP 全项证据结算统计，本次没有将它改写为 18/18，也未重新签发原计划全部技术闸门。
+
+**本次文档同步**：更新当前 [H5 契约](../../contract/current/h5-app/api.md) 的倾斜参数和验收状态、[总索引](../../INDEX.md)、[设计索引](../README.md)，并在本文件 §9 维护唯一当前记录。原 PRD、STEP 定义及 §1—§8、历史回传和既有测试报告保持原证据范围。
+
+**后续事项**：Q201 正式自动降级参数尚未配置，自动降级判定仍未启用；同设备新旧性能／加载专项量测继续保留。用户人工体验通过不等于这些配置与量测已完成；后续处理从 STEP-013／015／016 的现有机制与工具恢复，无需重复本次人工验收记录。部署字节、外层缓存和回滚事实仍按专门技术证据核对，本次未执行部署或生产变更。
