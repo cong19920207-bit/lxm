@@ -17,7 +17,10 @@ import tempfile
 SCHEMA = 1
 TEXT = {'.js', '.css', '.html', '.json', '.svg'}
 MIMES = {'.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html',
-         '.json': 'application/json', '.svg': 'image/svg+xml'}
+         '.json': 'application/json', '.svg': 'image/svg+xml',
+         # Host MIME databases differ, especially on older Linux distributions.
+         '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg',
+         '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.txt': 'text/plain'}
 
 
 def digest(data: bytes) -> str:
@@ -118,6 +121,8 @@ def build(source: Path, output: Path) -> dict:
     try:
         for key, data in transformed.items():
             p = staging / key; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(data)
+        # mkdtemp starts at 0700; published static assets must be traversable by Nginx.
+        staging.chmod(0o755)
         staging.rename(destination)
     finally:
         if staging.exists():
