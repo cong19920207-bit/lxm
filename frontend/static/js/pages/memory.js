@@ -12,16 +12,16 @@ export async function mount(context) {
   const request = (...args) => services.auth.request(...args)
   const audioPage = services.audio.attachPage(context,'content'), bubble = BgmBubble.mount(audioPage)
   if (bubble) context.cleanup(()=>bubble.destroy())
-  const sheetLease = services.overlays.register({kind:'memory-sheet',ownerId:context.scope.ownerId,element:byId('nebula-sheet'),background:byId('nebula-stage')})
+  const sheetLease = services.overlays.register({kind:'memory-sheet',ownerId:context.scope.ownerId,element:byId('nebula-sheet')})
   context.cleanup(()=>sheetLease.dispose())
   context.scope.listen(root,'keydown',event=>{
     if (!sheetLease.isOpen()) return
     if (event.key==='Escape') { event.preventDefault(); event.stopPropagation(); closeSheet() }
-    if (event.key==='Tab') { event.preventDefault(); byId('nebula-sheet').focus({preventScroll:true}) }
   })
   var MIN_RADIUS = 6
   var MAX_RADIUS = 28
-  var DEFAULT_RADIUS = 14
+  var DEFAULT_RADIUS = 18
+  var DETAIL_MIN_RADIUS = 14
   /** 点击判定：移动阈值（px）；与按压时长一起区分拖动 */
   var TAP_MOVE_PX = 8
   var TAP_MAX_MS = 250
@@ -60,6 +60,16 @@ export async function mount(context) {
   var recenterBtn = byId('nebula-recenter')
   var toastEl = byId('nebula-toast')
   var goChatBtn = byId('nebula-go-chat')
+  var sheetHandle = byId('nebula-sheet-handle'), sheetClose = byId('nebula-sheet-close')
+  var sheetExpand = byId('nebula-sheet-expand'), sheetAura = byId('nebula-sheet-aura')
+  var sheetSheen = byId('nebula-sheet-sheen'), sheetNavigation = byId('nebula-sheet-navigation')
+  var previousMemory = byId('nebula-memory-previous'), nextMemory = byId('nebula-memory-next')
+  var memoryPosition = byId('nebula-memory-position'), selectionEl = byId('nebula-selection')
+  var selectionLabel = byId('nebula-selection-label'), selectionParticles = byId('nebula-selection-particles')
+  var detailExpanded = false, focusTarget = null, handleGesture = null
+  var visualAnimations = new Set()
+  var projectedSelection = new THREE.Vector3()
+  var selectionWorldScale = new THREE.Vector3()
 
   var CATEGORY_DEFS = [
     { id: 'prefer', label: '用户偏好', color: '#6F9EB7', file: 'star-teal.png', keys: ['偏好', '习惯', '兴趣'] },
@@ -133,6 +143,10 @@ export async function mount(context) {
     if (animationFrameId != null) cancelAnimationFrame(animationFrameId)
     if (toastTimer) clearTimeout(toastTimer)
     if (gesture?.idleTimer) clearTimeout(gesture.idleTimer)
+    for (const animation of visualAnimations) animation.cancel()
+    visualAnimations.clear()
+    selectionParticles?.replaceChildren()
+    if (handleGesture) { try { sheetHandle.releasePointerCapture(handleGesture.id) } catch (_) {} }
     for (const id of Object.keys(pointers || {})) {
       try { if (canvas.hasPointerCapture(Number(id))) canvas.releasePointerCapture(Number(id)) } catch (_) {}
     }
@@ -777,12 +791,86 @@ export async function mount(context) {
     return a + (b - a) * Math.max(0, Math.min(1, t))
   }
 
+  function animateVisual(element, frames, options) {
+    if (reduceMotion || !element || typeof element.animate !== 'function' || !context.valid()) return null
+    const animation = element.animate(frames, options)
+    visualAnimations.add(animation)
+    animation.finished.then(() => visualAnimations.delete(animation), () => visualAnimations.delete(animation))
+    return animation
+  }
+
+  function syncDetailOverflow() {
+    if (!sheetValue || !sheetExpand) return
+    if (!detailExpanded) sheetValue.scrollTop = 0
+    const long = sheetValue.scrollHeight > 126
+    sheetValue.classList.toggle('is-long', long)
+    sheetValue.classList.toggle('is-expanded', long && detailExpanded)
+    sheetExpand.hidden = !long
+    sheetExpand.setAttribute('aria-expanded', String(long && detailExpanded))
+    sheetExpand.querySelector('span').textContent = detailExpanded ? '收起全文' : '展开阅读全文'
+  }
+
+  function focusMemory(index) {
+    const node = nodes[index]
+    if (!node || node.isCore || !node.pos.length()) return
+    const yaw = Math.atan2(node.pos.z, node.pos.x) + .16
+    focusTarget = {
+      yaw: orbit.yaw + Math.atan2(Math.sin(yaw - orbit.yaw), Math.cos(yaw - orbit.yaw)),
+      pitch: clamp(Math.acos(node.pos.y / node.pos.length()) + .18, 0.32, Math.PI - 0.32),
+      radius: Math.max(orbit.radius, DETAIL_MIN_RADIUS),
+    }
+    if (reduceMotion) {
+      orbit.yaw = focusTarget.yaw; orbit.pitch = focusTarget.pitch; orbit.radius = focusTarget.radius; focusTarget = null
+      updateCameraFromOrbit()
+    }
+  }
+
+  function updateSelectionVisuals() {
+    const node = selectedIndex != null ? nodes[selectedIndex] : null
+    if (!selectionEl || !node || !node.sprite || !camera) {
+      selectionEl?.classList.remove('is-visible'); return
+    }
+    node.sprite.getWorldPosition(projectedSelection)
+    const distance = camera.position.distanceTo(projectedSelection)
+    projectedSelection.project(camera)
+    const visible = projectedSelection.z > -1 && projectedSelection.z < 1 && Math.abs(projectedSelection.x) < 1.1 && Math.abs(projectedSelection.y) < 1.1
+    selectionEl.classList.toggle('is-visible', visible)
+    if (!visible) return
+    selectionEl.style.left = (projectedSelection.x + 1) * viewW / 2 + 'px'
+    selectionEl.style.top = (1 - projectedSelection.y) * viewH / 2 + 'px'
+    node.sprite.getWorldScale(selectionWorldScale)
+    const size = selectionWorldScale.x * viewH / (2 * Math.max(distance, 1) * Math.tan(camera.fov * Math.PI / 360))
+    selectionEl.style.setProperty('--selection-size', clamp(size * .8, 46, 180) + 'px')
+  }
+
+  function playDetailEffects(direction = 1) {
+    for (const animation of visualAnimations) animation.cancel()
+    visualAnimations.clear(); selectionParticles?.replaceChildren()
+    animateVisual(sheetValue, [{opacity:.35,transform:'translateX('+direction*10+'px)'},{opacity:1,transform:'translateX(0)'}], {duration:320,easing:'cubic-bezier(.22,1,.36,1)'})
+    animateVisual(sheetSheen, [{transform:'translateX(-80%) skewX(-18deg)',opacity:0},{offset:.3,opacity:.55},{transform:'translateX(340%) skewX(-18deg)',opacity:0}], {duration:1250,easing:'cubic-bezier(.22,.61,.36,1)'})
+    if (reduceMotion || !selectionParticles) return
+    for (let i = 0; i < 10; i++) {
+      const particle = document.createElement('span'), angle = i * Math.PI * .2, distance = 32 + (i % 4) * 12
+      particle.className = 'nebula-selection-particle'; selectionParticles.append(particle)
+      const animation = animateVisual(particle, [{transform:'translate(-50%,-50%) scale(.4)',opacity:0},{offset:.16,opacity:.85},{transform:'translate('+Math.cos(angle)*distance+'px,'+Math.sin(angle)*distance+'px) scale(.3)',opacity:0}], {duration:820+i*28,easing:'cubic-bezier(.2,.6,.4,1)',fill:'both'})
+      if (animation) animation.finished.then(() => particle.remove(), () => particle.remove())
+      else particle.remove()
+    }
+    const pulse = document.createElement('span'); pulse.className = 'nebula-selection-pulse'; selectionParticles.append(pulse)
+    const animation = animateVisual(pulse, [{transform:'translate(-50%,-50%) scale(.7)',opacity:.6},{transform:'translate(-50%,-50%) scale(1.7)',opacity:0}], {duration:1000,easing:'cubic-bezier(.2,.65,.3,1)',fill:'both'})
+    if (animation) animation.finished.then(() => pulse.remove(), () => pulse.remove())
+    else pulse.remove()
+  }
+
   function openSheet(index) {
     var n = nodes[index]
     if (!n) return
+    var wasOpen = sheetLease.isOpen(), oldIndex = selectedIndex
     if (!sheetLease.isOpen() && !sheetLease.open()) return
     var sameSelection = selectedIndex === index
     selectedIndex = index
+    detailExpanded = false
+    velocity.yaw = 0; velocity.pitch = 0
     liftTarget = SHEET_LIFT
     setBottomBarHidden(true)
 
@@ -803,6 +891,7 @@ export async function mount(context) {
       }
       if (sheetSourceText) sheetSourceText.textContent = '来自你们的对话'
       clearSelectLines()
+      focusTarget = null
     } else {
       if (sheetCategoryRow) sheetCategoryRow.style.display = ''
       if (sheetCategoryText) sheetCategoryText.textContent = '她记得 · ' + (n.categoryLabel || '其他')
@@ -811,24 +900,44 @@ export async function mount(context) {
       if (sheetSourceText) sheetSourceText.textContent = '来自你们的对话'
       buildSelectLinks(index)
       if (!sameSelection) startSelectPulse(index)
+      if (!sameSelection) focusMemory(index)
     }
 
-    sheetEl.focus({preventScroll:true})
+    root.style.setProperty('--memory-accent', n.colorHex || '#a7d5e6')
+    if (sheetTitle) sheetTitle.classList.toggle('nebula-visually-hidden', !n.isCore)
+    if (sheetValue) { sheetValue.scrollTop = 0; sheetValue.classList.remove('is-expanded') }
+    if (selectionLabel) selectionLabel.textContent = n.isCore ? '记忆总览' : titleFromValue(n.value)
+    if (sheetNavigation) sheetNavigation.hidden = n.isCore || nodes.length <= 1
+    if (previousMemory) previousMemory.disabled = index <= 1
+    if (nextMemory) nextMemory.disabled = index >= nodes.length - 1
+    if (memoryPosition) memoryPosition.textContent = String(index).padStart(2, '0') + ' / ' + String(nodes.length - 1).padStart(2, '0')
+    sheetEl.inert = false
+    if (!wasOpen) sheetEl.focus({preventScroll:true})
     sheetEl.classList.add('is-open')
     sheetMask.classList.add('is-open')
+    sheetAura?.classList.add('is-open')
     sheetEl.setAttribute('aria-hidden', 'false')
     sheetMask.setAttribute('aria-hidden', 'false')
     applySelectionHighlight()
     updateRecenterVisibility()
+    syncDetailOverflow()
+    if (!sameSelection) playDetailEffects(oldIndex == null || index > oldIndex ? 1 : -1)
   }
 
   function closeSheet() {
     sheetLease.close()
     selectedIndex = null
+    focusTarget = null; detailExpanded = false
+    for (const animation of visualAnimations) animation.cancel()
+    visualAnimations.clear(); selectionParticles?.replaceChildren()
+    selectionEl?.classList.remove('is-visible')
     liftTarget = 0
     setBottomBarHidden(false)
     sheetEl.classList.remove('is-open')
     sheetMask.classList.remove('is-open')
+    sheetAura?.classList.remove('is-open')
+    sheetEl.inert = true
+    sheetEl.style.removeProperty('--sheet-drag-y')
     sheetEl.setAttribute('aria-hidden', 'true')
     sheetMask.setAttribute('aria-hidden', 'true')
     clearSelectLines()
@@ -899,6 +1008,7 @@ export async function mount(context) {
   }
 
   function onPointerDown(ev) {
+    focusTarget = null
     if (sheetEl.classList.contains('is-open') && ev.target !== canvas) return
     if (canvas.setPointerCapture) {
       try { canvas.setPointerCapture(ev.pointerId) } catch (e) { /* ignore */ }
@@ -946,10 +1056,10 @@ export async function mount(context) {
       }
       if (gesture.moved) {
         var sens = 0.0045
-        orbit.yaw -= dx * sens
+        orbit.yaw += dx * sens
         orbit.pitch -= dy * sens
         orbit.pitch = clamp(orbit.pitch, 0.18, Math.PI - 0.18)
-        velocity.yaw = -dx * sens * 0.32
+        velocity.yaw = dx * sens * 0.32
         velocity.pitch = -dy * sens * 0.32
         updateCameraFromOrbit()
         updateRecenterVisibility()
@@ -998,6 +1108,7 @@ export async function mount(context) {
 
   function onWheel(ev) {
     ev.preventDefault()
+    focusTarget = null
     markInteracting()
     orbit.radius = clamp(orbit.radius * (ev.deltaY > 0 ? 1.06 : 0.94), MIN_RADIUS, MAX_RADIUS)
     updateCameraFromOrbit()
@@ -1010,18 +1121,41 @@ export async function mount(context) {
     context.scope.listen(canvas, 'pointerup', onPointerUp)
     context.scope.listen(canvas, 'pointercancel', onPointerUp)
     context.scope.listen(canvas, 'wheel', onWheel, { passive: false })
-    context.scope.listen(sheetMask, 'click', closeSheet)
-
-    var sheetTouchY = null
-    context.scope.listen(sheetEl, 'touchstart', function (e) {
-      if (e.touches.length === 1) sheetTouchY = e.touches[0].clientY
-    }, { passive: true })
-    context.scope.listen(sheetEl, 'touchend', function (e) {
-      if (sheetTouchY == null) return
-      var y = (e.changedTouches[0] && e.changedTouches[0].clientY) || sheetTouchY
-      if (y - sheetTouchY > 56) closeSheet()
-      sheetTouchY = null
-    }, { passive: true })
+    context.scope.listen(sheetClose, 'click', closeSheet)
+    context.scope.listen(previousMemory, 'click', () => { if (selectedIndex > 1) openSheet(selectedIndex - 1) })
+    context.scope.listen(nextMemory, 'click', () => { if (selectedIndex != null && selectedIndex < nodes.length - 1) openSheet(selectedIndex + 1) })
+    context.scope.listen(sheetExpand, 'click', () => { detailExpanded = !detailExpanded; syncDetailOverflow() })
+    context.scope.listen(sheetHandle, 'pointerdown', event => {
+      if (event.button !== 0) return
+      handleGesture = {id:event.pointerId,y:event.clientY,delta:0}
+      sheetEl.classList.add('is-dragging'); sheetHandle.setPointerCapture(event.pointerId)
+    })
+    context.scope.listen(sheetHandle, 'pointermove', event => {
+      if (!handleGesture || handleGesture.id !== event.pointerId) return
+      handleGesture.delta = Math.max(0, event.clientY - handleGesture.y)
+      sheetEl.style.setProperty('--sheet-drag-y', handleGesture.delta+'px')
+    })
+    const finishHandle = event => {
+      if (!handleGesture || handleGesture.id !== event.pointerId) return
+      const dismiss = event.type !== 'pointercancel' && handleGesture.delta > 64
+      handleGesture = null; sheetEl.classList.remove('is-dragging'); sheetEl.style.removeProperty('--sheet-drag-y')
+      if (sheetHandle.hasPointerCapture(event.pointerId)) sheetHandle.releasePointerCapture(event.pointerId)
+      if (dismiss) closeSheet()
+    }
+    context.scope.listen(sheetHandle, 'pointerup', finishHandle)
+    context.scope.listen(sheetHandle, 'pointercancel', finishHandle)
+    context.scope.listen(sheetHandle, 'click', event => { if (event.detail === 0) closeSheet() })
+    context.scope.listen(sheetEl, 'pointermove', event => {
+      if (reduceMotion || event.pointerType !== 'mouse' || handleGesture) return
+      const rect = sheetEl.getBoundingClientRect()
+      sheetEl.style.setProperty('--sheet-light-x', (event.clientX-rect.left)/rect.width*100+'%')
+      sheetEl.style.setProperty('--sheet-light-y', (event.clientY-rect.top)/rect.height*100+'%')
+    })
+    context.scope.listen(sheetEl, 'pointerleave', () => { sheetEl.style.removeProperty('--sheet-light-x'); sheetEl.style.removeProperty('--sheet-light-y') })
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(syncDetailOverflow)
+      observer.observe(sheetEl); context.cleanup(() => observer.disconnect(), {kind:'observer'})
+    }
   }
 
   function animate() {
@@ -1031,7 +1165,14 @@ export async function mount(context) {
     liftY += (liftTarget - liftY) * Math.min(1, dt * 4.2)
     if (rootGroup) rootGroup.position.y = liftY
 
-    if (!gesture.userInteracting && gesture.mode === 'none') {
+    if (focusTarget && gesture.mode === 'none') {
+      const factor = Math.min(1, dt * 7)
+      orbit.yaw = lerp(orbit.yaw, focusTarget.yaw, factor)
+      orbit.pitch = lerp(orbit.pitch, focusTarget.pitch, factor)
+      orbit.radius = lerp(orbit.radius, focusTarget.radius, factor)
+      if (Math.abs(orbit.yaw-focusTarget.yaw)+Math.abs(orbit.pitch-focusTarget.pitch)+Math.abs(orbit.radius-focusTarget.radius)<.001) focusTarget = null
+      updateCameraFromOrbit()
+    } else if (!gesture.userInteracting && gesture.mode === 'none') {
       if (Math.abs(velocity.yaw) > 0.0001 || Math.abs(velocity.pitch) > 0.0001) {
         orbit.yaw += velocity.yaw
         orbit.pitch = clamp(orbit.pitch + velocity.pitch, 0.18, Math.PI - 0.18)
@@ -1055,6 +1196,7 @@ export async function mount(context) {
     if (selectedIndex != null) applySelectionHighlight()
 
     renderer.render(scene, camera)
+    updateSelectionVisuals()
   }
 
   function goBack() {

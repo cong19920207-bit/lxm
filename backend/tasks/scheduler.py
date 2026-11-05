@@ -323,6 +323,41 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
         max_instances=1, coalesce=True,
     )
 
+    scheduler.add_job(
+        _run_pet_rule_scan, trigger=IntervalTrigger(minutes=10),
+        id='pet_rule_scan_task', name='养宠规则结算扫描', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_pet_care_scan, trigger=IntervalTrigger(minutes=10),
+        id='pet_care_scan_task', name='养宠有限照顾扫描', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_pet_daily_scan, trigger=IntervalTrigger(minutes=10),
+        id='pet_daily_scan_task', name='养宠日概览整理', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _run_pet_generation_candidates, trigger=IntervalTrigger(minutes=10),
+        id='pet_generation_candidates_task', name='养宠叙事候选生产', replace_existing=True,
+    )
+
+    scheduler.add_job(
+        _run_pet_generation_queue, trigger=IntervalTrigger(seconds=5),
+        id='pet_generation_queue_task', name='养宠表达任务执行', replace_existing=True,
+    )
+
+    scheduler.add_job(
+        _run_pet_generation_cleanup, trigger=IntervalTrigger(minutes=10),
+        id='pet_generation_cleanup_task', name='养宠失效生成任务清理', replace_existing=True,
+    )
+
+    scheduler.add_job(
+        _run_pet_birthday_scan, trigger=IntervalTrigger(minutes=10),
+        id='pet_birthday_scan_task', name='养宠生日纪念扫描', replace_existing=True,
+        max_instances=1, coalesce=True,
+    )
     scheduler.start()
     jobs = scheduler.get_jobs()
     logger.info("[定时任务] 调度器已启动，已注册 %d 个任务", len(jobs))
@@ -430,3 +465,130 @@ async def _run_voice_daily_metrics():
         _voice_daily_after=result['next_day']
     except Exception:
         logger.warning('voice.metrics.daily_unavailable')
+
+
+_pet_rule_cursor=None
+@fenced_scheduler
+async def _run_pet_rule_scan():
+    global _pet_rule_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_rule_jobs import scan_settlements
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_settlements(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_rule_cursor,clock=utcnow)
+        _pet_rule_cursor=result['next_cursor']
+        await record_health(async_session_maker,'pet_rule_scan_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_rule_scan_task',error=error)
+        logger.warning('pet.rules.scan_unavailable',exc_info=True)
+
+_pet_care_cursor=None
+@fenced_scheduler
+async def _run_pet_care_scan():
+    global _pet_care_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_care import scan_care
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_care(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_care_cursor,clock=utcnow)
+        _pet_care_cursor=result['next_cursor']
+        await record_health(async_session_maker,'pet_care_scan_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_care_scan_task',error=error)
+        logger.warning('pet.care.scan_unavailable',exc_info=True)
+
+_pet_daily_cursor=None
+@fenced_scheduler
+async def _run_pet_daily_scan():
+    global _pet_daily_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_records import scan_daily
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_daily(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_daily_cursor,clock=utcnow)
+        _pet_daily_cursor=result['next_cursor']
+        await record_health(async_session_maker,'pet_daily_scan_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_daily_scan_task',error=error)
+        logger.warning('pet.daily.scan_unavailable',exc_info=True)
+
+_pet_birthday_cursor=None
+@fenced_scheduler
+async def _run_pet_birthday_scan():
+    global _pet_birthday_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_birthday import scan_birthdays
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_birthdays(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_birthday_cursor,clock=utcnow)
+        _pet_birthday_cursor=result['next_cursor']
+        await record_health(async_session_maker,'pet_birthday_scan_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_birthday_scan_task',error=error)
+        logger.warning('pet.birthday.scan_unavailable',exc_info=True)
+
+
+_pet_generation_cleanup_cursor=None
+@fenced_scheduler
+async def _run_pet_generation_cleanup():
+    global _pet_generation_cleanup_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_generation import scan_cleanup
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_cleanup(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_generation_cleanup_cursor)
+        _pet_generation_cleanup_cursor=result['next_cursor']
+        from backend.services.pet_photos import cleanup_objects
+        result['photos']=await cleanup_objects(async_session_maker)
+        await record_health(async_session_maker,'pet_generation_cleanup_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_generation_cleanup_task',error=error)
+        logger.exception('Pet generation cleanup failed')
+
+
+@fenced_scheduler
+async def _run_pet_generation_queue():
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.services.pet_expression import run_queued
+    from backend.services.pet_job_health import record as record_health
+    try:
+        await run_queued(async_session_maker,owner=str(uuid4()))
+        await record_health(async_session_maker,'pet_generation_queue_task')
+    except Exception as error:
+        await record_health(async_session_maker,'pet_generation_queue_task',error=error)
+        logger.exception('Pet expression queue failed')
+
+
+_pet_generation_candidates_cursor=None
+@fenced_scheduler
+async def _run_pet_generation_candidates():
+    global _pet_generation_candidates_cursor
+    from uuid import uuid4
+    from backend.database import async_session_maker
+    from backend.models.pet import utcnow
+    from backend.services.pet_narrative import scan_candidates
+    from backend.services.pet_settlement import aware
+    from backend.services.pet_job_health import record as record_health
+    try:
+        result=await scan_candidates(async_session_maker,now=aware(utcnow()),owner=str(uuid4()),after=_pet_generation_candidates_cursor,clock=utcnow)
+        _pet_generation_candidates_cursor=result['next_cursor']
+        await record_health(async_session_maker,'pet_generation_candidates_task',summary=result)
+    except Exception as error:
+        await record_health(async_session_maker,'pet_generation_candidates_task',error=error)
+        logger.exception('Pet narrative candidate scan failed')

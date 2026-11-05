@@ -11,6 +11,8 @@
 !alembic/
 !alembic/**
 !alembic.ini
+!scripts/
+!scripts/pet_photo_maintenance.py
 **/__pycache__
 **/*.pyc
 **/._*

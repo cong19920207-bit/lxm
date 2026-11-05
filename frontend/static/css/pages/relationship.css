@@ -1,589 +1,420 @@
+@charset "UTF-8";
+html[data-app-route="relationship"]  {color-scheme:dark;--bg:#101015;--surface:#19181f;--text:#f0edf5;--muted:#a5a0b2;--quiet:#8c869b;--accent:#c5acee;--line:rgba(212,196,238,.10);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-synthesis:none}
+:where([data-app-page="relationship"]) * {box-sizing:border-box}
+html[data-app-route="relationship"] body {margin:0;background:#0c0c10;color:var(--text);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+:where([data-app-page="relationship"]) button,
+:where([data-app-page="relationship"]) a {-webkit-tap-highlight-color:transparent}
+:where([data-app-page="relationship"]) button {font:inherit;color:inherit;cursor:pointer}
+:where([data-app-page="relationship"]) button {border:0;background:none}
+:where([data-app-page="relationship"]) a {color:inherit;text-decoration:none}
+:where([data-app-page="relationship"]) button:focus-visible,
+:where([data-app-page="relationship"]) a:focus-visible,
+:where([data-app-page="relationship"]) [tabindex]:focus-visible {outline:2px solid var(--accent);outline-offset:4px}
+:where([data-app-page="relationship"]) button:active {opacity:.75}
+:where([data-app-page="relationship"]) h1,
+:where([data-app-page="relationship"]) h2,
+:where([data-app-page="relationship"]) h3,
+:where([data-app-page="relationship"]) p {margin:0}
+:where([data-app-page="relationship"]) svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+:where([data-app-page="relationship"]) .svg-library {position:absolute;width:0;height:0;overflow:hidden}
+:where([data-app-page="relationship"]) .relationship-page {width:100%;max-width:440px;margin:auto;background:var(--bg);min-height:100vh;overflow:hidden}
+:where([data-app-page="relationship"]) .mobile-preview-label {display:none}
+:where([data-app-page="relationship"]) .hero {height:420px;position:relative;isolation:isolate}
+:where([data-app-page="relationship"]) .hero-photo {position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,var(--bg) 0%,rgba(16,16,21,.92) 12%,rgba(16,16,21,.3) 48%,rgba(16,16,21,.04) 76%),url('/static/images/relationship/Relationship_Lxm.png') center -20px/100% auto no-repeat}
+:where([data-app-page="relationship"]) .page-nav {display:flex;align-items:center;justify-content:space-between;padding:14px 18px;color:#ded7ea;font-size:14px;letter-spacing:2px}
+:where([data-app-page="relationship"]) .icon-button {width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+:where([data-app-page="relationship"]) .back-button {border:1px solid rgba(255,255,255,.15);background:rgba(24,22,32,.3);backdrop-filter:blur(10px)}
+:where([data-app-page="relationship"]) .back-button svg {width:17px;height:17px}
+:where([data-app-page="relationship"]) .nav-star {width:40px;text-align:center;font-size:17px;color:#b4a3cf}
+:where([data-app-page="relationship"]) .hero-content {position:absolute;bottom:12px;left:26px;right:26px}
+:where([data-app-page="relationship"]) .relationship-status {display:flex;align-items:center;gap:7px;color:#d0bcf0;font-size:11px;letter-spacing:1px;margin-bottom:10px}
+:where([data-app-page="relationship"]) .relationship-status>span {width:5px;height:5px;background:#c5acee;border-radius:50%}
+:where([data-app-page="relationship"]) .hero h1 {font-family:"Songti SC","Noto Serif CJK SC",serif;font-size:35px;font-weight:600;letter-spacing:4px;line-height:1.4}
+:where([data-app-page="relationship"]) .hero-content>p {font-size:13px;color:#c4becf;line-height:1.9;margin-top:10px;letter-spacing:.5px}
+:where([data-app-page="relationship"]) .text-button {display:flex;align-items:center;gap:4px;padding:8px 0;min-height:40px;font-size:11px;color:var(--muted)}
+:where([data-app-page="relationship"]) .text-button svg {width:13px;height:13px}
+:where([data-app-page="relationship"]) .perks-trigger {margin-top:6px}
+:where([data-app-page="relationship"]) .page-content {padding:0 24px}
+:where([data-app-page="relationship"]) .together {padding:12px 0 25px}
+:where([data-app-page="relationship"]) .together-primary {display:inline-block;width:55%;vertical-align:middle}
+:where([data-app-page="relationship"]) .together-primary>span {font-size:11px;color:var(--muted);letter-spacing:1px}
+:where([data-app-page="relationship"]) .together-primary>div {display:flex;align-items:baseline;gap:11px;margin-top:0}
+:where([data-app-page="relationship"]) .together-primary strong {font-family:Georgia,"Times New Roman",serif;font-size:61px;font-weight:400;line-height:1.3;letter-spacing:-2px;color:#e9ddf9}
+:where([data-app-page="relationship"]) .together-primary>div>span {color:#bcb1ce;font-size:12px}
+:where([data-app-page="relationship"]) .together-secondary {display:inline-flex;width:43%;gap:25px;align-items:center;vertical-align:middle;padding-top:17px}
+:where([data-app-page="relationship"]) .together-secondary>div {display:flex;flex-direction:column;gap:3px;white-space:nowrap}
+:where([data-app-page="relationship"]) .together-secondary strong {font-size:21px;line-height:1.4;font-weight:500;color:#d6cfdf;font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .together-secondary strong span {font-size:11px;font-weight:400}
+:where([data-app-page="relationship"]) .together-secondary>div>span {color:var(--muted);font-size:10px}
+:where([data-app-page="relationship"]) .together-caption {display:flex;align-items:center;gap:9px;font-size:11px;color:#9e93ad;margin-top:10px;letter-spacing:.2px}
+:where([data-app-page="relationship"]) .small-line {width:18px;height:1px;background:#6f607f}
+:where([data-app-page="relationship"]) .panel {background:linear-gradient(120deg,#211c2d,#19171f 80%);border:1px solid rgba(202,175,237,.15);border-radius:18px;padding:20px}
+:where([data-app-page="relationship"]) .section-heading {display:flex;align-items:center;justify-content:space-between;gap:10px}
+:where([data-app-page="relationship"]) .section-heading h2 {font-size:16px;font-weight:550;letter-spacing:.5px}
+:where([data-app-page="relationship"]) .quiet-label {font-size:10px;color:var(--muted);white-space:nowrap}
+:where([data-app-page="relationship"]) .progress-labels {display:flex;justify-content:space-between;align-items:center;margin:23px 0 11px;font-size:12px}
+:where([data-app-page="relationship"]) .current-stage {display:flex;align-items:center;gap:7px;color:#d9c2fa}
+:where([data-app-page="relationship"]) .current-stage svg {width:15px;height:15px}
+:where([data-app-page="relationship"]) .next-stage {display:flex;align-items:center;gap:6px;color:#a69aaf;font-size:11px}
+:where([data-app-page="relationship"]) .next-stage svg {width:12px;height:12px}
+:where([data-app-page="relationship"]) .progress {height:6px;border-radius:9px;background:#342b3f;overflow:hidden}
+:where([data-app-page="relationship"]) .progress>div {width:33.1667%;height:100%;border-radius:9px;background:linear-gradient(90deg,#8c6eb0,#c6abe9)}
+:where([data-app-page="relationship"]) .progress-meta {display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .progress-meta strong {font-size:12px;color:#d7c8e6;font-weight:500}
+:where([data-app-page="relationship"]) .next-unlock {display:flex;width:100%;align-items:center;gap:10px;text-align:left;padding:15px 0 0;margin-top:17px;border-top:1px solid var(--line)}
+:where([data-app-page="relationship"]) .unlock-icon {height:31px;width:31px;border-radius:9px;display:grid;place-items:center;background:#b89bda0c;color:#c0a5df}
+:where([data-app-page="relationship"]) .unlock-icon svg {width:17px;height:17px}
+:where([data-app-page="relationship"]) .next-unlock>span:nth-child(2) {flex:1}
+:where([data-app-page="relationship"]) .next-unlock strong {display:block;font-size:11px;font-weight:500;color:#d7c9e9}
+:where([data-app-page="relationship"]) .next-unlock small {display:block;font-size:10px;color:#a89bb8;margin-top:3px}
+:where([data-app-page="relationship"]) .chevron {width:14px;height:14px;color:#9887ac}
+:where([data-app-page="relationship"]) .section {margin-top:32px}
+:where([data-app-page="relationship"]) .section-caption {color:var(--quiet);font-size:10px;margin-top:4px;letter-spacing:.2px}
+:where([data-app-page="relationship"]) .today-earned {font-family:Georgia,serif;font-size:22px;color:#c8afe6;white-space:nowrap}
+:where([data-app-page="relationship"]) .today-earned small {font:10px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;margin-left:1px;color:#a69ab4}
+:where([data-app-page="relationship"]) .today-list {margin-top:14px}
+:where([data-app-page="relationship"]) .today-row {display:flex;align-items:center;width:100%;padding:12px 0;border-bottom:1px solid var(--line);text-align:left;gap:11px;min-height:68px}
+:where([data-app-page="relationship"]) .today-row:last-child {border-bottom:0}
+:where([data-app-page="relationship"]) .activity-icon {width:35px;height:35px;display:grid;place-items:center;border:1px solid #d5bcf00b;border-radius:11px;background:#211d29;color:#b7a2d0}
+:where([data-app-page="relationship"]) .activity-icon svg {width:18px;height:18px}
+:where([data-app-page="relationship"]) .activity-copy {flex:1;min-width:0}
+:where([data-app-page="relationship"]) .activity-copy strong {font-size:12px;font-weight:450;display:block;color:#ddd7e6}
+:where([data-app-page="relationship"]) .activity-copy small {display:block;font-size:10px;color:var(--quiet);margin-top:3px}
+:where([data-app-page="relationship"]) .activity-result {font-size:13px;color:#b4a8c3;display:flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .activity-result small {font-size:10px;color:var(--quiet)}
+:where([data-app-page="relationship"]) .activity-result svg {width:12px;height:12px}
+:where([data-app-page="relationship"]) .completed .activity-result {color:#b5c9b5}
+:where([data-app-page="relationship"]) .completed .activity-icon {color:#b1c4b1;background:#1b221e}
+:where([data-app-page="relationship"]) .row-info {height:12px;width:12px;color:#726b7e;margin-left:1px}
+:where([data-app-page="relationship"]) .footprints {padding-top:24px;border-top:1px solid var(--line);margin-top:21px}
+:where([data-app-page="relationship"]) .milestone {display:flex;gap:14px;margin-top:21px}
+:where([data-app-page="relationship"]) .milestone-marker {width:31px;height:31px;display:grid;place-items:center;background:#282033;border:1px solid #493954;border-radius:50%;color:#c6a8e5;position:relative}
+:where([data-app-page="relationship"]) .milestone-marker svg {width:14px;height:14px}
+:where([data-app-page="relationship"]) .milestone-marker::after {position:absolute;content:"";top:37px;left:14px;width:1px;height:94px;background:linear-gradient(#493954,transparent)}
+:where([data-app-page="relationship"]) .milestone-content {padding-top:0}
+:where([data-app-page="relationship"]) .milestone-date {font-size:10px;color:#a398af;letter-spacing:1px;font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .milestone h3 {font-size:13px;font-weight:500;letter-spacing:.3px;margin-top:7px}
+:where([data-app-page="relationship"]) .milestone p {font-size:11px;color:var(--quiet);margin-top:5px}
+:where([data-app-page="relationship"]) .milestone-tag {display:inline-block;font-size:9px;letter-spacing:.3px;color:#c3aedc;border:1px solid #b89bd92a;border-radius:5px;padding:2px 7px;margin-top:13px}
+:where([data-app-page="relationship"]) .future-line {margin:19px 0 0 11px;color:#8e819c;font-size:10px;display:flex;align-items:center;gap:25px}
+:where([data-app-page="relationship"]) .future-line>span {width:7px;height:7px;border:1px solid #61506f;border-radius:50%}
+:where([data-app-page="relationship"]) .recent {border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+:where([data-app-page="relationship"]) .recent .section-heading {margin-bottom:12px}
+:where([data-app-page="relationship"]) .record-row {min-height:54px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:8px 0}
+:where([data-app-page="relationship"]) .record-icon {width:28px;height:28px;display:grid;place-items:center;color:#94869f}
+:where([data-app-page="relationship"]) .record-icon svg {width:16px;height:16px}
+:where([data-app-page="relationship"]) .record-copy {flex:1;min-width:0}
+:where([data-app-page="relationship"]) .record-copy strong {font-weight:400;font-size:12px;display:block;color:#c9c2d4}
+:where([data-app-page="relationship"]) .record-copy time {display:block;font-size:10px;color:#8f869c;margin-top:2px;font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .record-points {font-size:12px;font-weight:450;color:#beaad7;font-variant-numeric:tabular-nums}
+:where([data-app-page="relationship"]) .record-points.zero {color:#938a9e}
+:where([data-app-page="relationship"]) .all-records {display:flex;align-items:center;justify-content:space-between;width:100%;min-height:47px;font-size:11px;color:#c5b2df;padding:13px 0 0}
+:where([data-app-page="relationship"]) .all-records>span {display:flex;gap:7px;align-items:center;font-size:10px;color:#94879f}
+:where([data-app-page="relationship"]) .all-records svg {height:13px;width:13px}
+:where([data-app-page="relationship"]) .page-footer {display:flex;align-items:center;flex-direction:column;gap:9px;padding:34px 0 30px;color:#9482a4;font-size:10px;letter-spacing:.5px}
+:where([data-app-page="relationship"]) .page-footer>svg {width:14px;height:14px;color:#7f668e}
+:where([data-app-page="relationship"]) .page-footer small {font-size:9px;color:#696171;margin-top:12px;letter-spacing:0}
+:where([data-app-page="relationship"]) .sheet {color:var(--text);background:#19171f;border:1px solid #45364f;max-width:440px;width:100%;max-height:90dvh;margin:auto auto 0;padding:0 24px 24px;border-radius:24px 24px 0 0;box-shadow:0 -12px 80px #0005;overflow-y:auto}
+:where([data-app-page="relationship"]) .sheet::backdrop {background:#050409b3;backdrop-filter:blur(7px)}
+:where([data-app-page="relationship"]) .sheet[open] {animation:sheet-in .24s ease-out}
+:where([data-app-page="relationship"]) .sheet-handle {width:33px;height:3px;background:#655b70;border-radius:4px;margin:10px auto 20px}
+:where([data-app-page="relationship"]) .sheet-header {display:flex;justify-content:space-between;gap:10px;align-items:center}
+:where([data-app-page="relationship"]) .sheet-header h2 {font-size:20px;font-weight:500;letter-spacing:.5px}
+:where([data-app-page="relationship"]) .sheet-header p {font-size:11px;color:var(--muted);margin-top:6px}
+:where([data-app-page="relationship"]) .sheet-header .icon-button {margin-right:-6px;background:#ffffff05;border:1px solid #ffffff0a;color:#afa1be;width:34px;height:34px}
+:where([data-app-page="relationship"]) .sheet-header .icon-button svg {width:16px;height:16px}
+:where([data-app-page="relationship"]) .sheet-meta {display:flex;justify-content:space-between;padding:17px 0;margin-top:9px;font-size:10px;color:#a095ae;border-bottom:1px solid var(--line)}
+:where([data-app-page="relationship"]) .records-sheet {height:86dvh;overflow:hidden;padding-bottom:0}
+:where([data-app-page="relationship"]) .records-scroll {height:calc(100% - 154px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4d3b5c transparent;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+:where([data-app-page="relationship"]) .records-scroll:focus-visible {outline-offset:-2px}
+:where([data-app-page="relationship"]) .record-group-date {padding-top:21px;padding-bottom:3px;font-size:11px;font-weight:500;letter-spacing:.5px;color:#b6a7c7}
+:where([data-app-page="relationship"]) .load-more {width:100%;padding:14px 0;border:1px solid var(--line);border-radius:10px;margin-top:20px;color:#c8b6df;font-size:12px}
+:where([data-app-page="relationship"]) .load-more:disabled {color:#8f829b;cursor:default}
+:where([data-app-page="relationship"]) .demo-caption {text-align:center;color:#80758d;font-size:9px;line-height:1.8;margin-top:13px}
+:where([data-app-page="relationship"]) .compact-sheet {padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+:where([data-app-page="relationship"]) .eyebrow {display:block;font-size:10px;color:#b99fce;letter-spacing:1px;margin-bottom:6px}
+:where([data-app-page="relationship"]) .perks-list {margin:19px 0 25px}
+:where([data-app-page="relationship"]) .perks-list>div {display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
+:where([data-app-page="relationship"]) .perks-list>div>svg {color:#b59acf;width:20px;height:20px}
+:where([data-app-page="relationship"]) .perks-list>div>span {flex:1}
+:where([data-app-page="relationship"]) .perks-list strong {display:block;font-size:13px;font-weight:500}
+:where([data-app-page="relationship"]) .perks-list small {display:block;font-size:11px;color:var(--muted);margin-top:5px}
+:where([data-app-page="relationship"]) .perks-list>div>.check {width:14px;height:14px;color:#b3c2b1}
+:where([data-app-page="relationship"]) .primary-button {width:100%;padding:13px;border:1px solid #b899da3b;border-radius:12px;color:#e0cef3;background:#3a2c49;font-size:13px}
+:where([data-app-page="relationship"]) .next-intro {font-size:12px;color:var(--muted);margin-top:22px}
+:where([data-app-page="relationship"]) .next-intro strong {font-weight:500;color:#d0b5e9}
+:where([data-app-page="relationship"]) .rule-copy {font-size:14px;line-height:1.9;color:#d5ccdf;margin-top:25px;white-space:pre-line}
+:where([data-app-page="relationship"]) .rule-note {font-size:10px;line-height:1.8;color:#93879f;margin:20px 0 24px}
+:where([data-app-page="relationship"]) .design-notes {position:fixed;top:50%;left:calc(50% - 490px);width:225px;transform:translateY(-50%);color:#a19aa9}
+:where([data-app-page="relationship"]) .edition {font-size:9px;letter-spacing:2px;color:#8e809d;border-bottom:1px solid #ffffff13;padding-bottom:16px;display:flex;justify-content:space-between}
+:where([data-app-page="relationship"]) .edition span {color:#b9a2ce}
+:where([data-app-page="relationship"]) .design-notes>h2 {font-family:"Songti SC",serif;font-size:26px;line-height:1.65;letter-spacing:2px;font-weight:500;color:#ded1e9;margin-top:25px}
+:where([data-app-page="relationship"]) .design-notes>p {font-size:11px;color:#8e809d;letter-spacing:1px;margin:11px 0 35px}
+:where([data-app-page="relationship"]) .note {display:flex;gap:14px;margin-top:25px}
+:where([data-app-page="relationship"]) .note>span {color:#786487;font-family:Georgia,serif;font-size:13px}
+:where([data-app-page="relationship"]) .note strong {color:#c4b7d0;font-weight:400;font-size:12px;letter-spacing:.5px}
+:where([data-app-page="relationship"]) .note p {font-size:11px;line-height:1.8;color:#8f859c;margin-top:5px}
+:where([data-app-page="relationship"]) .preview-label {font-size:10px;margin-top:42px;color:#a297ad;display:flex;align-items:center;gap:7px}
+:where([data-app-page="relationship"]) .preview-label i {height:5px;width:5px;border-radius:50%;background:#b79bcf}
+:where([data-app-page="relationship"]) .original-link {display:inline-block;font-size:10px;color:#8f819e;margin-top:13px;padding:4px 0;border-bottom:1px solid #8f819e30}
 
-/* ========== 关系页独立暗黑主题（scoped，不影响其他 H5 页） ========== */
-    html[data-app-route="relationship"]:has(> body.relationship-page),
-html[data-app-route="relationship"] body.h5-skin.relationship-page {
-      background: #050508;
-      color: #f3f4f6;
-    }
-html[data-app-route="relationship"] body.relationship-page .top-bar {
-      display: none;
-    }
-html[data-app-route="relationship"] body.relationship-page .page-body {
-      padding: 0 0 calc(24px + env(safe-area-inset-bottom, 0px));
-      animation: none;
-    }
-:where([data-app-page="relationship"]) .rel-page {
-      min-height: 100vh;
-      background: linear-gradient(180deg, #050508 0%, #0c0a12 40%, #050508 100%);
-    }
-/* Hero */
-    :where([data-app-page="relationship"]) .rel-hero {
-      position: relative;
-      min-height: 52vh;
-      max-height: 480px;
-      background: #0a0810 url('/static/images/relationship/Relationship_Lxm.png') center top / cover no-repeat;
-    }
-:where([data-app-page="relationship"]) .rel-hero::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 55%;
-      background: linear-gradient(180deg, rgba(5, 5, 8, 0) 0%, rgba(5, 5, 8, 0.75) 55%, #050508 100%);
-      pointer-events: none;
-    }
-:where([data-app-page="relationship"]) .rel-hero-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 5;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-:where([data-app-page="relationship"]) .rel-hero-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: rgba(88, 28, 135, 0.55);
-      border: 1px solid rgba(192, 132, 252, 0.45);
-      color: #f5f3ff;
-      font-size: 13px;
-      font-weight: 500;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-:where([data-app-page="relationship"]) .rel-hero-pill svg {
-      flex-shrink: 0;
-    }
-:where([data-app-page="relationship"]) .rel-hero-profile {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 50px;
-      z-index: 3;
-      padding: 0 20px 16px;
-    }
-:where([data-app-page="relationship"]) .rel-name-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-:where([data-app-page="relationship"]) .rel-name {
-      font-size: 28px;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: 0.02em;
-    }
-:where([data-app-page="relationship"]) .rel-level-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #e9d5ff;
-      background: rgba(126, 34, 206, 0.55);
-      border: 1px solid rgba(192, 132, 252, 0.65);
-      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
-    }
-:where([data-app-page="relationship"]) .rel-desc {
-      font-size: 14px;
-      line-height: 1.65;
-      color: rgba(255, 255, 255, 0.88);
-      margin-bottom: 14px;
-    }
-:where([data-app-page="relationship"]) .rel-perks {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-:where([data-app-page="relationship"]) .rel-perk-tag {
-      padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      color: #e9d5ff;
-      border: 1px solid rgba(168, 85, 247, 0.55);
-      background: rgba(88, 28, 135, 0.25);
-    }
-:where([data-app-page="relationship"]) .rel-hero-foot {
-      min-height: 22px;
-    }
-/* 主内容区（统计 + 各卡片整体上移，Hero 林小梦区不动） */
-    :where([data-app-page="relationship"]) .rel-main {
-      position: relative;
-      z-index: 4;
-      margin-top: -50px;
-      padding: 8px 16px 0;
-    }
-:where([data-app-page="relationship"]) .rel-section-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 14px;
-    }
-:where([data-app-page="relationship"]) .rel-section-title .spark {
-      color: #c084fc;
-      font-size: 14px;
-    }
-/* 统计四列 */
-    :where([data-app-page="relationship"]) .rel-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-bottom: 20px;
-      padding: 16px 8px;
-      border-radius: 16px;
-      background: rgba(26, 26, 34, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-:where([data-app-page="relationship"]) .rel-stat-item {
-      text-align: center;
-      padding: 4px 2px;
-    }
-:where([data-app-page="relationship"]) .rel-stat-item .m-value {
-      font-size: 22px;
-      font-weight: 700;
-      color: #c084fc;
-      line-height: 1.2;
-      text-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
-    }
-:where([data-app-page="relationship"]) .rel-stat-item .m-value.warn {
-      color: #fb923c;
-      text-shadow: 0 0 16px rgba(251, 146, 60, 0.4);
-    }
-:where([data-app-page="relationship"]) .rel-stat-item .m-label {
-      font-size: 11px;
-      color: #fff;
-      margin-top: 6px;
-      font-weight: 500;
-    }
-:where([data-app-page="relationship"]) .rel-stat-item .m-sub {
-      font-size: 10px;
-      color: #9ca3af;
-      margin-top: 4px;
-      line-height: 1.35;
-    }
-/* 卡片通用 */
-    :where([data-app-page="relationship"]) .rel-card {
-      position: relative;
-      background: rgba(22, 22, 30, 0.95);
-      border-radius: 18px;
-      padding: 18px 16px;
-      margin-bottom: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    }
-:where([data-app-page="relationship"]) .rel-card-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-:where([data-app-page="relationship"]) .rel-card-head .rel-section-title {
-      margin-bottom: 0;
-    }
-:where([data-app-page="relationship"]) .rel-handwrite {
-      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
-      color: #e879f9;
-      font-size: 17px;
-      line-height: 1.25;
-      opacity: 0.95;
-      text-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
-      flex-shrink: 0;
-      white-space: nowrap;
-      text-align: right;
-    }
-:where([data-app-page="relationship"]) #progress-section .rel-handwrite {
-      transform: translateX(-50px);
-    }
+@media(max-width:999px){
+:where([data-app-page="relationship"]) .design-notes {display:none}
+:where([data-app-page="relationship"]) .mobile-preview-label {max-width:440px;margin:auto;display:flex;justify-content:space-between;padding:7px 24px;background:#1e1927;font-size:9px;letter-spacing:1px;color:#b49cc8}
+:where([data-app-page="relationship"]) .mobile-preview-label span {color:#9685a7}
+:where([data-app-page="relationship"]) .relationship-page {border-left:1px solid #ffffff04;border-right:1px solid #ffffff04}}
+@media(max-width:374px){
+:where([data-app-page="relationship"]) .page-content {padding:0 20px}
+:where([data-app-page="relationship"]) .hero-content {left:22px}
+:where([data-app-page="relationship"]) .hero {height:400px}
+:where([data-app-page="relationship"]) .together-secondary {gap:17px}
+:where([data-app-page="relationship"]) .together-primary strong {font-size:56px}
+:where([data-app-page="relationship"]) .panel {padding:18px}
+:where([data-app-page="relationship"]) .section-heading h2 {font-size:15px}
+:where([data-app-page="relationship"]) .activity-copy small {font-size:10px}
+:where([data-app-page="relationship"]) .sheet {padding-left:20px;padding-right:20px}}
+:where([data-app-page="relationship"]) .recent .record-row {min-height:50px;padding-top:6px;padding-bottom:6px}
+@keyframes sheet-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+:where([data-app-page="relationship"]) *,
+:where([data-app-page="relationship"]) *::before,
+:where([data-app-page="relationship"]) *::after {animation:none!important;scroll-behavior:auto!important}}
+/* Visual exploration 02: richer light, keepsakes and tactile details. */
+html[data-app-route="relationship"]  {
+  --bg: #121019;
+  --accent: #ddbbff;
+  --text: #f6efff;
+  --muted: #b7a9c6;
+  --quiet: #a193b2;
+  --line: rgba(214, 183, 246, .13);
+}
+html[data-app-route="relationship"] body {
+  background: radial-gradient(ellipse at 60% 20%, #20142c 0, #100d16 42%, #0c0b10 76%);
+}
+:where([data-app-page="relationship"]) .relationship-page {
+  background:
+    radial-gradient(ellipse 85% 22% at 0 44%, #752fb51c, transparent),
+    radial-gradient(ellipse 80% 18% at 100% 77%, #7740881c, transparent),
+    var(--bg);
+}
+:where([data-app-page="relationship"]) .hero { height: 300px; height: clamp(264px, 38svh, 320px); }
+:where([data-app-page="relationship"]) .hero-photo {
+  background:
+    linear-gradient(90deg, #12101966, #12101900 78%),
+    linear-gradient(0deg, var(--bg) 0%, #121019e6 8%, #1210194a 42%, #12101900 70%),
+    url('/static/images/relationship/Relationship_Lxm.png') center -16px / 100% auto no-repeat;
+}
+:where([data-app-page="relationship"]) .hero-glow {
+  position: absolute;
+  inset: 70px 0 -15px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 1% 68%, #a34cdb30, transparent 56%),
+    radial-gradient(ellipse at 94% 11%, #b87ce221, transparent 32%);
+}
+:where([data-app-page="relationship"]) .hero-stars { position: absolute; inset: 0; pointer-events: none; }
+:where([data-app-page="relationship"]) .hero-stars span { position: absolute; color: #e9c7ff; text-shadow: 0 0 12px #d0a0ff99; }
+:where([data-app-page="relationship"]) .hero-stars span:nth-child(1) { top: 43%; left: 12%; font-size: 12px; opacity: .6; }
+:where([data-app-page="relationship"]) .hero-stars span:nth-child(2) { top: 25%; left: 23%; font-size: 18px; opacity: .6; }
+:where([data-app-page="relationship"]) .hero-stars span:nth-child(3) { top: 20%; left: 11%; font-size: 23px; opacity: .8; }
+:where([data-app-page="relationship"]) .hero-stars span:nth-child(4) { top: 73%; right: 10%; font-size: 10px; opacity: .55; }
+:where([data-app-page="relationship"]) .nav-title { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+:where([data-app-page="relationship"]) .nav-title svg { width: 14px; height: 14px; color: #d0acec; }
+:where([data-app-page="relationship"]) .nav-star { color: #e2bffa; text-shadow: 0 0 17px #b274da99; }
+:where([data-app-page="relationship"]) .back-button { background: #a486c01a; border-color: #e8d4ff35; }
+:where([data-app-page="relationship"]) .hero-content { bottom: 16px; }
+:where([data-app-page="relationship"]) .relationship-status {
+  width: fit-content;
+  border: 1px solid #e1b8ff35;
+  background: linear-gradient(110deg, #9d5dcc42, #6f3a9e1f);
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 10px;
+  letter-spacing: .5px;
+  backdrop-filter: blur(12px);
+  color: #e7caff;
+  box-shadow: inset 0 1px #ffffff09;
+  margin-bottom: 8px;
+}
+:where([data-app-page="relationship"]) .relationship-status > span { background: #d2a1f7; box-shadow: 0 0 8px #d29bea66; }
+:where([data-app-page="relationship"]) .relationship-status i { width: 1px; height: 9px; background: #cc9ae04f; margin: 0 1px; }
+:where([data-app-page="relationship"]) .hero h1 { font-size: 32px; color: #fff2ff; text-shadow: 0 2px 25px #9b5fc038; }
+:where([data-app-page="relationship"]) .hero-content > p { color: #d1bddf; margin-top: 6px; line-height: 1.7; }
+:where([data-app-page="relationship"]) .perks-trigger {
+  color: #e0c1f5;
+  background: linear-gradient(90deg, #a16bc51a, #a16bc506);
+  border: 1px solid #c893e726;
+  border-radius: 20px;
+  padding: 0 13px;
+  min-height: 31px;
+  width: fit-content;
+  font-size: 10px;
+  margin-top: 9px;
+}
+:where([data-app-page="relationship"]) .page-content { padding: 0 20px; }
+:where([data-app-page="relationship"]) .together {
+  position: relative;
+  padding: 16px 20px 14px;
+  margin: 0 0 18px;
+  border: 1px solid #d4a8f63b;
+  border-radius: 19px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 90% 20%, #9f60c23d, transparent 70%),
+    linear-gradient(125deg, #382044, #241b32 55%, #32203c);
+  box-shadow: inset 0 1px #f6dbff12, 0 8px 30px #0b04162e;
+}
+:where([data-app-page="relationship"]) .together::before {
+  position: absolute;
+  content: '';
+  width: 210px; height: 210px;
+  right: -97px; top: -72px;
+  border: 1px solid #e2b5ff12;
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px #d6b0fc06, 0 0 0 44px #d6b0fc04;
+  pointer-events: none;
+}
+:where([data-app-page="relationship"]) .keepsake-top { display: flex; align-items: center; justify-content: space-between; color: #d4afdF; font-size: 9px; letter-spacing: 1.4px; margin-bottom: 15px; }
+:where([data-app-page="relationship"]) .keepsake-top > span:first-child { display: flex; align-items: center; gap: 6px; }
+:where([data-app-page="relationship"]) .keepsake-top svg { width: 12px; height: 12px; }
+:where([data-app-page="relationship"]) .keepsake-top > span:last-child { font-family: Georgia, serif; font-size: 10px; color: #bc8ecd; }
+:where([data-app-page="relationship"]) .together-primary { width: 100%; }
+:where([data-app-page="relationship"]) .together-primary > span { color: #c6afd6; font-size: 10px; }
+:where([data-app-page="relationship"]) .together-primary strong {
+  font-size: 66px;
+  line-height: 1.22;
+  background: linear-gradient(150deg, #fff6ff 15%, #e9c5fa 65%, #bd85e5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 3px 35px #d69df323;
+}
+:where([data-app-page="relationship"]) .together-primary > div { margin-top: -1px; }
+:where([data-app-page="relationship"]) .together-primary > div > span { color: #d8bfe7; }
+:where([data-app-page="relationship"]) .together-seal { position: absolute; width: 93px; height: 100px; right: 21px; top: 47px; display: grid; place-items: center; }
+:where([data-app-page="relationship"]) .together-seal::before { content: ''; position: absolute; width: 72px; height: 72px; top: 0; border: 1px solid #e4beff2b; border-radius: 50%; background: radial-gradient(circle, #b766d62b, transparent 70%); }
+:where([data-app-page="relationship"]) .together-seal::after { content: ''; position: absolute; width: 61px; height: 61px; top: 5px; border: 1px dashed #dfb0ff33; border-radius: 50%; }
+:where([data-app-page="relationship"]) .together-seal > svg { position: absolute; top: 20px; width: 34px; height: 34px; color: #e7bff4; fill: #d78fd438; filter: drop-shadow(0 2px 10px #b965c787); stroke-width: 1.1; }
+:where([data-app-page="relationship"]) .seal-orbit { width: 94px; height: 36px; position: absolute; top: 20px; border: 1px solid #d5a8f13b; border-radius: 50%; transform: rotate(-32deg); }
+:where([data-app-page="relationship"]) .seal-star { position: absolute; top: 12px; right: 2px; color: #f0ccef; font-size: 15px; }
+:where([data-app-page="relationship"]) .seal-caption { position: absolute; bottom: 3px; color: #d1addf; font-size: 8px; letter-spacing: 1.2px; }
+:where([data-app-page="relationship"]) .together-secondary { display: flex; width: 100%; gap: 0; margin-top: 11px; padding: 12px 0 11px; border-top: 1px dashed #d7afec24; border-bottom: 1px dashed #d7afec24; }
+:where([data-app-page="relationship"]) .together-secondary > div { width: 50%; flex-direction: row; align-items: baseline; gap: 9px; }
+:where([data-app-page="relationship"]) .together-secondary > div + div { border-left: 1px solid #d7afec24; padding-left: 20px; }
+:where([data-app-page="relationship"]) .together-secondary strong { font-size: 18px; color: #ead9f4; }
+:where([data-app-page="relationship"]) .together-secondary > div > span { font-size: 10px; color: #bfa8d1; }
+:where([data-app-page="relationship"]) .together-caption { color: #c4a5d5; font-size: 9px; gap: 7px; margin-top: 12px; letter-spacing: .2px; }
+:where([data-app-page="relationship"]) .small-line { background: #bf91dc; width: 13px; }
+:where([data-app-page="relationship"]) .panel { background: radial-gradient(ellipse at 100% 0, #9c58bd25, transparent 67%), linear-gradient(125deg,#2b2038,#201929); border: 1px solid #b888d43f; box-shadow: inset 0 1px #eacbff0d; padding: 19px; }
+:where([data-app-page="relationship"]) .section-heading h2 { display: flex; align-items: center; gap: 7px; font-size: 15px; }
+:where([data-app-page="relationship"]) .heading-symbol { width: 16px; height: 16px; color: #d7adf1; }
+:where([data-app-page="relationship"]) .progress-percent { display: flex; flex-direction: column; text-align: right; color: #e0b7fb; font-family: Georgia, serif; font-size: 21px; line-height: 1.1; }
+:where([data-app-page="relationship"]) .progress-percent small { font: 8px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; margin-top: 4px; color: #b69ac8; letter-spacing: .5px; }
+:where([data-app-page="relationship"]) .progress-labels { margin-top: 17px; }
+:where([data-app-page="relationship"]) .current-stage { color: #e9c5ff; }
+:where([data-app-page="relationship"]) .progress { height: 8px; background: #392b45; box-shadow: inset 0 1px 3px #08040d4d; overflow: visible; }
+:where([data-app-page="relationship"]) .progress > div { background: linear-gradient(90deg,#9154c4,#c088e4 65%,#f0b8e5); box-shadow: 0 0 15px #b576db40; position: relative; }
+:where([data-app-page="relationship"]) .progress > div::after { position: absolute; content: ''; width: 6px; height: 6px; border-radius: 50%; top: 1px; right: 1px; background: #f8daff; box-shadow: 0 0 7px #f4b9fa70; }
+:where([data-app-page="relationship"]) .progress-meta { color: #af99c0; font-size: 10px; }
+:where([data-app-page="relationship"]) .progress-meta strong { color: #e3c7f3; }
+:where([data-app-page="relationship"]) .next-unlock { padding-top: 14px; margin-top: 16px; border-top-style: dashed; }
+:where([data-app-page="relationship"]) .unlock-icon { border: 1px solid #ba82dc30; background: linear-gradient(140deg,#62407588,#4b2b5f33); color: #e6b9f5; }
+:where([data-app-page="relationship"]) .next-unlock strong { color: #e6cefb; font-size: 12px; }
+:where([data-app-page="relationship"]) .next-unlock small { color: #b8a0ca; }
+:where([data-app-page="relationship"]) .today { margin-top: 28px; }
+:where([data-app-page="relationship"]) .today .heading-symbol { color: #debba5; }
+:where([data-app-page="relationship"]) .section-caption { padding-left: 23px; font-size: 10px; color: #a99aba; }
+:where([data-app-page="relationship"]) .today-earned { border: 1px solid #cc94ed39; border-radius: 10px; padding: 3px 10px; background: linear-gradient(130deg,#8b50ad33,#56336b1c); color: #e5baff; font-size: 23px; }
+:where([data-app-page="relationship"]) .today-earned small { font-size: 9px; color: #c7a4db; }
+:where([data-app-page="relationship"]) .today-list { border: 1px solid #c29de424; background: linear-gradient(135deg,#251d2f,#1e1926); border-radius: 17px; padding: 2px 14px; box-shadow: inset 0 1px #ffffff05; }
+:where([data-app-page="relationship"]) .today-row { min-height: 68px; padding: 12px 0; gap: 10px; }
+:where([data-app-page="relationship"]) .activity-copy strong { font-size: 12px; color: #e9dbf5; }
+:where([data-app-page="relationship"]) .activity-copy small { color: #a799b5; }
+:where([data-app-page="relationship"]) .activity-icon { width: 36px; height: 36px; border-radius: 12px; border: 1px solid #d0a1ef25; background: linear-gradient(140deg,#71499f88,#4830584d); color: #dab5fa; box-shadow: inset 0 1px #eadbff12; }
+:where([data-app-page="relationship"]) [data-rule="voice"] .activity-icon { border-color: #80b5d52b; background: linear-gradient(145deg,#385c8266,#233d6544); color: #a4cae6; }
+:where([data-app-page="relationship"]) [data-rule="deep"] .activity-icon { border-color: #d29cb935; background: linear-gradient(145deg,#71466477,#4e2e5144); color: #e6b2d3; }
+:where([data-app-page="relationship"]) [data-rule="reply"] .activity-icon { border-color: #bba3f535; background: linear-gradient(145deg,#66508177,#392b5244); color: #cfb7f2; }
+:where([data-app-page="relationship"]) .completed .activity-icon { border-color: #ceb1833b; background: linear-gradient(145deg,#87613a66,#50402d44); color: #ebcc9a; }
+:where([data-app-page="relationship"]) .activity-result { min-width: 28px; justify-content: center; padding: 3px 5px; border-radius: 6px; background: #ffffff04; color: #d5bee8; font-size: 12px; }
+:where([data-app-page="relationship"]) .activity-result small { color: #a99ab6; }
+:where([data-app-page="relationship"]) .completed .activity-result { background: #be9b5b14; color: #e5c594; }
+:where([data-app-page="relationship"]) .row-info { color: #9a85ac; width: 11px; height: 11px; }
+:where([data-app-page="relationship"]) .footprints { border: 0; margin-top: 28px; padding-top: 0; }
+:where([data-app-page="relationship"]) .milestone {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 90px;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  margin-top: 17px;
+  border-radius: 17px;
+  border: 1px solid #c89cdd33;
+  background: radial-gradient(ellipse at 95% 60%,#9c628829,transparent 65%),linear-gradient(115deg,#2b2133,#241c2b);
+  box-shadow: inset 0 1px #f4d6ff09;
+}
+:where([data-app-page="relationship"]) .milestone-marker { position: absolute; left: 18px; top: 16px; width: 23px; height: 23px; background: linear-gradient(135deg,#8d5ca05c,#4e2d615c); border-color: #cb95df4d; }
+:where([data-app-page="relationship"]) .milestone-marker svg { width: 11px; height: 11px; color: #e6b8ed; }
+:where([data-app-page="relationship"]) .milestone-marker::after { display: none; }
+:where([data-app-page="relationship"]) .milestone-date { display: flex; align-items: center; min-height: 20px; margin-left: 32px; font-size: 9px; color: #c7a5d1; letter-spacing: 1.1px; }
+:where([data-app-page="relationship"]) .milestone h3 { font-family: "Songti SC",serif; font-size: 15px; font-weight: 550; color: #f0ddf6; margin-top: 14px; line-height: 1.6; }
+:where([data-app-page="relationship"]) .milestone p { font-size: 11px; color: #b7a0c0; margin-top: 7px; line-height: 1.85; }
+:where([data-app-page="relationship"]) .milestone-tag { color: #d8b8e8; border-color: #c092da30; background: #7b4c901a; margin-top: 13px; }
+:where([data-app-page="relationship"]) .memory-photo { position: relative; margin: 5px 0 0; width: 87px; padding: 4px 4px 7px; background: #eee2eb; transform: rotate(7deg); box-shadow: 0 4px 14px #07010d66,0 0 0 1px #fff4; }
+:where([data-app-page="relationship"]) .memory-photo::before { content: ''; position: absolute; width: 35px; height: 13px; left: 25px; top: -7px; background: #c4a9c6a1; transform: rotate(-13deg); border: 1px solid #efe0ef20; }
+:where([data-app-page="relationship"]) .memory-photo img { width: 79px; height: 96px; object-fit: cover; display: block; }
+:where([data-app-page="relationship"]) .memory-photo figcaption { font-family: "STKaiti","KaiTi","Songti SC",serif; font-size: 8px; text-align: center; color: #68526b; margin-top: 5px; white-space: nowrap; letter-spacing: -.2px; }
+:where([data-app-page="relationship"]) .memory-photo > span { position: absolute; right: -5px; bottom: 17px; font-size: 28px; color: #ddafd7; text-shadow: 0 1px #6d4d7555; transform: rotate(-18deg); }
+:where([data-app-page="relationship"]) .future-line { margin: 14px 0 0 10px; gap: 15px; color: #ab8bbd; }
+:where([data-app-page="relationship"]) .future-line > span { border-color: #aa78c7; box-shadow: 0 0 7px #b474d523; }
+:where([data-app-page="relationship"]) .recent { border: 1px solid #bd92d429; border-radius: 17px; padding: 17px 16px 14px; margin-top: 28px; background: linear-gradient(125deg,#251c30,#1d1725); }
+:where([data-app-page="relationship"]) .recent .heading-symbol { width: 14px; height: 14px; }
+:where([data-app-page="relationship"]) .recent .section-heading { margin-bottom: 8px; }
+:where([data-app-page="relationship"]) .recent .quiet-label { padding: 1px 7px; background: #9e72bf12; border-radius: 5px; font-size: 9px; color: #b89fc7; }
+:where([data-app-page="relationship"]) .recent .record-row { min-height: 48px; padding: 5px 0; }
+:where([data-app-page="relationship"]) .recent .record-icon { width: 27px; height: 27px; border-radius: 8px; color: #c5a1dd; background: #82509d17; }
+:where([data-app-page="relationship"]) .record-copy strong { color: #d9c8e5; }
+:where([data-app-page="relationship"]) .record-copy time { color: #a491b2; font-size: 9px; }
+:where([data-app-page="relationship"]) .record-points { color: #d5b3f0; }
+:where([data-app-page="relationship"]) .all-records { padding: 11px 11px 0; min-height: 41px; color: #d6b4f4; }
+:where([data-app-page="relationship"]) .all-records > span { color: #b296c6; }
+:where([data-app-page="relationship"]) .page-footer { padding-top: 29px; color: #b192c5; }
+:where([data-app-page="relationship"]) .page-footer > svg { color: #b07ecb; filter: drop-shadow(0 0 6px #b078d355); }
+:where([data-app-page="relationship"]) .page-footer small { color: #807088; }
+:where([data-app-page="relationship"]) .sheet { border-color: #b888d44f; background: radial-gradient(ellipse at top right,#75428e25,transparent 70%),#201827; }
+:where([data-app-page="relationship"]) .sheet-header h2 { color: #f0defb; }
+:where([data-app-page="relationship"]) .sheet-meta { color: #b69ec8; }
+:where([data-app-page="relationship"]) .primary-button { background: linear-gradient(110deg,#70428e,#503367); border-color: #c595e966; color: #f1deff; }
+:where([data-app-page="relationship"]) .mobile-preview-label { background: #2a1c37; color: #d9b3f4; }
+:where([data-app-page="relationship"]) .mobile-preview-label > span { color: #ad8bc2; }
+:where([data-app-page="relationship"]) .mobile-preview-label a { font-size: 9px; letter-spacing: .3px; border-bottom: 1px solid #b68bd744; }
+:where([data-app-page="relationship"]) .version-link { display: block; margin-top: 16px; font-size: 11px; color: #c99ee8; }
+:where([data-app-page="relationship"]) .design-notes > h2 { color: #ecd5ff; }
+:where([data-app-page="relationship"]) .design-notes .edition { color: #b28cca; }
+:where([data-app-page="relationship"]) .note strong { color: #d6b9ea; }
+:where([data-app-page="relationship"]) .note > span { color: #bc83d9; }
 
-    @media (max-width: 360px) {
-:where([data-app-page="relationship"]) #progress-section .rel-handwrite {
-        transform: translateX(-28px);
-      }
-    }
-/* 亲密进度 */
-    :where([data-app-page="relationship"]) .rel-progress-wrap {
-      padding-right: 104px;
-    }
-:where([data-app-page="relationship"]) .rel-progress-bar {
-      width: 100%;
-      height: 13px;
-      background: #2a2a34;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 999px;
-      overflow: hidden;
-      cursor: pointer;
-    }
-:where([data-app-page="relationship"]) .rel-progress-fill {
-      height: 100%;
-      width: 0;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
-      box-shadow: 0 0 8px rgba(168, 85, 247, 0.45);
-      transition: width 0.6s ease-out;
-    }
-:where([data-app-page="relationship"]) .rel-progress-stats {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 9px;
-      font-size: 12px;
-      color: #9ca3af;
-    }
-:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-num {
-      font-style: normal;
-      font-weight: 600;
-      color: #e5e7eb;
-    }
-:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-muted {
-      color: #9ca3af;
-      font-weight: 400;
-    }
-:where([data-app-page="relationship"]) .rel-progress-stats .rel-stat-upgrade {
-      font-weight: 600;
-    }
-:where([data-app-page="relationship"]) .rel-progress-tip {
-      text-align: center;
-      font-size: 13px;
-      color: #e879f9;
-      margin-top: 8px;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-:where([data-app-page="relationship"]) .rel-progress-tip.visible {
-      opacity: 1;
-    }
-:where([data-app-page="relationship"]) .rel-next-toggle {
-      display: flex;
-      align-items: center;
-      margin-top: 10px;
-      font-size: 12px;
-      color: #6b7280;
-      cursor: pointer;
-      user-select: none;
-      line-height: 1.45;
-    }
-:where([data-app-page="relationship"]) .rel-next-toggle .arrow {
-      display: none;
-    }
-:where([data-app-page="relationship"]) .rel-next-list {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
-:where([data-app-page="relationship"]) .rel-next-list.open {
-      max-height: 200px;
-    }
-:where([data-app-page="relationship"]) .rel-next-list .perk-item {
-      padding: 6px 0;
-      font-size: 13px;
-      color: #d1d5db;
-    }
-:where([data-app-page="relationship"]) .rel-max-badge {
-      text-align: center;
-      padding: 12px 0;
-    }
-:where([data-app-page="relationship"]) .rel-max-badge .big {
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-:where([data-app-page="relationship"]) .rel-max-badge .sub {
-      font-size: 14px;
-      color: #9ca3af;
-    }
-/* 拍立得（-8deg + 极窄底边留白，多露照片） */
-    :where([data-app-page="relationship"]) .rel-polaroid {
-      position: absolute;
-      right: 6px;
-      top: 44%;
-      transform: translateY(-50%) rotate(-8deg);
-      width: 92px;
-      z-index: 2;
-      pointer-events: none;
-    }
-:where([data-app-page="relationship"]) .rel-polaroid-frame {
-      background: #fff;
-      padding: 4px 4px 5px;
-      border-radius: 2px;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5),
-                  0 12px 32px rgba(88, 28, 135, 0.32);
-    }
-:where([data-app-page="relationship"]) .rel-polaroid-frame img {
-      width: 84px;
-      height: 108px;
-      object-fit: cover;
-      object-position: center top;
-      display: block;
-      background: #1f1f28;
-      transform: translateY(-8px);
-    }
-:where([data-app-page="relationship"]) .rel-polaroid-caption {
-      font-family: 'Ma Shan Zheng', "STKaiti", "KaiTi", cursive;
-      font-size: 11px;
-      color: #d8b4fe;
-      text-align: center;
-      margin-top: 2px;
-      line-height: 1.1;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
-:where([data-app-page="relationship"]) .rel-polaroid-heart {
-      position: absolute;
-      right: 2px;
-      bottom: 16px;
-      font-size: 15px;
-      color: #c084fc;
-      filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.55));
-    }
-/* 今日成长横排四列 */
-    :where([data-app-page="relationship"]) .rel-today-total {
-      font-size: 14px;
-      color: #c084fc;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-:where([data-app-page="relationship"]) .rel-today-total.empty {
-      color: #6b7280;
-      font-weight: 500;
-    }
-:where([data-app-page="relationship"]) .rel-today-grid {
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      align-items: stretch;
-    }
-:where([data-app-page="relationship"]) .rel-task-card {
-      position: relative;
-      flex: 1;
-      min-width: 0;
-      background: #1e1e28;
-      border-radius: 12px;
-      padding: 10px 6px 26px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      min-height: 96px;
-      display: flex;
-      flex-direction: column;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-icon {
-      font-size: 18px;
-      margin-bottom: 6px;
-      filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.35));
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #fff;
-      line-height: 1.3;
-      padding-right: 2px;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-sub {
-      font-size: 10px;
-      color: #9ca3af;
-      margin-top: 3px;
-      line-height: 1.3;
-      padding-right: 2px;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-status {
-      position: absolute;
-      right: 6px;
-      bottom: 8px;
-      text-align: right;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-foot {
-      font-size: 13px;
-      font-weight: 600;
-      color: #c084fc;
-      line-height: 1;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .tc-done {
-      font-size: 12px;
-      color: #4ade80;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-:where([data-app-page="relationship"]) .rel-task-card .streak-tag {
-      font-size: 9px;
-      color: #fb923c;
-      margin-top: 3px;
-      line-height: 1.25;
-    }
+@media (max-width:374px) {
+:where([data-app-page="relationship"]) .page-content { padding: 0 17px; }
+:where([data-app-page="relationship"]) .together { padding-left: 17px; padding-right: 17px; }
+:where([data-app-page="relationship"]) .together-seal { right: 14px; }
+:where([data-app-page="relationship"]) .together-secondary > div + div { padding-left: 13px; }
+:where([data-app-page="relationship"]) .section-heading h2 { font-size: 14px; gap: 6px; }
+:where([data-app-page="relationship"]) .today-list { padding-left: 11px; padding-right: 11px; }
+:where([data-app-page="relationship"]) .today-row { gap: 8px; }
+:where([data-app-page="relationship"]) .activity-icon { width: 32px; height: 34px; }
+:where([data-app-page="relationship"]) .activity-copy small { font-size: 9px; }
+:where([data-app-page="relationship"]) .milestone { padding: 15px; grid-template-columns: minmax(0,1fr) 82px; gap: 8px; }
+:where([data-app-page="relationship"]) .milestone-marker { left: 15px; top: 14px; }
+:where([data-app-page="relationship"]) .milestone-date { margin-left: 29px; font-size: 8px; }
+:where([data-app-page="relationship"]) .milestone h3 { font-size: 14px; }
+:where([data-app-page="relationship"]) .memory-photo { width: 79px; }
+:where([data-app-page="relationship"]) .memory-photo img { width: 71px; height: 92px; }
+:where([data-app-page="relationship"]) .memory-photo figcaption { font-size: 7px; }
+:where([data-app-page="relationship"]) .recent { padding-left: 14px; padding-right: 14px; }
+}
 
-    @media (max-width: 360px) {
-:where([data-app-page="relationship"]) .rel-task-card .tc-title {
-        font-size: 11px;
-      }
-:where([data-app-page="relationship"]) .rel-task-card .tc-sub {
-        font-size: 9px;
-      }
-    }
-/* 时间轴 */
-    :where([data-app-page="relationship"]) .rel-timeline-wrap {
-      position: relative;
-    }
-:where([data-app-page="relationship"]) .rel-timeline-deco {
-      position: absolute;
-      right: 0;
-      top: 0;
-      max-width: 38%;
-      text-align: right;
-      pointer-events: none;
-    }
-:where([data-app-page="relationship"]) .timeline-empty {
-      text-align: center;
-      font-style: italic;
-      color: #9ca3af;
-      font-size: 14px;
-      line-height: 1.8;
-      padding: 12px 0;
-      white-space: pre-line;
-    }
-:where([data-app-page="relationship"]) .timeline-list {
-      position: relative;
-      padding-left: 24px;
-      padding-right: 0;
-    }
-:where([data-app-page="relationship"]) .timeline-list::before {
-      content: '';
-      position: absolute;
-      left: 7px;
-      top: 8px;
-      bottom: 8px;
-      width: 2px;
-      background: rgba(168, 85, 247, 0.35);
-    }
-:where([data-app-page="relationship"]) .timeline-node {
-      position: relative;
-      padding: 10px 0;
-    }
-:where([data-app-page="relationship"]) .timeline-node::before {
-      content: '';
-      position: absolute;
-      left: -20px;
-      top: 16px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #7c3aed;
-      border: 2px solid #16161e;
-      box-shadow: 0 0 0 2px #a855f7;
-    }
-:where([data-app-page="relationship"]) .timeline-node.current::before {
-      background: #fb923c;
-      box-shadow: 0 0 0 2px #fb923c, 0 0 10px rgba(251, 146, 60, 0.5);
-    }
-:where([data-app-page="relationship"]) .timeline-node .tn-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #f3f4f6;
-    }
-:where([data-app-page="relationship"]) .timeline-node.current .tn-title {
-      font-weight: 600;
-      color: #fff;
-    }
-:where([data-app-page="relationship"]) .timeline-node .tn-time {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
-/* 成长记录 */
-    :where([data-app-page="relationship"]) .rel-log-total {
-      font-size: 12px;
-      color: #9ca3af;
-    }
-:where([data-app-page="relationship"]) .log-date-sep {
-      text-align: center;
-      font-size: 12px;
-      color: #6b7280;
-      padding: 10px 0 6px;
-    }
-:where([data-app-page="relationship"]) .log-item {
-      display: flex;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-:where([data-app-page="relationship"]) .log-item:last-child {
-      border-bottom: none;
-    }
-:where([data-app-page="relationship"]) .log-item .li-icon-slot {
-      width: 36px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-:where([data-app-page="relationship"]) .log-item .li-body {
-      flex: 1;
-      min-width: 0;
-      padding-left: 4px;
-    }
-:where([data-app-page="relationship"]) .log-item .li-label {
-      font-size: 14px;
-      color: #f3f4f6;
-    }
-:where([data-app-page="relationship"]) .log-item .li-time {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 2px;
-    }
-:where([data-app-page="relationship"]) .log-item .li-points {
-      font-size: 14px;
-      font-weight: 600;
-      color: #c084fc;
-      flex-shrink: 0;
-      margin-left: 8px;
-    }
-:where([data-app-page="relationship"]) .no-more-text {
-      text-align: center;
-      font-size: 13px;
-      color: #6b7280;
-      padding: 16px 0 8px;
-    }
-/* 骨架屏 */
-    :where([data-app-page="relationship"]) .skeleton-wrap {
-      padding: 16px;
-    }
-:where([data-app-page="relationship"]) .skeleton-hero {
-      height: 280px;
-      border-radius: 0;
-      margin: 0 -16px 16px;
-    }
-:where([data-app-page="relationship"]) .skeleton-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-:where([data-app-page="relationship"]) .skeleton-stats .skeleton {
-      height: 72px;
-      border-radius: 12px;
-    }
-:where([data-app-page="relationship"]) .skeleton-block {
-      height: 140px;
-      border-radius: 16px;
-      margin-bottom: 16px;
-    }
-html[data-app-route="relationship"] body.relationship-page .skeleton {
-      background: linear-gradient(90deg, #1a1a22 25%, #252530 50%, #1a1a22 75%);
-      background-size: 200% 100%;
-    }
-:where([data-app-page="relationship"]) .content-loaded .skeleton-wrap { display: none; }
-:where([data-app-page="relationship"]) .content-loaded .real-content { display: block !important; }
-:where([data-app-page="relationship"]) .real-content { display: none !important; }
 /* 升级弹窗（暗黑） */
     :where([data-app-page="relationship"]) .levelup-overlay {
       position: fixed;
@@ -667,16 +498,39 @@ html[data-app-route="relationship"] body.relationship-page .skeleton {
     @keyframes rel-fade-out {
       to { opacity: 0; }
     }
-/* 覆盖 h5-theme 对本页旧 class 的全局 neo 样式 */
-    html[data-app-route="relationship"] body.relationship-page .milestone-item,
-html[data-app-route="relationship"] body.relationship-page .level-card,
-html[data-app-route="relationship"] body.relationship-page .progress-section,
-html[data-app-route="relationship"] body.relationship-page .today-section,
-html[data-app-route="relationship"] body.relationship-page .timeline-section,
-html[data-app-route="relationship"] body.relationship-page .log-section {
-      border: none;
-      box-shadow: none;
-      background: transparent;
-    }
 
-:where([data-app-page="relationship"]) .rel-next-toggle:focus-visible {outline:2px solid #c084fc;}
+
+:where([data-app-page="relationship"]) .sheet { max-height:90dvh; }
+:where([data-app-page="relationship"]) .sheet-content { margin-top:16px; overflow:auto; overscroll-behavior:contain; padding-bottom:8px; }
+:where([data-app-page="relationship"]) .records-sheet .sheet-content { height:calc(100% - 112px); }
+:where([data-app-page="relationship"]) .sheet-content:focus-visible {outline-offset:-2px;}
+:where([data-app-page="relationship"]) .sheet-meta {margin-top:0;padding-top:0;}
+:where([data-app-page="relationship"]) .record-group-date {padding-top:14px;}
+:where([data-app-page="relationship"]) .empty-state {padding:24px 4px;text-align:center;color:var(--muted);font-size:12px;}
+:where([data-app-page="relationship"]) .retry-button {display:block;margin:12px auto 0;color:var(--accent);font-size:12px;min-height:44px;}
+:where([data-app-page="relationship"]) .all-records:disabled {opacity:.6;cursor:default;}
+:where([data-app-page="relationship"]) .all-records [hidden] {display:none;}
+:where([data-app-page="relationship"]) .relationship-status b {font-weight:500;}
+:where([data-app-page="relationship"]) .together-secondary strong #m-login-days {font-size:18px;}
+:where([data-app-page="relationship"]) .skeleton-wrap {padding:20px;}
+:where([data-app-page="relationship"]) .skeleton {background:linear-gradient(110deg,#21182d,#32233d,#21182d);border-radius:18px;}
+:where([data-app-page="relationship"]) .skeleton-hero {height:260px;height:calc(clamp(264px, 38svh, 320px) - 40px);}
+:where([data-app-page="relationship"]) .skeleton-block {height:230px;margin-top:20px;}
+:where([data-app-page="relationship"]) .real-content {display:none;}
+:where([data-app-page="relationship"]) .content-loaded .real-content {display:block;}
+:where([data-app-page="relationship"]) .content-loaded .skeleton-wrap {display:none;}
+:where([data-app-page="relationship"]) .rel-max-badge {padding:25px 0 10px;text-align:center;color:#e6c9f4;}
+:where([data-app-page="relationship"]) .rel-max-badge .sub {font-size:12px;color:var(--muted);margin-top:10px;}
+:where([data-app-page="relationship"]) .milestone + .milestone {margin-top:12px;}
+:where([data-app-page="relationship"]) .milestone:not(:has(.memory-photo)) {grid-template-columns:minmax(0,1fr);}
+:where([data-app-page="relationship"]) .perks-list strong {overflow-wrap:anywhere;}
+:where([data-app-page="relationship"]) .rule-copy {margin-top:8px;}
+:where([data-app-page="relationship"]) .timeline-date {margin-left:0;}
+@media(min-width:600px){
+:where([data-app-page="relationship"]) .sheet {margin:auto;border-radius:24px;max-height:85dvh;}
+:where([data-app-page="relationship"]) .records-sheet {height:82dvh;}}
+
+html[data-app-route="relationship"] body.relationship-page .top-bar {display:none;}
+html[data-app-route="relationship"] body.relationship-page .page-body {padding:0 0 env(safe-area-inset-bottom,0px);animation:none;}
+
+:where([data-app-page="relationship"]) .content-failed .real-content, :where([data-app-page="relationship"]) .content-failed .skeleton-wrap {display:none;}

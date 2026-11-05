@@ -103,3 +103,31 @@ from backend.models.chat_lifecycle import ChatUserState, ChatGeneration, ChatSub
 
 from backend.models.memory_diagnostic import MemoryDiagnosticRun
 from backend.models.bgm import BgmTrack, BgmCatalog, BgmOperation, BgmAsset, BgmProcessingSlot
+from backend.models.pet import (
+    PET_TABLE_NAMES, PetRuleSnapshot, PetProfile, PetState, PetFactEvent, PetSnapshot,
+    PetDisplayEntry, PetFormalText, PetTextSource, PetTaskCandidate, PetDiagnosticPayload, PetFactRequest,
+)
+from backend.models.pet_admin import PetAdminOperation, PetAdminAudit, PET_ADMIN_TABLE_NAMES
+from backend.models.pet_config import PetConfigHead, PetConfigVersion, PetResource, PET_CONFIG_TABLE_NAMES
+from backend.models.pet_rule_job import PetRuleJob, PET_RULE_JOB_TABLE_NAMES
+from backend.models.pet_interaction import PetInteraction, PET_INTERACTION_TABLE_NAMES
+from backend.models.pet_photo import PetPhotoAsset,PetPhotoDeleteJob
+PET_MANAGED_TABLE_NAMES = {'pet_photo_asset','pet_photo_delete_job'} | PET_TABLE_NAMES | PET_ADMIN_TABLE_NAMES | PET_CONFIG_TABLE_NAMES | PET_RULE_JOB_TABLE_NAMES | PET_INTERACTION_TABLE_NAMES
+
+from backend.models.pet_activity import PetActivity, PetAbsence, PetViewSession, PET_ACTIVITY_TABLE_NAMES
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | PET_ACTIVITY_TABLE_NAMES
+from backend.models.pet_budget import PetBudgetMutex, PetRequestAttempt, PetBudgetEntry, PET_BUDGET_TABLE_NAMES
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | PET_BUDGET_TABLE_NAMES
+
+from backend.models.pet_generation import PetGenerationTask, PET_GENERATION_TABLE_NAMES
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | PET_GENERATION_TABLE_NAMES
+
+from backend.models.pet_return import PetReturn, PET_RETURN_TABLE_NAMES
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | PET_RETURN_TABLE_NAMES
+
+from backend.models.pet_lifecycle import PetAccountLifecycle, PET_LIFECYCLE_TABLE_NAMES
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | PET_LIFECYCLE_TABLE_NAMES
+from backend.models.pet_health import PetJobHealth
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | {'pet_job_health'}
+from backend.models.pet_text_visibility import PetTextVisibility
+PET_MANAGED_TABLE_NAMES = PET_MANAGED_TABLE_NAMES | {'pet_text_visibility'}

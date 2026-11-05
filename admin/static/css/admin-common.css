@@ -88,6 +88,7 @@ a:hover {
 }
 
 .menu-item {
+  display: block;
   padding: 12px 24px;
   cursor: pointer;
   color: var(--sidebar-text);

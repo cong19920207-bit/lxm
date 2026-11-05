@@ -289,3 +289,7 @@ async def avatar_image(filename: str):
 from backend.routers.admin import memory_diagnostics as admin_memory_diagnostics, memory_index_maintenance as admin_memory_index_maintenance
 app.include_router(admin_memory_diagnostics.router, prefix="/api/admin", tags=["admin-memory-diagnostics"])
 app.include_router(admin_memory_index_maintenance.router, prefix="/api/admin", tags=["admin-memory-index-maintenance"])
+from backend.routers.admin import pet as admin_pet
+app.include_router(admin_pet.router, prefix="/api/admin/pets", tags=["admin-pets"])
+from backend.routers import pet
+app.include_router(pet.router, prefix="/api/pet", tags=["pet"])

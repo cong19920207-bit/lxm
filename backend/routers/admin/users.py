@@ -933,11 +933,16 @@ async def update_user_status(
     redis = await get_redis()
     ban_key = f"user_banned:{user_id}"
 
+    # Serialize status changes with pet writes and background task ownership.
+    user = await db.scalar(select(User).where(User.id == user_id).with_for_update().execution_options(populate_existing=True))
+
     if action == "ban":
         if user.is_banned:
             return ApiResponse.fail(ADMIN_ERR_USER_ALREADY_BANNED)
         user.is_banned = True
         await db.flush()
+        from backend.services.pet_lifecycle import invalidate_account
+        await invalidate_account(db, user_id, reason="user_inactive")
         # Redis标记，TTL=100年
         await redis.setex(ban_key, 3153600000, "1")
         action_desc = "禁用"

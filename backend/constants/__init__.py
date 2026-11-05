@@ -376,3 +376,5 @@ ADMIN_ERROR_MESSAGES = {
 
 from backend.constants.bgm import BGM_ERROR_MESSAGES
 ADMIN_ERROR_MESSAGES.update(BGM_ERROR_MESSAGES)
+from backend.constants.pet import PET_ERROR_MESSAGES
+ADMIN_ERROR_MESSAGES.update(PET_ERROR_MESSAGES)

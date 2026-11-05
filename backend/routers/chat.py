@@ -187,6 +187,7 @@ async def _post_bundle_success_tasks(
     emotion_data: dict,
     persona_risk_flag: bool,
     persona_risk_type: str | None,
+    round_id: str | None = None,
 ) -> None:
     """成长、Redis ai_emotion（与旧 _post_chat_tasks 后置部分一致）。
 
@@ -203,6 +204,13 @@ async def _post_bundle_success_tasks(
                     logger.info("用户 %d 升级至 %s", user_id, result.get("new_level_name"))
         except Exception:
             logger.exception("更新成长值失败: user_id=%d", user_id)
+
+        if round_id:
+            try:
+                from backend.services.relationship_chat_rewards import settle_chat_rewards
+                await settle_chat_rewards(user_id, round_id, sessions=async_session_maker)
+            except Exception:
+                logger.exception("更新聊天奖励失败: user_id=%d round_id=%s", user_id, round_id)
 
         r = None
         try:
@@ -445,6 +453,7 @@ async def _run_owned_bundle(handle) -> None:
                         emotion_data=emotion_data,
                         persona_risk_flag=first.persona_risk_flag,
                         persona_risk_type=first.persona_risk_type,
+                        round_id=round_id,
                     ))
                 )
 

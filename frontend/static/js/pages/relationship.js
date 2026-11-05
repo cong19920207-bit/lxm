@@ -1,399 +1,189 @@
 import { createPageTimers } from '../app/page-timers.js';
+import { parseRelationshipTime, beijingDay, recentLogWindow, visibleRecentLogs } from './relationship-data.js';
 
 export async function mount(context) {
-  const {root, services} = context, byId = id => root.querySelector('#' + id);
-  if (!context.valid() || !services.auth.snapshot().authenticated) return {unmount(){}};
-  const routeCurrent = () => context.router.current?.context.routeEpoch === context.routeEpoch;
-  const relationshipProtectedAuthOptions = () => ({authPolicy:'protected-home-modal', routeEpoch:context.routeEpoch,
-    routeCurrent, isCurrent:context.valid, signal:context.signal});
-  const request = (...args) => services.auth.request(...args);
-  const showToast = (...args) => { if(context.valid()) services.ui.toast(...args); };
-  const escapeHtml = value => {const el=document.createElement('span');el.textContent=String(value??'');return el.innerHTML;};
-  const run = promise => Promise.resolve(promise).catch(error => {
-    if(context.valid() && !['AbortError','StaleRequestError'].includes(error.name)) showToast('加载失败，请重试','error');
-  });
-  const {setTimeout, requestAnimationFrame} = createPageTimers(context);
-  await context.scope.adopt(services.resources.style('css/bgm.css'), release=>release());
+  const {root,services}=context, byId=id=>root.querySelector('#'+id);
+  if(!context.valid()||!services.auth.snapshot().authenticated)return {unmount(){}};
+  const options=()=>({authPolicy:'protected-home-modal',routeEpoch:context.routeEpoch,
+    routeCurrent:()=>context.router.current?.context.routeEpoch===context.routeEpoch,
+    isCurrent:context.valid,signal:context.signal});
+  const request=url=>services.auth.request('GET',url,undefined,options());
+  const escapeHtml=value=>{const el=document.createElement('span');el.textContent=String(value??'');return el.innerHTML;};
+  const icon=(name,cls='')=>'<svg aria-hidden="true" class="'+cls+'"><use href="#rel-icon-'+name+'"/></svg>';
+  const {setTimeout,requestAnimationFrame}=createPageTimers(context);
+  const number=value=>Math.max(0,Number(value)||0);
+  const time=value=>{const date=parseRelationshipTime(value);return date?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date):'';};
+  const dateLabel=value=>{const day=beijingDay(value);if(!day)return '';const [,month,date]=day.split('-');return Number(month)+'月'+Number(date)+'日';};
+  let pageData=null,levelLease=null,levelOverlay=null,pendingUpgrade=null,active=true;
+  let logs=[],logPage=1,logTotal=0,logLoading=false,logNoMore=false,logError=false,logWindow=recentLogWindow();
+  const logIds=new Set(),restoredPages=Math.max(1,Math.min(100,Number(context.state?.cursor)||1));
+  let sheetMode='',sheetLease,logResetPending=false;
+  await context.scope.adopt(services.resources.style('css/bgm.css'),release=>release());
   for(const name of ['bgm-page','bgm-record','bgm-bubble']) {
-    await services.shared.script('js/'+name+'.js'); if(!context.valid()) return {unmount(){}};
+    await services.shared.script('js/'+name+'.js');if(!context.valid())return {unmount(){}};
   }
-  const audioPage = services.audio.attachPage(context,'content'), bubble = BgmBubble.mount(audioPage);
-  if(bubble) context.cleanup(()=>bubble.destroy());
-  const ICON_MAP = {dialog:'💬',long_session:'⏱',daily_login:'📅',reply_agent:'💌'};
-  let relationshipPageActive=true, logPage=1, logLoading=false, logNoMore=false, pageData=null, logObserver=null;
-  let levelLease=null, levelOverlay=null, restoring=true;
-  const logIds = new Set();
-  const restoredPages = Math.max(1, Math.min(100, Number(context.state?.cursor)||1));
-  function updateAvatarEmotion(emotion) {
-    const el=byId('linxiaomeng-avatar'); el.src=AVATAR_MAP[emotion]||AVATAR_MAP.default;
-  }
-  let avatarFailed=false;
-  context.scope.listen(byId('linxiaomeng-avatar'),'error',()=>{
-    if(avatarFailed)return;avatarFailed=true;byId('linxiaomeng-avatar').src=AVATAR_MAP.default;
+  const audioPage=services.audio.attachPage(context,'content'),bubble=BgmBubble.mount(audioPage);
+  if(bubble)context.cleanup(()=>bubble.destroy());
+  const sheet=byId('relationship-sheet');
+  sheetLease=services.overlays.register({kind:'relationship-sheet',ownerId:context.scope.ownerId,element:sheet,background:byId('page-body'),
+    open:()=>sheet.showModal(),close:()=>{
+      sheet.close();sheetMode='';
+      if(pendingUpgrade&&context.valid())setTimeout(()=>{const info=pendingUpgrade;pendingUpgrade=null;if(info)showLevelUpModal(info);},0);
+    }});
+  context.scope.listen(sheet,'cancel',event=>{event.preventDefault();sheetLease.close();});
+  context.scope.listen(sheet,'close',()=>sheetLease.close());
+  context.scope.listen(sheet,'click',event=>{
+    if(event.target!==sheet)return;
+    const box=sheet.getBoundingClientRect();
+    if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)sheetLease.close();
   });
-  async function loadPage() {
+  function openSheet(mode,title,subtitle,html) {
+    sheetMode=mode;sheet.classList.toggle('records-sheet',mode==='logs');
+    byId('relationship-sheet-title').textContent=title;
+    byId('relationship-sheet-subtitle').textContent=subtitle||'';
+    byId('relationship-sheet-content').innerHTML=html;
+    byId('relationship-sheet-content').scrollTop=0;
+    sheetLease.open();
+  }
+  function animateNumber(id,value) {
+    const el=byId(id),target=number(value),start=performance.now();
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){el.textContent=target;return;}
+    function tick(now){if(!context.valid())return;const t=Math.min((now-start)/300,1);el.textContent=Math.round(target*(1-Math.pow(1-t,3)));if(t<1)requestAnimationFrame(tick);}
+    requestAnimationFrame(tick);
+  }
+  function renderDetail(data) {
+    const info=data.level_info,growth=data.growth_info,ms=data.milestones;
+    byId('rel-level-badge').textContent=info.name;
+    byId('rel-desc').textContent=info.description||'';
+    byId('rel-perks-summary').textContent='已解锁 '+(info.perks||[]).length+' 项陪伴权益';
+    byId('keepsake-number').textContent='NO. '+number(ms.known_days);
+    animateNumber('m-known-days',ms.known_days);animateNumber('m-conv-rounds',ms.total_conversation_rounds);animateNumber('m-login-days',ms.consecutive_login_days);
+    const percent=Math.min(100,number(growth.progress_percent));
+    byId('progress-percent').textContent=Math.round(percent)+'%';
+    if(growth.is_max_level)byId('progress-content').innerHTML='<div class="rel-max-badge"><strong>已达到最高等级「'+escapeHtml(info.name)+'」</strong><p class="sub">所有陪伴权益已解锁，我们的故事还在继续。</p></div>';
+    else {
+      byId('progress-content').innerHTML='<div class="progress-labels"><span class="current-stage">'+icon('heart')+escapeHtml(info.name)+'</span><span class="next-stage">'+escapeHtml(info.next_level_name||'下一阶段')+icon('lock')+'</span></div>'+
+        '<div class="progress" id="detail-bar" role="progressbar" aria-label="亲密进度" aria-valuemin="0" aria-valuemax="'+number(growth.points_needed)+'" aria-valuenow="'+number(growth.points_in_level)+'"><div id="detail-fill"></div></div>'+
+        '<div class="progress-meta"><span><strong>'+number(growth.points_in_level)+'</strong> / '+number(growth.points_needed)+' 亲密值</span><span>还差 <strong>'+number(growth.points_to_next)+'</strong></span></div>'+
+        '<button class="next-unlock" data-action="perks"><span class="unlock-icon">'+icon('spark')+'</span><span><strong>下一站，'+escapeHtml(info.next_level_name||'更多陪伴')+'</strong><small>'+escapeHtml((info.next_perks||[])[0]||'一起走向下一段故事')+'</small></span>'+icon('arrow','chevron')+'</button>';
+      byId('detail-fill').style.width=percent+'%';
+    }
+    renderToday(data.today_growth,ms.consecutive_login_days);
+    renderTimeline(data.level_history,info,ms,data.ai_current_emotion);
+  }
+  function todayItems(tg,days) {
+    return [
+      {type:'dialog',icon:'chat',title:'日常对话',sub:tg.today_dialog_limit_reached?'今天的对话成长已满':'聊聊今天发生的事',points:number(tg.today_dialog_points),limit:number(tg.today_dialog_limit??(number(tg.today_dialog_points)+number(tg.today_remaining_dialog))),rule:'每完成一轮对话，获得 2 亲密值。\n今天还可获得 '+number(tg.today_remaining_dialog)+' 亲密值。'},
+      {type:'voice',icon:'phone',title:'语音陪伴',sub:'听见彼此的声音',points:number(tg.today_voice_points),limit:tg.today_voice_limit==null?null:number(tg.today_voice_limit),rule:'通话结束后，按有效通话时长结算亲密值。\n今天已获得 '+number(tg.today_voice_points)+' 亲密值。'},
+      {type:'deep',icon:'moon',title:'深度聊天',sub:'留一点时间，慢慢说',points:number(tg.today_session_points),limit:number(tg.today_session_limit??20),rule:'连续互动满 10 分钟，可获得 20 亲密值，每天一次。\n以成功收到回复的对话计时，两轮发言间隔超过 5 分钟或跨过午夜，就重新计时。\n今天已获得 '+number(tg.today_session_points)+' 亲密值。'},
+      {type:'login',icon:'sun',title:'每日见面',sub:number(tg.today_login_points)>0?'今天你已经来过了':'新的一天，来见见她',points:number(tg.today_login_points),rule:'今天已获得 '+number(tg.today_login_points)+' 亲密值。\n已连续 '+number(days)+' 天来见她。'},
+      {type:'reply',icon:'mail',title:'回应她的消息',sub:'让她知道，你也在想她',points:number(tg.today_reply_points),limit:number(tg.today_reply_limit??20),rule:'回应她新发来的主动消息并收到回复，可获得 10 亲密值，每天最多 20 亲密值。\n同一条消息只奖励一次，仅查看消息不计入。\n今天已获得 '+number(tg.today_reply_points)+' 亲密值。'}
+    ];
+  }
+  function renderToday(tg,days) {
+    byId('today-total').innerHTML='+'+number(tg.today_total_points)+' <small>亲密值</small>';
+    byId('today-list').innerHTML=todayItems(tg,days).map(item=>{
+      const completed=item.type==='login'?item.points>0:item.limit>0&&item.points>=item.limit;
+      const status=completed?'今日已完成':item.limit===0?'今日暂无奖励':item.points>0?'进行中':'待完成';
+      const subtitle=completed||item.limit===0?status:status+' · '+item.sub;
+      return '<button class="today-row'+(completed?' completed':'')+'" data-rule="'+item.type+'"><span class="activity-icon">'+icon(item.icon)+'</span><span class="activity-copy"><strong class="tc-title">'+item.title+'</strong><small>'+subtitle+'</small></span><span class="activity-result">'+(item.points>0?'+':'')+item.points+(item.limit!=null?' <small>/ '+item.limit+'</small>':'')+(completed?icon('check'):'')+'</span>'+icon('info','row-info')+'</button>';
+    }).join('');
+  }
+  function renderTimeline(history,info,ms,emotion) {
+    const records=(history||[]).filter(item=>item.achieved_at);
+    if(!records.length){byId('timeline-content').innerHTML='<div class="empty-state">'+(ms.first_conversation_at?'我们相识于 '+dateLabel(ms.first_conversation_at)+'，<br>':'')+'我们的故事，从这里开始。</div>';return;}
+    byId('timeline-content').innerHTML=records.map((item,index)=>'<div class="milestone"><div class="milestone-marker">'+icon('heart')+'</div><div class="milestone-content"><span class="milestone-date">'+escapeHtml(beijingDay(item.achieved_at).replaceAll('-','.'))+'</span><h3>我们，成为'+escapeHtml(item.level_name)+'了。</h3><p>多了一份熟悉，<br>也多了一份信任。</p>'+((item.to_level===info.level||item.level_name===info.name)&&index===0?'<span class="milestone-tag">当前关系 · '+escapeHtml(info.name)+'</span>':'')+'</div>'+(index===0?'<figure class="memory-photo"><img id="linxiaomeng-avatar" src="/static/images/avatar/default.png" alt="林小梦"><figcaption>很高兴，遇见你。</figcaption><span aria-hidden="true">♡</span></figure>':'')+'</div>').join('');
+    const avatar=byId('linxiaomeng-avatar'),fallback=avatar.src;
+    context.scope.listen(avatar,'error',()=>{if(avatar.src!==fallback)avatar.src=fallback;});
+    if(typeof AVATAR_MAP!=='undefined')avatar.src=AVATAR_MAP[emotion]||AVATAR_MAP.default||fallback;
+  }
+  function perks(next=false) {
+    if(!pageData)return;
+    const info=pageData.level_info,items=next?info.next_perks:info.perks;
+    openSheet('perks',next?'关系里，多一点特别':'我们已经拥有的',next?'下一阶段 · '+info.next_level_name:'当前关系 · '+info.name,
+      (next?'<p class="next-intro">再积累 <strong>'+number(pageData.growth_info.points_to_next)+' 亲密值</strong>，一起走向下一站。</p>':'')+
+      '<div class="perks-list">'+(items||[]).map((value,index)=>'<div>'+icon(['chat','moon','heart'][index%3])+'<span><strong>'+escapeHtml(value)+'</strong></span>'+(!next?icon('check','check'):'')+'</div>').join('')+'</div><button class="primary-button" data-action="close-sheet">慢慢来，我们还有很多时间</button>');
+  }
+  function renderRecord(item,preview=false) {
+    const icons={dialog:'chat',voice_call:'phone',long_session:'moon',daily_login:'sun',reply_agent:'mail'};
+    return '<div class="record-row log-item" data-growth-id="'+escapeHtml(item.id??'')+'" data-date="'+beijingDay(item.created_at)+'"><span class="record-icon">'+icon(icons[item.action_type]||'spark')+'</span><div class="record-copy"><strong class="li-label">'+escapeHtml(item.action_label)+'</strong><time class="li-time">'+(preview?dateLabel(item.created_at)+' · ':'')+time(item.created_at)+'</time></div><span class="record-points li-points'+(number(item.points)===0?' zero':'')+'" aria-label="增加 '+number(item.points)+' 亲密值">+'+number(item.points)+'</span></div>';
+  }
+  function renderLogs() {
+    const preview=logs.slice(0,5),empty=logError?'成长记录加载失败':logLoading?'正在加载成长记录…':'近 7 天暂无成长记录';
+    byId('log-list').innerHTML=preview.length?preview.map(item=>renderRecord(item,true)).join(''):'<div class="empty-state">'+empty+(logError?'<button class="retry-button" data-action="retry-logs">重试</button>':'')+'</div>';
+    byId('log-total').textContent='近 7 天'+(logs.length?' · 最近 '+preview.length+' 条':'');
+    byId('log-count').textContent=logTotal+' 条';
+    byId('open-logs').disabled=!logs.length;
+    if(sheetMode==='logs')renderLogSheet();
+  }
+  function renderLogSheet() {
+    const content=byId('relationship-sheet-content'),scroll=content.scrollTop,focused=document.activeElement?.dataset.action==='more-logs';
+    let date='';
+    const rows=logs.map(item=>{const key=beijingDay(item.created_at),heading=date!==key?'<h3 class="record-group-date log-date-sep">'+dateLabel(item.created_at)+'</h3>':'';date=key;return heading+renderRecord(item);}).join('');
+    content.innerHTML='<div class="sheet-meta"><span>近 7 天，共 '+logTotal+' 条</span><span>北京时间 · 含今天</span></div>'+(rows||'<div class="empty-state">近 7 天暂无成长记录</div>')+
+      (logNoMore?'<p class="demo-caption">近 7 天的记录已全部展示</p>':'<button class="load-more" data-action="more-logs" '+(logLoading?'disabled':'')+'>'+(logLoading?'正在加载…':logError?'加载失败，点击重试':'加载更早记录（近 7 天）')+'</button>');
+    content.scrollTop=scroll;
+    if(focused)content.querySelector('[data-action="more-logs"]')?.focus({preventScroll:true});
+  }
+  function resetLogs() {
+    logs=[];logIds.clear();logPage=1;logTotal=0;logNoMore=false;logError=false;
+    logWindow=recentLogWindow();logResetPending=false;
+  }
+  function refreshLogs() {
+    if(logLoading){logResetPending=true;logs=visibleRecentLogs(logs,recentLogWindow());renderLogs();return;}
+    resetLogs();void loadGrowthLog();
+  }
+  function scheduleDayChange() {
+    setTimeout(()=>{refreshLogs();scheduleDayChange();},Math.max(1000,recentLogWindow().end-Date.now()+50));
+  }
+  scheduleDayChange();
+  context.scope.listen(document,'visibilitychange',()=>{
+    if(!document.hidden&&recentLogWindow().start!==logWindow.start)refreshLogs();
+  });
+  async function loadGrowthLog() {
+    if(!active||logLoading||logNoMore)return false;
+    logLoading=true;logError=false;renderLogs();
     try {
-      const res=await request('GET','/api/relationship/detail',undefined,relationshipProtectedAuthOptions());
+      const res=await request('/api/relationship/growth-log?page='+logPage+'&page_size=20');
+      if(!context.valid())return false;
+      if(logResetPending){resetLogs();logLoading=false;return await loadGrowthLog();}
+      if(res.code!==0||!res.data)throw new Error('growth-log');
+      const data=res.data,start=Date.parse(data.window_start),end=Date.parse(data.window_end);
+      if(Number.isFinite(start)&&Number.isFinite(end)&&end-start===7*86400000){
+        if(logPage>1&&(logWindow.start!==start||logWindow.end!==end)){
+          resetLogs();logWindow={start,end};logLoading=false;return await loadGrowthLog();
+        }
+        logWindow={start,end};
+      }
+      logTotal=number(data.total);
+      for(const item of visibleRecentLogs(data.list||[],logWindow)){
+        const key=item.id??JSON.stringify([item.action_type,item.created_at,item.points]);
+        if(!logIds.has(key)){logIds.add(key);logs.push(item);}
+      }
+      logNoMore=(data.list||[]).length<20||logPage*20>=logTotal;
+      logPage++;return true;
+    }catch(error){if(context.valid()&&!['AbortError','StaleRequestError'].includes(error.name))logError=true;return false;}
+    finally{logLoading=false;if(context.valid())renderLogs();}
+  }
+  async function loadPage() {
+    byId('page-body').classList.remove('content-failed');
+    try {
+      const res=await request('/api/relationship/detail');
       if(!context.valid())return;
-      if(res.code!==0||!res.data){ byId('page-body').classList.add('content-loaded');showToast('加载失败，请重试','error');return; }
-      pageData=res.data;
-      renderHeroProfile(pageData.level_info,pageData.ai_current_emotion);
-      renderMilestones(pageData.milestones);
-      renderProgress(pageData.level_info,pageData.growth_info);
-      renderTodayGrowth(pageData.today_growth,pageData.milestones.consecutive_login_days);
-      renderTimeline(pageData.level_history,pageData.level_info,pageData.milestones);
-      if(context.state?.rightsCollapsed===false) toggleNextPerks();
-      byId('page-body').classList.add('content-loaded');
-      animateNumbers();
-      // The actual history URL is authoritative; an older snapshot cannot resurrect a consumed parameter.
+      if(res.code!==0||!res.data)throw new Error('relationship-detail');
+      pageData=res.data;renderDetail(pageData);byId('page-body').classList.add('content-loaded');
       if(context.router.consumeParam('just_leveled_up','true'))setTimeout(()=>showLevelUpModal(pageData.level_info),500);
-      do { if(!await loadGrowthLog()) break; } while(context.valid()&&!logNoMore&&logPage<=restoredPages);
-      if(!context.valid())return;
-      restoring=false;
-      logObserver=new IntersectionObserver(entries=>{
-        if(context.valid()&&!restoring&&entries.some(e=>e.isIntersecting))run(loadGrowthLog());
-      },{threshold:0});
-      context.cleanup(()=>logObserver.disconnect(),{kind:'observer'});
-      logObserver.observe(byId('log-sentinel'));
+      do {if(!await loadGrowthLog())break;}while(context.valid()&&!logNoMore&&logPage<=restoredPages);
     }catch(error){
-      if(context.valid()) { byId('page-body').classList.add('content-loaded');showToast('加载失败，请重试','error'); }
+      if(!context.valid())return;
+      byId('page-body').classList.add('content-failed');
+      if(!byId('relationship-error'))byId('page-body').insertAdjacentHTML('beforeend','<div id="relationship-error" class="empty-state">关系信息加载失败，请稍后重试。<button class="retry-button" data-action="retry-page">重新加载</button></div>');
     }
   }
-    function renderHeroProfile(info, emotion) {
-      byId('rel-level-badge').textContent = info.name || '陌生'
-      byId('rel-desc').textContent = info.description || ''
-
-      const perksEl = byId('rel-perks')
-      perksEl.innerHTML = ''
-      ;(info.perks || []).forEach(function (p) {
-        const tag = document.createElement('span')
-        tag.className = 'rel-perk-tag'
-        tag.textContent = p
-        perksEl.appendChild(tag)
-      })
-
-      if (emotion) {
-        updateAvatarEmotion(emotion)
-      }
-    }
-
-    function renderMilestones(ms) {
-      byId('m-known-days').setAttribute('data-target', ms.known_days)
-      byId('m-known-days').textContent = '0'
-      byId('m-known-sub').textContent =
-        '和你相遇的第 ' + (ms.known_days || 0) + ' 天'
-
-      byId('m-conv-rounds').setAttribute('data-target', ms.total_conversation_rounds)
-      byId('m-conv-rounds').textContent = '0'
-
-      byId('m-login-days').setAttribute('data-target', ms.consecutive_login_days)
-      byId('m-login-days').textContent = '0'
-
-      byId('m-silence-days').setAttribute('data-target', ms.silence_days)
-      byId('m-silence-days').textContent = '0'
-
-      const silenceEl = byId('m-silence-days')
-      if (ms.silence_days > 7) {
-        silenceEl.classList.add('warn')
-      } else {
-        silenceEl.classList.remove('warn')
-      }
-
-      const silenceSub = byId('m-silence-sub')
-      if (!ms.silence_days) {
-        silenceSub.textContent = '从不远离你'
-      } else {
-        silenceSub.textContent = '已经 ' + ms.silence_days + ' 天没见了'
-      }
-    }
-
-    function animateNumbers() {
-      const els = root.querySelectorAll('[data-target]')
-      els.forEach(function (el) {
-        const target = parseInt(el.getAttribute('data-target'), 10) || 0
-        if (target === 0) {
-          el.textContent = '0'
-          return
-        }
-        const start = performance.now()
-        const duration = 300
-        function tick(now) {
-          const progress = Math.min((now - start) / duration, 1)
-          const eased = 1 - Math.pow(1 - progress, 3)
-          el.textContent = Math.round(target * eased)
-          if (progress < 1) requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
-      })
-    }
-
-    function renderProgress(levelInfo, growthInfo) {
-      const container = byId('progress-content')
-      const polaroid = root.querySelector('.rel-polaroid')
-
-      if (growthInfo.is_max_level) {
-        if (polaroid) polaroid.style.display = 'none'
-        container.className = ''
-        container.innerHTML =
-          '<div class="rel-max-badge">' +
-            '<div class="big">已达到最高等级「知己」✨</div>' +
-            '<div class="sub">林小梦与你之间，已建立最深的情感连接</div>' +
-          '</div>'
-        return
-      }
-
-      if (polaroid) polaroid.style.display = ''
-      container.className = 'rel-progress-wrap'
-
-      const nextLevelName = levelInfo.next_level_name || '下一级'
-      const firstPerk = (levelInfo.next_perks && levelInfo.next_perks[0]) || '更多互动'
-      const unlockLine = '解锁「' + nextLevelName + '」后，可获得' + firstPerk + ' >'
-
-      container.innerHTML =
-        '<div class="rel-progress-bar" id="detail-bar" data-action="progress" role="button" tabindex="0">' +
-          '<div class="rel-progress-fill" id="detail-fill"></div>' +
-        '</div>' +
-        '<div class="rel-progress-stats">' +
-          '<span>已积累 <em class="rel-stat-num">' + growthInfo.points_in_level + '</em> / <em class="rel-stat-num">' +
-            growthInfo.points_needed + '</em> <span class="rel-stat-muted">亲密值</span></span>' +
-          '<span>还差 <em class="rel-stat-num">' + growthInfo.points_to_next + '</em> <span class="rel-stat-upgrade">升级</span></span>' +
-        '</div>' +
-        '<div class="rel-progress-tip" id="progress-tip"></div>' +
-        '<div class="rel-next-toggle" data-action="perks" role="button" tabindex="0" aria-expanded="false">' +
-          '<span>' + escapeHtml(unlockLine) + '</span>' +
-          '<span class="arrow" aria-hidden="true">▼</span>' +
-        '</div>' +
-        '<div class="rel-next-list" id="next-perks-list">' +
-          (levelInfo.next_perks || []).map(function (p) {
-            return '<div class="perk-item">✨ ' + escapeHtml(p) + '</div>'
-          }).join('') +
-        '</div>'
-
-      setTimeout(function () {
-        const fill = byId('detail-fill')
-        if (fill) fill.style.width = growthInfo.progress_percent + '%'
-      }, 100)
-    }
-
-    function showProgressTip() {
-      if (!pageData || pageData.growth_info.is_max_level) return
-      const tip = byId('progress-tip')
-      const rounds = Math.ceil(pageData.growth_info.points_to_next / 2)
-      tip.textContent = '再聊 ' + rounds + ' 轮就能升级啦～'
-      tip.classList.add('visible')
-      setTimeout(function () { tip.classList.remove('visible') }, 2000)
-    }
-
-    function toggleNextPerks() {
-      const toggle = root.querySelector('.rel-next-toggle')
-      const list = byId('next-perks-list')
-      if (!toggle || !list) return
-      toggle.classList.toggle('open')
-      list.classList.toggle('open')
-      toggle.setAttribute('aria-expanded', String(list.classList.contains('open')))
-    }
-
-    function renderTodayGrowth(tg, consecutiveDays) {
-      const totalEl = byId('today-total')
-      if (tg.today_total_points > 0) {
-        totalEl.textContent = '今日总计 +' + tg.today_total_points + ' 亲密值'
-        totalEl.className = 'rel-today-total'
-      } else {
-        totalEl.textContent = '今天还没有互动哦'
-        totalEl.className = 'rel-today-total empty'
-      }
-
-      const list = byId('today-list')
-      const items = [
-        {
-          icon: '💬',
-          title: '完成对话',
-          points: tg.today_dialog_points,
-          sub: tg.today_dialog_limit_reached
-            ? null
-            : '还差获得 ' + tg.today_remaining_dialog + ' 分',
-          done: tg.today_dialog_limit_reached,
-          doneText: '今日已满'
-        },
-        {
-          icon: '📞',
-          title: '语音通话',
-          points: tg.today_voice_points || 0,
-          sub: '通话结束后按有效时长结算',
-          done: false
-        },
-        {
-          icon: '🎙',
-          title: '深度聊天',
-          points: tg.today_session_points,
-          sub: tg.today_session_points === 0 ? '聊够10分钟可获得+20分' : null,
-          done: tg.today_session_points >= 20,
-          doneText: '已完成'
-        },
-        {
-          icon: '📅',
-          title: '每日登录',
-          points: tg.today_login_points,
-          sub: tg.today_login_points === 0 ? '今日登录 +5' : null,
-          done: tg.today_login_points > 0,
-          doneText: '已完成',
-          streak: consecutiveDays >= 7 ? '连续' + consecutiveDays + '天奖励中🔥' : null
-        },
-        {
-          icon: '💌',
-          title: '回复消息',
-          points: tg.today_reply_points,
-          sub: tg.today_reply_points === 0 ? '回复可获得+10分' : null,
-          done: tg.today_reply_points > 0,
-          doneText: '已完成'
-        }
-      ]
-
-      list.innerHTML = items.map(function (item) {
-        let footHtml
-        if (item.done) {
-          footHtml = '<span class="tc-done">' + item.doneText + '</span>'
-        } else {
-          footHtml = '<span class="tc-foot">' + item.points + '分</span>'
-        }
-
-        let subHtml = ''
-        if (item.sub) {
-          subHtml = '<div class="tc-sub">' + item.sub + '</div>'
-        }
-        if (item.streak) {
-          subHtml += '<div class="streak-tag">' + item.streak + '</div>'
-        }
-
-        return '<div class="rel-task-card">' +
-          '<div class="tc-icon">' + item.icon + '</div>' +
-          '<div class="tc-title">' + item.title + '</div>' +
-          subHtml +
-          '<div class="tc-status">' + footHtml + '</div>' +
-        '</div>'
-      }).join('')
-    }
-
-    function renderTimeline(history, levelInfo, milestones) {
-      const container = byId('timeline-content')
-
-      if (!history || history.length === 0) {
-        let text = '我们的故事，从这里开始'
-        if (milestones.first_conversation_at) {
-          const d = new Date(milestones.first_conversation_at)
-          text = '我们相识于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日，\n从陌生人开始，慢慢走到了现在'
-        }
-        container.innerHTML = '<div class="timeline-empty">' + text + '</div>'
-        return
-      }
-
-      let html = '<div class="timeline-list">'
-      html += '<div class="timeline-node current">' +
-        '<div class="tn-title">★ 当前是「' + escapeHtml(levelInfo.name) + '」</div>' +
-        '<div class="tn-time">一直在这里陪着你</div>' +
-      '</div>'
-
-      history.forEach(function (h) {
-        const d = new Date(h.achieved_at)
-        const timeStr = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' +
-          String(d.getHours()).padStart(2, '0') + ':' +
-          String(d.getMinutes()).padStart(2, '0')
-        html += '<div class="timeline-node">' +
-          '<div class="tn-title">● 升级为「' + escapeHtml(h.level_name) + '」</div>' +
-          '<div class="tn-time">' + timeStr + '</div>' +
-        '</div>'
-      })
-
-      html += '</div>'
-      container.innerHTML = html
-    }
-
-    async function loadGrowthLog() {
-      if (!relationshipPageActive || logLoading || logNoMore) return
-      logLoading = true
-
-      let res
-      try { res = await request(
-        'GET',
-        '/api/relationship/growth-log?page=' + logPage + '&page_size=20',
-        undefined,
-        relationshipProtectedAuthOptions()
-      ) } catch (error) { logLoading = false; throw error }
-      if (!context.valid() || res.code === 401) {
-        logLoading = false
-        return
-      }
-      if (res.code !== 0 || !res.data) {
-        logLoading = false
-        return
-      }
-
-      const data = res.data
-      byId('log-total').textContent = '共 ' + data.total + ' 条'
-
-      if (data.list.length === 0 && logPage === 1) {
-        byId('log-list').innerHTML =
-          '<div class="timeline-empty">暂无成长记录</div>'
-        logNoMore = true
-        logLoading = false
-        return
-      }
-
-      const listEl = byId('log-list')
-      let lastDateStr = ''
-      const prevItems = listEl.querySelectorAll('.log-item')
-      if (prevItems.length > 0) {
-        lastDateStr = prevItems[prevItems.length - 1].getAttribute('data-date') || ''
-      }
-
-      data.list.forEach(function (item) {
-        const key = item.id == null ? JSON.stringify([item.action_type,item.action_label,item.points,item.created_at]) : String(item.id)
-        if (logIds.has(key)) return
-        logIds.add(key)
-        const d = new Date(item.created_at)
-        const dateStr = (d.getMonth() + 1) + '月' + d.getDate() + '日'
-
-        if (dateStr !== lastDateStr) {
-          const sep = document.createElement('div')
-          sep.className = 'log-date-sep'
-          sep.textContent = dateStr
-          listEl.appendChild(sep)
-          lastDateStr = dateStr
-        }
-
-        const row = document.createElement('div')
-        row.className = 'log-item'
-        if (item.id != null) row.dataset.growthId = String(item.id)
-        row.setAttribute('data-date', dateStr)
-
-        const icon = ICON_MAP[item.action_type] || '📌'
-        const timeStr = String(d.getHours()).padStart(2, '0') + ':' +
-                        String(d.getMinutes()).padStart(2, '0')
-
-        row.innerHTML =
-          '<div class="li-icon-slot" aria-hidden="true">' + icon + '</div>' +
-          '<div class="li-body">' +
-            '<div class="li-label">' + escapeHtml(item.action_label) + '</div>' +
-            '<div class="li-time">' + timeStr + '</div>' +
-          '</div>' +
-          '<div class="li-points">+' + item.points + '分</div>'
-
-        listEl.appendChild(row)
-      })
-
-      if (data.list.length < 20 || logPage * 20 >= data.total) {
-        logNoMore = true
-        byId('log-no-more').style.display = 'block'
-      }
-
-      logPage++
-      logLoading = false
-      return true
-    }
-
 
   function showLevelUpModal(info) {
     if(!context.valid()||levelOverlay)return;
+    if(sheetLease.isOpen()){pendingUpgrade=info;return;}
     const overlay=document.createElement('div');levelOverlay=overlay;
     overlay.className='levelup-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','关系升级');
@@ -434,19 +224,26 @@ export async function mount(context) {
     }
 
 
+
+
   context.scope.listen(root,'click',event=>{
     const action=event.target.closest('[data-action]')?.dataset.action;
     if(action==='back')context.router.back();
-    if(action==='progress')showProgressTip();
-    if(action==='perks')toggleNextPerks();
-  });
-  context.scope.listen(root,'keydown',event=>{
-    if(['Enter',' '].includes(event.key)&&event.target.matches('[role="button"][data-action]')){event.preventDefault();event.target.click();}
+    if(action==='current-perks')perks();
+    if(action==='perks')perks(true);
+    if(action==='close-sheet')sheetLease.close();
+    if(action==='logs'){
+      if(recentLogWindow().start!==logWindow.start)refreshLogs();
+      openSheet('logs','成长记录','每一次靠近，都有迹可循','');renderLogSheet();
+    }
+    if(action==='more-logs'||action==='retry-logs')void loadGrowthLog();
+    if(action==='retry-page'){byId('relationship-error')?.remove();void loadPage();}
+    const rule=event.target.closest('[data-rule]')?.dataset.rule;
+    if(rule&&pageData){const item=todayItems(pageData.today_growth,pageData.milestones.consecutive_login_days).find(item=>item.type===rule);if(item)openSheet('rule',item.title,'成长说明','<p class="rule-copy">'+escapeHtml(item.rule)+'</p><button class="primary-button" data-action="close-sheet">知道了</button>');}
   });
   context.cleanup(()=>{
-    relationshipPageActive=false;logLoading=false;logNoMore=true;logObserver?.disconnect();
-    levelLease?.dispose();levelOverlay?.remove();levelOverlay=null;logIds.clear();pageData=null;
+    active=false;pendingUpgrade=null;sheetLease.dispose();levelLease?.dispose();levelOverlay?.remove();levelOverlay=null;logs=[];logIds.clear();pageData=null;
   },{priority:90});
   void loadPage();
-  return {captureState:()=>({rightsCollapsed:!byId('next-perks-list')?.classList.contains('open'),cursor:Math.max(1,logPage-1)}),unmount(){}};
+  return {captureState:()=>({rightsCollapsed:true,cursor:Math.max(1,logPage-1)}),unmount(){}};
 }

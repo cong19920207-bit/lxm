@@ -213,6 +213,7 @@
         "frontend/static/js/bgm-settings.js",
         "frontend/static/css/h5-theme.css",
         "frontend/pages/index.html",
+        "frontend/pages/pet.html",
         "frontend/pages/feed.html",
         "frontend/pages/settings.html",
         "frontend/pages/chat.html",
@@ -240,14 +241,15 @@
       "related_documents": [
         "contract-core-user-auth-api",
         "contract-life-feed-api",
-        "contract-bgm-api"
+        "contract-bgm-api",
+        "contract-pet-system-api"
       ],
       "related_td": [
         "TD-015",
         "TD-024",
         "TD-025"
       ],
-      "max_lines": 402,
+      "max_lines": 410,
       "legacy_order": 5
     },
     {
@@ -570,7 +572,8 @@
       ],
       "code_paths": [
         "backend/routers/relationship.py",
-        "backend/services/relationship_service.py"
+        "backend/services/relationship_service.py",
+        "backend/services/relationship_chat_rewards.py"
       ],
       "route_prefixes": [
         "/api/relationship"
@@ -599,7 +602,8 @@
       ],
       "code_paths": [
         "backend/routers/relationship.py",
-        "backend/services/relationship_service.py"
+        "backend/services/relationship_service.py",
+        "backend/services/relationship_chat_rewards.py"
       ],
       "route_prefixes": [
         "/api/relationship"
@@ -951,7 +955,9 @@
       "depends_on": [
         "contract-shared-conventions"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-pet-system-admin"
+      ],
       "related_td": [
         "TD-032",
         "TD-033",
@@ -2298,7 +2304,7 @@
       "depends_on": [],
       "related_documents": [],
       "related_td": [],
-      "max_lines": 460,
+      "max_lines": 500,
       "legacy_order": 950
     },
     {
@@ -2616,7 +2622,7 @@
         "22个验收子用例",
         "S15空数据启用与一次性清理",
         "DotProduct",
-        "test_memory_long_collection",
+        "new_lxm_memory_long_collection",
         "仅维护最新版本",
         "保留资料数值日记朋友圈、清画像旧预约"
       ],
@@ -2650,7 +2656,7 @@
         "steps-memory-hybrid-retrieval-v3.2"
       ],
       "related_td": [],
-      "max_lines": 1302,
+      "max_lines": 1300,
       "legacy_order": 0
     },
     {
@@ -2690,7 +2696,7 @@
         "22个验收子用例",
         "S15空数据启用与一次性清理",
         "DotProduct",
-        "test_memory_long_collection",
+        "new_lxm_memory_long_collection",
         "仅维护最新版本",
         "保留资料数值日记朋友圈、清画像旧预约",
         "M1～M8已收口；最新进度唯一见STEP§3.40",
@@ -2750,7 +2756,7 @@
         "022契约收口",
         "S15空数据启用与一次性清理",
         "DotProduct",
-        "test_memory_long_collection",
+        "new_lxm_memory_long_collection",
         "仅维护最新版本",
         "保留资料数值日记朋友圈、清画像旧预约"
       ],
@@ -3128,6 +3134,7 @@
         "backend/services/bgm_runtime.py",
         "backend/services/bgm_errors.py",
         "backend/services/bgm_asset_service.py",
+        "scripts/verify_bgm_storage.py",
         "backend/services/bgm_directory_service.py",
         "backend/services/bgm_cover_media.py",
         "backend/services/bgm_cover_service.py",
@@ -3363,6 +3370,150 @@
       "related_td": [],
       "max_lines": 220,
       "legacy_order": 0
+    },
+    {
+      "id": "contract-pet-system-api",
+      "path": "docs/contract/current/pet-system/api.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "pet-system"
+      ],
+      "keywords": [
+        "养宠",
+        "领养",
+        "共同玩球",
+        "留影",
+        "回访",
+        "pet-system"
+      ],
+      "code_paths": [
+        "backend/routers/pet.py",
+        "frontend/pages/pet.html",
+        "frontend/templates/pet.html",
+        "frontend/static/js/pet"
+      ],
+      "route_prefixes": [
+        "/api/pet"
+      ],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [
+        "contract-pet-system-data",
+        "contract-pet-system-admin",
+        "contract-h5-app-api",
+        "requirement-pet-photo-mobile-download"
+      ],
+      "related_td": [],
+      "max_lines": 250,
+      "legacy_order": 1081
+    },
+    {
+      "id": "contract-pet-system-data",
+      "path": "docs/contract/current/pet-system/data.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "pet-system"
+      ],
+      "keywords": [
+        "养宠数据",
+        "宠物事实",
+        "留影",
+        "养宠迁移",
+        "草稿修订"
+      ],
+      "code_paths": [
+        "backend/models/pet.py",
+        "backend/models/pet_config.py",
+        "backend/models/pet_photo.py",
+        "backend/tasks/scheduler.py",
+        "alembic/versions/v9i_pet_foundation.py",
+        "alembic/versions/v9x_pet_config_drafts.py"
+      ],
+      "route_prefixes": [],
+      "depends_on": [
+        "contract-shared-conventions"
+      ],
+      "related_documents": [
+        "contract-pet-system-api",
+        "contract-pet-system-admin"
+      ],
+      "related_td": [],
+      "max_lines": 250,
+      "legacy_order": 1082
+    },
+    {
+      "id": "contract-pet-system-admin",
+      "path": "docs/contract/current/pet-system/admin-ui.md",
+      "status": "current",
+      "authority": "canonical",
+      "scopes": [
+        "pet-system"
+      ],
+      "keywords": [
+        "养宠管理",
+        "养宠后台",
+        "规则与成本",
+        "提示词",
+        "草稿",
+        "版本",
+        "回滚"
+      ],
+      "code_paths": [
+        "admin/pages/pet.html",
+        "admin/static/js/pet-versions.js",
+        "admin/static/js/pet-editor.js",
+        "backend/routers/admin/pet.py",
+        "backend/routers/admin/pet_config.py",
+        "backend/services/pet_admin_security.py"
+      ],
+      "route_prefixes": [
+        "/api/admin/pets"
+      ],
+      "depends_on": [
+        "contract-shared-auth-rbac",
+        "contract-shared-conventions"
+      ],
+      "related_documents": [
+        "contract-pet-system-api",
+        "contract-pet-system-data",
+        "contract-life-feed-admin"
+      ],
+      "related_td": [],
+      "max_lines": 250,
+      "legacy_order": 1083
+    },
+    {
+      "id": "requirement-pet-photo-mobile-download",
+      "path": "docs/requirement-pool/active/pet-photo-mobile-download/RP-007.md",
+      "status": "active",
+      "authority": "canonical",
+      "scopes": [
+        "requirement-pool",
+        "pet-system",
+        "h5-app"
+      ],
+      "keywords": [
+        "养宠",
+        "照片",
+        "手机下载",
+        "保存到手机",
+        "后续版本",
+        "延期需求"
+      ],
+      "code_paths": [],
+      "route_prefixes": [],
+      "depends_on": [],
+      "related_documents": [
+        "requirement-pool-index",
+        "contract-h5-app-api",
+        "contract-pet-system-api"
+      ],
+      "related_td": [],
+      "max_lines": 150,
+      "legacy_order": 6
     }
   ],
   "relations": [
@@ -5095,6 +5246,20 @@
   },
   "llm_retrieval_scenarios": [
     {
+      "id": "pet-system",
+      "query": "养宠领养、留影和后台草稿发布回滚",
+      "required": [
+        "contract-pet-system-api",
+        "contract-pet-system-data",
+        "contract-pet-system-admin"
+      ],
+      "forbidden_scopes": [
+        "history",
+        "draft",
+        "archive"
+      ]
+    },
+    {
       "id": "feed-comments",
       "query": "朋友圈评论",
       "required": [
@@ -5205,13 +5370,933 @@
   ],
   "code_surface_coverage": {
     "counts": {
-      "admin-page": 46,
-      "h5-page": 8,
-      "model": 66,
-      "route": 291,
-      "scheduled-job": 20
+      "admin-page": 47,
+      "h5-page": 9,
+      "model": 98,
+      "route": 365,
+      "scheduled-job": 27
     },
     "entries": [
+      {
+        "kind": "admin-page",
+        "path": "admin/pages/pet.html",
+        "line": 1,
+        "symbol": "pet.html",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "h5-page",
+        "path": "frontend/pages/pet.html",
+        "line": 1,
+        "symbol": "pet.html",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 37,
+        "symbol": "PetRuleSnapshot",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 48,
+        "symbol": "PetProfile",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 64,
+        "symbol": "PetState",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 82,
+        "symbol": "PetFactEvent",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 117,
+        "symbol": "PetSnapshot",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 136,
+        "symbol": "PetFactRequest",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 148,
+        "symbol": "PetDisplayEntry",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 163,
+        "symbol": "PetFormalText",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 183,
+        "symbol": "PetTextSource",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 195,
+        "symbol": "PetTaskCandidate",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet.py",
+        "line": 212,
+        "symbol": "PetDiagnosticPayload",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_activity.py",
+        "line": 9,
+        "symbol": "PetActivity",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_activity.py",
+        "line": 17,
+        "symbol": "PetAbsence",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_activity.py",
+        "line": 26,
+        "symbol": "PetViewSession",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_admin.py",
+        "line": 10,
+        "symbol": "PetAdminOperation",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_admin.py",
+        "line": 29,
+        "symbol": "PetAdminAudit",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_budget.py",
+        "line": 8,
+        "symbol": "PetBudgetMutex",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_budget.py",
+        "line": 13,
+        "symbol": "PetRequestAttempt",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_budget.py",
+        "line": 39,
+        "symbol": "PetBudgetEntry",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_config.py",
+        "line": 10,
+        "symbol": "PetConfigHead",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_config.py",
+        "line": 23,
+        "symbol": "PetConfigDraftRevision",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_config.py",
+        "line": 38,
+        "symbol": "PetConfigVersion",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_config.py",
+        "line": 55,
+        "symbol": "PetResource",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_generation.py",
+        "line": 8,
+        "symbol": "PetGenerationTask",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_health.py",
+        "line": 7,
+        "symbol": "PetJobHealth",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_interaction.py",
+        "line": 9,
+        "symbol": "PetInteraction",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_lifecycle.py",
+        "line": 7,
+        "symbol": "PetAccountLifecycle",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_photo.py",
+        "line": 8,
+        "symbol": "PetPhotoAsset",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_photo.py",
+        "line": 28,
+        "symbol": "PetPhotoDeleteJob",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_return.py",
+        "line": 8,
+        "symbol": "PetReturn",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_rule_job.py",
+        "line": 9,
+        "symbol": "PetRuleJob",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "model",
+        "path": "backend/models/pet_text_visibility.py",
+        "line": 5,
+        "symbol": "PetTextVisibility",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet.py",
+        "line": 44,
+        "symbol": "permissions",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet.py",
+        "line": 49,
+        "symbol": "audit",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet.py",
+        "line": 54,
+        "symbol": "prepare",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet.py",
+        "line": 63,
+        "symbol": "operation",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_ai.py",
+        "line": 14,
+        "symbol": "preview_saved",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_ai.py",
+        "line": 18,
+        "symbol": "preview",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_ai.py",
+        "line": 30,
+        "symbol": "test",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 48,
+        "symbol": "read",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 58,
+        "symbol": "draft",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 63,
+        "symbol": "drafts",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 69,
+        "symbol": "restore",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 76,
+        "symbol": "delete",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 83,
+        "symbol": "validate",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 93,
+        "symbol": "publish",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 99,
+        "symbol": "rollback",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 105,
+        "symbol": "disable",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 112,
+        "symbol": "model_status",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 121,
+        "symbol": "impact",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_config.py",
+        "line": 127,
+        "symbol": "rollback_preview",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_editor.py",
+        "line": 15,
+        "symbol": "editor",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_editor.py",
+        "line": 19,
+        "symbol": "preview_saved",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_editor.py",
+        "line": 23,
+        "symbol": "preview",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 9,
+        "symbol": "pets",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 12,
+        "symbol": "detail",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 15,
+        "symbol": "panel",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 19,
+        "symbol": "overview",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 24,
+        "symbol": "daily_record",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_read.py",
+        "line": 28,
+        "symbol": "photo_image",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_repair.py",
+        "line": 10,
+        "symbol": "preview",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_repair.py",
+        "line": 20,
+        "symbol": "repair",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_resources.py",
+        "line": 17,
+        "symbol": "resources",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_resources.py",
+        "line": 20,
+        "symbol": "register",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_resources.py",
+        "line": 25,
+        "symbol": "references",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_tasks.py",
+        "line": 11,
+        "symbol": "listing",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_tasks.py",
+        "line": 14,
+        "symbol": "detail",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_tasks.py",
+        "line": 23,
+        "symbol": "recover",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_text.py",
+        "line": 18,
+        "symbol": "read",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_text.py",
+        "line": 21,
+        "symbol": "change",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_versions.py",
+        "line": 9,
+        "symbol": "versions",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_versions.py",
+        "line": 12,
+        "symbol": "detail",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/pet_versions.py",
+        "line": 15,
+        "symbol": "audit",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-admin"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 54,
+        "symbol": "intro",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 58,
+        "symbol": "me",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 62,
+        "symbol": "adopt",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 66,
+        "symbol": "adoption_result",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 70,
+        "symbol": "rename",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 76,
+        "symbol": "interaction_start",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 80,
+        "symbol": "interaction_request",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 84,
+        "symbol": "interaction_query",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 88,
+        "symbol": "interaction_finish",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 92,
+        "symbol": "feed",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 98,
+        "symbol": "joint_invite",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 102,
+        "symbol": "joint_accept",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 106,
+        "symbol": "joint_pass",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 110,
+        "symbol": "joint_resolve",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 114,
+        "symbol": "joint_cancel",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 119,
+        "symbol": "photo_growth_prompt",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 122,
+        "symbol": "photo_start",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 125,
+        "symbol": "photo_prepare",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 128,
+        "symbol": "photo_capture",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 143,
+        "symbol": "photo_status",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 147,
+        "symbol": "photo_archive",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 150,
+        "symbol": "photo_cancel",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 154,
+        "symbol": "preference",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 161,
+        "symbol": "records_daily",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 164,
+        "symbol": "event_detail",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 168,
+        "symbol": "album",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 172,
+        "symbol": "birthday",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 184,
+        "symbol": "view_start",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 188,
+        "symbol": "view_heartbeat",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 193,
+        "symbol": "expression",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 199,
+        "symbol": "return_entry",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 204,
+        "symbol": "return_read",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/pet.py",
+        "line": 209,
+        "symbol": "rename_request",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-api"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 326,
+        "symbol": "pet_rule_scan_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 331,
+        "symbol": "pet_care_scan_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 336,
+        "symbol": "pet_daily_scan_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 341,
+        "symbol": "pet_generation_candidates_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 346,
+        "symbol": "pet_generation_queue_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 351,
+        "symbol": "pet_generation_cleanup_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
+      {
+        "kind": "scheduled-job",
+        "path": "backend/tasks/scheduler.py",
+        "line": 356,
+        "symbol": "pet_birthday_scan_task",
+        "scope": "pet-system",
+        "contract_document": "contract-pet-system-data"
+      },
       {
         "kind": "admin-page",
         "path": "admin/pages/accounts.html",

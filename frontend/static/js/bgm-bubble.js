@@ -1,4 +1,4 @@
-/* Six explicit page adapters; no automatic detection of arbitrary page content. */
+/* Explicit page adapters; no automatic detection of arbitrary page content. */
 (function () {
   'use strict'
   if (window.BgmBubble) return
@@ -9,7 +9,10 @@
     memory: { top: '.nebula-top-bar', bottom: '#nebula-bottom-bar', overlays: '#nebula-sheet.is-open,#nebula-sheet-mask.is-open' },
     relationship: { top: '.rel-hero-bar', bottom: '', overlays: '.levelup-overlay' },
     chat: { top: '.chat-top-bar', bottom: '.input-area', overlays: '' },
-    settings: { top: '.top-bar', bottom: '.logout-card', overlays: '', avoid: '.settings-item-action,.settings-item.clickable,.settings-expand-wrap.visible', observe: '#settings-private-sections,.settings-expand-wrap,.settings-page-body' }
+    settings: { top: '.top-bar', bottom: '.logout-card', overlays: '', avoid: '.settings-item-action,.settings-item.clickable,.settings-expand-wrap.visible', observe: '#settings-private-sections,.settings-expand-wrap,.settings-page-body' },
+    pet: { top: '.pet-feature .page-header', bottom: '.pet-feature .room-bottom,.pet-feature .page-footer',
+      overlays: '.pet-feature[data-interaction-mode]:not([data-interaction-mode="idle"]),.pet-feature[data-route="photo"],.pet-feature[data-route="photo-review"]',
+      avoid: '.pet-feature .growth-reminder,.pet-feature .pet-invitation-offer', observe: '.pet-feature', attributes: ['data-route','data-interaction-mode'] }
   })
   let current
   function mount(page = window.BgmPage && window.BgmPage.getCurrent()) {
@@ -135,7 +138,7 @@
       if (resize) for (const node of observed) resize.unobserve(node)
       observed.clear()
       for (const node of nodes) {
-        observed.add(node); mutations.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] }); if (resize) resize.observe(node)
+        observed.add(node); mutations.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', ...(config.attributes || [])] }); if (resize) resize.observe(node)
       }
     }
     function observeOverlayParents() {
@@ -144,6 +147,7 @@
       const pageRoot = document.querySelector('[data-app-page="' + name + '"]')
       if (pageRoot) mutations.observe(pageRoot, { childList: true })
     }
+    if (name === 'pet') bind(document, 'pet:render', () => { discover(); schedule() }, true)
     observeOverlayParents(); discover()
     bind(window, 'resize', schedule); bind(window, 'scroll', schedule, { passive: true }); bind(document, 'visibilitychange', schedule); bind(document, 'fullscreenchange', schedule); bind(window, 'pageshow', schedule)
     if (window.visualViewport) { bind(visualViewport, 'resize', schedule); bind(visualViewport, 'scroll', schedule) }

@@ -1,7 +1,7 @@
 import { createPageContext, mountPage } from './page-context.js';
 import { installDocumentState } from './document-state.js';
 
-export const routeNames = Object.freeze(['index', 'chat', 'feed', 'diary', 'memory', 'relationship', 'settings', 'login']);
+export const routeNames = Object.freeze(['index', 'chat', 'feed', 'diary', 'memory', 'relationship', 'settings', 'login', 'pet']);
 export const routeDefinitions = Object.freeze(Object.fromEntries(routeNames.map(name => [name, Object.freeze({
   name, module: `js/pages/${name === 'index' ? 'home' : name}.js`, template: `templates/${name}.html`,
   style: `css/pages/${name}.css`, parameterPolicy: 'remount',
@@ -10,7 +10,7 @@ export const routeDefinitions = Object.freeze(Object.fromEntries(routeNames.map(
 
 export function resolveRoute(value, base) {
   const url = new URL(value, base); const origin = new URL(base).origin;
-  const match = /^\/pages\/(index|chat|feed|diary|memory|relationship|settings|login)\.html$/.exec(url.pathname);
+  const match = /^\/pages\/(index|chat|feed|diary|memory|relationship|settings|login|pet)\.html$/.exec(url.pathname);
   if (url.origin !== origin || !match) return null;
   const params = new URLSearchParams(url.search); params.sort();
   return Object.freeze({ name: match[1], pathname: url.pathname, search: url.search, hash: url.hash,

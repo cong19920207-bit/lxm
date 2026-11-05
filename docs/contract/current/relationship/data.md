@@ -53,7 +53,19 @@
 | eligible_seconds | Integer | 是 | NULL | 合格成长秒数 |
 | business_date | Date | 是 | NULL | 北京时间业务日 |
 
-`uk_growth_source`为(source_type, source_id)唯一索引；历史NULL可并存。语音按call来源去重，结算见[语音数据](../realtime-voice/data.md#lifecycle)，文字成长不据此补造source值。
+`uk_growth_source`为(source_type, source_id)唯一索引；历史NULL可并存。语音按call来源去重，结算见[语音数据](../realtime-voice/data.md#lifecycle)。原有文字/登录记录不补造来源值；新增聊天奖励复用来源字段，见下节。
+
+<a id="chat-bonus-sources"></a>
+#### 聊天奖励来源（2026-11-04）
+
+无需新增表或迁移，复用上述字段与唯一索引：
+
+| action_type | source_type | source_id | business_date |
+| --- | --- | --- | --- |
+| `long_session` | `chat_session` | `{user_id}:{YYYY-MM-DD}` | 发奖轮次完成的北京时间日期 |
+| `reply_agent` | `agent_reply` | 被回应的 `agent_message.id` 十进制字符串 | 发奖轮次完成的北京时间日期 |
+
+两类日志的 `eligible_seconds` 为 NULL；`created_at` 取该成功轮次 AI 回复落库时间（UTC）。来源唯一键与用户行锁共同避免重复/并发发奖，日上限及今日汇总以 SQL 为准。原 `dialog`、`daily_login` 的来源字段与 Redis 记分方式保持原行为。具体达标口径见 [接口契约](api.md#深度聊天与回应主动消息奖励2026-11-04)。
 
 ### 表名：relationship_level_history
 

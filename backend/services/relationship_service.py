@@ -461,25 +461,35 @@ class RelationshipService:
             for h in history_records
         ]
 
-        # === 5. 今日成长值明细（从 Redis 读取） ===
+        # === 5. 今日成长值明细与任务上限 ===
         redis = await get_redis()
         today_str = date.today().strftime("%Y%m%d")
 
         today_dialog = await redis.get(f"growth_dialog:{user_id}:{today_str}")
         today_login = await redis.get(f"growth_login:{user_id}:{today_str}")
-        today_session = await redis.get(f"growth_session:{user_id}:{today_str}")
-        today_reply = await redis.get(f"growth_reply:{user_id}:{today_str}")
 
         today_dialog_points = int(today_dialog) if today_dialog else 0
         today_login_points = int(today_login) if today_login else 0
-        today_session_points = int(today_session) if today_session else 0
-        today_reply_points = int(today_reply) if today_reply else 0
         voice_day = datetime.now(timezone.utc).astimezone(ZoneInfo('Asia/Shanghai')).date()
+        from backend.services.relationship_chat_rewards import chat_reward_totals
+        bonuses = await chat_reward_totals(self.db, user_id, voice_day)
+        today_session_points = bonuses['long_session']
+        today_reply_points = bonuses['reply_agent']
         today_voice_points = await self.db.scalar(select(func.coalesce(func.sum(RelationshipGrowthLog.points), 0)).where(
             RelationshipGrowthLog.user_id == user_id,
             RelationshipGrowthLog.source_type == 'voice_call',
             RelationshipGrowthLog.business_date == voice_day))
+        today_voice_points = int(today_voice_points or 0)
         today_total_points = today_dialog_points + today_login_points + today_session_points + today_reply_points + today_voice_points
+        # 与新通话共用运行时配置解析，不能把可配置的语音上限写死在页面。
+        # 配置暂不可用时仍返回积分；未知上限不应被页面误判为已完成。
+        from backend.services.realtime_voice_runtime_config_service import RealtimeVoiceRuntimeConfigService
+        today_voice_limit = None
+        try:
+            voice_config = await RealtimeVoiceRuntimeConfigService().load_bundle(user_id=user_id)
+            today_voice_limit = voice_config.config.payload['growth']['daily_limit_points']
+        except Exception:
+            logger.warning('关系页读取语音每日上限失败 user_id=%s', user_id, exc_info=True)
 
         today_growth = {
             "today_total_points": today_total_points,
@@ -488,6 +498,10 @@ class RelationshipService:
             "today_session_points": today_session_points,
             "today_reply_points": today_reply_points,
             "today_voice_points": today_voice_points,
+            "today_dialog_limit": GROWTH_ACTIONS['dialog']['daily_limit'],
+            "today_session_limit": GROWTH_ACTIONS['long_session']['daily_limit'],
+            "today_reply_limit": GROWTH_ACTIONS['reply_agent']['daily_limit'],
+            "today_voice_limit": today_voice_limit,
             "today_dialog_limit_reached": today_dialog_points >= GROWTH_ACTIONS['dialog']['daily_limit'],
             "today_remaining_dialog": max(0, GROWTH_ACTIONS['dialog']['daily_limit'] - today_dialog_points),
         }
@@ -516,16 +530,26 @@ class RelationshipService:
 
     async def get_growth_log_paginated(self, user_id: int, page: int = 1, page_size: int = 20) -> dict:
         """
-        分页获取成长值获取记录。
+        分页获取北京时间含今天在内最近七个自然日的成长记录；不删除历史。
 
         Returns:
             包含 list, total, page, page_size 的字典
         """
-        # 总数
+        today = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Shanghai"))
+        end = (today + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = end - timedelta(days=7)
+        start_utc = start.astimezone(timezone.utc).replace(tzinfo=None)
+        end_utc = end.astimezone(timezone.utc).replace(tzinfo=None)
+        filters = (
+            RelationshipGrowthLog.user_id == user_id,
+            RelationshipGrowthLog.created_at >= start_utc,
+            RelationshipGrowthLog.created_at < end_utc,
+        )
+        # 总数和分页严格共用同一个时间范围。
         count_stmt = (
             select(func.count())
             .select_from(RelationshipGrowthLog)
-            .where(RelationshipGrowthLog.user_id == user_id)
+            .where(*filters)
         )
         count_result = await self.db.execute(count_stmt)
         total = count_result.scalar() or 0
@@ -534,8 +558,8 @@ class RelationshipService:
         offset = (page - 1) * page_size
         list_stmt = (
             select(RelationshipGrowthLog)
-            .where(RelationshipGrowthLog.user_id == user_id)
-            .order_by(RelationshipGrowthLog.created_at.desc())
+            .where(*filters)
+            .order_by(RelationshipGrowthLog.created_at.desc(), RelationshipGrowthLog.id.desc())
             .offset(offset)
             .limit(page_size)
         )
@@ -548,7 +572,7 @@ class RelationshipService:
                 "action_type": r.action_type,
                 "action_label": ACTION_LABELS.get(r.action_type, r.action_type),
                 "points": r.points,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "created_at": r.created_at.isoformat() + "Z" if r.created_at else None,
             }
             for r in records
         ]
@@ -558,6 +582,8 @@ class RelationshipService:
             "total": total,
             "page": page,
             "page_size": page_size,
+            "window_start": start_utc.isoformat() + "Z",
+            "window_end": end_utc.isoformat() + "Z",
         }
 
     async def get_silence_days(self, user_id: int) -> int:
@@ -619,11 +645,17 @@ class RelationshipService:
         redis = await get_redis()
         today_str = date.today().strftime("%Y%m%d")
         history = []
+        from backend.services.relationship_chat_rewards import CHAT_BONUS_ACTIONS, chat_reward_totals
+        business_day = datetime.now(timezone.utc).astimezone(ZoneInfo('Asia/Shanghai')).date()
+        bonuses = await chat_reward_totals(self.db, user_id, business_day)
 
         for action_type, cfg in GROWTH_ACTIONS.items():
-            redis_key = f"growth:{user_id}:{today_str}:{action_type}"
-            earned = await redis.get(redis_key)
-            earned = int(earned) if earned else 0
+            if action_type in CHAT_BONUS_ACTIONS:
+                earned = bonuses[action_type]
+            else:
+                redis_key = f"growth:{user_id}:{today_str}:{action_type}"
+                earned = await redis.get(redis_key)
+                earned = int(earned) if earned else 0
             history.append({
                 "action_type": action_type,
                 "earned_today": earned,

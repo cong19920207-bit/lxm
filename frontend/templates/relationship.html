@@ -1,112 +1,71 @@
-<div class="rel-page" id="page-body">
-    <div class="skeleton-wrap">
-      <div class="skeleton skeleton-hero"></div>
-      <div class="skeleton-stats">
-        <div class="skeleton"></div>
-        <div class="skeleton"></div>
-        <div class="skeleton"></div>
-        <div class="skeleton"></div>
+  <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="rel-icon-back" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+    <symbol id="rel-icon-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="rel-icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="rel-icon-heart" viewBox="0 0 24 24"><path d="M20.2 5.8a5 5 0 0 0-7.1 0L12 6.9l-1.1-1.1a5 5 0 0 0-7.1 7.1L12 21l8.2-8.1a5 5 0 0 0 0-7.1Z"/></symbol>
+    <symbol id="rel-icon-chat" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-10a9 9 0 0 1 18 0Z"/><path d="M7 10h8M7 14h5"/></symbol>
+    <symbol id="rel-icon-phone" viewBox="0 0 24 24"><path d="m8 3 2 5-3 2a14 14 0 0 0 7 7l2-3 5 2c-1 4-2 6-6 4C9 18 6 15 4 9 2 5 4 4 8 3Z"/></symbol>
+    <symbol id="rel-icon-moon" viewBox="0 0 24 24"><path d="M20 14A9 9 0 0 1 10 3a9 9 0 1 0 10 11Z"/></symbol>
+    <symbol id="rel-icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="rel-icon-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
+    <symbol id="rel-icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="rel-icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="rel-icon-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6Z"/></symbol>
+    <symbol id="rel-icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol>
+  </svg>
+<div class="relationship-page" id="page-body"><div class="skeleton-wrap" aria-label="关系加载中"><div class="skeleton skeleton-hero"></div><div class="skeleton skeleton-block"></div></div><div class="real-content">
+    <section class="hero" aria-labelledby="relationship-title">
+      <div class="hero-photo"></div>
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-stars" aria-hidden="true"><span>✦</span><span>✧</span><span>·</span><span>✦</span></div>
+      <header class="page-nav">
+        <button type="button" class="page-back" data-action="back" aria-label="返回"><span class="page-back__surface" aria-hidden="true"><svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false"><path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+        <span class="nav-title"><svg aria-hidden="true"><use href="#rel-icon-heart"/></svg>我们的关系</span><span class="nav-star" aria-hidden="true">✦</span>
+      </header>
+      <div class="hero-content">
+        <div class="relationship-status"><span></span><b id="rel-level-badge"></b><i></i>慢慢靠近的我们</div>
+        <h1 id="relationship-title">林小梦</h1>
+        <p id="rel-desc"></p>
+        <button class="text-button perks-trigger" data-action="current-perks"><span id="rel-perks-summary">陪伴权益</span><svg><use href="#rel-icon-arrow"/></svg></button>
       </div>
-      <div class="skeleton skeleton-block"></div>
-      <div class="skeleton skeleton-block"></div>
-    </div>
+    </section>
 
-    <div class="real-content">
-      <section class="rel-hero" aria-label="林小梦">
-        <div class="rel-hero-bar page-back-bar">
-          <button type="button" class="page-back" data-action="back" aria-label="返回">
-            <span class="page-back__surface" aria-hidden="true">
-              <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
-                <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </button>
-          <div class="rel-hero-pill" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 20.5s-6.5-4.2-6.5-10.2A4.5 4.5 0 0 1 12 5.8a4.5 4.5 0 0 1 6.5 4.5c0 6-6.5 10.2-6.5 10.2z" stroke="#e9d5ff" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-            <span>我们的关系</span>
-          </div>
-        </div>
-        <div class="rel-hero-profile">
-          <div class="rel-name-row">
-            <h1 class="rel-name">林小梦</h1>
-            <span class="rel-level-badge" id="rel-level-badge"></span>
-          </div>
-          <p class="rel-desc" id="rel-desc"></p>
-          <div class="rel-perks" id="rel-perks"></div>
-          <div class="rel-hero-foot" aria-hidden="true"></div>
-        </div>
+    <div class="page-content">
+      <section class="together" aria-label="相识与陪伴">
+        <div class="keepsake-top"><span><svg aria-hidden="true"><use href="#rel-icon-spark"/></svg>我们的相遇纪念</span><span id="keepsake-number"></span></div>
+        <div class="together-primary"><span>和你相识的第</span><div><strong id="m-known-days">0</strong><span>天</span></div></div>
+        <div class="together-seal" aria-hidden="true"><span class="seal-orbit"></span><span class="seal-star">✦</span><svg><use href="#rel-icon-heart"/></svg><span class="seal-caption">每一天 · 都算数</span></div>
+        <div class="together-secondary"><div><strong id="m-conv-rounds">0</strong><span>次对话</span></div><div><strong><span id="m-login-days">0</span><span> 天</span></strong><span>连续陪伴</span></div></div>
+        <div class="together-caption"><span class="small-line"></span> 平凡的日子，也因为你有了意义。</div>
       </section>
 
-      <div class="rel-main">
-        <div class="rel-stats" id="milestone-grid">
-          <div class="rel-stat-item">
-            <div class="m-value" id="m-known-days">0</div>
-            <div class="m-label">相识时间</div>
-            <div class="m-sub" id="m-known-sub"></div>
-          </div>
-          <div class="rel-stat-item">
-            <div class="m-value" id="m-conv-rounds">0</div>
-            <div class="m-label">聊天记录</div>
-            <div class="m-sub">我们聊过的点滴</div>
-          </div>
-          <div class="rel-stat-item">
-            <div class="m-value" id="m-login-days">0</div>
-            <div class="m-label">连续登录</div>
-            <div class="m-sub">连续陪伴你</div>
-          </div>
-          <div class="rel-stat-item">
-            <div class="m-value" id="m-silence-days">0</div>
-            <div class="m-label">距上次</div>
-            <div class="m-sub" id="m-silence-sub"></div>
-          </div>
-        </div>
+      <section class="intimacy panel" aria-labelledby="intimacy-title">
+        <div class="section-heading"><h2 id="intimacy-title"><svg class="heading-symbol" aria-hidden="true"><use href="#rel-icon-heart"/></svg>再靠近一点</h2><span class="quiet-label progress-percent"><span id="progress-percent">0%</span><small>亲密进度</small></span></div>
+        <div id="progress-content"></div>
+      </section>
 
-        <div class="rel-card" id="progress-section">
-          <div class="rel-card-head">
-            <div class="rel-section-title"><span class="spark">✦</span> 亲密进度</div>
-            <span class="rel-handwrite" aria-hidden="true">继续加油哦~ ♡</span>
-          </div>
-          <div id="progress-content" class="rel-progress-wrap"></div>
-          <div class="rel-polaroid" aria-hidden="true">
-            <div class="rel-polaroid-frame">
-              <img id="linxiaomeng-avatar"
-                   src="/static/images/avatar/default.png"
-                   alt="">
-              <div class="rel-polaroid-caption">想和你去看海。</div>
-            </div>
-            <span class="rel-polaroid-heart">♥</span>
-          </div>
-        </div>
+      <section class="today section" aria-labelledby="today-title">
+        <div class="section-heading"><div><h2 id="today-title"><svg class="heading-symbol" aria-hidden="true"><use href="#rel-icon-sun"/></svg>今天，也在靠近</h2><p class="section-caption">一点一滴，都是我们的日常</p></div><span class="today-earned" id="today-total"></span></div>
+        <div class="today-list" id="today-list"></div>
+      </section>
 
-        <div class="rel-card">
-          <div class="rel-card-head">
-            <div class="rel-section-title"><span class="spark">✦</span> 今日成长</div>
-            <div class="rel-today-total" id="today-total"></div>
-          </div>
-          <div class="rel-today-grid" id="today-list"></div>
-        </div>
+      <section class="footprints section" aria-labelledby="footprints-title">
+        <div class="section-heading"><h2 id="footprints-title"><svg class="heading-symbol" aria-hidden="true"><use href="#rel-icon-spark"/></svg>我们的足迹</h2><span class="quiet-label">值得记住的时刻</span></div>
+        <div id="timeline-content"></div>
+        <p class="future-line"><span></span>故事还在继续，下一页和你一起写。</p>
+      </section>
 
-        <div class="rel-card">
-          <div class="rel-card-head">
-            <div class="rel-section-title"><span class="spark">✦</span> 成长历程</div>
-          </div>
-          <div class="rel-timeline-wrap">
-            <p class="rel-timeline-deco rel-handwrite" aria-hidden="true">未来有很多故事<br>我们一起写下去吧 ♡</p>
-            <div id="timeline-content"></div>
-          </div>
-        </div>
-
-        <div class="rel-card">
-          <div class="rel-card-head">
-            <div class="rel-section-title"><span class="spark">✦</span> 成长记录</div>
-            <span class="rel-log-total" id="log-total"></span>
-          </div>
-          <div id="log-list"></div>
-          <div class="load-more-sentinel" id="log-sentinel"></div>
-          <div class="no-more-text" id="log-no-more" style="display:none">已经到底啦 ✨</div>
-        </div>
-      </div>
+      <section class="recent section" aria-labelledby="recent-title">
+        <div class="section-heading"><h2 id="recent-title"><svg class="heading-symbol" aria-hidden="true"><use href="#rel-icon-mail"/></svg>成长记录</h2><span class="quiet-label" id="log-total">近 7 天</span></div>
+        <div id="log-list" aria-live="polite"></div>
+        <button class="all-records" id="open-logs" data-action="logs" disabled>查看近 7 天记录 <span><span id="log-count"></span><svg><use href="#rel-icon-arrow"/></svg></span></button>
+      </section>
+      <footer class="page-footer"><svg><use href="#rel-icon-heart"/></svg><span>慢慢来，我们还有很多时间。</span></footer>
     </div>
-  </div>
+</div></div>
+
+<dialog class="sheet" id="relationship-sheet" aria-labelledby="relationship-sheet-title">
+  <div class="sheet-handle" aria-hidden="true"></div>
+  <header class="sheet-header"><div><h2 id="relationship-sheet-title"></h2><p id="relationship-sheet-subtitle"></p></div><button class="icon-button" data-action="close-sheet" aria-label="关闭面板"><svg><use href="#rel-icon-close"/></svg></button></header>
+  <div class="sheet-content" id="relationship-sheet-content" tabindex="0"></div>
+</dialog>

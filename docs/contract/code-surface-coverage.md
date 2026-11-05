@@ -4,7 +4,7 @@
 - 权威状态：`canonical`
 - 功能范围：`routing`
 - 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29原覆盖；2026-10-13仅补齐M3–M8实际新增与受影响位置；2026-10-16补齐代理自动发现与连接诊断登记；2026-10-19补齐BGM STEP-002～007的12条管理路由（5读/7写）与1条匿名目录路由、5模型与1管理页。
-- HTTP路由 291，模型 66，后台页面 46，H5页面 8，调度 20；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
+- 已登记 HTTP 路由 365，模型 98，后台页面 47，H5 页面 9，调度 27；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
 - 本表只建立唯一归属，不表示所有全仓测试通过；未读取或重建迁移基线。
 
 | 类型 | 代码位置 | 功能范围 | 契约文档 ID |
@@ -458,3 +458,13 @@
 | 完整构建/激活回退 | `scripts/build_appshell.py`、`scripts/release_appshell.py` | h5-app | contract-h5-app-api |
 
 `scripts/appshell_device_preview.cjs`仅为本任务局域网验收辅助，不是新增生产网关；媒体/Origin适配的限制见STEP-026操作单。`frontend/app-entry.html`为显式激活产物，缺省继续旧页；构建目录不可变且不提前清理。
+
+## 养宠代码面（2026-11-04）
+
+新增登记 74 条 HTTP 路由、32 个模型、7 个调度任务、1 个 H5 页面与 1 个后台页面。逐条装饰器和模型位置见 [manifest](../llm-manifest.json) 的 `code_surface_coverage`，范围为 `pet-system`。
+
+| 类型 | 代码入口 | 归属 |
+|---|---|---|
+| 用户 API 与客户端 | `backend/routers/pet.py`、`frontend/pages/pet.html`、`frontend/static/js/pet/` | [养宠接口与客户端](current/pet-system/api.md) |
+| 管理 API 与页面 | `backend/routers/admin/pet*.py`、`admin/pages/pet.html` | [养宠管理后台](current/pet-system/admin-ui.md) |
+| 数据、迁移和调度 | `backend/models/pet*.py`、`alembic/versions/v9i_pet_foundation.py` 至 `v9x_pet_config_drafts.py`、`backend/tasks/scheduler.py` 的养宠任务 | [养宠数据与迁移](current/pet-system/data.md) |

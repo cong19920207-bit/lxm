@@ -33,7 +33,7 @@ export async function mount(context) {
       var parts = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
       }).formatToParts(new Date())
       var get = function (t) {
         for (var i = 0; i < parts.length; i++) {
@@ -59,59 +59,22 @@ export async function mount(context) {
       return Math.floor(mins / 60) + '小时前'
     }
 
-    /** 左列城市行（弱化；无城市则空） */
-    function buildCityHtml(city) {
-      var name = (city || '').trim()
-      if (!name) return ''
-      return '<div class="date-city">' +
-        '<svg class="loc-ico" viewBox="0 0 12 12" aria-hidden="true">' +
-        '<path fill="currentColor" d="M6 1.2c-1.9 0-3.4 1.5-3.4 3.3 0 2.5 3.4 6.3 3.4 6.3s3.4-3.8 3.4-6.3C9.4 2.7 7.9 1.2 6 1.2zm0 4.5a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/>' +
-        '</svg><span>' + escapeHtml(name) + '</span></div>'
+    const DEFAULT_AVATAR = '/static/images/avatar/character-ref/base.png'
+    const LOCATION_ICON = '<svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>'
+
+    function buildDateHeading(iso, key) {
+      const {y, mo, d} = parseWallClock(iso)
+      const heading = document.createElement('h2')
+      heading.className = 'feed-date-heading'
+      const year = y === beijingNowParts().y ? '' : y + '年'
+      heading.innerHTML = '<time datetime="' + key + '">' + year + mo + '月<b>' + d + '</b>日</time>'
+      return heading
     }
 
-    /** 墙钟日期键 YYYY-MM-DD，用于同日左列合并 */
     function wallDateKey(iso) {
-      var d = parseWallClock(iso)
-      if (!d) return ''
-      return d.y + '-' + String(d.mo).padStart(2, '0') + '-' + String(d.d).padStart(2, '0')
-    }
-
-    /** 左列相对日标签：今天 / 昨天；更早不展示 */
-    function formatDayLabel(iso) {
-      var d = parseWallClock(iso)
-      if (!d) return ''
-      var now = beijingNowParts()
-      var dayDiff = Math.floor(
-        (Date.UTC(now.y, now.mo - 1, now.d) - Date.UTC(d.y, d.mo - 1, d.d)) / 86400000
-      )
-      if (dayDiff === 0) return '今天'
-      if (dayDiff === 1) return '昨天'
-      return ''
-    }
-
-    /**
-     * 左列：大号日 + 月 + 今天/昨天 + 城市
-     * showDate=false 时同日后续条留空，仅保留时间节点
-     */
-    function buildDateColHtml(iso, city, showDate) {
-      if (!showDate) {
-        return '<div class="date-col date-col--empty" aria-hidden="true"></div>'
-      }
-      var cityHtml = buildCityHtml(city)
-      var d = parseWallClock(iso)
-      if (!d) {
-        return '<div class="date-col">' + cityHtml + '</div>'
-      }
-      var dayLabel = formatDayLabel(iso)
-      var dayLabelHtml = dayLabel
-        ? '<div class="date-rel">' + escapeHtml(dayLabel) + '</div>'
-        : ''
-      return '<div class="date-col">' +
-        '<div class="date-day">' + d.d + '</div>' +
-        '<div class="date-month">' + d.mo + '月</div>' +
-        dayLabelHtml +
-        cityHtml +
-        '</div>'
+      const date = parseWallClock(iso)
+      if (!date) return ''
+      return date.y + '-' + String(date.mo).padStart(2, '0') + '-' + String(date.d).padStart(2, '0')
     }
 
     /* 互动图标：对齐 Figma「林小梦-朋友圈互动图标」v2 */
@@ -134,6 +97,7 @@ export async function mount(context) {
       var icoEl = act.querySelector('.ico')
       if (icoEl) icoEl.innerHTML = heartIconHtml(liked)
       act.classList.toggle('liked', !!liked)
+      act.setAttribute('aria-pressed', String(!!liked))
     }
 
     /* #话题 单井号着色：从 # 起至空格/标点前；成对收尾 # 一并纳入着色 */
@@ -146,40 +110,47 @@ export async function mount(context) {
       )
     }
 
-    /** 长文截断：展开/收起在 meta 行右侧；时间始终在左侧 */
-    function setupTextExpand(contentCol) {
-      if (!contentCol) return
-      var textEl = contentCol.querySelector('.feed-text')
-      var btn = contentCol.querySelector('.feed-expand')
-      if (!textEl || !btn) return
-      textEl.classList.add('collapsed')
-      btn.classList.remove('is-visible')
-      requestAnimationFrame(function () {
-        var needs = textEl.scrollHeight > textEl.clientHeight + 1
-        if (!needs) {
-          textEl.classList.remove('collapsed')
-          btn.classList.remove('is-visible')
-          btn.style.display = 'none'
-          return
-        }
-        btn.style.display = ''
-        btn.classList.add('is-visible')
-        const opened=expanded.has(String(contentCol.parentElement.dataset.id));textEl.classList.toggle('collapsed',!opened);btn.textContent=opened?'收起':'展开'
-
+    /** 按实际行高测量，超出四行才显示展开入口。 */
+    function setupTextExpand(item) {
+      const text = item.querySelector('.feed-text')
+      const button = item.querySelector('.feed-expand')
+      requestAnimationFrame(() => {
+        if (!item.isConnected) return
+        text.classList.add('collapsed')
+        const overflowing = text.scrollHeight > text.clientHeight + 1
+        button.hidden = !overflowing
+        const opened = overflowing && expanded.has(item.dataset.id)
+        text.classList.toggle('collapsed', overflowing && !opened)
+        button.textContent = opened ? '收起' : '展开全文'
+        button.setAttribute('aria-expanded', String(opened))
       })
     }
 
-    /* ===== 列表渲染 ===== */
+    let measuredFeedWidth = 0
+    function resizeFeedText() {
+      const list = byId('feed-list')
+      if (list.clientWidth === measuredFeedWidth) return
+      measuredFeedWidth = list.clientWidth
+      for (const item of list.querySelectorAll('.feed-item')) setupTextExpand(item)
+    }
+    if (typeof ResizeObserver === 'function') {
+      context.scope.observe(new ResizeObserver(context.scope.guard(resizeFeedText)), byId('feed-list'))
+    } else {
+      listen(window, 'resize', resizeFeedText)
+    }
+
     function buildImagesHtml(urls) {
-      if (!urls || urls.length === 0) return ''
-      var cls = urls.length === 1 ? 'count-1' : (urls.length === 2 ? 'count-2' : 'count-3plus')
-      var html = '<div class="feed-images ' + cls + '">'
-      urls.forEach(function (u, i) {
-        html += '<div class="thumb"><img loading="lazy" tabindex="0" role="button" alt="动态图片" src="' + escapeHtml(u) +
-          '" data-idx="' + i + '"></div>'
-      })
-      html += '</div>'
-      return html
+      if (!urls?.length) return ''
+      const thumbs = urls.map((url, index) =>
+        '<button type="button" class="thumb" data-idx="' + index + '" aria-label="查看第 ' + (index + 1) + ' 张图片">' +
+        '<img loading="lazy" alt="" src="' + escapeHtml(url) + '"></button>'
+      ).join('')
+      if (urls.length < 3) {
+        return '<div class="feed-images count-' + urls.length + '">' + thumbs + '</div>'
+      }
+      return '<div class="feed-images feed-album">' +
+        '<div class="feed-album-track" tabindex="0" role="group" aria-label="' + urls.length + ' 张图片，可左右滑动或用方向键切换">' +
+          thumbs + '</div><span class="feed-album-count" aria-live="polite">1 / ' + urls.length + '</span></div>'
     }
 
     function buildCommentsHtml(comments) {
@@ -202,45 +173,50 @@ export async function mount(context) {
       return html
     }
 
-    function buildFeedItem(post, showDate) {
-      var item = document.createElement('div')
+    function buildFeedItem(post) {
+      var item = document.createElement('article')
       item.className = 'feed-item'
       item.dataset.id = post.id
       item.dataset.postId = post.id
       item.dataset.liked = isFeedAuthenticated() && post.user_liked ? '1' : '0'
       item.dataset.likes = post.display_likes || 0
-      item.dataset.dateKey = wallDateKey(post.scheduled_publish_time)
       // 展示评论数对齐点赞：display_comments = base×倍率 + 真实可见条数（后端组装）
       var commentCount = (post.display_comments != null)
         ? post.display_comments
         : ((post.comments && post.comments.length) ? post.comments.length : 0)
       item.dataset.comments = commentCount
 
-      item.innerHTML =
-        '<span class="timeline-node" aria-hidden="true"></span>' +
-        buildDateColHtml(post.scheduled_publish_time, post.city, showDate !== false) +
-        '<div class="content-col">' +
-          '<div class="feed-text-block">' +
-            '<div class="feed-text">' + renderTextWithHashtags(post.content_text || '') + '</div>' +
-          '</div>' +
-          '<div class="feed-meta-row">' +
-            '<span class="feed-time">' + escapeHtml(formatFeedTime(post.scheduled_publish_time)) + '</span>' +
-            '<button type="button" class="feed-expand">展开</button>' +
-          '</div>' +
-          buildImagesHtml(post.image_urls) +
-          '<div class="feed-actions">' +
-            '<div class="act like-act' + (isFeedAuthenticated() && post.user_liked ? ' liked' : '') + '" role="button" tabindex="0" aria-label="点赞">' +
-              '<span class="ico">' + heartIconHtml(!!(isFeedAuthenticated() && post.user_liked)) + '</span>' +
-              '<span class="like-count">' + (post.display_likes || 0) + '</span></div>' +
-            '<div class="act comment-act" role="button" tabindex="0" aria-label="评论">' +
-              '<span class="ico">' + ICON_COMMENT + '</span>' +
-              '<span class="comment-count">' + commentCount + '</span></div>' +
-          '</div>' +
-          buildCommentsHtml(post.comments) +
+      const author = escapeHtml(byId('feed-nickname').textContent)
+      const avatar = escapeHtml(byId('feed-avatar').src)
+      const time = formatFeedTime(post.scheduled_publish_time)
+      const city = (post.city || '').trim()
+      const liked = item.dataset.liked === '1'
+      const media = buildImagesHtml(post.image_urls)
+      const text =
+        '<div class="feed-text-block"><div class="feed-text collapsed" id="feed-text-' + escapeHtml(post.id) + '">' +
+          renderTextWithHashtags(post.content_text || '') + '</div>' +
+          '<button type="button" class="feed-expand" hidden aria-expanded="false" aria-controls="feed-text-' + escapeHtml(post.id) + '">展开全文</button></div>'
+      const actions =
+        '<div class="feed-actions">' +
+          '<button type="button" class="act like-act' + (liked ? ' liked' : '') + '" aria-label="点赞" aria-pressed="' + liked + '">' +
+            '<span class="ico">' + heartIconHtml(liked) + '</span>' +
+            '<span class="like-count">' + (post.display_likes || 0) + '</span></button>' +
+          '<button type="button" class="act comment-act" aria-label="评论">' +
+            '<span class="ico">' + ICON_COMMENT + '</span>' +
+            '<span class="comment-count">' + commentCount + '</span></button>' +
         '</div>'
+      item.classList.toggle('feed-item--text', !media)
+      item.innerHTML =
+        '<header class="feed-author"><img class="feed-author-avatar" src="' + avatar + '" alt="">' +
+          '<div><div class="feed-author-name">' + author + '</div>' +
+          (time || city ? '<div class="feed-meta-row">' +
+            '<span class="feed-time">' + escapeHtml(time) + '</span>' +
+            (city ? '<span class="feed-city">' + escapeHtml(city) + '</span>' : '') + '</div>' : '') +
+          '</div></header>' +
+        (media ? media + actions + text : text + actions) +
+        buildCommentsHtml(post.comments)
 
-      setupTextExpand(item.querySelector('.content-col'))
-
+      setupTextExpand(item)
       return item
     }
 
@@ -252,8 +228,8 @@ export async function mount(context) {
     function renderSkeleton(show) {
       var sk = byId('feed-skeleton')
       if (!show) { sk.innerHTML = ''; return }
-      var one = '<div class="skeleton-card"><div class="sk-date"></div>' +
-        '<div class="sk-body"><div class="sk-line"></div><div class="sk-line w60"></div><div class="sk-img"></div></div></div>'
+      var one = '<div class="skeleton-card"><div class="sk-author"><div class="sk-avatar"></div><div class="sk-line w60"></div></div>' +
+        '<div class="sk-line"></div><div class="sk-img"></div></div>'
       sk.innerHTML = one + one + one
     }
 
@@ -352,7 +328,7 @@ export async function mount(context) {
       maxCount = maxCount == null ? BOOT_IMG_MAX : maxCount
       timeoutMs = timeoutMs == null ? BOOT_IMG_TIMEOUT_MS : timeoutMs
       var scope = rootEl || byId('feed-list') || document
-      var all = scope.querySelectorAll('.feed-images img')
+      var all = scope.querySelectorAll('.feed-images:not(.feed-album) img, .feed-album-track .thumb:first-child img')
       var imgs = []
       for (var i = 0; i < all.length && imgs.length < maxCount; i++) {
         try { all[i].loading = 'eager' } catch (e) { /* ignore */ }
@@ -540,20 +516,37 @@ export async function mount(context) {
   const openFeedLoginModal=()=>services.ui.openLogin({reason:'feed-interaction'});
   function disconnectReads(){commentReplyObserver.disconnect();postDwellObserver.disconnect();for(const timer of dwell.values())clearTimeout(timer);dwell.clear()}
   function remember(post){if(post?.id!=null)posts.set(String(post.id),JSON.parse(JSON.stringify(post)))}
-  function appendPost(post,lastDate){const key=wallDateKey(post.scheduled_publish_time),item=buildFeedItem(post,!key||key!==lastDate);byId('feed-list').append(item);if(!restoring)observeReadTargets(item);return key||lastDate}
-  function renderPosts(){
-    disconnectReads();byId('feed-list').replaceChildren();let last=null;
-    for(const post of posts.values())last=appendPost(post,last);
-    for(const id of expanded){const item=[...byId('feed-list').children].find(n=>n.dataset.id===id);item?.querySelector('.feed-text')?.classList.remove('collapsed');if(item?.querySelector('.feed-expand'))item.querySelector('.feed-expand').textContent='收起'}
+  function appendPost(post, lastDate) {
+    const list = byId('feed-list')
+    const key = wallDateKey(post.scheduled_publish_time)
+    if (key && key !== lastDate) list.append(buildDateHeading(post.scheduled_publish_time, key))
+    const item = buildFeedItem(post)
+    item.dataset.dateKey = key || lastDate || ''
+    list.append(item)
+    if (!restoring) observeReadTargets(item)
+    return key || lastDate
   }
-  async function loadHeader(){
-    const res=await request('GET','/api/feed/config/header');if(!context.valid())return;
-    const data=res?.code===0&&res.data||{},avatar=byId('feed-avatar');
-    byId('feed-hero').style.backgroundImage='url('+JSON.stringify(data.header_bg_url||'/static/images/feed/bg_default.png')+')';
-    avatar.src=data.header_avatar_url||'/static/images/avatar/character-ref/base.png';
-    avatar.onerror=()=>{avatar.onerror=null;if(context.valid())avatar.src='/static/images/avatar/character-ref/base.png'};context.cleanup(()=>{avatar.onerror=null});
-    byId('feed-nickname').textContent=data.display_nickname||'林小梦';byId('feed-signature').textContent=data.signature||'';
-    const city=(data.home_city||'').trim();byId('feed-home-city').innerHTML=city?'<svg class="loc-ico" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 1.2c-1.9 0-3.4 1.5-3.4 3.3 0 2.5 3.4 6.3 3.4 6.3s3.4-3.8 3.4-6.3C9.4 2.7 7.9 1.2 6 1.2zm0 4.5a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/></svg><span>'+escapeHtml(city)+'</span>':'';byId('feed-home-city').classList.toggle('is-visible',!!city);
+  function renderPosts() {
+    disconnectReads()
+    byId('feed-list').replaceChildren()
+    let last = null
+    for (const post of posts.values()) last = appendPost(post, last)
+  }
+  async function loadHeader() {
+    const res = await request('GET', '/api/feed/config/header')
+    if (!context.valid()) return
+    const data = res?.code === 0 && res.data || {}
+    const avatar = byId('feed-avatar')
+    byId('feed-hero').style.backgroundImage = 'url(' + JSON.stringify(data.header_bg_url || '/static/images/feed/bg_default.png') + ')'
+    byId('feed-nickname').textContent = data.display_nickname || '林小梦'
+    byId('feed-signature').textContent = data.signature || ''
+    avatar.src = data.header_avatar_url || DEFAULT_AVATAR
+    for (const image of root.querySelectorAll('.feed-author-avatar')) image.src = avatar.src
+    for (const name of root.querySelectorAll('.feed-author-name')) name.textContent = byId('feed-nickname').textContent
+    const city = (data.home_city || '').trim()
+    const location = byId('feed-home-city')
+    location.innerHTML = city ? LOCATION_ICON + '<span>' + escapeHtml(city) + '</span>' : ''
+    location.hidden = !city
   }
   async function loadMsgBadge(){
     if(!isFeedAuthenticated())return;
@@ -627,11 +620,43 @@ export async function mount(context) {
     if(event.target.closest('.like-act'))return toggleLike(item);
     if(event.target.closest('.comment-act'))return openCommentPanel(post.id);
     if(event.target.closest('.comment-reply'))return openCommentPanel(post.id,true);
-    const image=event.target.closest('.feed-images img');if(image)return openPreview(post.image_urls,Number(image.dataset.idx)||0);
-    if(event.target.closest('.feed-expand')){const text=item.querySelector('.feed-text'),collapsed=text.classList.toggle('collapsed');item.querySelector('.feed-expand').textContent=collapsed?'展开':'收起';if(collapsed)expanded.delete(item.dataset.id);else expanded.add(item.dataset.id)}
-  });
-  listen(root,'keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('.like-act,.comment-act,.feed-images img')){event.preventDefault();event.target.click()}});
-  listen(root,'error',event=>{if(event.target.matches?.('.feed-images img'))event.target.parentElement.classList.add('img-failed')},true);
+    const image = event.target.closest('.feed-images .thumb')
+    if (image) return openPreview(post.image_urls, Number(image.dataset.idx))
+    const expand = event.target.closest('.feed-expand')
+    if (expand) {
+      const collapsed = item.querySelector('.feed-text').classList.toggle('collapsed')
+      expand.textContent = collapsed ? '展开全文' : '收起'
+      expand.setAttribute('aria-expanded', String(!collapsed))
+      if (collapsed) expanded.delete(item.dataset.id)
+      else expanded.add(item.dataset.id)
+    }
+  })
+  listen(root, 'scroll', event => {
+    const track = event.target
+    if (!track.matches?.('.feed-album-track') || !track.clientWidth) return
+    const index = Math.max(0, Math.min(track.children.length - 1, Math.round(track.scrollLeft / track.clientWidth)))
+    const counter = track.nextElementSibling
+    const text = (index + 1) + ' / ' + track.children.length
+    if (counter.textContent !== text) counter.textContent = text
+  }, true)
+  listen(root, 'keydown', event => {
+    const track = event.target.closest('.feed-album-track')
+    if (!track || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return
+    event.preventDefault()
+    const delta = event.key === 'ArrowRight' ? 1 : -1
+    const index = Math.round(track.scrollLeft / track.clientWidth)
+    const next = track.children[index + delta]
+    if (!next) return
+    track.scrollTo({left: (index + delta) * track.clientWidth})
+    if (event.target !== track) next.focus({preventScroll: true})
+  })
+  listen(root, 'error', event => {
+    const img = event.target
+    if (img.matches?.('.feed-images img')) img.parentElement.classList.add('img-failed')
+    if (img.matches?.('#feed-avatar, .feed-author-avatar') && img.src !== new URL(DEFAULT_AVATAR, location.href).href) {
+      img.src = DEFAULT_AVATAR
+    }
+  }, true)
   for(const type of ['pointerdown','wheel','touchstart','keydown'])listen(root,type,()=>{interacted=true},{passive:true});
   let startY=0,pulling=false;
   listen(window,'touchstart',event=>{pulling=!commentLease.isOpen()&&!closeActivePreview&&window.scrollY<=0&&event.touches.length===1;if(pulling)startY=event.touches[0].clientY},{passive:true});
@@ -672,9 +697,9 @@ export async function mount(context) {
   async function initialize(){
     startFeedBootProgress();
     for(const post of context.state?.items||[])remember(post);if(posts.size)renderPosts();
-    const header=loadHeader(),badge=isFeedAuthenticated()?loadMsgBadge():Promise.resolve();
+    const initialReads=Promise.allSettled([loadHeader(),isFeedAuthenticated()?loadMsgBadge():Promise.resolve()]);
     if(isFeedAuthenticated()&&!enterStarted){enterStarted=true;const entered=await request('POST','/api/feed/enter');if(!context.valid())return;if(entered?.code===0&&context.params.get('focus')==='unread_reply')anchorCommentId=entered.data?.anchor_comment_id||null}
-    await Promise.allSettled([header,badge]);if(!context.valid())return;
+    await initialReads;if(!context.valid())return;
     const loaded=await loadFeed(true);if(!context.valid())return;
     if(loaded){
       for(let i=1;i<entryPageCount&&!noMore&&!interacted;i++)if(!await loadFeed(false,{restore:true}))break;
@@ -682,7 +707,7 @@ export async function mount(context) {
       if(anchorCommentId){const anchor=[...root.querySelectorAll('[data-comment-id]')].find(n=>n.dataset.commentId===String(anchorCommentId));if(anchor&&!interacted){anchor.scrollIntoView({block:'center'});anchor.classList.add('comment-highlighted');setTimeout(()=>anchor.classList.remove('comment-highlighted'),1600)}}
       else if(!interacted&&context.state)services.history.restore(context.router.current);
     }
-    restoring=false;enableFeedInfiniteScroll();if(isFeedAuthenticated()){connectFeedSSE();for(const item of byId('feed-list').children)observeReadTargets(item)}
+    restoring=false;enableFeedInfiniteScroll();if(isFeedAuthenticated()){connectFeedSSE();for(const item of byId('feed-list').querySelectorAll('.feed-item'))observeReadTargets(item)}
   }
   run(initialize());
   return{unmount(){closeActivePreview?.('unmount');commentGeneration++},captureState:()=>({items:[...posts.values()],cursor:{value:nextCursor,pages:loadedPages},expandedIds:[...expanded]})};

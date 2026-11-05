@@ -204,11 +204,8 @@ async function adminRequest(method, path, data = null, isFile = false, requestEx
         );
       }
       if (returnErrorResponse) {
-        return errorResult || {
-          code: resp.status,
-          message: 'HTTP ' + resp.status,
-          data: null
-        };
+        const result = errorResult || {code: resp.status, message: 'HTTP ' + resp.status, data: null};
+        return requestExtra?.returnHttpStatus ? {...result, httpStatus:resp.status} : result;
       }
       return null;
     }
@@ -355,7 +352,7 @@ function showConfirmInput(title, warningMessage, confirmBtnText, onConfirm) {
 
 // ─── 侧边栏菜单配置（按角色）───
 
-// 一级菜单顺序：运营总览 → AI 对话配置 → 语音通话 → 对话流 Prompt → 生活流 Prompt → 系统与账号
+// 一级菜单顺序：运营总览 → AI 对话配置 → 语音通话 → 对话流 Prompt → 生活流 Prompt → 养宠管理 → 系统与账号
 // 占位项仅控制分组插入位置，不渲染为普通菜单项
 var MENU_CONFIG = {
   super_admin: [
@@ -485,12 +482,28 @@ var LIFE_FEED_MENU = {
 MENU_CONFIG.observer = MENU_CONFIG.super_admin.filter(function (item) {
   return item.key !== 'accounts';
 });
+Object.keys(MENU_CONFIG).forEach(function (role) {
+  var menus = MENU_CONFIG[role];
+  var lifeFeedIndex = menus.findIndex(function (item) { return item.group === 'life_feed'; });
+  menus.splice(lifeFeedIndex + 1, 0, { key: 'pet-group', group: 'pet' });
+});
 CHAT_PROMPT_MENU.observer = CHAT_PROMPT_MENU.super_admin.slice();
 LIFE_FEED_MENU.observer = LIFE_FEED_MENU.super_admin.map(function (item) {
   var observerItem = Object.assign({}, item);
   observerItem.readonly = true;
   return observerItem;
 });
+
+// 养宠管理沿用生活流的一级折叠分组，所有现有角色保留分区入口。
+var PET_ADMIN_MENU = [
+  { key: 'pet-overview', label: '概览', href: 'pet.html?section=overview' },
+  { key: 'pet-pets', label: '宠物与记录', href: 'pet.html?section=pets' },
+  { key: 'pet-rules', label: '规则与成本', href: 'pet.html?section=rules' },
+  { key: 'pet-settings', label: '素材与运行配置', href: 'pet.html?section=settings' },
+  { key: 'pet-ai', label: 'AI 与文案', href: 'pet.html?section=ai' },
+  { key: 'pet-tasks', label: '任务与修复', href: 'pet.html?section=tasks' },
+  { key: 'pet-versions', label: '版本与操作日志', href: 'pet.html?section=versions' }
+];
 
 // 实时语音一级分组。Phase A 仅开放「语音设置」；通话记录留待 Phase D 接入。
 var VOICE_CALL_MENU = {
@@ -549,6 +562,13 @@ function restoreSidebarScroll() {
 
 /** 生活流 Prompt 分组标题：仅展开/收起，不跳转 */
 function toggleLifeFeedMenu(titleEl) {
+  var group = titleEl && titleEl.parentElement;
+  if (!group || !group.classList.contains('menu-group')) return;
+  group.classList.toggle('expanded');
+}
+
+/** 养宠管理分组标题：仅展开/收起，不跳转。 */
+function togglePetMenu(titleEl) {
   var group = titleEl && titleEl.parentElement;
   if (!group || !group.classList.contains('menu-group')) return;
   group.classList.toggle('expanded');
@@ -650,6 +670,29 @@ function renderLifeFeedGroupHtml(activeKey, lfMenus) {
   return html;
 }
 
+/** 渲染「养宠管理」及业务二级分区。 */
+function renderPetGroupHtml(activeKey) {
+  if (activeKey === 'pet') activeKey = 'pet-overview';
+  var expanded = PET_ADMIN_MENU.some(function (item) { return item.key === activeKey; });
+  var html = '<div class="menu-group' + (expanded ? ' expanded' : '') + '">';
+  html +=
+    '<div class="menu-group-title" onclick="togglePetMenu(this)">' +
+      '<span class="menu-group-label">🐾 养宠管理</span>' +
+      '<span class="menu-group-arrow"></span>' +
+    '</div><div class="menu-group-body">';
+  for (var i = 0; i < PET_ADMIN_MENU.length; i++) {
+    var item = PET_ADMIN_MENU[i];
+    var isActive = activeKey === item.key;
+    html +=
+      '<a class="menu-item menu-sub' + (isActive ? ' active' : '') + '"' +
+      (isActive ? ' aria-current="page"' : '') +
+      ' href="/admin/pages/' + item.href + '"' +
+      ' onclick="navigateAdminPage(\'' + item.href + '\');return false;">' +
+      item.label + '</a>';
+  }
+  return html + '</div></div>';
+}
+
 /** 渲染「对话流 Prompt」可折叠分组 HTML */
 function renderChatPromptGroupHtml(activeKey, cpMenus) {
   if (!cpMenus || cpMenus.length === 0) return '';
@@ -695,6 +738,10 @@ function renderSidebar(activeKey) {
     if (m.group === 'life_feed') {
       items += renderLifeFeedGroupHtml(activeKey, lfMenus);
       lifeFeedInserted = true;
+      continue;
+    }
+    if (m.group === 'pet') {
+      items += renderPetGroupHtml(activeKey);
       continue;
     }
     if (m.group === 'chat_prompt') {

@@ -1,0 +1,51 @@
+{
+  "version": "approved-v4",
+  "identity_key": "fixed-dog-v4",
+  "source": "docs/design/pet_system/visuals/experience-prototype-v01/assets",
+  "files": {
+    "room.webp": {
+      "uri": "/static/pet-assets/v4/room.webp",
+      "sha256": "5932c3e84d1e8bcf852d6f3c870c08afe32a82956ba7b15da75a689e26269190"
+    },
+    "rest.webp": {
+      "uri": "/static/pet-assets/v4/rest.webp",
+      "sha256": "d5ca68798a10807cf1c31d98e2261e8dc1bb814b311991bf649dbbc36b9e5b50"
+    },
+    "puppy.webp": {
+      "uri": "/static/pet-assets/v4/puppy.webp",
+      "sha256": "67a7b70a943aa9deaaded12500bb6b490a6e4d9eeab1720cbf7d59b27cb128c4"
+    },
+    "blink.webp": {
+      "uri": "/static/pet-assets/v4/blink.webp",
+      "sha256": "61fb8062326011a4389c1eaf48162ecead44fedc83c379eb3589ff8b9e37c9a3"
+    },
+    "ball.webp": {
+      "uri": "/static/pet-assets/v4/ball.webp",
+      "sha256": "934c73ff75bab2e0d3c3624fbf75473127c5efe2093679a2fba6cc5253c735ca"
+    },
+    "juvenile.webp": {
+      "uri": "/static/pet-assets/v4/juvenile.webp",
+      "sha256": "cc3bf62032f59a314eb60ce04979378478d308e720cbb17e9f45a61456d1b697"
+    },
+    "adult.webp": {
+      "uri": "/static/pet-assets/v4/adult.webp",
+      "sha256": "dbe3939e48575960c4efaddd1f2412ebb8fcd1177ef350f3e4abb303b5165a93"
+    },
+    "feeding.webp": {
+      "uri": "/static/pet-assets/v4/feeding.webp",
+      "sha256": "3aa13cddb2c1fcd70614a3c6c2ad57d90430520910b113dbed5d9002edaf66d9"
+    },
+    "puppy-low-energy-v4.png": {
+      "uri": "/static/pet-assets/v4/puppy-low-energy-v4.png",
+      "sha256": "c99971900e7ba54b1bfdb40ddc8c5569685c1a4bb50e7667e62de7e0647c1bee"
+    },
+    "juvenile-low-energy-v4.png": {
+      "uri": "/static/pet-assets/v4/juvenile-low-energy-v4.png",
+      "sha256": "77a3f9b5b3c247f2da97cf7271082c7183ab5391a36714d8877cc3b23dde956b"
+    },
+    "adult-low-energy-v4.png": {
+      "uri": "/static/pet-assets/v4/adult-low-energy-v4.png",
+      "sha256": "2faddd2227273e5dec073fd44c49fef37a9b275e6f3e4b1aa545e51c431b130a"
+    }
+  }
+}

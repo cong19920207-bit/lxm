@@ -424,3 +424,137 @@ html[data-app-route="memory"] body.h5-skin.memory-nebula-page {
         transition: none;
       }
     }
+
+/* 柔光星尘：只改变 AppShell 记忆页的表现与手势反馈。 */
+:where([data-app-page="memory"]) { --memory-accent:#a7d5e6; }
+:where([data-app-page="memory"]) .nebula-ambient-light {
+  position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(ellipse at 84% 22%,#ada5ee20,transparent 43%),radial-gradient(ellipse at 6% 72%,#7db4dc1a,transparent 42%);
+}
+:where([data-app-page="memory"]) .nebula-selection {
+  position:absolute; z-index:2; width:var(--selection-size,96px); height:var(--selection-size,96px);
+  transform:translate(-50%,-50%); opacity:0; pointer-events:none; transition:opacity .3s;
+}
+:where([data-app-page="memory"]) .nebula-selection.is-visible { opacity:1; }
+:where([data-app-page="memory"]) .nebula-selection-halo {
+  position:absolute; inset:0; border:1px solid #d7eeff70; border-radius:50%;
+  box-shadow:0 0 22px color-mix(in srgb,var(--memory-accent) 22%,transparent),inset 0 0 12px #bbd5ff12;
+}
+:where([data-app-page="memory"]) .nebula-selection-halo::before {
+  content:""; position:absolute; inset:-40%; border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--memory-accent) 19%,transparent),transparent 67%);
+}
+:where([data-app-page="memory"]) .nebula-selection-halo::after {
+  content:""; position:absolute; inset:-13%; border:1px solid #dfedff1b; border-radius:50%;
+}
+:where([data-app-page="memory"]) .nebula-selection-label {
+  position:absolute; left:50%; top:calc(100% + 11px); transform:translateX(-50%);
+  width:max-content; max-width:210px; padding:4px 9px; border-radius:12px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; line-height:1.5;
+  color:#e3e9f4; background:#0b10234d; text-shadow:0 1px 9px #0009;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+}
+:where([data-app-page="memory"]) .nebula-selection-particles { position:absolute; inset:0; }
+:where([data-app-page="memory"]) .nebula-selection-particle {
+  position:absolute; left:50%; top:50%; width:2px; height:2px; border-radius:50%;
+  background:var(--memory-accent); box-shadow:0 0 8px var(--memory-accent);
+}
+:where([data-app-page="memory"]) .nebula-selection-pulse {
+  position:absolute; left:50%; top:50%; width:100%; height:100%; border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--memory-accent) 60%,transparent);
+}
+:where([data-app-page="memory"]) .nebula-sheet-mask {
+  pointer-events:none; background:linear-gradient(180deg,transparent 30%,#05091920 70%,#05091940);
+}
+:where([data-app-page="memory"]) .nebula-sheet-aura {
+  position:fixed; z-index:30; left:50%; bottom:calc(18px + env(safe-area-inset-bottom,0px));
+  width:calc(100% - 18px); max-width:510px; height:290px; transform:translateX(-50%);
+  border-radius:40%; filter:blur(26px); pointer-events:none; opacity:0; transition:opacity .5s;
+  background:radial-gradient(ellipse at 8% 5%,color-mix(in srgb,var(--memory-accent) 34%,transparent),transparent 58%),radial-gradient(ellipse at 100% 70%,#a395ef24,transparent 56%);
+}
+:where([data-app-page="memory"]) .nebula-sheet-aura.is-open { opacity:.72; }
+:where([data-app-page="memory"]) .nebula-sheet {
+  left:50%; right:auto; width:calc(100% - 28px); max-width:480px; min-height:0;
+  max-height:calc(100dvh - 100px); bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  border:1px solid #c8d8ef2c; border-radius:26px;
+  background:radial-gradient(ellipse at var(--sheet-light-x,12%) var(--sheet-light-y,0%),color-mix(in srgb,var(--memory-accent) 17%,transparent),transparent 63%),radial-gradient(ellipse at 100% 100%,#b2a2eb10,transparent 56%),linear-gradient(145deg,#1d273ed1,#0e1526e6);
+  box-shadow:0 26px 65px #0006,inset 0 1px 0 #f2f6ff12,0 0 50px #9ab4e624;
+  backdrop-filter:blur(34px) saturate(132%); -webkit-backdrop-filter:blur(34px) saturate(132%);
+  transform:translate(-50%,115%); transition:transform .42s cubic-bezier(.22,1,.36,1);
+  user-select:text; -webkit-user-select:text;
+}
+:where([data-app-page="memory"]) .nebula-sheet.is-open { transform:translate(-50%,var(--sheet-drag-y,0px)); }
+:where([data-app-page="memory"]) .nebula-sheet.is-dragging { transition:none; }
+:where([data-app-page="memory"]) .nebula-sheet::before {
+  content:""; position:absolute; z-index:1; inset:0; padding:1px; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(132deg,#e2f6ff85,#bdd9fd27 24%,transparent 45%,#bbb3ed16 66%,#d0c5ff4d);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); -webkit-mask-composite:xor;
+  mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude; opacity:.75;
+}
+:where([data-app-page="memory"]) .nebula-sheet-sheen {
+  position:absolute; z-index:0; inset:-30% auto -30% -50%; width:60%; pointer-events:none; opacity:0;
+  background:linear-gradient(100deg,transparent,#d9edff21 45%,#fff1 51%,transparent);
+  transform:translateX(-150%) skewX(-18deg);
+}
+:where([data-app-page="memory"]) .nebula-sheet-handle {
+  position:relative; z-index:2; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; width:100%; height:24px; margin:0; padding:0; border:0; border-radius:0;
+  background:transparent; cursor:grab; touch-action:none;
+}
+:where([data-app-page="memory"]) .nebula-sheet-handle:active { cursor:grabbing; }
+:where([data-app-page="memory"]) .nebula-sheet-handle span { width:30px; height:3px; border-radius:8px; background:#e2eaf247; box-shadow:0 0 10px #e2eaff15; }
+:where([data-app-page="memory"]) .nebula-sheet-body { z-index:2; padding:0 20px; overflow:visible; }
+:where([data-app-page="memory"]) .nebula-sheet-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:36px; margin:-2px -8px 11px 0; flex-shrink:0; }
+:where([data-app-page="memory"]) .nebula-sheet-category { gap:8px; margin:0; font-size:12px; letter-spacing:.04em; color:#bbbfd7; }
+:where([data-app-page="memory"]) .nebula-category-dot { width:5px; height:5px; border-radius:50%; background:var(--memory-accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--memory-accent) 8%,transparent),0 0 12px color-mix(in srgb,var(--memory-accent) 55%,transparent); }
+:where([data-app-page="memory"]) .nebula-sheet-close { display:grid; place-items:center; flex-shrink:0; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:transparent; color:#aeb4cf; cursor:pointer; }
+:where([data-app-page="memory"]) .nebula-sheet-close:hover { background:#ffffff08; }
+:where([data-app-page="memory"]) .nebula-sheet-close svg { width:17px; height:17px; }
+:where([data-app-page="memory"]) .nebula-sheet-value {
+  flex:none; max-height:126px; min-height:0; padding:0; overflow:hidden; position:relative;
+  font-size:17px; line-height:1.9; letter-spacing:.015em; color:#f1f3fb; white-space:pre-wrap;
+  transition:max-height .4s cubic-bezier(.22,1,.36,1); touch-action:pan-y;
+}
+:where([data-app-page="memory"]) .nebula-sheet-value.is-long:not(.is-expanded)::after { content:""; position:absolute; inset:auto 0 0; height:42px; pointer-events:none; background:linear-gradient(transparent,#171e32f5); }
+:where([data-app-page="memory"]) .nebula-sheet-value.is-expanded { max-height:min(42dvh,340px); overflow-y:auto; overscroll-behavior:contain; }
+:where([data-app-page="memory"]) .nebula-sheet-value,
+:where([data-app-page="memory"]) .nebula-sheet-body { scrollbar-width:none; -ms-overflow-style:none; }
+:where([data-app-page="memory"]) .nebula-sheet-value::-webkit-scrollbar,
+:where([data-app-page="memory"]) .nebula-sheet-body::-webkit-scrollbar { display:none; width:0; height:0; }
+:where([data-app-page="memory"]) .nebula-sheet-expand { display:flex; align-items:center; gap:5px; flex-shrink:0; min-height:36px; padding:5px 0 0; border:0; background:transparent; color:#c1c8df; font:inherit; font-size:12px; cursor:pointer; }
+:where([data-app-page="memory"]) .nebula-sheet-expand svg { width:13px; height:13px; transition:transform .25s; }
+:where([data-app-page="memory"]) .nebula-sheet-expand[aria-expanded="true"] svg { transform:rotate(180deg); }
+:where([data-app-page="memory"]) .nebula-sheet-expand[hidden],
+:where([data-app-page="memory"]) .nebula-sheet-navigation[hidden] { display:none; }
+:where([data-app-page="memory"]) .nebula-sheet-footer { margin:23px 0 18px; padding:0; }
+:where([data-app-page="memory"]) .nebula-sheet-source { color:#aab2cac7; font-size:11px; }
+:where([data-app-page="memory"]) .nebula-sheet-source svg { width:12px; height:12px; }
+:where([data-app-page="memory"]) .nebula-sheet-badge { padding:0; gap:4px; border:0; border-radius:0; background:transparent; color:#b6bdd3b8; }
+:where([data-app-page="memory"]) .nebula-sheet-navigation { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; padding:10px 12px 12px; border-top:1px solid #ffffff0f; background:linear-gradient(90deg,#90b9dd03,transparent,#baa2e805); }
+:where([data-app-page="memory"]) .nebula-sheet-navigation button { display:flex; justify-content:center; align-items:center; gap:6px; min-width:86px; min-height:38px; padding:0 9px; border:0; border-radius:12px; background:transparent; color:#c2c5da; font:inherit; font-size:12px; cursor:pointer; }
+:where([data-app-page="memory"]) .nebula-sheet-navigation button:hover { background:color-mix(in srgb,var(--memory-accent) 8%,transparent); }
+:where([data-app-page="memory"]) .nebula-sheet-navigation button:disabled { opacity:.25; cursor:default; }
+:where([data-app-page="memory"]) .nebula-sheet-navigation svg { width:15px; height:15px; }
+:where([data-app-page="memory"]) .nebula-memory-position { color:#a3abc4; font-size:11px; font-variant-numeric:tabular-nums; letter-spacing:.1em; white-space:nowrap; }
+:where([data-app-page="memory"]) .nebula-visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+@media (pointer:coarse) {
+  :where([data-app-page="memory"]) .nebula-sheet-close { width:44px; height:44px; }
+  :where([data-app-page="memory"]) .nebula-sheet-handle { height:28px; }
+  :where([data-app-page="memory"]) .nebula-sheet-navigation button,
+  :where([data-app-page="memory"]) .nebula-sheet-expand { min-height:44px; }
+}
+@media (max-width:360px) {
+  :where([data-app-page="memory"]) .nebula-sheet { width:calc(100% - 20px); }
+  :where([data-app-page="memory"]) .nebula-sheet-body { padding:0 17px; }
+  :where([data-app-page="memory"]) .nebula-sheet-value { font-size:16px; }
+}
+@media (max-height:650px) {
+  :where([data-app-page="memory"]) .nebula-sheet { max-height:calc(100dvh - 24px); }
+  :where([data-app-page="memory"]) .nebula-sheet-body { overflow-y:auto; }
+}
+@media (prefers-reduced-motion:reduce) {
+  :where([data-app-page="memory"]) .nebula-sheet,
+  :where([data-app-page="memory"]) .nebula-sheet-value,
+  :where([data-app-page="memory"]) .nebula-selection,
+  :where([data-app-page="memory"]) .nebula-sheet-aura { transition:none; }
+}

@@ -30,6 +30,8 @@
 | 记忆、知识库、Step6、向量 | [接口](contract/current/memory-knowledge/api.md) · [数据](contract/current/memory-knowledge/data.md) · [后台](contract/current/memory-knowledge/admin-ui.md) | [记忆与知识](tech-debt/active/memory-knowledge.md) |
 | DashVector Collection 库名统一配置与多环境发布 | [记忆接口](contract/current/memory-knowledge/api.md) · [后台配置](contract/current/memory-knowledge/admin-ui.md) | [TD-044（最高优先级 P0）](tech-debt/active/memory-knowledge.md#td-044) |
 | Step6 昵称、姓名、后续行动计划等非向量信息后台展示 | [需求池索引](requirement-pool/README.md) · [RP-006](requirement-pool/active/step6-non-vector-admin-display/RP-006.md#rp-006)（已记录，待细化、待排期） | — |
+| 轻量共同养宠 | [接口与客户端](contract/current/pet-system/api.md) · [数据](contract/current/pet-system/data.md) · [管理后台](contract/current/pet-system/admin-ui.md) | — |
+| 养宠照片下载保存到手机 | [需求池索引](requirement-pool/README.md) · [RP-007](requirement-pool/active/pet-photo-mobile-download/RP-007.md#rp-007)（已确认纳入后续版本，本轮不实施） | — |
 | 日记与时区 | [接口](contract/current/diary/api.md) · [数据](contract/current/diary/data.md) · [后台](contract/current/diary/admin-ui.md) | [日记](tech-debt/active/diary.md) |
 | 关系成长 | [接口](contract/current/relationship/api.md) · [数据](contract/current/relationship/data.md) · [后台](contract/current/relationship/admin-ui.md) | [关系](tech-debt/active/relationship.md) |
 | Agent、Future、主动消息 | [接口](contract/current/agent-future/api.md) · [数据](contract/current/agent-future/data.md) · [后台](contract/current/agent-future/admin-ui.md) | [Agent](tech-debt/active/agent-future.md) |
@@ -48,6 +50,7 @@
 | `/api/chat`、`conversation_log`、`emotion_log`、`backend/routers/chat.py` | [聊天接口](contract/current/chat-emotion/api.md) · [聊天数据](contract/current/chat-emotion/data.md) |
 | `/api/memory`、`memory`、`step6_orchestrator.py` | [记忆接口](contract/current/memory-knowledge/api.md) · [记忆数据](contract/current/memory-knowledge/data.md) |
 | `/api/diary`、`ai_diary`、`ai_diary_task.py` | [日记接口](contract/current/diary/api.md) · [日记数据](contract/current/diary/data.md) |
+| `/api/pet`、`/api/admin/pets`、`pet_*`、`frontend/pages/pet.html`、`admin/pages/pet.html` | [接口与客户端](contract/current/pet-system/api.md) · [数据](contract/current/pet-system/data.md) · [管理后台](contract/current/pet-system/admin-ui.md) |
 | `/api/relationship`、`relationship_*` | [关系接口](contract/current/relationship/api.md) · [关系数据](contract/current/relationship/data.md) |
 | `/api/agent`、`agent_message`、`future_handler.py` | [Agent 接口](contract/current/agent-future/api.md) · [Agent 数据](contract/current/agent-future/data.md) |
 | `/api/feed`、`feed_*`、`life_feed_task.py` | [生活流接口](contract/current/life-feed/api.md) · [生活流数据](contract/current/life-feed/data.md) |

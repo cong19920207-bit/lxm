@@ -1,45 +1,44 @@
-<div class="diary-page-wrap">
-    <header class="diary-hero" role="banner">
-      <div class="diary-hero-bar page-back-bar">
-        <button type="button" class="page-back page-back--dark" data-diary-action="back" aria-label="返回">
-          <span class="page-back__surface" aria-hidden="true">
-            <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false">
-              <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </button>
+<div id="lxm-painted-diary" class="diary-page-wrap">
+  <div class="diary-page">
+    <header class="diary-hero">
+      <img class="diary-hero-image" src="/static/images/diary/dary_ri.png" alt="林小梦，今天偷偷写了点东西，你会看到吗…">
+      <img class="diary-hero-copy-contrast" src="/static/images/diary/dary_ri.png" alt="" aria-hidden="true">
+      <div class="diary-topbar page-back-bar">
+        <button type="button" class="page-back page-back--dark" data-diary-action="back" aria-label="返回"><span class="page-back__surface" aria-hidden="true"><svg class="page-back__icon" viewBox="0 0 24 24" fill="none" focusable="false"><path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+        <button type="button" id="diary-calendar-button" class="diary-icon-button" data-diary-action="calendar" aria-label="打开日记日历" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v5m8-5v5M4 11h16"/></svg></button>
       </div>
     </header>
-
-    <main class="diary-main">
-      <div id="diary-list"></div>
-      <div class="load-more-sentinel" id="bottom-sentinel"></div>
-      <div class="no-more-text" id="no-more" style="display:none">没有更多日记了</div>
-
-      <div class="empty-state" id="empty-active" style="display:none">
-        <div class="empty-icon">
-          <div class="empty-bubble"></div>
-          <div class="empty-dot"></div>
-          <div class="empty-dot"></div>
-          <div class="empty-dot"></div>
-        </div>
-        <div class="empty-text">今天林小梦还没写新日记哦<br>多和我聊聊吧</div>
-        <button class="btn-primary" type="button" data-diary-action="chat">去聊天</button>
-      </div>
-
-      <div class="empty-state" id="empty-new" style="display:none">
-        <div class="empty-icon">
-          <div class="empty-bubble"></div>
-          <div class="empty-dot"></div>
-          <div class="empty-dot"></div>
-          <div class="empty-dot"></div>
-        </div>
-        <div class="empty-text">和我多聊聊天<br>我会把我们的故事都记下来</div>
-      </div>
-
-      <div class="empty-state" id="empty-error" style="display:none">
-        <div class="empty-text" id="empty-error-text">日记加载失败，请检查网络后重试</div>
-        <button type="button" class="btn-primary" id="btn-retry-diary">重新加载</button>
-      </div>
+    <section class="diary-week" aria-label="这一周的日记" hidden>
+      <p class="diary-week-range" id="diary-week-range"></p>
+      <div class="diary-week-grid" id="diary-week-grid"></div>
+    </section>
+    <main id="diary-reader" aria-busy="true">
+      <article class="painted-paper" id="diary-paper" hidden>
+        <header class="paper-heading"><span class="paper-heading-label">小梦的日记</span><time id="diary-date"></time></header>
+        <div class="diary-letter" id="diary-letter" tabindex="-1"></div>
+        <footer class="diary-signature"><strong>小梦</strong></footer>
+      </article>
+      <div class="diary-notice" id="empty-date" hidden></div>
+      <nav class="diary-pagination" id="diary-pagination" aria-label="切换日记" hidden>
+        <button type="button" data-diary-action="previous"><span class="diary-page-arrow" aria-hidden="true">‹</span><span class="diary-pagination-copy">上一篇<small id="diary-previous-date"></small></span></button>
+        <button type="button" class="diary-today" data-diary-action="today" aria-label="回到今天">今天</button>
+        <button type="button" data-diary-action="next"><span class="diary-pagination-copy">下一篇<small id="diary-next-date"></small></span><span class="diary-page-arrow" aria-hidden="true">›</span></button>
+      </nav>
+      <p class="diary-notice" id="diary-loading" role="status">正在翻开日记…</p>
+      <div class="diary-notice" id="diary-load-error" hidden><p>日记加载失败，请稍后重试</p><button type="button" data-diary-action="retry-more">重新加载</button></div>
+      <div class="diary-notice" id="empty-active" hidden><p>今天林小梦还没写新日记哦<br>多和我聊聊吧</p><button type="button" data-diary-action="chat">去聊天</button></div>
+      <div class="diary-notice" id="empty-new" hidden><p>和我多聊聊天<br>我会把我们的故事都记下来</p></div>
+      <div class="diary-notice" id="empty-error" hidden><p>日记加载失败，请检查网络后重试</p><button type="button" id="btn-retry-diary" data-diary-action="retry">重新加载</button></div>
     </main>
   </div>
+  <dialog id="diary-calendar" class="diary-calendar" aria-labelledby="diary-calendar-title">
+    <div class="diary-calendar-header"><h2 id="diary-calendar-title">翻翻以前的日记</h2><button type="button" class="diary-icon-button" data-diary-action="close-calendar" aria-label="关闭日历">×</button></div>
+    <div class="diary-calendar-month"><button type="button" class="diary-icon-button" data-diary-action="month-previous" aria-label="上个月">‹</button><span id="diary-calendar-month"></span><button type="button" class="diary-icon-button" data-diary-action="month-next" aria-label="下个月">›</button></div>
+    <div class="diary-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+    <div class="diary-calendar-grid" id="diary-calendar-grid"></div>
+    <p class="diary-calendar-legend">插画：有日记 · 浅色：无日记 · …：尚在查找</p>
+    <p id="diary-calendar-loading" role="status" hidden>正在查找以前的日记…</p>
+    <div id="diary-calendar-error" hidden><p>以前的日记加载失败</p><button type="button" data-diary-action="retry-calendar">重新加载</button></div>
+  </dialog>
+  <p class="diary-sr-only" id="diary-announcement" aria-live="polite"></p>
+</div>

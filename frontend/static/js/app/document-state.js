@@ -1,6 +1,7 @@
 const mobile = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 // Original page attributes. Per-page CSS is scoped separately to [data-app-page].
 export const layouts = Object.freeze({
+  pet: {title:'林小梦 - 一起养宠',bodyClass:'h5-skin pet-page',viewport:mobile,scroll:'document'},
   index: { title: '林小梦', bodyClass: 'h5-skin home-scene-page', viewport: 'width=device-width, initial-scale=1.0, viewport-fit=cover', fullscreen: true, html: { 'data-home-scene-mode': 'dynamic' }, scroll: null },
   chat: { title: '林小梦 - 聊天', bodyClass: 'h5-skin chat-immersive', viewport: mobile, fullscreen: true, scroll: '#chat-messages' },
   feed: { title: '林小梦 - 朋友圈', bodyClass: 'h5-skin feed-page', viewport: mobile, scroll: 'document' },

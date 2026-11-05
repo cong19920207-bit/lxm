@@ -37,7 +37,7 @@ BGM独立公开 `GET /api/bgm/catalog`，不解析Authorization，账号与偏�
 | `GET` | `/api/feed/config/header` | `200`，公共 Header | `200` | HTTP `401` |
 | `GET` | `/api/app/persona-background` | `200`，公共人格背景 | `200` | HTTP `401` |
 
-- 可选Bearer白名单包含上述三个 GET。另有完全匿名BGM目录，见下项。页面可以未登录停留，不代表该页其他接口匿名开放。
+- 可选Bearer白名单包含上述三个 GET。另有完全匿名的 BGM 目录和养宠介绍，分别见 [BGM](../bgm/api.md) 和[养宠](../pet-system/api.md)。页面可以未登录停留，不代表该页其他接口匿名开放。
 - 未引入游客账号、游客会话、游客试聊、数据继承、新表字段或数据库迁移。
 - Feed 列表的完整条件响应和其余 Feed 端点强鉴权口径以 `contract-life-feed-api` 为准。认证 API 本身的请求/响应契约不变。
 
@@ -67,10 +67,11 @@ BGM独立公开 `GET /api/bgm/catalog`，不解析Authorization，账号与偏�
 
 | 页面 | 未登录可见内容 | 禁止的私有初始化 | 主动交互与登录恢复 |
 |---|---|---|---|
-| Index | 默认头像/状态；文案“故事从今天开始”；关系 `0 / 200`；日记锁定占位；隐藏未读；只加载公共 Feed 与按需公共 BGM | 不加载用户关系、私有首页数据或未读 | 前四格快捷入口、关系和日记入口先弹窗；第五格 BGM 公开；成功后私有首页数据与未读各恢复一次 |
+| Index | 默认头像/状态；文案“故事从今天开始”；关系 `0 / 200`；日记锁定占位；隐藏未读；只加载公共 Feed 与按需公共 BGM | 不加载用户关系、私有首页数据或未读 | 私有快捷操作、关系和日记入口先弹窗；养宠进入公开介绍，BGM 公开；成功后私有首页数据与未读各恢复一次 |
 | Feed | 公共 Header 和公共 List | 不 enter、不请求 badge、不连 SSE、不启动观察器或私有 focus | 点赞/评论在 UI 或请求改变前先弹窗；成功后各私有资源恢复一次，不重放写操作 |
 | Settings | 默认资料；私有标题/设置卡隐藏；BGM 两个本地开关公开；“关于林小梦”可懒加载公共 persona | 不加载关系、私有状态或账号设置 | 登录按钮弹窗；成功后关系、状态与设置各恢复一次；BGM 与 About 保持可用 |
 | Chat | 只渲染访客壳；Feed 入口仍公开 | 不读时间线、未读、草稿，不发模型请求 | 发送、Enter、重试、记忆入口先弹窗；成功后恢复私有数据一次，保留输入但不自动发送 |
+| 养宠 | 固定小狗介绍 | 不读个人宠物、记录或照片 | 开始领养时要求登录，详见[养宠接口与客户端](../pet-system/api.md) |
 
 #### 受保护页统一回退
 
@@ -243,9 +244,11 @@ transport计时覆盖整个SSE读取，按首次submitted+180秒+margin或可信
 
 ### 内容页与设置页 BGM 气泡（STEP-015）
 
-Feed/Diary/Memory/Relationship/Chat/Settings共同加载bgm-record.js、bgm-bubble.js和bgm.css；受保护页先通过原门禁，主页/独立登录/Admin不挂载。展开为横向SVG图标加文字的播放暂停/手动恢复及本次关闭，按展开区域与唱片的真实联合边界避让，空白收起不断音；关闭立即停播并移除气泡，设置页不能绕过关闭重开。目录未明或暂时失败保留恢复入口，确认空目录不留下无用按钮。
+Feed/Diary/Memory/Relationship/Chat/Settings/Pet共同加载bgm-record.js、bgm-bubble.js和bgm.css；受保护页先通过原门禁，宠物页沿用已有入口授权，主页/独立登录/Admin不挂载。展开为横向SVG图标加文字的播放暂停/手动恢复及本次关闭，按展开区域与唱片的真实联合边界避让，空白收起不断音；关闭立即停播并移除气泡，设置页不能绕过关闭重开。目录未明或暂时失败保留恢复入口，确认空目录不留下无用按钮。
 
 右侧上下拖动按会话可用高度比例保存，经过显式页面安全区与visualViewport限位；聊天避开输入发送，记忆避开底栏/recenter，设置避开开关/可点行/表单与退出按钮。图片/评论/登录/确认/抽屉/升级等已命名覆盖层临时隐藏控件，结束按最新关闭/恢复状态处理。字段、采用参数和本地验证限制见[BGM契约](../bgm/api.md)；真机、实际键盘与记忆抽屉操作待补证，不以注入状态代替实际交互。
+
+宠物页在AppShell和独立入口均显示共享唱片，避让顶部导航及底部互动区；互动进行中和留影／照片回看时暂时隐藏。内部页面变化以`pet:render`及明确状态属性更新避让，不改变播放意图。场景等比例与交互坐标约定见[养宠客户端](../pet-system/api.md#场景适配与音乐入口)。
 
 #### BGM 与真实通话准备
 
@@ -255,7 +258,7 @@ Feed/Diary/Memory/Relationship/Chat/Settings共同加载bgm-record.js、bgm-bubb
 
 ## AppShell 源码增量（2026-10-23）
 
-源码已实现八页AppShell；只有完整入口被显式激活后才使用壳。此处同步已实现行为，不表示已通过完整目标设备验收或已在生产启用。正式业务API、JWT、数据库与OSS/CORS保持原契约。当前候选、运行环境、已验/待验及恢复位置只见[唯一进度§8](../../../design/h5-appshell/steps-verified.md#8-h5-appshell-step进度)。
+原 AppShell 范围为八页。养宠接入后新增 `/pages/pet.html`，路由、模板与独立页边界见[养宠接口与客户端](../pet-system/api.md)。只有完整入口被显式激活后才使用壳。此处同步已实现行为，不表示已通过完整目标设备验收或已在生产启用。正式业务API、JWT、数据库与OSS/CORS保持原契约。当前候选、运行环境、已验/待验及恢复位置只见[唯一进度§8](../../../design/h5-appshell/steps-verified.md#8-h5-appshell-step进度)。
 
 <a id="appshell-delta-01"></a>
 ### AppShell构建与入口
@@ -270,7 +273,7 @@ Feed/Diary/Memory/Relationship/Chat/Settings共同加载bgm-record.js、bgm-bubb
 <a id="appshell-delta-03"></a>
 ### AppShell导航事务
 
-导航：只拦截八条已知同源路由；返回调用即登记navId，迟到pop先补偿原历史位置，较新意图才提交；已完成的补偿不重复执行。准备失败保留旧页，已提交或 pop 失败显示目标错误/重试；准备及挂载等待15秒。目标 blocker 在旧页释放前安装。参数变化 remount，相同语义不重复 push。六页返回（2026-10-25）：Chat/Feed/Diary/Memory/Relationship/Settings共用Router.back；当前受管历史通过schema/build/entryId/position/route校验且position>0时后退一条，否则replace首页；事务去重。保留query/hash、BGM单层历史与通话离页确认；同build刷新保留可信来路，快照仍只在内存。首页/Login不新增返回，认证与局部关闭语义保持。六页共用36px无色玻璃圆底、44px命中区、18px同款SVG；底色/边线/高光仅中性灰阶，顶栏对齐顶部安全区及左右12px，Diary/Settings用深色箭头。此增量仅AppShell，旧独立HTML回退分支沿用原实现。
+导航：只拦截已注册的同源路由（含养宠）；返回调用即登记navId，迟到pop先补偿原历史位置，较新意图才提交；已完成的补偿不重复执行。准备失败保留旧页，已提交或 pop 失败显示目标错误/重试；准备及挂载等待15秒。目标 blocker 在旧页释放前安装。参数变化 remount，相同语义不重复 push。六页返回（2026-10-25）：Chat/Feed/Diary/Memory/Relationship/Settings共用Router.back；当前受管历史通过schema/build/entryId/position/route校验且position>0时后退一条，否则replace首页；事务去重。保留query/hash、BGM单层历史与通话离页确认；同build刷新保留可信来路，快照仍只在内存。首页/Login不新增返回，认证与局部关闭语义保持。六页共用36px无色玻璃圆底、44px命中区、18px同款SVG；底色/边线/高光仅中性灰阶，顶栏对齐顶部安全区及左右12px，Diary/Settings用深色箭头。此增量仅AppShell，旧独立HTML回退分支沿用原实现。
 
 <a id="appshell-delta-04"></a>
 ### AppShell历史与快照
@@ -302,17 +305,19 @@ D-02：离页确认“继续通话”留当前页，“结束并离开”停止�
 <a id="appshell-pages"></a>
 ### AppShell八页装配
 
-Home/Chat/Diary采用显式mount/unmount。Home保持原加载时限、场景和私有门禁；Chat保留原提交request_id/绝对截止/generation/BIGINT revision与有限只读核实、不重发；Diary沿用仅登录准入、分页items与原read语义。页面草稿/条目快照只保留有界普通数据，身份变更清私有缓存，旧页迟到回调不可写入。
+Home/Chat/Diary采用显式mount/unmount。Home保持原加载时限、场景和私有门禁；Chat保留原提交request_id/绝对截止/generation/BIGINT revision与有限只读核实、不重发；Diary沿用仅登录准入、分页items；已读以日记专项契约的实际阅读与返回补记规则为准。页面草稿/条目快照只保留有界普通数据，身份变更清私有缓存，旧页迟到回调不可写入。
 
 <a id="appshell-delta-12"></a>
-### AppShell私有快照与只读恢复
+### AppShell私有快照与恢复
 
-Chat滚动锚点包含source和稳定ID，仅重读原分页深度；Diary返回读回服务端真值，成功read事实不回退，恢复展开不产生新read写入。共享私有草稿清理同时覆盖原sessionStorage.chat_draft。
+Chat滚动锚点包含source和稳定ID，仅重读原分页深度；Diary返回读回服务端真值，成功read事实不回退。2026-11-04 用户确认：返回恢复后，当前日记实际呈现且仍未读时允许补记 read（包括上次请求失败的情况）；同一页面实例内失败不自动重试，成功已读不重复提交，开场/后台/月历遮挡、预取与空日期恢复不提交。此条替代旧“恢复展开不产生新read写入”限制，详见[日记已读规则](../diary/api.md)。共享私有草稿清理同时覆盖原sessionStorage.chat_draft。
 
 <a id="appshell-delta-13"></a>
 ### AppShell Feed挂载与服务器真值
 
 Feed每有效挂载认证后enter一次、SSE一条；访客只公共列表/头部。返回读服务器真值，只重读先前分页深度，按既有稳定ID核对列表/评论内容、顺序及去重。未知写响应只读核实，不重放点赞/评论。曝光阈值与3秒停留保留，返回重新计时，旧页上报/重连全失效。
+
+Feed 以北京时间的具体日期分组，跨年时显示年份。头像下显示相对时间和有值的发帖城市。短文直接展示，超过四行可展开。单图、双图和相册共用内容宽度与 12px 圆角。单图按原比例缩放，超高图限制预览高度；双图并排，三张起使用无箭头横滑相册并显示张数。点图片按当前索引打开全屏原图。封面资料中的主场城市以签名下的小字和定位图标展示。
 
 <a id="appshell-delta-14"></a>
 ### AppShell覆盖层与清理
@@ -351,7 +356,9 @@ Memory：显式mount，原doc_id/key/value及50条分页/图形交互；PageScop
 <a id="appshell-delta-23"></a>
 ### AppShell Relationship参数与分页
 
-Relationship：显式mount，原detail/growth-log字段、每页20条、按日分组及等级/成长规则不变。原id去重保序；快照仅滚动/焦点/权益折叠/已读页数cursor，恢复最多100页为工程上限，手动分页无此上限。Router只消费just_leveled_up=true并保留其他query/hash/history；快照不保存可逆的消费状态。原300ms数值动画、500ms升级延迟/300ms淡出归本实例；OverlayManager拥有锁/inert/焦点，卸载立即清理。无新成长写入。
+Relationship：显式mount，采用关系主视觉、相识纪念卡、亲密进度、五项今日成长、关系足迹照片卡的第二版布局，全部数值与权益读取真实detail。成长记录仅展示北京时间今天及前6个自然日，主页面最多5条；完整记录面板按北京时间分组、每页20条手动加载，范围与total遵循[关系接口](../relationship/api.md)。按id去重保序，跨日刷新窗口并重读第一页；定时跨零点、可见恢复和打开记录时均检查窗口。历史数据不删除，等级及成长写入规则不变。
+
+快照仅滚动/焦点/已读页数cursor（保留兼容的rightsCollapsed字段），不恢复已打开的面板；恢复最多100页为工程上限，手动分页无此上限。Router只消费just_leveled_up=true并保留其他query/hash/history；快照不保存可逆的消费状态。300ms数值动画、500ms升级延迟/300ms淡出归本实例；权益/规则/记录共用原生dialog并接入OverlayManager的锁/inert/焦点，升级提示在已打开面板关闭后展示，卸载立即清理。
 
 <a id="appshell-delta-27"></a>
 ### AppShell双入口兼容
@@ -399,4 +406,4 @@ Settings情绪头像采用同样清理规则：已完成图仅解绑回调，在
 非主页直达保留原路由与访客访问规则；需要自动登录窗时等开场结束后重检路由 / 身份再展示，隐藏表单不得抢焦点。麦克风仍仅由现有发起通话流程申请。此节覆盖 AppShell 下早期加载层节奏和“仅设置页申请倾斜”的旧限定；旧 HTML 回退分支不受本次增量影响。源码、本地验证与未验设备边界见[开场设计及接入记录](../../../design/h5-entry-experience/设计说明.md#产品接入验证2026-10-23)。
 
 
-2026-10-24曾在本地部署中实施入口收拢；本机端口、地址及别名跳转不属于本次共享配置。AppShell 八页路由、入口选择与缓存规则随源码交付。2026-10-25本地桌面设置页／退出弹窗复查通过；手机入口因LAN地址变化不可用，用户确认恢复延期，实体手机验收仍未完成。生产未部署。历史本地配置及验证记录留在本机，验收范围与延期决定见[桌面复查收尾](../../../design/h5-entry-experience/设计说明.md#桌面范围契约复查与收尾2026-10-25)。
+2026-10-24按用户确认，本机H5唯一入口为 `http://localhost:8000`；80端口与 `127.0.0.1:8000` 的根路径／八页文档入口307跳转至该来源并保留路径和查询参数，规范入口根路径使用相对302保留8000端口。API／Admin／SSE／WS与非本地域名不变，手机部署仍读取同一 `frontend/app-entry.html`。旧8808预览已不存在，核心、手机及文档站容器保留，生产未改。2026-10-25复查发现LAN地址变化导致旧手机HTTPS超时；用户确认恢复延期，本轮设置页／退出弹窗／桌面入口门禁通过，必须修0、手机恢复延期1，实体手机验收仍未完成。地址、启动与历史证据见[本地入口收拢](../../../design/h5-entry-experience/设计说明.md#本地入口收拢2026-10-24当前入口)，最新取舍及恢复位置见[桌面复查收尾](../../../design/h5-entry-experience/设计说明.md#桌面范围契约复查与收尾2026-10-25)。

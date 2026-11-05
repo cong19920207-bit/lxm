@@ -1,21 +1,19 @@
 
 /* 朋友圈页色板 */
     html[data-app-route="feed"] body.feed-page {
-      --feed-purple-accent: #8B5CF6;
-      --feed-purple-liked: #E879A9;
-      --feed-purple-soft: #F3EEFA;
-      --feed-panel-bg: #F8F7FC;
-      --feed-text: #2D2A35;
-      --feed-text-muted: #9B95A8;
-      --feed-icon-stroke: #B8B0C8;
-      --feed-node: #A66BFF;
-      --feed-timeline-x: 80px;
-      --feed-divider-left: 92px;
+      --feed-purple-accent: #754b94;
+      --feed-purple-liked: #9e3d65;
+      --feed-purple-soft: #f4eaf4;
+      --feed-text: #332a3b;
+      --feed-text-muted: #706479;
+      --feed-divider: #e4d9ec;
+      --feed-media-radius: 12px;
+      --feed-content-inset: 22px;
       font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     }
 html[data-app-route="feed"]:has(> body.feed-page),
 html[data-app-route="feed"] body.h5-skin.feed-page {
-      background: linear-gradient(180deg, #EDE4F7 0%, #F8F7FC 45%, #FFFFFF 100%);
+      background: #fbf4f7;
     }
 :where([data-app-page="feed"]) .feed-wrap {
       min-height: 100vh; display: flex; flex-direction: column;
@@ -116,238 +114,174 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       font-size: 12px; font-weight: 400; line-height: 1.35;
       word-break: break-word; max-width: 100%;
     }
-/* 城市胶囊：签名下方（降低透明度，文字更清晰） */
-    :where([data-app-page="feed"]) .home-city-pill {
-      display: none;
-      align-items: center; gap: 6px;
-      box-sizing: border-box;
-      min-height: 32px; padding: 0 12px;
-      border-radius: 16px;
-      background: rgba(111, 66, 193, 0.62);
-      border: 1px solid rgba(210, 180, 255, 0.78);
-      color: #FFFFFF;
-      font-size: 14px; font-weight: 500; line-height: 1;
-      white-space: nowrap;
-      box-shadow:
-        0 4px 12px rgba(55, 24, 105, 0.28),
-        0 0 10px rgba(165, 92, 255, 0.22);
+/* 封面定位与签名左对齐 */
+:where([data-app-page="feed"]) .home-city {
+      display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+      color: #f6edff; font-size: 12px; line-height: 1.5; font-weight: 500;
+      text-shadow: 0 1px 4px #1b102caa; overflow-wrap: anywhere;
     }
-:where([data-app-page="feed"]) .home-city-pill.is-visible { display: inline-flex; }
-:where([data-app-page="feed"]) .home-city-pill .loc-ico {
-      width: 14px; height: 14px; flex-shrink: 0; color: #F3E9FF;
-    }
-/* ===== Feed 面板：浅色 + 紫色眩光 ===== */
-    :where([data-app-page="feed"]) .feed-main {
+:where([data-app-page="feed"]) .home-city[hidden],
+:where([data-app-page="feed"]) .feed-hero-meta .sig:empty { display: none; }
+:where([data-app-page="feed"]) .home-city .loc-ico { width: 12px; height: 12px; flex: none; }
+
+/* 浅紫面板衔接封面，动态以细横线分隔 */
+:where([data-app-page="feed"]) .feed-main {
       position: relative; z-index: 3; flex: 1;
       margin-top: -28px;
-      padding: 16px 0 calc(24px + var(--safe-area-bottom));
-      background: rgba(248, 247, 252, 0.98);
-      border: 1px solid rgba(160, 112, 255, 0.26);
+      padding: 17px 0 calc(24px + var(--safe-area-bottom));
+      background: radial-gradient(ellipse 125% 310px at 8% 0%, #eee3f7, transparent 100%),
+        linear-gradient(165deg, #fbf8fd 18%, #faf6fb 62%, #fbf4f4 100%);
+      border: 1px solid #dfd1ed;
       border-bottom: none;
       border-radius: 28px 28px 0 0;
-      box-shadow:
-        0 -6px 20px rgba(92, 48, 168, 0.14),
-        0 0 14px rgba(148, 83, 240, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      box-shadow: 0 -5px 19px #4b316123, inset 0 1px 0 #ffffffa8;
     }
-:where([data-app-page="feed"]) #feed-list {
-      display: flex; flex-direction: column;
-      position: relative;
-      padding: 0 24px;
-    }
-/* 竖向时间线 */
-    :where([data-app-page="feed"]) #feed-list::before {
-      content: '';
-      position: absolute;
-      left: var(--feed-timeline-x);
-      top: 0; bottom: 0;
-      width: 1px;
-      background: rgba(114, 88, 168, 0.16);
-      pointer-events: none;
-    }
-:where([data-app-page="feed"]) .feed-item {
-      display: flex; gap: 20px;
-      padding: 0;
-      background: transparent;
-      border-bottom: none;
-      position: relative;
-    }
-/* 帖间分割线：正文下方 20px，线后再 20px（不铺满日期栏） */
-    :where([data-app-page="feed"]) .feed-item:not(:last-child) {
-      padding-bottom: 20px;
-      margin-bottom: 20px;
-    }
-:where([data-app-page="feed"]) .feed-item:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      left: var(--feed-divider-left);
-      right: 0;
-      bottom: 0;
-      height: 1px;
-      background: rgba(91, 78, 126, 0.12);
-      pointer-events: none;
-    }
-:where([data-app-page="feed"]) .feed-item .date-col {
-      flex: 0 0 56px; padding-top: 0;
-      display: flex; flex-direction: column; align-items: flex-start;
-      position: relative; z-index: 1;
-    }
-/* 同日后续条：左列留空，仅保留时间节点 */
-    :where([data-app-page="feed"]) .feed-item .date-col.date-col--empty { min-height: 1px; }
-/* 圆形时间节点：相对条目定位，对齐列表竖线（80px - 列表padding24px - 半宽4px） */
-    :where([data-app-page="feed"]) .feed-item .timeline-node {
-      position: absolute;
-      left: 52px; top: 4px;
-      width: 8px; height: 8px;
+:where([data-app-page="feed"]) #feed-list,
+:where([data-app-page="feed"]) #feed-skeleton {
+      max-width: 640px; margin: 0 auto; padding: 0 var(--feed-content-inset);
       box-sizing: border-box;
-      border-radius: 50%;
-      background: var(--feed-node);
-      border: 2px solid #F8F7FC;
-      box-shadow:
-        0 0 0 2px rgba(166, 107, 255, 0.16),
-        0 0 8px rgba(150, 87, 255, 0.38);
-      z-index: 2;
-      pointer-events: none;
     }
-:where([data-app-page="feed"]) .feed-item .date-col .date-day {
-      font-size: 24px; font-weight: 700; color: var(--feed-text);
-      line-height: 1.1; letter-spacing: -0.02em;
+:where([data-app-page="feed"]) .feed-date-heading {
+      display: flex; align-items: center; gap: 10px;
+      margin: 11px 0 0; color: #59416e; line-height: 1.25; font-weight: 650;
     }
-:where([data-app-page="feed"]) .feed-item .date-col .date-month {
-      margin-top: 2px; font-size: 12px; font-weight: 600;
-      color: var(--feed-text); line-height: 1.25;
+:where([data-app-page="feed"]) .feed-date-heading:first-child { margin-top: 0; }
+:where([data-app-page="feed"]) .feed-date-heading time {
+      display: inline-flex; align-items: baseline; gap: 1px;
+      font-size: 12px; font-variant-numeric: tabular-nums;
     }
-:where([data-app-page="feed"]) .feed-item .date-col .date-rel {
-      margin-top: 6px; font-size: 11px; font-weight: 400;
-      color: var(--feed-text-muted); line-height: 1.4; white-space: nowrap;
+:where([data-app-page="feed"]) .feed-date-heading b {
+      font-size: 23px; font-weight: 700; letter-spacing: -.035em;
     }
-:where([data-app-page="feed"]) .feed-item .date-col .date-city {
-      margin-top: 4px; display: flex; align-items: flex-start; gap: 2px;
-      max-width: 56px; font-size: 10px; font-weight: 400;
-      color: var(--feed-text-muted); line-height: 1.35; word-break: break-all;
+:where([data-app-page="feed"]) .feed-date-heading::after {
+      content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, #d7c4e5, var(--feed-divider));
     }
-:where([data-app-page="feed"]) .feed-item .date-col .date-city .loc-ico {
-      flex: 0 0 auto; margin-top: 1px; width: 9px; height: 9px;
-      opacity: 0.8; color: var(--feed-text-muted);
+:where([data-app-page="feed"]) .feed-item { padding: 15px 0 17px; }
+:where([data-app-page="feed"]) .feed-item + .feed-item { border-top: 1px solid var(--feed-divider); }
+:where([data-app-page="feed"]) .feed-date-heading + .feed-item { padding-top: 12px; }
+:where([data-app-page="feed"]) .feed-author {
+      display: flex; align-items: center; gap: 9px; margin-bottom: 9px;
     }
-:where([data-app-page="feed"]) .feed-item .content-col { flex: 1; min-width: 0; }
-/* 正文 */
-    :where([data-app-page="feed"]) .feed-text-block {
-      position: relative;
+:where([data-app-page="feed"]) .feed-author-avatar {
+      box-sizing: border-box; flex: none; display: block; width: 34px; height: 34px;
+      object-fit: cover; border: 1px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #e6d9ed;
     }
+:where([data-app-page="feed"]) .feed-author-name {
+      font-size: 14px; line-height: 1.25; font-weight: 650; color: var(--feed-text);
+    }
+:where([data-app-page="feed"]) .feed-meta-row {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; margin-top: 3px;
+      font-size: 11.5px; color: var(--feed-text-muted); overflow-wrap: anywhere;
+    }
+:where([data-app-page="feed"]) .feed-time:empty { display: none; }
+:where([data-app-page="feed"]) .feed-time:not(:empty) + .feed-city::before { content: "·"; margin-right: 5px; }
 :where([data-app-page="feed"]) .feed-text {
-      font-size: 14px; line-height: 22px; font-weight: 400; color: var(--feed-text);
-      word-break: break-word; white-space: pre-wrap;
+      font-size: 14px; line-height: 1.7; color: var(--feed-text);
+      white-space: pre-wrap; overflow-wrap: anywhere;
     }
+:where([data-app-page="feed"]) .feed-item--text .feed-text { font-size: 15px; line-height: 1.75; }
 :where([data-app-page="feed"]) .feed-text.collapsed {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 4;
-      line-clamp: 4;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
       overflow: hidden;
-      white-space: normal;
     }
-/* meta 行：左时间、右展开/收起 */
-    :where([data-app-page="feed"]) .feed-meta-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 6px;
-      min-height: 20px;
+:where([data-app-page="feed"]) .feed-expand {
+      display: block; padding: 5px 0; border: 0; background: none;
+      color: var(--feed-purple-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
     }
-:where([data-app-page="feed"]) .feed-meta-row .feed-time {
-      flex: 1; min-width: 0;
-      font-size: 13px; line-height: 20px; font-weight: 400;
-      color: var(--feed-text-muted);
-    }
-:where([data-app-page="feed"]) .feed-meta-row .feed-expand {
-      flex-shrink: 0;
-      display: none;
-      border: none; background: none; padding: 0;
-      color: #8B5CF6;
-      font-size: 14px; line-height: 20px; font-weight: 500;
-      cursor: pointer;
-      font-family: inherit;
-    }
-:where([data-app-page="feed"]) .feed-meta-row .feed-expand.is-visible { display: block; }
-/* 单 # 起标：至空格/标点前着色（成对收尾 # 一并纳入） */
-    :where([data-app-page="feed"]) .hashtag { color: var(--feed-purple-accent); }
-/* 图片区：单图 4:3 横卡；多图规则不变 */
-    :where([data-app-page="feed"]) .feed-images { margin-top: 10px; display: grid; gap: 6px; }
-:where([data-app-page="feed"]) .feed-images.count-1 { grid-template-columns: 1fr; max-width: 70%; }
-:where([data-app-page="feed"]) .feed-images.count-2 { grid-template-columns: 1fr 1fr; max-width: 66%; }
-:where([data-app-page="feed"]) .feed-images.count-3plus { grid-template-columns: repeat(3, 1fr); }
+:where([data-app-page="feed"]) .feed-expand[hidden] { display: none; }
+:where([data-app-page="feed"]) .hashtag { color: var(--feed-purple-accent); }
+
+/* 媒体共用左右边缘与圆角，单图按原比例缩放 */
+:where([data-app-page="feed"]) .feed-images { display: grid; margin-top: 8px; }
+:where([data-app-page="feed"]) .feed-images.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 :where([data-app-page="feed"]) .feed-images .thumb {
-      position: relative; width: 100%; background: #eee; overflow: hidden; border-radius: 12px;
+      display: block; box-sizing: border-box; position: relative; width: 100%; min-width: 0;
+      overflow: hidden; border-radius: var(--feed-media-radius);
+      padding: 0; appearance: none; border: 0; box-shadow: none; background: #efe8f0;
+      color: inherit; cursor: pointer;
     }
-:where([data-app-page="feed"]) .feed-images.count-1 .thumb { aspect-ratio: 4 / 3; }
-:where([data-app-page="feed"]) .feed-images.count-1 .thumb img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+:where([data-app-page="feed"]) .feed-images img {
+      display: block; width: 100%; object-fit: cover; object-position: center 42%;
     }
-:where([data-app-page="feed"]) .feed-images.count-2 .thumb,
-:where([data-app-page="feed"]) .feed-images.count-3plus .thumb { aspect-ratio: 1 / 1; }
-:where([data-app-page="feed"]) .feed-images.count-2 .thumb img,
-:where([data-app-page="feed"]) .feed-images.count-3plus .thumb img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+:where([data-app-page="feed"]) .feed-images.count-1 img {
+      aspect-ratio: auto 4 / 3; height: auto; max-height: max(440px, 70svh);
     }
-:where([data-app-page="feed"]) .thumb.img-failed { background: #ddd; }
+:where([data-app-page="feed"]) .feed-images.count-2 .thumb { aspect-ratio: 1; }
+:where([data-app-page="feed"]) .feed-images.count-2 img,
+:where([data-app-page="feed"]) .feed-album img { height: 100%; }
+:where([data-app-page="feed"]) .feed-album { position: relative; min-width: 0; }
+:where([data-app-page="feed"]) .feed-album-track {
+      display: flex; aspect-ratio: 4 / 3; min-width: 0; border-radius: var(--feed-media-radius);
+      overflow: auto hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+    }
+:where([data-app-page="feed"]) .feed-album-track::-webkit-scrollbar { display: none; }
+:where([data-app-page="feed"]) .feed-album-track .thumb {
+      flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always;
+    }
+:where([data-app-page="feed"]) .feed-album-count {
+      position: absolute; top: 9px; right: 9px; padding: 3px 8px;
+      border: 1px solid #ffffff5c; border-radius: 8px; background: #fcf6fbea; color: #543d60;
+      font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none;
+    }
+:where([data-app-page="feed"]) .thumb:focus-visible { outline: 2px solid var(--feed-purple-accent); outline-offset: -3px; }
+:where([data-app-page="feed"]) .thumb.img-failed { background: #e8e1ec; }
 :where([data-app-page="feed"]) .thumb.img-failed img { visibility: hidden; }
-/* 互动栏 */
-    :where([data-app-page="feed"]) .feed-actions { margin-top: 12px; display: flex; align-items: center; gap: 22px; }
+:where([data-app-page="feed"]) .thumb.img-failed::after {
+      content: "图片加载失败"; position: absolute; inset: 0; display: grid; place-items: center;
+      color: var(--feed-text-muted); font-size: 12px;
+    }
+
+/* 互动和私有回复 */
+:where([data-app-page="feed"]) .feed-actions { display: flex; align-items: center; gap: 13px; margin-top: 3px; }
 :where([data-app-page="feed"]) .feed-actions .act {
-      display: flex; align-items: center; gap: 6px;
-      color: var(--feed-purple-accent); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer;
-      user-select: none; -webkit-user-select: none;
+      display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 42px;
+      padding: 0 5px; border: 0; background: transparent; cursor: pointer;
+      color: #64566c; font: inherit; font-size: 12px; font-variant-numeric: tabular-nums;
     }
-:where([data-app-page="feed"]) .feed-actions .act .ico {
-      display: flex; align-items: center; justify-content: center;
-      width: 20px; height: 20px; color: var(--feed-icon-stroke);
+:where([data-app-page="feed"]) .feed-actions .like-act { position: relative; isolation: isolate; margin-left: -5px; }
+:where([data-app-page="feed"]) .feed-actions .ico { display: flex; }
+:where([data-app-page="feed"]) .feed-actions .ico svg { width: 19px; height: 19px; }
+:where([data-app-page="feed"]) .feed-actions .liked { color: var(--feed-purple-liked); }
+:where([data-app-page="feed"]) .feed-actions .liked .ico { color: #ba557d; }
+:where([data-app-page="feed"]) .feed-actions .liked::before {
+      content: ""; position: absolute; inset: 8px 0; z-index: -1; background: #f7e5ee; border-radius: 8px;
     }
-:where([data-app-page="feed"]) .feed-actions .act .ico svg { width: 18px; height: 18px; display: block; }
-:where([data-app-page="feed"]) .feed-actions .act.liked { color: var(--feed-purple-liked); }
-:where([data-app-page="feed"]) .feed-actions .act.liked .ico { color: var(--feed-purple-liked); }
-:where([data-app-page="feed"]) .feed-actions .act:active { transform: scale(0.92); opacity: 0.85; }
-/* 评论区 */
-    :where([data-app-page="feed"]) .feed-comments {
-      margin-top: 10px; background: var(--feed-purple-soft);
-      border-radius: 12px; padding: 8px 12px;
+:where([data-app-page="feed"]) .feed-actions .act:active { opacity: .75; }
+:where([data-app-page="feed"]) .feed-comments {
+      margin-top: 4px; padding: 8px 11px; border: 1px solid #eedff0; border-radius: 10px; background: var(--feed-purple-soft);
     }
 :where([data-app-page="feed"]) .comment-row,
-:where([data-app-page="feed"]) .comment-reply { font-size: 13px; line-height: 1.7; word-break: break-word; }
-:where([data-app-page="feed"]) .comment-author { color: var(--feed-purple-accent); }
-:where([data-app-page="feed"]) .comment-content { color: var(--feed-text); }
-/* 林小梦回复行可点：打开「回复林小梦」输入面板 */
-    :where([data-app-page="feed"]) .comment-reply { cursor: pointer; }
-:where([data-app-page="feed"]) .lxm-reply-text {
-      color: var(--feed-text);
-    }
-:where([data-app-page="feed"]) .comment-reply-loading { font-size: 12px; color: var(--feed-text-muted); line-height: 1.7; }
+:where([data-app-page="feed"]) .comment-reply { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+:where([data-app-page="feed"]) .comment-author { color: #744d85; font-weight: 650; }
+:where([data-app-page="feed"]) .comment-content { color: #554b5a; }
+:where([data-app-page="feed"]) .comment-reply { cursor: pointer; }
 :where([data-app-page="feed"]) .comment-highlighted { animation: cflash 1.5s ease; border-radius: 4px; }
     @keyframes cflash {
       0%, 100% { background: transparent; }
-      20%, 60% { background: rgba(196, 181, 253, 0.45); }
+      20%, 60% { background: #e8d4f5; }
     }
-/* 骨架屏（下拉刷新等非首进仍用；首进由全屏 boot 遮罩覆盖） */
-    :where([data-app-page="feed"]) .skeleton-card {
-      display: flex; gap: 20px; padding: 16px 24px;
-    }
-:where([data-app-page="feed"]) .sk-date { flex: 0 0 56px; }
+/* 骨架屏跟随作者、正文和图片的布局 */
+:where([data-app-page="feed"]) .skeleton-card { padding: 15px 0 17px; }
+:where([data-app-page="feed"]) .skeleton-card + .skeleton-card { border-top: 1px solid var(--feed-divider); }
+:where([data-app-page="feed"]) .sk-author { display: flex; gap: 9px; align-items: center; margin-bottom: 9px; }
+:where([data-app-page="feed"]) .sk-avatar,
 :where([data-app-page="feed"]) .sk-line,
-:where([data-app-page="feed"]) .sk-date {
-      background: linear-gradient(90deg, #EDE4F7 25%, #F8F7FC 37%, #EDE4F7 63%);
+:where([data-app-page="feed"]) .sk-img {
+      background: linear-gradient(90deg, #ede4f4 25%, #f9f2fa 37%, #ede4f4 63%);
       background-size: 400% 100%; animation: shimmer 1.4s infinite; border-radius: 4px;
     }
-:where([data-app-page="feed"]) .sk-date { height: 48px; }
-:where([data-app-page="feed"]) .sk-body { flex: 1; }
-:where([data-app-page="feed"]) .sk-body .sk-line { height: 14px; margin-bottom: 10px; }
-:where([data-app-page="feed"]) .sk-body .sk-line.w60 { width: 60%; }
-:where([data-app-page="feed"]) .sk-body .sk-img {
-      height: 120px; margin-top: 8px;
-      background: linear-gradient(90deg, #EDE4F7 25%, #F8F7FC 37%, #EDE4F7 63%);
-      background-size: 400% 100%; animation: shimmer 1.4s infinite; border-radius: 12px;
-    }
+:where([data-app-page="feed"]) .sk-avatar { width: 34px; height: 34px; border-radius: 50%; }
+:where([data-app-page="feed"]) .sk-line { width: 80%; height: 12px; }
+:where([data-app-page="feed"]) .sk-line.w60 { width: 60%; }
+:where([data-app-page="feed"]) .sk-img { height: 104px; margin-top: 8px; border-radius: var(--feed-media-radius); }
     @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    @media (max-width: 345px) {
+      html[data-app-route="feed"] body.feed-page { --feed-content-inset: 19px; }
+      :where([data-app-page="feed"]) .feed-hero-identity { left: 16px; right: 16px; gap: 11px; }
+      :where([data-app-page="feed"]) .feed-hero-avatar-wrap,
+      :where([data-app-page="feed"]) .feed-hero-avatar { width: 81px; height: 81px; }
+      :where([data-app-page="feed"]) .feed-hero-avatar { border-radius: 23px; }
+    }
 /* 进页全屏 loading：进度驱动透明度/模糊（对齐首页 loader） */
     :where([data-app-page="feed"]) .feed-boot-loading {
       position: fixed;
@@ -363,7 +297,7 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       /* alpha / blur 由 JS 按进度写入 CSS 变量 */
       --feed-boot-alpha: 0.88;
       --feed-boot-blur: 12px;
-      background: rgba(248, 247, 252, var(--feed-boot-alpha));
+      background: rgba(243, 237, 249, var(--feed-boot-alpha));
       -webkit-backdrop-filter: blur(var(--feed-boot-blur));
       backdrop-filter: blur(var(--feed-boot-blur));
       transition: opacity 0.3s ease;
@@ -391,7 +325,7 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       color: var(--feed-text-muted);
     }
     @media (prefers-reduced-motion: reduce) {
-:where([data-app-page="feed"]) .feed-boot-spinner { animation: none; }
+:where([data-app-page="feed"]) :is(.feed-boot-spinner, .sk-avatar, .sk-line, .sk-img, .comment-highlighted) { animation: none; }
 :where([data-app-page="feed"]) .feed-boot-loading { transition: none; }
     }
 :where([data-app-page="feed"]) .feed-state { text-align: center; padding: 40px 20px; color: var(--feed-text-muted); font-size: 14px; }
@@ -418,7 +352,7 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
 :where([data-app-page="feed"]) #new-feed-bar .new-feed-go { margin-left: 4px; font-weight: 600; opacity: 0.85; }
 /* ===== 全屏预览 ===== */
     :where([data-app-page="feed"]) .preview-overlay {
-      position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.96);
+      position: fixed; inset: 0; z-index: 9999; background: #191420;
       display: flex; align-items: center; justify-content: center; overflow: hidden;
       touch-action: none; overscroll-behavior: contain;
     }
@@ -436,24 +370,49 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       text-align: center; color: rgba(255,255,255,0.85); font-size: 13px;
     }
 /* ===== 评论输入面板 ===== */
-    :where([data-app-page="feed"]) .comment-mask { position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.35); display: none; }
+    :where([data-app-page="feed"]) .comment-mask { position: fixed; inset: 0; z-index: 8000; background: #27193966; display: none; }
 :where([data-app-page="feed"]) .comment-mask.show { display: block; }
 :where([data-app-page="feed"]) .comment-panel {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 8001;
-      background: #fff; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-      box-shadow: 0 -2px 12px rgba(88, 60, 140, 0.12); transform: translateY(100%);
-      transition: transform 0.2s ease;
+      background: linear-gradient(155deg, #fbf5fd, #fff9fb);
+      padding: 16px 16px calc(19px + env(safe-area-inset-bottom, 0px));
+      border: 1px solid #e8d9f0; border-bottom: 0; border-radius: 22px 22px 0 0;
+      box-shadow: 0 -6px 22px #2a1b4a23; transform: translateY(100%); visibility: hidden;
+      transition: transform 0.2s ease, visibility 0s linear 0.2s;
     }
-:where([data-app-page="feed"]) .comment-panel.show { transform: translateY(0); }
+:where([data-app-page="feed"]) .comment-panel.show {
+      transform: translateY(0); visibility: visible; transition-delay: 0s;
+    }
 :where([data-app-page="feed"]) .comment-panel .row { display: flex; align-items: flex-end; gap: 8px; }
 :where([data-app-page="feed"]) .comment-panel textarea {
-      flex: 1; border: 1px solid #E9D5FF; border-radius: 8px; padding: 8px 10px;
+      flex: 1; min-width: 0; border: 1px solid #e6d7ed; border-radius: 12px; padding: 9px 11px;
       font-size: 14px; line-height: 1.5; resize: none; max-height: 96px; box-sizing: border-box;
-      outline: none; background: var(--feed-purple-soft);
+      background: #fffbff; color: var(--feed-text);
     }
 :where([data-app-page="feed"]) .comment-panel .send {
       flex: 0 0 auto; border: none; border-radius: 8px; padding: 8px 16px;
-      background: #cfcfd4; color: #fff; font-size: 14px;
+      background: #eae0ef; color: #685970; font-size: 14px;
     }
-:where([data-app-page="feed"]) .comment-panel .send.active { background: var(--feed-purple-accent); }
+:where([data-app-page="feed"]) .comment-panel .send.active:not(:disabled) { background: var(--feed-purple-accent); color: #fff; }
 :where([data-app-page="feed"]) .comment-panel .counter { text-align: right; font-size: 11px; color: var(--feed-text-muted); margin-top: 4px; }
+:where([data-app-page="feed"]) .comment-panel textarea:focus-visible { outline: 2px solid #a982bb; outline-offset: 1px; }
+
+/* 仅朋友圈的共享登录弹窗跟随动态区色板 */
+html[data-app-route="feed"] .auth-modal-overlay { background: #27193966; }
+html[data-app-route="feed"] .auth-modal-sheet {
+      color: #332a3b; border-color: #e8d9f0; border-radius: 22px;
+      background: linear-gradient(155deg, #f9f1fc, #fff9fb); box-shadow: 0 8px 24px #29153c35;
+    }
+html[data-app-route="feed"] :is(.auth-modal-title, .auth-modal-label, .auth-modal-control input) { color: #332a3b; text-shadow: none; }
+html[data-app-route="feed"] .auth-modal-title::first-letter { color: inherit; }
+html[data-app-route="feed"] :is(.auth-modal-subtitle, .auth-modal-close, .auth-modal-remember, .auth-modal-links),
+html[data-app-route="feed"] .auth-modal-control input::placeholder { color: #706479; }
+html[data-app-route="feed"] :is(.auth-modal-avatar-wrap, .auth-modal-control, .auth-modal-later) {
+      background: #fffbff; border-color: #e6d7ed; box-shadow: none;
+    }
+html[data-app-route="feed"] .auth-modal-control:focus-within { border-color: #a982bb; box-shadow: 0 0 0 2px #eadcf1; }
+html[data-app-route="feed"] :is(.auth-modal-later, .auth-modal-later span, .auth-modal-links button, .auth-modal-password-toggle, .auth-modal-field-icon) { color: #754b94; }
+html[data-app-route="feed"] .auth-modal-submit { background: #754b94; box-shadow: none; }
+html[data-app-route="feed"] .auth-modal-error { color: #9e3d65; }
+html[data-app-route="feed"] .auth-modal-control.is-error { border-color: #ba557d; }
+html[data-app-route="feed"] .toast-item { background: #463151; color: #fff8fb; }

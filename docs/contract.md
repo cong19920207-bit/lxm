@@ -16,6 +16,7 @@
 | `shared-auth-rbac` | [auth-rbac.md](contract/current/_shared/auth-rbac.md) |
 | `core-user-auth` | [data.md](contract/current/core-user-auth/data.md)、[api.md](contract/current/core-user-auth/api.md) |
 | `h5-app` | [api.md](contract/current/h5-app/api.md) |
+| `pet-system` | [接口与客户端](contract/current/pet-system/api.md) · [数据](contract/current/pet-system/data.md) · [管理后台](contract/current/pet-system/admin-ui.md) |
 | `realtime-voice` | [data.md](contract/current/realtime-voice/data.md)、[api.md](contract/current/realtime-voice/api.md)、[admin-ui.md](contract/current/realtime-voice/admin-ui.md) |
 | `chat-emotion` | [data.md](contract/current/chat-emotion/data.md)、[api.md](contract/current/chat-emotion/api.md) |
 | `memory-knowledge` | [data.md](contract/current/memory-knowledge/data.md)、[api.md](contract/current/memory-knowledge/api.md)、[admin-ui.md](contract/current/memory-knowledge/admin-ui.md) |

@@ -428,6 +428,11 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
       height: 22px;
       object-fit: contain;
     }
+:where([data-app-page="index"]) .home-quick-icon--pet img {
+      width: 20px;
+      height: 20px;
+      filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.3));
+    }
 /* 纵向预览卡 */
     :where([data-app-page="index"]) .home-cards-scroll {
       flex: 0 0 auto;

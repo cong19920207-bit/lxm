@@ -190,13 +190,15 @@ visibilitychange隐藏与pagehide先同步停止输出和当前故障链，再�
 早期本地验证使用实际H5与Chrome155、真实匿名公共API/隔离SQLite/HTTPS合成AAC和增益；登录A/退出/登录B走正式弹窗与token/退出路径，认证响应为受控夹具。后续本地Docker正式页面与实际OSS、Chrome/Safari取得播放、音量、关闭及部分跨页证据；不把这些扩大为目标手机/微信、实际软键盘或完整账号往返声音验收，具体边界见本版证据汇总。
 
 
-## 六页悬浮唱片（STEP-015）
+## 悬浮唱片（STEP-015，含宠物页扩展）
 
-`bgm-bubble.js`提供BgmBubble.mount/current，限定Feed/Diary/Memory/Relationship/Chat/Settings且BgmPage模式为content；日记/记忆/关系原门禁在挂载前执行。Index、独立Login和Admin没有气泡。复用BgmRecord及当前封面；未知目录、加载、暂停、权限拒绝或临时资源失败保留可恢复入口，确认为empty、本次关闭、call/access阻断则移除气泡节点和命中区。打开操作区只有播放/暂停（失败时明确重试）与关闭本次，不能选曲、下一首或调音量；泡内play使用bubble来源，不解除本次关闭。
+`bgm-bubble.js`提供BgmBubble.mount/current，限定Feed/Diary/Memory/Relationship/Chat/Settings/Pet且BgmPage模式为content；日记/记忆/关系原门禁在挂载前执行，宠物页沿用现有入口授权。Index、独立Login和Admin没有气泡。复用BgmRecord及当前封面；未知目录、加载、暂停、权限拒绝或临时资源失败保留可恢复入口，确认为empty、本次关闭、call/access阻断则移除气泡节点和命中区。打开操作区只有播放/暂停（失败时明确重试）与关闭本次，不能选曲、下一首或调音量；泡内play使用bubble来源，不解除本次关闭。
 
 采用48px唱片、右侧16px加安全区、竖拖阈值6px、拖后400ms抑制指针生成的误点击；键盘上下箭头可按0.1比例移动。拖动从当前实际显示位置计算，松手保存x=1及可用高度y比例到现有BgmSession，不新增长期偏好键或账号字段。resize/旋转/visualViewport/页面滚动重算并夹入边界，扩大操作区所需高度也预留；空间不足暂时隐藏控件，不改变声音或意图。
 
 预定义适配：Feed返回栏、图片预览/评论面板/首次加载层；Diary返回栏与安全区；Memory顶部栏、底栏/recenter、抽屉及遮罩；Relationship返回栏和升级覆盖层；Chat顶部栏、可见视口及输入/发送区；Settings顶部栏、退出区，并按明确的设置开关/可点行/展开表单避让，不自动识别任意内容。登录弹窗、已有确认窗与全屏状态共用临时隐藏规则；覆盖层结束重新读取最新状态，不能复活关闭的节点。仅观察已命名的区域属性/尺寸及body直接新增模态根，不扫描画布动画后代或轮询网络。
+
+Pet扩展在AppShell和独立页生效，避让页面顶部栏、底部操作区、成长提醒与邀请卡；互动进行中及留影／照片回看时暂时隐藏，恢复显示不改变原音乐意图。通过捕获`pet:render`发现动态子页面区域，并仅观察`data-route`、`data-interaction-mode`等明确属性；不观察画布动画子树。专项浏览器回归见[养宠客户端](../pet-system/api.md#场景适配与音乐入口)，不扩大原STEP-015六页或手机真机验证结论。
 
 本地实际六HTML+Chrome/HTTPS AAC/公共API验证控制、右侧竖拖、相对恢复、横屏、关闭/空态移除、私有页门禁与图片版本竞态。Feed预览/评论和Relationship升级调用原产品函数；Memory抽屉与键盘缩小视口采用明确状态注入，只证明适配处理，不能替代实际抽屉操作/手机键盘。当前Chrome未稳定出现原生拒播前提，气泡拒播UI以受控NotAllowedError注入后明确点击、原生AAC恢复验证；原生权限处理证据沿用014，不把受控注入列为原生拒播。STEP-015仍IMPLEMENTED，终端及这些剩余真实交互待验。
 
@@ -268,7 +270,7 @@ Login路由在旧页释放前安装临时音频阻塞，退出归还本句柄后
 AuthService访问失效交接另持有access句柄，覆盖清身份/本地回滚/Home或Login准备与挂载；新导航、换身份、失败或完成只释放原owner，不能解除新事务占用。交接后由当前有效页统一对账，暂停/关闭/人工恢复要求不变；同页共享窗不取得此句柄。
 
 <a id="appshell-delta-24"></a>
-### 六页悬浮唱片
+### 悬浮唱片（含宠物页）
 
 共享音乐气泡增加当前page root的直接childList观察，用于动态升级层；不观察图形或动画子树。原文档body入口兼容。 当前页面适配器卸载即取消观察和订阅；跨路由的BGM播放器与稳定物理输出仍由壳持有。
 

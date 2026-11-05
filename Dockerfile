@@ -33,6 +33,7 @@ COPY frontend/ ./frontend/
 # Alembic：与宿主机相同，可在容器内执行迁移（compose 已注入 MYSQL_HOST=mysql）
 COPY alembic.ini .
 COPY alembic/ ./alembic/
+COPY scripts/pet_photo_maintenance.py ./scripts/pet_photo_maintenance.py
 
 # 启动命令（docker-compose 会覆盖 MYSQL_HOST/REDIS_HOST）
 # Application middleware discovers nginx dynamically; ignore stale FORWARDED_ALLOW_IPS.

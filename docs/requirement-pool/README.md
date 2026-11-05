@@ -14,3 +14,4 @@
 | RP-004 | 实时语音记忆召回升级 | 已确认移至下一版本、需求细化待评审 | `realtime-voice`、`memory-knowledge` | [RP-004](active/realtime-voice-memory-recall/RP-004.md#rp-004) |
 | RP-005 | 聊天输入与输出展示优化，重点调整输入后的“....”逻辑 | 已记录，待细化、待排期 | `h5-app`、`chat-emotion` | [RP-005](active/chat-input-output-display/RP-005.md#rp-005) |
 | RP-006 | Step6 非向量用户信息后台展示，含昵称、姓名、后续行动计划 | 已记录，待细化、待排期 | `memory-knowledge`、`agent-future`、`core-user-auth` | [RP-006](active/step6-non-vector-admin-display/RP-006.md#rp-006) |
+| RP-007 | 养宠照片下载保存到手机 | 已确认纳入后续版本，待细化、待排期 | `pet-system`、`h5-app` | [RP-007](active/pet-photo-mobile-download/RP-007.md#rp-007) |

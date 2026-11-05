@@ -23,6 +23,12 @@
 
   <div class="nebula-stage" id="nebula-stage">
     <canvas tabindex="0" id="nebula-canvas" aria-label="记忆星云画布"></canvas>
+    <div class="nebula-ambient-light" aria-hidden="true"></div>
+    <div class="nebula-selection" id="nebula-selection" aria-hidden="true">
+      <div class="nebula-selection-halo"></div>
+      <div class="nebula-selection-particles" id="nebula-selection-particles"></div>
+      <span class="nebula-selection-label" id="nebula-selection-label"></span>
+    </div>
 
     <div class="nebula-loading is-visible" id="nebula-loading" role="status">
       <div class="nebula-loading-spinner" aria-hidden="true"></div>
@@ -53,15 +59,23 @@
   <div class="nebula-toast" id="nebula-toast" role="status" aria-live="polite"></div>
 
   <div class="nebula-sheet-mask" id="nebula-sheet-mask" aria-hidden="true"></div>
-  <div class="nebula-sheet" id="nebula-sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="nebula-sheet-title" aria-hidden="true">
+  <div class="nebula-sheet-aura" id="nebula-sheet-aura" aria-hidden="true"></div>
+  <div class="nebula-sheet" id="nebula-sheet" tabindex="-1" role="dialog" aria-modal="false" aria-labelledby="nebula-sheet-title" aria-hidden="true" inert>
+    <div class="nebula-sheet-sheen" id="nebula-sheet-sheen" aria-hidden="true"></div>
+    <button type="button" class="nebula-sheet-handle" id="nebula-sheet-handle" aria-label="下拉关闭记忆详情"><span aria-hidden="true"></span></button>
     <div class="nebula-sheet-body">
-      <div class="nebula-sheet-handle" aria-hidden="true"></div>
-      <div class="nebula-sheet-category" id="nebula-sheet-category">
-        <img src="/static/images/memory-nebula/icon-cat-star.png" alt="" aria-hidden="true">
-        <span id="nebula-sheet-category-text"></span>
+      <div class="nebula-sheet-heading">
+        <div class="nebula-sheet-category" id="nebula-sheet-category">
+          <span class="nebula-category-dot" aria-hidden="true"></span>
+          <span id="nebula-sheet-category-text"></span>
+        </div>
+        <button type="button" class="nebula-sheet-close" id="nebula-sheet-close" aria-label="关闭记忆详情">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
       </div>
       <div class="nebula-sheet-title" id="nebula-sheet-title"></div>
       <div class="nebula-sheet-value" id="nebula-sheet-value"></div>
+      <button type="button" class="nebula-sheet-expand" id="nebula-sheet-expand" aria-expanded="false" aria-controls="nebula-sheet-value" hidden><span>展开阅读全文</span><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4.5 6 3.5 3.5L11.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="nebula-sheet-footer">
         <div class="nebula-sheet-source">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
@@ -77,4 +91,9 @@
         </div>
       </div>
     </div>
+    <nav class="nebula-sheet-navigation" id="nebula-sheet-navigation" aria-label="记忆切换" hidden>
+      <button type="button" id="nebula-memory-previous"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m9.5 4-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>上一条</button>
+      <span class="nebula-memory-position" id="nebula-memory-position"></span>
+      <button type="button" id="nebula-memory-next">下一条<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m6.5 4 4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </nav>
   </div>

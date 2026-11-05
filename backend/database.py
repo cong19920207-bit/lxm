@@ -66,7 +66,8 @@ async def create_all_tables() -> None:
     memory_tables = {'memory_diagnostic_run'} | MEMORY_CONFIG_TABLE_NAMES | MEMORY_CONTROL_TABLE_NAMES | MEMORY_MAINTENANCE_TABLE_NAMES | MEMORY_BACKFILL_TABLE_NAMES
     from backend.models.chat_lifecycle import CHAT_LIFECYCLE_TABLE_NAMES
     from backend.models.bgm import BGM_TABLE_NAMES
-    managed_tables = VOICE_TABLE_NAMES | memory_tables | CHAT_LIFECYCLE_TABLE_NAMES | BGM_TABLE_NAMES
+    from backend.models import PET_MANAGED_TABLE_NAMES as PET_TABLE_NAMES
+    managed_tables = VOICE_TABLE_NAMES | memory_tables | CHAT_LIFECYCLE_TABLE_NAMES | BGM_TABLE_NAMES | PET_TABLE_NAMES
 
     runtime_tables = [
         table
@@ -81,6 +82,10 @@ async def create_all_tables() -> None:
                 tables=runtime_tables,
             )
         )
+        missing_pet = await conn.run_sync(
+            lambda c: sorted(PET_TABLE_NAMES - set(inspect(c).get_table_names())))
+        if missing_pet:
+            raise RuntimeError('养宠数据库迁移未完成，请执行 Alembic upgrade head: ' + ', '.join(missing_pet))
         missing_bgm = await conn.run_sync(
             lambda c: sorted(BGM_TABLE_NAMES - set(inspect(c).get_table_names())))
         if missing_bgm:

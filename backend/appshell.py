@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-H5_PAGES = frozenset(('index', 'chat', 'feed', 'diary', 'memory', 'relationship', 'settings', 'login'))
+H5_PAGES = frozenset(('index', 'chat', 'feed', 'diary', 'memory', 'relationship', 'settings', 'login', 'pet'))
 
 
 class H5StaticFiles(StaticFiles):

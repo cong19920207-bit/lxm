@@ -55,6 +55,15 @@ htmlcov/
 # Generated immutable H5 candidates; build/activation tools own retention, never Git cleanup.
 /frontend/static/app-builds/
 
+# 本机激活入口与回滚缓存，由 AppShell 发布工具生成。
+/frontend/app-entry.html
+/frontend/.appshell-entries/
+/frontend/.appshell-release.lock
+
+# 本地迁移基线和外部知识库链接，保留原文件，不随源码提交。
+/.doc-migration-baseline/
+/docs/knowledge
+
 # 数据库与缓存（本地数据，勿提交）
 *.db
 *.sqlite3

@@ -127,6 +127,8 @@
 
 #### H5 `feed.html` 展示口径（摘要）
 
+独立 HTML 回退页沿用下表布局。AppShell 的日期、城市、正文和图片布局见 [AppShell Feed 挂载与服务器真值](../h5-app/api.md#appshell-delta-13)。
+
 | 项 | 约定 |
 |----|------|
 | 路由 | `/pages/feed.html`；`?focus=unread_reply`；与 index/chat/memory 互通 |
