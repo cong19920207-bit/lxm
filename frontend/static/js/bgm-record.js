@@ -9,6 +9,7 @@
     next: '<path d="m5 5 11 7-11 7Z" fill="currentColor" stroke="none"/><path d="M19 5v14" stroke-width="2.5"/>',
     down: '<path d="m5 9 7 7 7-7"/>',
     close: '<path d="m6 6 12 12M6 18 18 6"/>',
+    power: '<path d="M12 3v9M6.3 5.8a9 9 0 1 0 11.4 0"/>',
     volume: '<path d="M3 9h4l5-4v14l-5-4H3ZM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/>',
     music: '<path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="5.5" cy="18" rx="3.5" ry="3"/><ellipse cx="17.5" cy="16" rx="3.5" ry="3"/>'
   })

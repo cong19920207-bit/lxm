@@ -77,10 +77,15 @@ async def queue_feedback(db,pet,fact,now):
  return await enqueue(db,pet.user_id,business_key='immediate:'+fact.id,kind='immediate',origin='interactive',source_ids=[fact.id],coverage_start=aware(fact.occurred_at),coverage_end=aware(fact.occurred_at),expires_at=now+timedelta(minutes=2),now=now)
 
 async def expression_for_event(db,user_id,event_id,*,now=None):
- now=now or now_utc();pet=await owned(db,user_id);fact=await db.get(PetFactEvent,event_id)
+ now=now or now_utc();pet=await owned(db,user_id)
+ # The owner lock may have waited for another request to finish. Under MySQL
+ # REPEATABLE READ, the earlier authentication snapshot cannot see that commit.
+ # Keep the fact, generation receipt and state on the same current-read basis.
+ fact=await db.scalar(select(PetFactEvent).where(PetFactEvent.id==event_id,PetFactEvent.pet_id==pet.id).with_for_update().execution_options(populate_existing=True))
  if fact is None or fact.pet_id!=pet.id:raise LookupError('event_not_found')
- t=await db.scalar(select(PetGenerationTask).where(PetGenerationTask.pet_id==pet.id,PetGenerationTask.business_key=='immediate:'+event_id))
- state=await db.get(PetState,pet.id);stale=state.record_version!=fact.version_after or (t is not None and t.expires_at<=_utc(now))
+ t=await db.scalar(select(PetGenerationTask).where(PetGenerationTask.pet_id==pet.id,PetGenerationTask.business_key=='immediate:'+event_id).with_for_update().execution_options(populate_existing=True))
+ state=await db.scalar(select(PetState).where(PetState.pet_id==pet.id).with_for_update().execution_options(populate_existing=True))
+ stale=state.record_version!=fact.version_after or (t is not None and t.expires_at<=_utc(now))
  ai=t.configuration.get('ai',{}) if t and t.configuration else (await current_config(db,'ai',now)).content if await current_config(db,'ai',now) else defaults('ai')
  response={'event_id':event_id,'body':safe_fallback(template_for(fact,ai,pet.name),workflow_config(ai,'immediate')['maximum']),'source':'template','pending':bool(t and t.state in {'queued','claimed','requesting'}),'stale':stale,'fallback_reason':t.reason if t else 'template_only'}
  if t and t.state=='succeeded' and not stale:response.update({k:v for k,v in t.result.items() if k in {'body','source','fallback_reason','invitation','source_ids'}})

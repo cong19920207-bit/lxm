@@ -626,17 +626,40 @@ export async function mount(context) {
       }
     }
 
+    let feedReplyUnread = 0
     function renderFeedReplyPill(unread) {
       const pill = byId('feed-reply-pill')
       if (!pill) return
       const n = Number(unread) || 0
+      feedReplyUnread = n
+      const row = pill.parentElement
+      row.classList.remove('home-feed-title-row--compact')
+      row.style.removeProperty('--home-feed-title-height')
       if (n > 0) {
         const shown = n > 99 ? '99+' : String(n)
+        // 保留原标题行占位，避免等高图片区和下方内容随短胶囊发生位移。
         pill.textContent = 'NEW · ' + shown + '条新回复'
         pill.style.display = ''
+        row.style.setProperty('--home-feed-title-height', row.getBoundingClientRect().height + 'px')
+        row.classList.add('home-feed-title-row--compact')
+        pill.textContent = '新' + shown
+        pill.setAttribute('aria-label', n + '条新回复')
       } else {
         pill.style.display = 'none'
+        pill.removeAttribute('aria-label')
       }
+    }
+
+    const feedReplyRow = byId('feed-reply-pill')?.parentElement
+    if (feedReplyRow && typeof ResizeObserver === 'function') {
+      let lastWidth = -1
+      context.scope.observe(new ResizeObserver(context.scope.guard(([entry]) => {
+        if (entry.contentRect.width === lastWidth) return
+        lastWidth = entry.contentRect.width
+        renderFeedReplyPill(feedReplyUnread)
+      })), feedReplyRow)
+    } else {
+      context.scope.listen(window, 'resize', () => renderFeedReplyPill(feedReplyUnread))
     }
 
     let homeDataController = null

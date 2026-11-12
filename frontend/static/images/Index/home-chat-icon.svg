@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="back" x1="13" y1="5" x2="28" y2="23" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCF2FF" stop-opacity=".76"/>
+      <stop offset="1" stop-color="#D2A9F8" stop-opacity=".32"/>
+    </linearGradient>
+    <linearGradient id="front" x1="7" y1="10" x2="22" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF"/>
+      <stop offset="1" stop-color="#E4CDFB"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="32" height="32" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="1.4" stdDeviation="1.2" flood-color="#3B165C" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <path d="M17 5.5h6.5a5 5 0 0 1 5 5v5a5 5 0 0 1-3 4.6l.4 3.4-4.4-3h-4.5a5 5 0 0 1-5-5v-5a5 5 0 0 1 5-5Z" fill="url(#back)" stroke="#F6E7FF" stroke-opacity=".7"/>
+  <path d="M8.5 10.5h10a5 5 0 0 1 5 5v5a5 5 0 0 1-5 5h-7l-4.8 3 .5-3.2a5 5 0 0 1-3.7-4.8v-5a5 5 0 0 1 5-5Z" fill="url(#front)" stroke="#FFF" stroke-opacity=".84" filter="url(#shadow)"/>
+  <path d="M9 17.8h9" stroke="#9873B5" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M9 13.5h8.5" stroke="#FFF" stroke-opacity=".9" stroke-linecap="round"/>
+</svg>

@@ -522,10 +522,18 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
       flex-direction: column;
       gap: 2px;
     }
-/* NEW 胶囊：与「朋友圈」同行垂直居中，缩小避免压副标题 */
+/* 回复胶囊：紧凑文案保持同行，并保留原标题区占位。 */
     :where([data-app-page="index"]) .home-feed-card--rich .home-card-title-row {
       flex-wrap: nowrap;
       gap: 6px;
+    }
+:where([data-app-page="index"]) .home-feed-card--rich .home-feed-title-row--compact {
+      gap: 4px;
+      min-height: var(--home-feed-title-height);
+    }
+:where([data-app-page="index"]) .home-feed-title-row--compact .home-card-title {
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 :where([data-app-page="index"]) .home-feed-reply-pill {
       display: inline-flex;
@@ -735,9 +743,10 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
 :where([data-app-page="index"]) .home-chat-btn-wrap .chat-btn.home-cta-btn {
       position: relative;
       width: 100%;
-      min-height: 54px;
-      padding: 10px 58px 10px 58px;
-      font-size: 17px;
+      box-sizing: border-box;
+      min-height: 60px;
+      padding: 7px 56px;
+      font-size: 16px;
       font-weight: 700;
       border-radius: 999px;
       margin-bottom: 0;
@@ -760,12 +769,14 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
+      line-height: 22px;
       text-align: center;
     }
 :where([data-app-page="index"]) .home-cta-sub {
       display: block;
       font-size: 11px;
+      line-height: 14px;
       font-weight: 400;
       color: rgba(233, 213, 255, 0.82);
       letter-spacing: 0.02em;
@@ -780,26 +791,28 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
+      box-sizing: border-box;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.28);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
-:where([data-app-page="index"]) .home-cta-arrow svg {
-      color: #fff;
+:where([data-app-page="index"]) .home-cta-icon {
+      display: block; width: 24px; height: 24px; object-fit: contain; pointer-events: none;
     }
+:where([data-app-page="index"]) .home-cta-btn:focus-visible { outline: 2px solid #ead9ff; outline-offset: 4px; }
 :where([data-app-page="index"]) .home-cta-arrow .unread-badge {
       position: absolute;
-      top: -5px;
-      right: -5px;
-      min-width: 20px;
-      height: 20px;
-      padding: 0 5px;
-      font-size: 11px;
+      top: -3px;
+      right: -3px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      font-size: 10px;
       font-weight: 700;
-      line-height: 20px;
+      line-height: 14px;
       border-radius: 999px;
       background: linear-gradient(180deg, #fb7185 0%, #ef4444 100%);
       color: #fff;
@@ -812,6 +825,10 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
 :where([data-app-page="index"]) .home-cta-arrow .unread-badge.unread-badge--active {
       animation: home-unread-breathe 2.4s ease-in-out infinite;
     }
+
+@media (max-height: 740px) {
+  :where([data-app-page="index"]) .home-chat-btn-wrap .chat-btn.home-cta-btn { min-height: 56px; padding-block: 5px; }
+}
 
     @keyframes home-unread-breathe {
       0%, 100% { transform: scale(1); }

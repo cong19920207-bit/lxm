@@ -20,7 +20,9 @@ async def complete_participation(db,pet,state,rules,*,action,request_key,busines
     config=rules.content['rewards'];delta=0;reason='not_player_participation'
     if eligible:
         day=now.astimezone(BUSINESS_ZONE).date()
-        history=list(await db.scalars(select(PetFactEvent).where(PetFactEvent.pet_id==pet.id,PetFactEvent.closeness_delta>0).order_by(PetFactEvent.occurred_at.desc())))
+        # Owner serialization must include rewards committed after the auth snapshot.
+        history=list(await db.scalars(select(PetFactEvent).where(PetFactEvent.pet_id==pet.id,PetFactEvent.closeness_delta>0)
+            .order_by(PetFactEvent.occurred_at.desc()).with_for_update().execution_options(populate_existing=True)))
         same_family=any(e.result.get('reward_family')==family for e in history)
         spent=sum(e.closeness_delta for e in history if e.business_date==day)
         same_action=[e for e in history if e.event_type==action]

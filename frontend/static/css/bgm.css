@@ -85,15 +85,23 @@
 .bgm-bubble{position:fixed;z-index:1200;width:48px;height:48px;touch-action:none}
 .bgm-bubble[hidden],.bgm-bubble-actions[hidden]{display:none!important}
 .bgm-bubble>.bgm-record{touch-action:none}
-.bgm-bubble-actions{position:absolute;right:calc(100% + 10px);top:50%;transform:translateY(-50%);display:flex;align-items:stretch;width:max-content;box-sizing:border-box;padding:5px;border:1px solid #e2c8f03b;border-radius:13px;background:linear-gradient(135deg,#483651e8,#302338ee);color:#f1e7f5;box-shadow:inset 0 1px 0 #fff1ff12,0 8px 26px #0004;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.bgm-bubble-actions button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:34px;padding:7px 9px;text-align:center;border:0;border-radius:8px;background:transparent;color:inherit;font-family:inherit;font-size:11px;line-height:1.5;cursor:pointer;touch-action:manipulation}
-.bgm-bubble-actions button span{overflow-wrap:anywhere}
-.bgm-bubble-actions .bgm-icon{width:14px;height:14px}
-.bgm-bubble-actions button:hover{background:#ddc0eb16}
-.bgm-bubble-actions button:focus-visible{outline:2px solid #e4b8f6;outline-offset:1px}
-.bgm-bubble-actions button:disabled{opacity:.45;cursor:default}
-.bgm-bubble-actions .bgm-bubble-close{color:#cab5d5;border-left:1px solid #ddc0eb26;border-radius:0 8px 8px 0}
-@media(max-width:360px){.bgm-bubble-actions button{gap:4px;padding-inline:7px;font-size:10px}}
+.bgm-bubble>.bgm-record .bgm-record-scale{box-shadow:0 0 0 1px #f5eaff8c,0 7px 16px #190b2e42}
+.bgm-bubble-actions{position:absolute;right:calc(100% + 12px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;box-sizing:border-box;width:248px;padding:8px;border:1px solid #ffffffdf;border-radius:20px;background:linear-gradient(145deg,#f4edfcf7,#ded2eaf5);color:#594267;box-shadow:0 18px 38px -10px #24103459,0 5px 13px -3px #24103429,inset 0 1px 0 #fff;backdrop-filter:blur(24px) saturate(1.15);-webkit-backdrop-filter:blur(24px) saturate(1.15);touch-action:manipulation;transform-origin:right center;animation:bgm-bubble-extend .2s cubic-bezier(.2,.75,.25,1)}
+.bgm-bubble-info{display:flex;align-items:center;gap:8px;min-width:0;padding:0 5px}
+.bgm-bubble-title{flex:1;min-width:0;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px}
+.bgm-bubble-title-text{display:inline-block;white-space:nowrap}
+.bgm-bubble-status{flex:0 0 auto;font-size:10px;line-height:16px;color:#654d73;white-space:nowrap}
+.bgm-bubble-controls{display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-radius:14px;background:linear-gradient(180deg,#a78abc0f,#8b6aa31a);box-shadow:inset 0 1px 0 #ffffff45}
+.bgm-bubble-actions button{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer;touch-action:manipulation;transition:background .15s ease}
+.bgm-bubble-actions .bgm-icon{width:17px;height:17px}
+.bgm-bubble-actions .bgm-bubble-play{background:linear-gradient(145deg,#fbf5ff,#eee1f7);color:#69447f;box-shadow:inset 0 1px 0 #ffffffb3,0 2px 5px #5f3c7a12}
+.bgm-bubble-actions button:hover{background:#9b7db214}
+.bgm-bubble-actions button:focus-visible{outline:2px solid #a584bd;outline-offset:-2px}
+.bgm-bubble-actions button:disabled{opacity:.4;cursor:default}
+.bgm-bubble-actions .bgm-bubble-close{color:#756181}
+.bgm-bubble-actions .bgm-bubble-collapse{border-left:1px solid #9b7db21a;border-radius:0 12px 12px 0}
+@keyframes bgm-bubble-extend{from{opacity:0;transform:translate(8px,-50%)}to{opacity:1;transform:translate(0,-50%)}}
+@media(prefers-reduced-motion:reduce){.bgm-bubble-actions{animation:none}.bgm-bubble-actions button{transition:none}}
 /* BGM preferences retain the settings page's light surfaces and account boundary. */
 #settings-bgm-section .toggle-switch{width:40px;height:24px;background:#e2d8e8;border:1px solid #cfbedb;box-shadow:inset 0 1px 2px #5f3d6f0d;transition:background .2s}
 #settings-bgm-section .toggle-switch::before{display:none}

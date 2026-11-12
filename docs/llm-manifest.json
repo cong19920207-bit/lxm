@@ -1113,12 +1113,16 @@
       ],
       "keywords": [
         "openapi",
-        "openapi-data"
+        "openapi-data",
+        "养宠对外API",
+        "程序互动"
       ],
       "code_paths": [
         "backend/routers/open/chat.py",
         "backend/routers/open/agent.py",
-        "backend/services/open_api_key_service.py"
+        "backend/services/open_api_key_service.py",
+        "backend/routers/open/pet.py",
+        "backend/services/pet_interactions.py"
       ],
       "route_prefixes": [
         "/api/open/v1",
@@ -1129,7 +1133,10 @@
         "contract-chat-emotion-api",
         "contract-agent-future-api"
       ],
-      "related_documents": [],
+      "related_documents": [
+        "contract-pet-system-api",
+        "contract-pet-system-data"
+      ],
       "related_td": [
         "TD-030",
         "TD-031"
@@ -1147,12 +1154,16 @@
       ],
       "keywords": [
         "openapi",
-        "openapi-api"
+        "openapi-api",
+        "养宠对外API",
+        "程序互动"
       ],
       "code_paths": [
         "backend/routers/open/chat.py",
         "backend/routers/open/agent.py",
-        "backend/services/open_api_key_service.py"
+        "backend/services/open_api_key_service.py",
+        "backend/routers/open/pet.py",
+        "backend/services/pet_interactions.py"
       ],
       "route_prefixes": [
         "/api/open/v1",
@@ -1166,7 +1177,9 @@
       "related_documents": [
         "contract-realtime-voice-api",
         "contract-realtime-voice-data",
-        "contract-realtime-voice-admin-ui"
+        "contract-realtime-voice-admin-ui",
+        "contract-pet-system-api",
+        "contract-pet-system-data"
       ],
       "related_td": [
         "TD-030",
@@ -3403,7 +3416,8 @@
         "contract-pet-system-data",
         "contract-pet-system-admin",
         "contract-h5-app-api",
-        "requirement-pet-photo-mobile-download"
+        "requirement-pet-photo-mobile-download",
+        "contract-openapi-api"
       ],
       "related_td": [],
       "max_lines": 250,
@@ -5373,7 +5387,7 @@
       "admin-page": 47,
       "h5-page": 9,
       "model": 98,
-      "route": 365,
+      "route": 375,
       "scheduled-job": 27
     },
     "entries": [
@@ -7012,7 +7026,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 257,
+        "line": 260,
         "symbol": "h5_index",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7020,7 +7034,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 262,
+        "line": 265,
         "symbol": "h5_page",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -9744,6 +9758,86 @@
         "symbol": "public_catalog",
         "scope": "bgm",
         "contract_document": "contract-bgm-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 62,
+        "symbol": "me",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 73,
+        "symbol": "feed",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 78,
+        "symbol": "start",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 83,
+        "symbol": "request_result",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 95,
+        "symbol": "interaction",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 101,
+        "symbol": "finish",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 107,
+        "symbol": "records",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 112,
+        "symbol": "event",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 120,
+        "symbol": "expression",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/pet.py",
+        "line": 89,
+        "symbol": "request_result_by_key",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
       }
     ],
     "path": "docs/contract/code-surface-coverage.md"

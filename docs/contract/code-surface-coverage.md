@@ -3,8 +3,8 @@
 - 文档 ID：`contract-code-surface-coverage`
 - 权威状态：`canonical`
 - 功能范围：`routing`
-- 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29原覆盖；2026-10-13仅补齐M3–M8实际新增与受影响位置；2026-10-16补齐代理自动发现与连接诊断登记；2026-10-19补齐BGM STEP-002～007的12条管理路由（5读/7写）与1条匿名目录路由、5模型与1管理页。
-- 已登记 HTTP 路由 365，模型 98，后台页面 47，H5 页面 9，调度 27；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
+- 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29原覆盖；2026-10-13仅补齐M3–M8实际新增与受影响位置；2026-10-16补齐代理自动发现与连接诊断登记；2026-10-19补齐BGM STEP-002～007的12条管理路由（5读/7写）与1条匿名目录路由、5模型与1管理页；2026-11-07补齐养宠Open的10条路由。
+- 已登记 HTTP 路由 375，模型 98，后台页面 47，H5 页面 9，调度 27；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
 - 本表只建立唯一归属，不表示所有全仓测试通过；未读取或重建迁移基线。
 
 | 类型 | 代码位置 | 功能范围 | 契约文档 ID |
@@ -98,11 +98,11 @@
 | 模型 | `backend/models/world_state.py:12` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_event.py:16` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_snapshot.py:15` | `persona-prompt-world-state` | `contract-persona-data` |
-| HTTP路由 | `backend/main.py:252` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:257` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:266` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:260` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:265` | `shared-conventions` | `contract-shared-conventions` |
 | HTTP路由 | `backend/main.py:271` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:280` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:276` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:285` | `shared-conventions` | `contract-shared-conventions` |
 | HTTP路由 | `backend/routers/admin/accounts.py:98` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/accounts.py:111` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/accounts.py:163` | `admin-security-accounts` | `contract-admin-security-api` |
@@ -468,3 +468,18 @@
 | 用户 API 与客户端 | `backend/routers/pet.py`、`frontend/pages/pet.html`、`frontend/static/js/pet/` | [养宠接口与客户端](current/pet-system/api.md) |
 | 管理 API 与页面 | `backend/routers/admin/pet*.py`、`admin/pages/pet.html` | [养宠管理后台](current/pet-system/admin-ui.md) |
 | 数据、迁移和调度 | `backend/models/pet*.py`、`alembic/versions/v9i_pet_foundation.py` 至 `v9x_pet_config_drafts.py`、`backend/tasks/scheduler.py` 的养宠任务 | [养宠数据与迁移](current/pet-system/data.md) |
+
+## 养宠 Open API（2026-11-07）
+
+| 类型 | 代码位置 | 功能范围 | 契约文档 ID |
+|---|---|---|---|
+| HTTP路由 | `backend/routers/open/pet.py:62` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:73` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:78` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:83` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:89` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:95` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:101` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:107` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:112` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/open/pet.py:120` | `openapi` | `contract-openapi-api` |

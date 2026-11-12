@@ -65,7 +65,7 @@ export async function mount(context) {
     byId('diary-calendar-loading').hidden = noMore || loadFailed;
     byId('diary-calendar-error').hidden = !loadFailed;
     action('calendar').disabled = !ready || busy;
-    action('today').disabled = !ready || busy;
+    action('latest').disabled = !ready || busy || !items.size;
     const previous=adjacentId(1), next=adjacentId(-1);
     action('previous').disabled = busy || (!previous && noMore) || !items.size;
     action('next').disabled = busy || !next;
@@ -269,6 +269,12 @@ export async function mount(context) {
       if (target >= 0 && target < ids.length) await selectDiary(ids[target], {animate:true,direction});
     } finally { if (context.valid()) { busy = false; status(); } }
   }
+  async function selectLatest() {
+    if (busy || !ready || !items.size) return;
+    busy = true; retryDate = null; status();
+    try { await selectDiary(items.keys().next().value, {animate:true,direction:-1}); }
+    finally { if (context.valid()) { busy = false; status(); } }
+  }
   function closeCalendar(markVisible = true) {
     if (dialog.open) dialog.close();
     action('calendar').setAttribute('aria-expanded','false');
@@ -329,7 +335,7 @@ export async function mount(context) {
       case 'chat': context.router.navigate('/pages/chat.html'); break;
       case 'previous': run(navigate(1)); break;
       case 'next': run(navigate(-1)); break;
-      case 'today': run(selectDate(localDate(new Date()))); break;
+      case 'latest': run(selectLatest()); break;
       case 'calendar':
         calendarMonth = (selectedDate || localDate(new Date())).slice(0,7);
         dialog.showModal(); action('calendar').setAttribute('aria-expanded','true'); renderDates(); status(); run(ensureAll()); break;

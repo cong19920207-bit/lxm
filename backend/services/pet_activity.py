@@ -26,7 +26,8 @@ def offline_eligibility(absence,now,costs):
  return True,band
 
 async def activity_for(db,pet):
- a=await db.get(PetActivity,pet.id)
+ # The owner lock can follow an older API authentication read view.
+ a=await db.scalar(select(PetActivity).where(PetActivity.pet_id==pet.id).with_for_update().execution_options(populate_existing=True))
  if a is None:
   # Existing M1/M2 pets migrate lazily using their real completed participation.
   facts=list(await db.scalars(select(PetFactEvent).where(PetFactEvent.pet_id==pet.id,PetFactEvent.source=='actual_execution').order_by(PetFactEvent.occurred_at.desc())))
@@ -38,7 +39,7 @@ async def ensure_absence(db,pet,now):
  a=await activity_for(db,pet)
  if _utc(now)<=a.session_until:return None
  key=str(uuid5(NAMESPACE_URL,'pet:'+pet.id+':'+a.last_active_at.isoformat()))
- absence=await db.get(PetAbsence,key)
+ absence=await db.scalar(select(PetAbsence).where(PetAbsence.id==key,PetAbsence.pet_id==pet.id).with_for_update().execution_options(populate_existing=True))
  if absence is None:
   absence=PetAbsence(id=key,pet_id=pet.id,started_at=a.last_active_at);db.add(absence);await db.flush()
  return absence

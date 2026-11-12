@@ -177,7 +177,9 @@ html[data-app-route="diary"] body.diary-page { background: #f3f0ff; }
 #lxm-painted-diary .diary-pagination-copy { font-size: 13px; letter-spacing: .5px; }
 #lxm-painted-diary .diary-pagination-copy small { letter-spacing: 0; }
 #lxm-painted-diary .diary-page-arrow { flex: 0 0 16px; color: #8a7798; font-family: Georgia, serif; font-size: 22px; line-height: 1; }
-#lxm-painted-diary .diary-pagination .diary-today { min-width: 44px; justify-content: center; font-size: 12px; font-weight: 400; color: var(--diary-muted); }
+#lxm-painted-diary .diary-pagination .diary-latest { min-width: 44px; min-height: 44px; justify-content: center; color: #8c779f; border-radius: 50%; }
+#lxm-painted-diary .diary-latest svg { width: 22px; height: 22px; }
+#lxm-painted-diary .diary-latest:hover { background: #aa92c414; }
 #lxm-painted-diary .diary-pagination button:disabled { background: transparent; color: #998b9f; }
 #lxm-painted-diary .diary-pagination button:disabled .diary-page-arrow { color: #b1a4b8; }
 @media (max-width: 359px) {

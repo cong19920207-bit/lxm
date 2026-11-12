@@ -47,32 +47,25 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       box-sizing: border-box;
       display: flex; align-items: center; justify-content: space-between;
     }
-/* 消息钮保留原有玻璃样式，返回钮使用共享组件。 */
-    :where([data-app-page="feed"]) .feed-hero-bar .msg-btn {
-      width: 36px; height: 36px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0; cursor: pointer; border: none; border-radius: 18px;
-      background: rgba(184, 168, 240, 0.45);
-      color: rgba(255, 255, 255, 0.92);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.32),
-        0 0 8px rgba(184, 168, 240, 0.2);
-      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-      transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-      position: relative;
-    }
-:where([data-app-page="feed"]) .feed-hero-bar .msg-btn svg {
-      display: block; width: 18px; height: 18px;
-    }
-:where([data-app-page="feed"]) .feed-hero-bar .msg-btn:active {
-      background: rgba(184, 168, 240, 0.58);
-      transform: scale(0.96);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.38),
-        0 0 10px rgba(184, 168, 240, 0.28);
-    }
+/* 与返回入口对齐：44px 触控区，36px 轻玻璃底。 */
+:where([data-app-page="feed"]) .feed-hero-bar .msg-btn {
+  width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center;
+  padding: 0; border: 0; border-radius: 50%; background: transparent;
+  color: #fff; cursor: pointer; position: relative; -webkit-tap-highlight-color: transparent;
+}
+:where([data-app-page="feed"]) .msg-btn-surface {
+  width: 36px; height: 36px; display: grid; place-items: center; box-sizing: border-box;
+  border-radius: 50%; border: 1px solid #ffffff52;
+  background: linear-gradient(145deg, #ffffff38, #ffffff1a 55%, #0000001f);
+  box-shadow: inset 0 1px 0 #ffffff3d, 0 2px 8px #0000001f;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background .2s ease, transform .15s ease;
+}
+:where([data-app-page="feed"]) .feed-hero-bar .msg-btn svg { display: block; width: 21px; height: 21px; }
+:where([data-app-page="feed"]) .msg-btn:active .msg-btn-surface { transform: scale(.94); background: #ffffff40; }
+:where([data-app-page="feed"]) .msg-btn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
 :where([data-app-page="feed"]) .msg-badge {
-      position: absolute; top: -4px; right: -4px;
+      position: absolute; top: 0; right: 0;
       min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
       border-radius: 8px; background: #e64340; color: #fff;
       font-size: 10px; line-height: 16px; text-align: center;

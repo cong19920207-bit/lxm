@@ -136,9 +136,11 @@ app.include_router(feed_router)
 
 from backend.routers.open.chat import router as open_chat_router  # noqa: E402
 from backend.routers.open.agent import router as open_agent_router  # noqa: E402
+from backend.routers.open.pet import router as open_pet_router  # noqa: E402
 
 app.include_router(open_chat_router)
 app.include_router(open_agent_router)
+app.include_router(open_pet_router)
 
 # 管理后台路由
 from backend.routers.admin import auth as admin_auth  # noqa: E402
