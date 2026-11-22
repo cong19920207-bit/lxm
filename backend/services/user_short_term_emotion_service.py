@@ -68,7 +68,7 @@ async def _fallback_latest_emotion_log(user_id: int, db: AsyncSession) -> dict |
     return None
 
 
-async def read_for_prompt(user_id: int, db: AsyncSession, redis_client: Any) -> dict | None:
+async def read_for_prompt(user_id: int, db: AsyncSession, redis_client: Any, *, errors=None) -> dict | None:
     """
     供打包 LLM 注入 Prompt 的情绪上下文（短期属性优先）。
     禁止在 `POST /api/chat/send` 首段调用本函数所需的 Redis 逻辑外扩；调用方仅限 `_execute_llm_bundle`。
@@ -76,6 +76,8 @@ async def read_for_prompt(user_id: int, db: AsyncSession, redis_client: Any) -> 
     try:
         raw = await redis_client.get(build_redis_key(user_id))
     except Exception:
+        if errors is not None:
+            errors.append("emotion_cache_read_error")
         logger.exception("读取用户短期情绪 Redis 失败 user_id=%s", user_id)
         raw = None
 
@@ -90,6 +92,8 @@ async def read_for_prompt(user_id: int, db: AsyncSession, redis_client: Any) -> 
         if row:
             return {"label": row.emotion_label, "confidence": row.confidence}
     except Exception:
+        if errors is not None:
+            errors.append("emotion_db_read_error")
         logger.exception("读取用户短期情绪 DB 失败 user_id=%s", user_id)
 
     return await _fallback_latest_emotion_log(user_id, db)

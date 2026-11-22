@@ -104,6 +104,7 @@
 | gen_status | String(16) | pending | `pending`→`generating`→`ready`/`failed`；后台软删后列表可筛 `hidden`（见 `is_hidden`） |
 | due_at | DateTime | NULL | **UTC**；LLM-05 轮询 `pending AND due_at<=utcnow()` |
 | is_hidden | SmallInteger | 0 | 后台软删；用户端不展示 |
+| idempotency_key_digest / request_digest | Binary(32) | NULL | Open 评论可选请求键与创建时的请求摘要。账号与键摘要唯一；旧评论和无键评论保留 NULL。[外部 API 数据](../openapi/data.md) |
 | created_at / updated_at | DateTime | | |
 
 #### 表名：agent_aware_queue

@@ -14,9 +14,11 @@ from typing import Any, Mapping
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from backend.services.memory_config_schema import DEFAULT_ROUTER, ROUTER_KEY, MemoryQueryRouterConfig
+
 TARGET_COLLECTION = "new_lxm_memory_long_collection"
 PROVIDER_KEYS = {"dashvector": "vector_db_config", "embedding": "third_party:embedding", "rerank": "third_party:rerank"}
-CONFIG_KEYS = ("vector_retrieval_config", "prompt_token_config", *PROVIDER_KEYS.values())
+CONFIG_KEYS = ("vector_retrieval_config", "prompt_token_config", ROUTER_KEY, *PROVIDER_KEYS.values())
 _FIELDS = {
     "dashvector": {"endpoint", "collection_name", "api_key", "dimension", "dtype", "metric"},
     "embedding": {"endpoint", "model", "api_key", "dimension"},
@@ -115,10 +117,12 @@ class EffectiveMemoryConfig:
     target_epoch: int | None = None
     encoder_version: str | None = None
     profiles: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    router: MemoryQueryRouterConfig = DEFAULT_ROUTER
 
     def public(self) -> dict:
         return {"config_snapshot_id": self.config_snapshot_id, "retrieval": _plain(self.retrieval),
-                "prompt": _plain(self.prompt), "providers": {key: cfg.public() for key, cfg in self.providers.items()},
+                "prompt": _plain(self.prompt), "router": self.router.model_dump(),
+                "providers": {key: cfg.public() for key, cfg in self.providers.items()},
                 "versions": _plain(self.versions), "reply_model": self.reply_model,
                 "target_fingerprint": self.target_fingerprint, "target_epoch": self.target_epoch,
                 "encoder_version": self.encoder_version, "profiles": _plain(self.profiles)}
@@ -358,10 +362,19 @@ async def resolve_effective_memory_config(db, *, env=None, reader=None) -> Effec
         records = await reader(db, CONFIG_KEYS)
     except Exception:
         raise EffectiveConfigError("configuration_read_unavailable", 20129) from None
-    if set(records) != set(CONFIG_KEYS):
+    if not isinstance(records, Mapping) or set(records) != set(CONFIG_KEYS):
+        raise EffectiveConfigError("configuration_read_unavailable", 20129)
+    router_record = records[ROUTER_KEY]
+    if not isinstance(router_record, Mapping) or router_record.get("source") not in ("never_published", "database"):
         raise EffectiveConfigError("configuration_read_unavailable", 20129)
     providers = {name: provider_from_record(name, records[key], env) for name, key in PROVIDER_KEYS.items()}
     try:
+        if router_record["source"] == "never_published":
+            if router_record.get("version") != 0 or router_record.get("raw") is not None:
+                raise ValueError("inconsistent router head")
+            router = DEFAULT_ROUTER
+        else:
+            router = MemoryQueryRouterConfig.model_validate(router_record.get("raw"))
         retrieval = vector_effective(records["vector_retrieval_config"]["raw"])
         prompt = prompt_effective(records["prompt_token_config"]["raw"])
     except (ValueError, TypeError):
@@ -381,7 +394,8 @@ async def resolve_effective_memory_config(db, *, env=None, reader=None) -> Effec
                          "statistics_sha256": encoder.profile["statistics_sha256"]}
     return EffectiveMemoryConfig(str(uuid4()), _freeze(retrieval), _freeze(prompt), _freeze(providers), _freeze(versions),
                                  env["reply"]["model"], fingerprint, encoder_version=encoder.encoder_version,
-                                 profiles=_request_profiles(env['reply']['model'], encoder, providers['rerank'].model))
+                                 profiles=_request_profiles(env['reply']['model'], encoder, providers['rerank'].model),
+                                 router=router)
 
 
 async def resolve_active_memory_config(db, environment_id, *, env=None, reader=None, allow_isolated=False):

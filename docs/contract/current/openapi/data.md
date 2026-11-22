@@ -26,6 +26,14 @@
 | last_used_at | DateTime NULL | 鉴权成功且 ≥60s 节流更新 |
 | created_by_admin_id | Integer NULL | 签发管理员 |
 
+### 日记与朋友圈（2026-11-13）
+
+原有 `user_api_keys` 即可读取该账号的日记及私有评论、进行朋友圈互动。轮换 Key 不改变账号、评论请求身份或已读状态。两端共用 `ai_diary`、`feed_post`、`feed_like`、`feed_comment`、`users.last_feed_entered_at`，空日记状态来自当前关系等级。
+
+迁移 `v9z_feed_comment_idem_001` 为已有评论添加两个可空的 32 字节摘要及查询索引。旧评论和未提供请求键的评论保留 NULL。账号与键摘要的唯一索引使同一次有键操作只有一行；原始请求摘要包含帖子、原正文和回复标记，后续编辑评论不会重写该摘要。升级应先于新后端。回退数据库迁移会丢弃幂等身份，已发评论与回复仍保留。
+
+H5 与 Open 的点赞、撤赞和发评论在 MySQL 使用请求级 READ COMMITTED 写事务，按账号和帖子加行锁。同一账号的并发请求可读取已提交的评论回执或频控记录，其他账号向不同帖子首次发评时可同时完成。此事务设置仅作用于这三种互动。
+
 ### 养宠程序互动持久身份（2026-11-07）
 
 复用[养宠数据](../pet-system/data.md)中的 `pet_profile`、`pet_state`、`pet_interaction`、事实、亲近度和活动记录，不建立第二份宠物，也不增加迁移。

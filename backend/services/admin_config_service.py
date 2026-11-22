@@ -14,6 +14,7 @@ from backend.database import async_session_maker
 from backend.models.admin_config import AdminConfig
 from backend.redis_client import get_redis
 from backend.services.llm_service import llm_service
+from backend.services.memory_config_schema import ROUTER_KEY
 from backend.utils.admin_auth import log_operation
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ _CONFIG_CACHE_TTL = 3600
 _MAX_HISTORY_VERSIONS = 20
 _AUDIT_VALUE_UNSET = object()
 _MEMORY_VERSIONED_KEYS = frozenset({
-    "vector_retrieval_config", "prompt_token_config", "vector_db_config",
+    ROUTER_KEY, "vector_retrieval_config", "prompt_token_config", "vector_db_config",
     "third_party:dashvector", "third_party:embedding", "third_party:rerank",
 })
 

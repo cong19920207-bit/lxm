@@ -427,6 +427,7 @@ var CHAT_PROMPT_MENU = {
     { key: 'cp-step15', label: '🔍 Step1.5 查询重写', href: 'chat-prompt-step15.html' },
     { key: 'cp-step3',  label: '🧩 Step3 Prompt拼装', href: 'chat-prompt-step3.html' },
     { key: 'cp-step5',  label: '💬 Step5 主对话', href: 'prompt.html?tab=step5' },
+    { key: 'cp-memory-router', label: '🧭 记忆查询路由', href: 'prompt.html?tab=router' },
     { key: 'cp-step55', label: '✨ Step5.5 润色', href: 'prompt.html?tab=step55' },
     { key: 'cp-step55-switch', label: '⚡ Step5.5 开关', href: 'step5-5-switch.html' },
     { key: 'cp-step6',  label: '🧠 Step6 记忆拆解', href: 'memory-rules.html?nav=cp-step6' },
@@ -437,6 +438,7 @@ var CHAT_PROMPT_MENU = {
     { key: 'cp-step15', label: '🔍 Step1.5 查询重写', href: 'chat-prompt-step15.html' },
     { key: 'cp-step3',  label: '🧩 Step3 Prompt拼装', href: 'chat-prompt-step3.html' },
     { key: 'cp-step5',  label: '💬 Step5 主对话', href: 'prompt.html?tab=step5' },
+    { key: 'cp-memory-router', label: '🧭 记忆查询路由', href: 'prompt.html?tab=router' },
     { key: 'cp-step55', label: '✨ Step5.5 润色', href: 'prompt.html?tab=step55' },
     { key: 'cp-step55-switch', label: '⚡ Step5.5 开关', href: 'step5-5-switch.html' },
     { key: 'cp-step6',  label: '🧠 Step6 记忆拆解', href: 'memory-rules.html?nav=cp-step6' },
@@ -608,7 +610,7 @@ function isLifeFeedKey(activeKey) {
 /** 当前 key 是否属于对话流 Prompt 分组 */
 function isChatPromptKey(activeKey) {
   var all = [
-    'cp-step15', 'cp-step3', 'cp-step5', 'cp-step55', 'cp-step55-switch',
+    'cp-step15', 'cp-step3', 'cp-step5', 'cp-memory-router', 'cp-step55', 'cp-step55-switch',
     'cp-step6', 'cp-step8', 'cp-agent',
     // 兼容旧书签：仍可能直接打开 prompt / step55switch
     'prompt', 'step55switch'

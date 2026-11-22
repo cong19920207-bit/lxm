@@ -133,6 +133,7 @@ def _build_step1_5_prompt(
     recent_conversations: list,
     rewrite_input: str,
     source: str = "main",
+    shared_history=None,
 ) -> str:
     """
     拼装 Step1.5 查询重写 Prompt。
@@ -164,23 +165,20 @@ def _build_step1_5_prompt(
     parts.append(f"【人格设定】\n{persona_text}")
 
     # 关系状态
-    level_name = round_context.get("level_name", "陌生")
-    relation_desc = round_context.get("relation_description", "暂无，初次互动")
-    user_real_name = round_context.get("user_real_name", "")
-    user_hobby_name = round_context.get("user_hobby_name", "")
-    rel_lines = [
-        "【关系状态】",
-        f"当前关系等级：{level_name}",
-        f"关系描述：{relation_desc}",
-    ]
-    # 优先展示亲密称呼，其次真实姓名
-    call_name = user_hobby_name or user_real_name
-    if call_name:
-        rel_lines.append(f"用户称呼：{call_name}")
-    parts.append("\n".join(rel_lines))
+    level_name = round_context.get("level_name", "陌生" if shared_history is None else None)
+    relation_desc = round_context.get("relation_description", "暂无，初次互动" if shared_history is None else None)
+    call_name = round_context.get("user_hobby_name") or round_context.get("user_real_name")
+    rel_lines = [f"{label}：{value}" for label, value in (
+        ("当前关系等级", level_name), ("关系描述", relation_desc), ("用户称呼", call_name))
+        if value is not None and value != ""]
+    if rel_lines:
+        parts.append("\n".join(["【关系状态】", *rel_lines]))
 
     # 近期对话（R-L1L3-14：最近 10 轮，复用已截取的 recent_10）
-    if recent_conversations:
+    if shared_history is not None:
+        if shared_history.rendered_text:
+            parts.append(shared_history.rendered_text)
+    elif recent_conversations:
         chat_lines = ["【近期对话】"]
         for conv in recent_conversations:
             # 兼容 dict（snapshot）和 ORM 实例两种格式
@@ -272,16 +270,19 @@ def _build_step1_5_prompt(
     )
 
     # Few-shot 示例（含多条连发综合理解示例）
-    parts.append(_memory_few_shot())
+    if shared_history is not None:
+        parts.append("系统固定当前等级和行为定义按已提供的值使用；缺少也不通过记忆补齐。"
+                     "关系变化事件、过去态度、共同计划等历史事实可按需要查询。")
+    parts.append(_memory_few_shot(shared=shared_history is not None))
 
     return "\n\n".join(parts)
 
 
-def _memory_few_shot() -> str:
+def _memory_few_shot(*, shared=False) -> str:
     examples = [
         ('我喜欢吃什么？', '', 'user', '用户喜欢吃的食物和口味偏好', '食物 口味 偏好'),
         ('我对海鲜过敏\n今晚吃什么好', '', 'user', '用户的海鲜过敏、饮食禁忌与今晚饮食偏好', '海鲜 过敏 饮食 禁忌'),
-        ('你最近对我印象怎么样？', '', 'cp', '林小梦最近对当前用户的印象和态度', '印象 态度 最近'),
+        ('你最近对我印象怎么样？', '当前上下文未提供过去的态度事实，用户询问过去事件形成的印象。' if shared else '', 'cp', '林小梦最近对当前用户的印象和态度', '印象 态度 最近'),
         ('唉', '', None, '无', ''),
         ('还记得上个月阿青没去的那个展览吗？', '', 'user', '上个月阿青没有参加的展览', '上个月 阿青 未参加 展览'),
         ('你昨天把报表改到第几轮了？', '', 'cg', '林小梦昨天修改报表的修订轮次', '昨天 报表 修改 修订 轮次'),
@@ -361,7 +362,7 @@ async def execute_query_rewrite(
 
     Args:
         user_id: 用户 ID
-        rewrite_input: 改写输入文本（C25）。主链为 bundled_truncated（整包截断），
+        rewrite_input: 改写输入文本（C25）。主链为本轮冻结的共享输入，
             Step8 为 future_action（约 20 字）；降级时用于生成 fallback Embedding
         persona_text: 人格设定文本
         round_context: STEP-018 本轮内存上下文

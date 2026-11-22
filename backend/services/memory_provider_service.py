@@ -6,6 +6,7 @@ import math
 import time
 import httpx
 
+from backend.services.memory_router_trace import observe_call, observe_usage
 from backend.services.memory_effective_config import ProviderConfig
 from backend.utils.memory_vector import normalize_dense
 
@@ -64,10 +65,12 @@ async def embedding(config: ProviderConfig, texts: list[str], text_type: str = "
     if text_type not in ("query", "document") or not isinstance(texts, list) or not 1 <= len(texts) <= 10 or any(not isinstance(text, str) or not text.strip() for text in texts):
         raise ProviderError("embedding_input_invalid")
     async with _client(client) as active:
+        observe_call("embedding")
         data = await _request(active, "post", config.endpoint, headers=_headers(config), json={
             "model": config.model, "input": {"texts": texts},
             "parameters": {"dimension": config.dimension, "text_type": text_type},
         })
+    observe_usage("embedding",config.model,data)
     output = data.get("output")
     embeddings = output.get("embeddings") if isinstance(output, dict) else None
     if not isinstance(embeddings, list) or len(embeddings) != len(texts):
@@ -96,10 +99,12 @@ async def rerank(config: ProviderConfig, query: str, documents: list[str], *, cl
     if count > 500 or max([query_size, *sizes]) > 4000 or count * query_size + sum(sizes) > 30000:
         raise ProviderError("local_size_guard")
     async with _client(client) as active:
+        observe_call("rerank")
         data = await _request(active, "post", config.endpoint, headers=_headers(config), json={
             "model": config.model, "input": {"query": query, "documents": documents},
             "parameters": {"top_n": count},
         })
+    observe_usage("rerank",config.model,data)
     output = data.get("output")
     results = output.get("results") if isinstance(output, dict) else None
     if not isinstance(results, list) or len(results) != count:

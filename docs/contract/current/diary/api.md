@@ -13,6 +13,7 @@
 - **所属端**：H5
 - **鉴权**：Bearer
 - **Query**：`page`, `page_size`（1–50）
+- **跨端**：与[Open 日记](../openapi/api.md#feed-diary-openapi)共用本人查询及已读。两端均按创建时间倒序，同一创建时间按 ID 倒序。H5 响应继续只含原分页字段。
 - **响应**：`ApiResponse`；`data` 为 `DiaryListResponse`：`items`（`DiaryItem`: id, content, relationship_level_at_creation, is_read, created_at, **covers_beijing_date** 可为 `null`）, total, page, page_size
 - **说明**：成功响应 JSON **从不**包含 `diaries` 键；客户端须使用 **`items`**（与全局「字段命名规范」一致）。**`covers_beijing_date`** 为日记所覆盖的**北京日历日**；H5 列表日期展示优先使用该字段，缺失时回退 **`created_at`** 的本地解析（旧数据 H2 不回填）。
 - **内容安全（产品已定案）**：AI 日记正文为系统生成内容，**当前**不对 LLM 输出做与 H5 用户消息同款的独立 `check_content`；合规边界以 PRD 与本条为准。

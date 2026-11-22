@@ -9,6 +9,8 @@ from sqlalchemy import select,update,or_
 from backend.models.memory_diagnostic import MemoryDiagnosticRun as Run
 from backend.models.memory_control import MemoryRuntimeFence,MemoryUseClaim
 from backend.models.user import User
+from backend.models.chat_lifecycle import ChatGeneration
+from backend.services import memory_router_config as router_configs
 from backend.services.memory_runtime_service import require_active_fence,MemoryControlError
 from backend.services.memory_admin_common import AdminMemoryError,iso,page_data,sql_page,dates,WRITE_ROLES
 from backend.utils.admin_auth import log_operation
@@ -23,7 +25,7 @@ def deletable(row):
 
 def project(row,role='observer'):
     return dict(id=row.run_id,execution_id=row.run_id,request_id=row.request_id,user_id=row.user_id,
-        admin_id=row.admin_id,source=row.source,parent_execution_id=row.parent_run_id,
+        admin_id=row.admin_id,source=row.source,source_generation_id=(row.context_sources or {}).get("source_generation_id"),mode=getattr(row,"mode",None) or "retrieval_only",parent_execution_id=row.parent_run_id,
         execution_state=row.execution_state,history_state=row.history_state,revision=str(row.result_revision),
         snapshot_available=row.snapshot_available,reason=row.controlled_reason,stage=row.stage,
         created_at=iso(row.created_at),started_at=iso(row.started_at),finished_at=iso(row.finished_at),
@@ -73,7 +75,13 @@ class DiagnosticService:
         return data,False
 
     async def admit(self,body,actor):
-        digest=hashlib.sha256(json.dumps(body,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).digest()
+        # Preserve the original fingerprint for requests in the legacy default mode.
+        identity = dict(body)
+        for key, default in (("mode","retrieval_only"), ("router_config_source","active"),
+                             ("draft_digest",None), ("source_generation_id",None)):
+            if identity.get(key,default)==default:
+                identity.pop(key,None)
+        digest=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).digest()
         committed=False
         try:
             async with asyncio.timeout(5):
@@ -98,8 +106,25 @@ class DiagnosticService:
                         or_(Run.execution_state.in_(ACTIVE),Run.lease_owner.is_not(None))).with_for_update())).all()
                     if len(active)>=2 or any(r.admin_id==actor.id or r.user_id==body['user_id'] for r in active):
                         raise AdminMemoryError(20124,'diagnostic_concurrency_limit')
+                    if actor.role not in WRITE_ROLES:
+                        raise AdminMemoryError(20126,"diagnostic_write_denied")
+                    origin = body.get("source_generation_id")
+                    if origin and await db.scalar(select(ChatGeneration.generation_id).where(
+                            ChatGeneration.generation_id==origin, ChatGeneration.user_id==body["user_id"])) is None:
+                        raise AdminMemoryError(20125,"source_generation_unavailable")
+                    choice = body.get("router_config_source","active")
+                    selected = await router_configs.active(db)
+                    if choice=="draft":
+                        draft = router_configs.project_draft(await router_configs.draft_row(db))
+                        if not draft["config"] or draft["draft_digest"]!=body.get("draft_digest"):
+                            raise AdminMemoryError(20127,"router_draft_conflict")
+                        selected = {"config":draft["config"],"config_digest":draft["draft_digest"],
+                                    "revision":selected["revision"],"version":None,"source":"draft"}
+                    selected["choice"] = choice
                     row=Run(run_id=str(uuid4()),admin_id=actor.id,user_id=body['user_id'],environment_id=self.environment_id,
                         request_id=body['request_id'],request_digest=digest,source=body['source'],input_text=body['input'],
+                        mode=body.get("mode","retrieval_only"), frozen_versions={"schema_version":1,"selected_router":selected},
+                        context_sources={"schema_version":1,"source_generation_id":origin},
                         parent_run_id=body.get('parent_execution_id'),execution_state='accepted',history_state='pending',
                         created_at=now,observed_at=now,deadline_at=now+timedelta(seconds=120),
                         persist_deadline_at=now+timedelta(seconds=150),stage='accepted',result_revision=1)
@@ -173,8 +198,9 @@ class DiagnosticService:
                     result=await self.execute(row)
             except (Exception,asyncio.CancelledError) as exc:
                 result=None
-                state='interrupted' if isinstance(exc,(TimeoutError,asyncio.CancelledError)) else 'failed'
-                reason='execution_interrupted' if state=='interrupted' else 'diagnostic_execution_failed'
+                from backend.services.memory_prompt_builder import PromptBudgetExceeded
+                state='budget_blocked' if isinstance(exc,PromptBudgetExceeded) else 'interrupted' if isinstance(exc,(TimeoutError,asyncio.CancelledError)) else 'failed'
+                reason={'interrupted':'execution_interrupted','budget_blocked':'prompt_budget_exceeded'}.get(state,'diagnostic_execution_failed')
             else:state=result['execution_state'];reason=None
             finally:
                 pulse.cancel()

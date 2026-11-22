@@ -82,11 +82,11 @@
 
     <!-- Tab：Prompt Token（与 R-L1L3-19 模块上限一致） -->
     <div id="pane-vt-token" class="tab-pane page-card vt-disable-while-load">
-      <p class="vt-hint">各模块预算独立限制完整条目；模块上限之和可以大于总量。昵称预算固定 50，昵称正文不截断。</p>
+      <p class="vt-hint">代码默认近期历史 24576、总预算 49152。下方输入框显示当前生效值，已发布配置优先。H5/Open 最多 30 个完整轮次，超预算按整轮裁剪。各模块预算独立限制完整条目；模块上限之和可以大于总量。昵称预算固定 50，昵称正文不截断。</p>
       <p id="vt-token-version" class="vt-hint"></p>
       <div class="form-item">
         <label>总 Token 上限 <code>max_total</code></label>
-        <input type="number" id="vt-max-total" data-write-action class="form-control" style="max-width:200px" min="1024" max="32768" step="1">
+        <input type="number" id="vt-max-total" data-write-action class="form-control" style="max-width:200px" min="1024" max="49152" step="1">
       </div>
       <div class="vt-token-grid" id="vt-token-modules"></div>
       <p id="vt-token-status" role="status" aria-live="polite">正在加载…</p>
@@ -126,14 +126,14 @@
     return routes;
   }
   function parseToken(read) {
-    var values={max_total:finite(read('max_total'),1024,32768,true)};
-    TOKEN_MODULE_KEYS.forEach(function(k){values[k]=finite(read(k),1,k==='recent_chat'?16384:8192,true);if(values[k]>values.max_total)throw new Error(TOKEN_LABELS[k]+'预算不能超过总上限');});
+    var values={max_total:finite(read('max_total'),1024,49152,true)};
+    TOKEN_MODULE_KEYS.forEach(function(k){values[k]=finite(read(k),1,k==='recent_chat'?24576:8192,true);if(values[k]>values.max_total)throw new Error(TOKEN_LABELS[k]+'预算不能超过总上限');});
     return values;
   }
   function renderInputs() {
     el('vt-route-rows').innerHTML=Object.keys(ROUTES).map(function(route){return '<tr><th>'+ROUTES[route]+' <code>'+route+'</code></th>'+COUNTS.map(function(k){return '<td><input type="number" id="vt-'+route+'-'+k+'" data-write-action class="form-control" min="1" max="50" step="1" aria-label="'+ROUTES[route]+' '+k+'"></td>';}).join('')+'</tr>';}).join('');
     el('vt-rerank-fields').innerHTML=Object.keys(ROUTES).map(function(route){return '<div class="form-item"><label>'+ROUTES[route]+'门槛</label><input type="number" id="vt-'+route+'-rerank_min_score" data-write-action class="form-control" min="0" max="1" step="0.01"></div>';}).join('');
-    el('vt-token-modules').innerHTML=TOKEN_MODULE_KEYS.map(function(k){return '<div class="form-item"><label>'+TOKEN_LABELS[k]+' <code>'+k+'</code></label><input type="number" id="vt-tok-'+k+'" data-write-action class="form-control" min="1" max="'+(k==='recent_chat'?16384:8192)+'" step="1"></div>';}).join('')+'<div class="form-item"><label>用户昵称（固定）</label><input id="vt-tok-user_nickname" class="form-control" value="50" readonly aria-readonly="true"></div>';
+    el('vt-token-modules').innerHTML=TOKEN_MODULE_KEYS.map(function(k){return '<div class="form-item"><label>'+TOKEN_LABELS[k]+' <code>'+k+'</code></label><input type="number" id="vt-tok-'+k+'" data-write-action class="form-control" min="1" max="'+(k==='recent_chat'?24576:8192)+'" step="1"></div>';}).join('')+'<div class="form-item"><label>用户昵称（固定）</label><input id="vt-tok-user_nickname" class="form-control" value="50" readonly aria-readonly="true"></div>';
   }
   function version(id, d) { el(id).textContent='当前配置版本：'+(d.version == null?'未发布':d.version)+' · 来源：'+(d.source || '未知'); }
   async function loadVector() {

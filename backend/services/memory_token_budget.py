@@ -3,6 +3,8 @@ import asyncio
 import hashlib
 import time
 
+from backend.services.memory_config_schema import PROMPT_TOTAL_MAX
+from backend.services.memory_router_trace import observe_call
 import httpx
 
 
@@ -99,6 +101,7 @@ class OfficialTextCounter:
     async def _call(self, client, texts, timeout):
         async with asyncio.timeout(timeout):
             self.request_count += 1
+            observe_call("tokenization")
             return await client.post(self.endpoint + '/tokenization',
                                      headers={'Authorization': 'Bearer ' + self._key},
                                      json={'model': self.model, 'text': texts}, timeout=timeout, follow_redirects=False)
@@ -107,7 +110,7 @@ class OfficialTextCounter:
 async def measure_rendered_budget(rendered: str, max_total: int, counter) -> dict:
     """Full rendered nickname stays in rendered; fixed nickname=50 is never a slice."""
     count = await counter.count(rendered)
-    if type(count) is not int or count < 0 or type(max_total) is not int or not 1024 <= max_total <= 32768:
+    if type(count) is not int or count < 0 or type(max_total) is not int or not 1024 <= max_total <= PROMPT_TOTAL_MAX:
         raise BudgetUnverified()
     return {'rendered_tokens': count, 'envelope_reserve': 64, 'total_charge': count + 64,
             'max_total': max_total, 'over_budget': count + 64 > max_total}

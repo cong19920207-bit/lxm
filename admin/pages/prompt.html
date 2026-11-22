@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prompt管理 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/prompt-admin.css?v=20261113-3">
   <style>
     .prompt-tools { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .sub-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
@@ -24,32 +25,112 @@
     #prompt-history-collapse-body.collapsed { display: none; }
   </style>
 </head>
-<body>
+<body class="prompt-admin">
 
 <div id="sidebar-mount"></div>
 <div class="admin-content">
   <div id="header-mount"></div>
 
-  <div class="page-card">
+  <div class="prompt-page-heading">
+    <div><p class="prompt-eyebrow">对话流 / PROMPT 配置</p><h1 id="prompt-page-title">Step5 主对话</h1>
+      <p id="prompt-page-description">维护主对话的系统提示词，测试后发布生效。</p></div>
+  </div>
+  <div class="page-card prompt-workspace">
+    <div class="tabs" id="prompt-main-tabs" role="tablist" aria-label="对话配置">
+      <button type="button" id="tab-step5" class="tab-item active" data-target="pane-main-step5" role="tab" aria-controls="pane-main-step5" aria-selected="true">Step5 主对话</button>
+      <button type="button" id="tab-router" class="tab-item" data-target="pane-router" role="tab" aria-controls="pane-router" aria-selected="false" tabindex="-1">记忆查询路由</button>
+      <button type="button" id="tab-step55" class="tab-item" data-target="pane-main-step55" role="tab" aria-controls="pane-main-step55" aria-selected="false" tabindex="-1">Step5.5 润色</button>
+    </div>
     <div class="prompt-tools">
       <a class="btn btn-default btn-sm" href="/admin/pages/step5-5-switch.html">Step5.5 总开关</a>
-      <button type="button" class="btn btn-default" id="btn-test-open" data-write-action>在线测试（主链 Prompt）</button>
+      <button type="button" class="btn btn-default" id="btn-test-open" data-write-action>在线测试（模拟记忆）</button>
     </div>
     <p class="hint-mini">
       Step5 System 对应 <code>step5_system_prompt</code>；Step5.5 六段对应 <code>step5_5_prompt_fragments</code>。
-      在线测试使用与线上一致的 <code>build_chat_prompt</code>（勾选草稿时可测 Step5 System 草稿）。
+      在线测试使用旧版 Prompt 构建器和模拟记忆；可勾选 Step5 System 草稿。路由判定请使用「记忆查询路由」中的真实诊断。
     </p>
     <p class="hint-mini" style="color:#d46b08;background:#fff7e6;padding:8px 10px;border-radius:4px;border:1px solid #ffd591">
-      <strong>关于「发布」按钮：</strong>仅保存草稿不会启用发布。请先点击上方「<strong>在线测试（主链 Prompt）</strong>」，填写测试输入并点「开始测试」；右侧出现<strong>非空的 AI 回复</strong>后，「发布 Step5」与「发布 Step5.5」才会自动变为可点。
+      <strong>关于「发布」按钮：</strong>仅保存草稿不会启用发布。请先点击上方「<strong>在线测试（模拟记忆）</strong>」，填写测试输入并点「开始测试」；右侧出现<strong>非空的 AI 回复</strong>后，「发布 Step5」与「发布 Step5.5」才会自动变为可点。
       若您再次编辑 Step5 正文或 Step5.5 任意片段，发布会重新锁定，需再跑一次在线测试。
     </p>
 
-    <div class="tabs" id="prompt-main-tabs">
-      <div class="tab-item active" data-target="pane-main-step5">Step5 System</div>
-      <div class="tab-item" data-target="pane-main-step55">Step5.5 片段</div>
-    </div>
+    <section id="pane-router" role="tabpanel" aria-labelledby="tab-router" style="display:none">
+      <section class="router-card router-overview" aria-labelledby="router-overview-title">
+        <div class="router-section-heading">
+          <div><h2 id="router-overview-title">路由模型与运行配置</h2><p id="router-active">正在读取配置…</p></div>
+          <div class="router-heading-actions"><span id="router-state" class="router-badge">读取中</span><button type="button" class="btn btn-default" id="router-refresh">刷新配置</button></div>
+        </div>
+        <dl class="router-metrics">
+          <div><dt>生效模型</dt><dd id="router-model">—</dd></div>
+          <div><dt>生效思考模式</dt><dd id="router-thinking-summary">—</dd></div>
+          <div><dt>历史上下文</dt><dd id="router-window">—</dd></div>
+          <div><dt>判定超时</dt><dd id="router-timeout-summary">—</dd></div>
+        </dl>
+        <fieldset id="router-model-editor" disabled><legend>编辑路由草稿</legend>
+          <div class="router-model-fields">
+            <div><label class="router-model-label" for="router-model-profile">判定模型</label>
+              <select class="form-control" id="router-model-profile">
+                <option value="inherit_reply">豆包 Lite（跟随主回复模型）</option>
+                <option value="deepseek-flash">DeepSeek Flash</option>
+              </select>
+            </div>
+            <label class="router-switch-label" for="router-thinking"><span class="router-switch"><input type="checkbox" id="router-thinking"><span aria-hidden="true"></span></span><span><strong>开启思考</strong><small>默认关闭。开启后，判定可能需要更长时间。</small></span></label>
+          </div>
+          <p id="router-model-state" aria-live="polite"></p>
+        </fieldset>
+        <details class="router-details"><summary>版本标识与固定参数</summary><dl id="router-fixed" class="router-key-values"></dl></details>
+      </section>
 
-    <div id="pane-main-step5" class="tab-pane active">
+      <div class="router-layout">
+        <section class="router-card router-config" aria-labelledby="router-config-title">
+          <div class="router-section-heading"><div><h2 id="router-config-title"><span class="router-step">01</span>路由配置</h2><p>判断本轮回答是否需要查询记忆，再决定是否进入记忆召回。</p></div></div>
+          <div id="router-draft" class="router-draft-banner">正在读取草稿…</div>
+          <fieldset id="router-editor" disabled><legend class="prompt-sr-only">编辑路由配置</legend>
+            <div class="router-settings">
+              <label class="router-switch-label" for="router-enabled"><span class="router-switch"><input type="checkbox" id="router-enabled" aria-describedby="router-enabled-help"><span aria-hidden="true"></span></span><span><strong>启用记忆查询路由</strong><small id="router-enabled-help">发布后生效；关闭时不执行路由判定。</small></span></label>
+              <div class="router-timeout-field"><label for="router-timeout">判定超时 <span>毫秒</span></label><input class="form-control" type="number" min="1000" max="10000" step="1" id="router-timeout" aria-describedby="router-timeout-help"><small id="router-timeout-help">范围 1,000–10,000 毫秒</small></div>
+            </div>
+            <div class="router-label-row"><label for="router-prompt">任务说明与案例</label><span id="router-edit-state" class="router-badge">加载中</span></div>
+            <p class="router-help" id="router-prompt-help">说明哪些情况需要查询、哪些可以直接回答，可补充典型案例。固定规则在右侧查看。</p>
+            <textarea id="router-prompt" class="form-control" rows="12" aria-describedby="router-prompt-help router-count router-size-help" spellcheck="false"></textarea>
+            <div class="router-editor-footnote"><span id="router-count">0 / 20,000 字符</span><span id="router-size-help">完整配置上限 65,535 UTF-8 字节</span></div>
+          </fieldset>
+          <div class="router-action-bar" id="router-writes" data-write-action>
+            <div class="router-action-group"><button type="button" class="btn btn-primary" id="router-save">保存草稿</button><button type="button" class="btn btn-default" id="router-discard">恢复当前版本</button></div>
+            <button type="button" class="btn btn-publish-green" id="router-publish" disabled>发布已保存草稿</button>
+          </div>
+          <div class="router-feedback"><p id="router-status" role="status" aria-live="polite"></p><button type="button" class="btn btn-default" id="router-receipt" hidden>按原 ID 核实发布</button></div>
+          <p class="router-help router-publish-help">保存草稿不会影响当前对话；发布后，后续对话使用新配置。</p>
+        </section>
+
+        <aside class="router-aside">
+          <section class="router-card" id="router-testing" data-write-action aria-labelledby="router-testing-title">
+            <h2 id="router-testing-title"><span class="router-step">02</span>诊断测试</h2>
+            <p class="router-help">选择配置后进入记忆检索诊断，以真实判定链路检查是否需要查询记忆。</p>
+            <label class="router-input-label" for="router-test-source">测试配置来源</label>
+            <select class="form-control" id="router-test-source"><option value="active">当前有效版本</option><option value="draft" disabled>已保存草稿</option></select>
+            <button type="button" class="btn btn-default router-test-button" id="router-test" disabled>打开真实诊断 <span aria-hidden="true">↗</span></button>
+            <p class="router-help">测试草稿前请先保存，未保存的编辑不会用于测试。</p>
+          </section>
+          <section class="router-card router-rules-card">
+            <h2>判定规则</h2><p class="router-help">任务说明与系统固定规则共同生效；固定规则不可在此修改。</p>
+            <details class="router-details"><summary>固定规则及输出格式</summary><pre id="router-rules"></pre></details>
+          </section>
+          <section class="router-card router-disable-card" id="router-disable-panel" data-write-action>
+            <h2>暂停路由</h2><p class="router-help">只关闭当前生效配置，保留草稿和本页未保存的编辑。</p>
+            <button type="button" class="btn btn-default" id="router-disable" disabled>关闭当前生效路由</button>
+          </section>
+        </aside>
+      </div>
+
+      <section class="router-card router-history-card" aria-labelledby="router-history-title">
+        <div class="router-section-heading"><div><h2 id="router-history-title">版本历史</h2><p>查看已发布配置；回滚会创建一个新的生效版本。</p></div><span id="router-history-count" class="router-muted"></span></div>
+        <div id="router-history">正在读取版本历史…</div>
+        <div class="router-pagination"><span id="router-page-label">第 1 页</span><div class="router-action-group"><button type="button" class="btn btn-default btn-sm" id="router-prev" disabled>上一页</button><button type="button" class="btn btn-default btn-sm" id="router-next" disabled>下一页</button></div></div>
+        <div id="router-version" class="router-version-detail"></div>
+      </section>
+    </section>
+    <div id="pane-main-step5" class="tab-pane active prompt-editor-panel" role="tabpanel" aria-labelledby="tab-step5">
       <div class="status-bar-inner" style="margin-bottom:12px">
         <span id="st5-left">加载中…</span>
         <span id="st5-right"></span>
@@ -62,7 +143,7 @@
       </div>
     </div>
 
-    <div id="pane-main-step55" class="tab-pane" style="display:none">
+    <div id="pane-main-step55" class="tab-pane prompt-editor-panel" role="tabpanel" aria-labelledby="tab-step55" style="display:none">
       <div class="status-bar-inner" style="margin-bottom:12px">
         <span id="st55-left">加载中…</span>
         <span id="st55-right"></span>
@@ -104,7 +185,7 @@
 <div id="prompt-test-modal" class="modal-overlay" aria-hidden="true">
   <div class="modal-content modal-prompt-test" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h3>在线测试 · 主链 Prompt</h3>
+      <h3>在线测试 · 旧版 Prompt 与模拟记忆</h3>
       <button type="button" class="btn btn-link" id="prompt-test-close">✕</button>
     </div>
     <div class="modal-body">
@@ -168,7 +249,7 @@
   </div>
 </div>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=memory-nav-20261113"></script>
 <script>
 (function () {
   var ROLES = ['super_admin', 'ai_trainer', 'observer'];
@@ -206,7 +287,9 @@
     var box = document.getElementById('f55-tabs');
     box.innerHTML = '';
     F55_KEYS.forEach(function (k) {
-      var d = document.createElement('div');
+      var d = document.createElement('button');
+      d.type = 'button';
+      d.setAttribute('aria-pressed', k === activeF55 ? 'true' : 'false');
       d.className = 'tab-item' + (k === activeF55 ? ' active' : '');
       d.textContent = F55_LABELS[k] || k;
       d.setAttribute('data-k', k);
@@ -514,14 +597,55 @@
   document.getElementById('btn-test-open').onclick = openTestModal;
   document.getElementById('prompt-test-close').onclick = closeTestModal;
 
-  document.getElementById('prompt-main-tabs').onclick = function (e) {
-    var t = e.target.closest('.tab-item');
-    if (!t) return;
-    var target = t.getAttribute('data-target');
-    document.querySelectorAll('#prompt-main-tabs .tab-item').forEach(function (x) { x.classList.remove('active'); });
-    t.classList.add('active');
+  function selectPromptTab(target) {
+    var tabs = {
+      'pane-main-step5': {key:'cp-step5', tab:'step5', title:'Step5 主对话', description:'维护主对话的系统提示词，测试后发布生效。'},
+      'pane-router': {key:'cp-memory-router', tab:'router', title:'记忆查询路由', description:'管理记忆查询的判定条件、测试配置与发布版本。'},
+      'pane-main-step55': {key:'cp-step55', tab:'step55', title:'Step5.5 润色', description:'按片段维护回复润色提示词，测试后发布生效。'}
+    };
+    var current = tabs[target];
+    if (!current) return;
+    document.querySelectorAll('#prompt-main-tabs .tab-item').forEach(function (x) {
+      var selected = x.getAttribute('data-target') === target;
+      x.classList.toggle('active', selected);
+      x.setAttribute('aria-selected', String(selected));
+      x.tabIndex = selected ? 0 : -1;
+    });
+    document.getElementById('pane-router').style.display = target === 'pane-router' ? 'block' : 'none';
+    document.querySelectorAll('.prompt-tools,.prompt-tools ~ p.hint-mini').forEach(function(node){
+      node.hidden = target === 'pane-router';
+    });
+    document.getElementById('prompt-history-collapse-body').closest('.page-card').hidden = target !== 'pane-main-step5';
+    document.getElementById('prompt-history55-collapse-body').closest('.page-card').hidden = target !== 'pane-main-step55';
+    if(target==='pane-router') window.routerConfigPanel.open();
     document.getElementById('pane-main-step5').style.display = target === 'pane-main-step5' ? 'block' : 'none';
     document.getElementById('pane-main-step55').style.display = target === 'pane-main-step55' ? 'block' : 'none';
+    var sidebar = document.querySelector('#sidebar-mount .sidebar');
+    var scrollTop = sidebar ? sidebar.scrollTop : 0;
+    document.getElementById('sidebar-mount').innerHTML = renderSidebar(current.key);
+    sidebar = document.querySelector('#sidebar-mount .sidebar');
+    if(sidebar) sidebar.scrollTop = scrollTop;
+    document.getElementById('header-mount').innerHTML = renderHeader(current.title);
+    document.getElementById('prompt-page-title').textContent = current.title;
+    document.getElementById('prompt-page-description').textContent = current.description;
+    document.title = current.title + ' - 林小梦管理后台';
+    var url = new URL(window.location.href);
+    url.searchParams.set('tab', current.tab);
+    if(target !== 'pane-router') url.searchParams.delete('version');
+    window.history.replaceState(null, '', url);
+  }
+  document.getElementById('prompt-main-tabs').onclick = function (e) {
+    var t = e.target.closest('.tab-item');
+    if (t) selectPromptTab(t.getAttribute('data-target'));
+  };
+  document.getElementById('prompt-main-tabs').onkeydown = function (e) {
+    var items = Array.from(this.querySelectorAll('.tab-item'));
+    var index = items.indexOf(document.activeElement);
+    if(index < 0 || ['ArrowLeft','ArrowRight','Home','End'].indexOf(e.key) < 0) return;
+    e.preventDefault();
+    var next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
+    items[next].click();
+    items[next].focus();
   };
 
   document.getElementById('prompt-view-close').onclick = function () {
@@ -550,22 +674,20 @@
     }
     var params = new URLSearchParams(window.location.search || '');
     var tab = (params.get('tab') || 'step5').toLowerCase();
-    var sideKey = tab === 'step55' || tab === 'step5.5' ? 'cp-step55' : 'cp-step5';
-    var headerTitle = sideKey === 'cp-step55' ? 'Step5.5 润色' : 'Step5 主对话';
+    var sideKey = tab === 'router' ? 'cp-memory-router' : tab === 'step55' || tab === 'step5.5' ? 'cp-step55' : 'cp-step5';
+    var headerTitle = sideKey === 'cp-memory-router' ? '记忆查询路由' : sideKey === 'cp-step55' ? 'Step5.5 润色' : 'Step5 主对话';
     document.getElementById('sidebar-mount').innerHTML = renderSidebar(sideKey);
     document.getElementById('header-mount').innerHTML = renderHeader(headerTitle);
     setTestPassed(false);
+    selectPromptTab(sideKey === 'cp-memory-router' ? 'pane-router' : sideKey === 'cp-step55' ? 'pane-main-step55' : 'pane-main-step5');
     await loadStep5();
     await loadStep55();
     await loadHist5();
     await loadHist55();
-    // URL ?tab=step55 时默认展示 Step5.5 片段 Tab
-    if (sideKey === 'cp-step55') {
-      var tab55 = document.querySelector('#prompt-main-tabs .tab-item[data-target="pane-main-step55"]');
-      if (tab55) tab55.click();
-    }
   });
 })();
 </script>
+<script src="/admin/static/js/memory-admin-common.js"></script>
+<script src="/admin/static/js/memory-router-config.js?v=20261113-3"></script>
 </body>
 </html>

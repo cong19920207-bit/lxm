@@ -139,12 +139,16 @@
 | 召回/Token/向量配置PUT或测连POST | 写/测 | 无新增 | 写/测 | 无新增 | 403 |
 | 第三方原配置GET（含embedding/rerank/dashvector） | 读 | 无新增 | 无新增 | 读 | 读 |
 | 第三方原PUT/测连POST | 写/测 | 无新增 | 无新增 | 写/测 | 403 |
+| Router 生效、草稿、版本、线上路由记录 GET | 读 | 403 | 读 | 403 | 读 |
+| Router 草稿保存/丢弃、发布/关闭/恢复、发起诊断 | 写 | 403 | 写 | 403 | 403 |
 | 诊断/历史/维护/回填GET | 读 | 403 | 读 | 403 | 读 |
 | 诊断执行、维护retry、诊断或维护history DELETE | 写 | 403 | 写 | 403 | 403 |
 | 原全局/角色知识CRUD GET及本人receipt | 读 | 无新增 | 读 | 无新增 | 读 |
 | 原全局/角色知识CRUD写 | 写 | 无新增 | 写 | 无新增 | 403 |
 | 原user/private CRUD GET及本人receipt | 读 | 读 | 读 | 无新增 | 读 |
 | 原user/private CRUD写 | 写 | 写 | 写 | 无新增 | 403 |
+
+线上记录的源正文还需用户对话域的原读取角色及摘要验证，缺源、无权限或摘要不符只展示状态。Router 发布回执同时检查本人身份与原来源当前读取权限。
 
 发布GET必须原本人actor并重新核原来源角色：third_party S/T/V，configs/vector S/A/V。write-operation GET同样本人且核原来源角色，mtglobal/knowledge/batch S/A/V、user/private S/O/A/V；不可借receipt跨域。诊断共享历史读取/删除按上表，不新增原admin_id本人限制；诊断user存在性由本域后端核实，不借用户目录授权给A。retry/delete资格另由后端当前代/修订/未完成引用判断，role有权不代表动作有资格。历史快照不扩大源CRUD权限。observer只读GET不触发模型、回填、修复或业务状态写。
 

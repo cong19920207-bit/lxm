@@ -38,6 +38,8 @@
 
 #### GET /api/memory/list
 
+外部客户端通过 `GET /api/open/v1/memory/list` 使用同账号已签发的 Key 读取此页展示的记忆。外部响应字段与错误处理见[记忆星云 Open API](../openapi/api.md#memory-nebula-openapi)。
+
 - **所属端**：H5
 - **鉴权**：Bearer
 - **Query**：`page`, `page_size`
@@ -105,7 +107,9 @@ user / character_private向量文档增加内部溯源字段`last_write_source`�
 
 四路固定为 `cg/cp/ck/user`。每路完整配置为 `{dense_top_k,bm25_top_k,final_top_k,rerank_min_score}`；前三者为严格整数1～50，`final_top_k≤dense_top_k+bm25_top_k`，门槛为有限非布尔0～1。缺历史发布时默认20/20/8/0.1；历史 `legacy.top_k/threshold`仅只读审计，不进入新文字链。GET `/api/admin/configs/vector_retrieval_config` 返回完整 `routes`、`legacy`、`version/source/server_time`；PUT只提交dirty路/字段，严格拒未知字段、显式null和空更新，经合并后组合校验。
 
-Token配置GET `/api/admin/configs/prompt_token_config`返回完整冻结预算与版本/来源/UTC时钟，含固定 `user_nickname=50`。PUT只允许 `max_total/system/persona/character_knowledge/relationship/memory/emotion/time_activity/recent_chat/user_input`；总量1024～32768，recent_chat 1～16384，其余可编辑模块1～8192，单模块不得超过总量。nickname不可提交。非法/空组合20046，结构校验422；合法昵称正文不因超过50裁剪，仍计入完整Prompt。
+Token配置GET `/api/admin/configs/prompt_token_config`返回完整冻结预算与版本/来源/UTC时钟，含固定 `user_nickname=50`。PUT只允许 `max_total/system/persona/character_knowledge/relationship/memory/emotion/time_activity/recent_chat/user_input`；总量1024～49152，recent_chat 1～24576，其余可编辑模块1～8192，单模块不得超过总量。nickname不可提交。非法/空组合20046，结构校验422；合法昵称正文不因超过50裁剪，仍计入完整Prompt。
+
+代码默认 max_total=49152、system=2048、persona=3072、character_knowledge=3072、relationship=1024、memory=4096、emotion=512、time_activity=256、recent_chat=24576、user_nickname=50、user_input=8192，已发布值优先。同一读取冻结 Token、召回、provider 与 memory_query_router_config。后者未发布时关闭、timeout_ms=5000、max_retries=0，继承本轮回复模型，固定行为 router_boolean_v1。已发布坏值按读取错误处理。向量目标指纹只由向量目标决定。[Router 配置接口](../persona-prompt-world-state/api.md#dialogue-router-config)
 
 两个向量配置入口（本模块 `/api/admin/vector-db-config`与第三方 `dashvector`）共用 `vector_db_config` canonical head；embedding/rerank分别为 `third_party:embedding`和`third_party:rerank`。输入、已发布JSON及显式允许的初始环境来源按组解析，不在字段/HTTP适配层隐式换来源；已发布坏配置/读取失败不改用默认。rerank未发布时必须显式设置`ALIYUN_RERANK_ENDPOINT`和`ALIYUN_RERANK_MODEL`，代码不默认接口或模型；可选`ALIYUN_RERANK_API_KEY`留空复用`ALIYUN_ACCESS_KEY_ID`中的百炼凭据。已发布配置仍优先。`EffectiveMemoryConfig`一次冻结 retrieval/prompt/provider版本、来源与凭据handle、目标指纹、encoder/统计/语料摘要、reply model、官方counter和阶段参数，rerank profile的model与本次有效provider一致。preview没有active epoch；active resolver校验fence，不负责激活。
 
@@ -156,6 +160,8 @@ Token配置GET `/api/admin/configs/prompt_token_config`返回完整冻结预算�
 <a id="memory-retrieval-protocol"></a>
 ### 四路查询、双召回和路内重排
 
+主文字先判断是否需要查询。开启时，固定规则和可编辑说明分开传入，回复必须是只含 need_memory_query 的 JSON 布尔对象。仅合法 false 跳过。关闭、任一当前输入被截断、Router 超容量均直接查询，畸形输出、局部超时或服务错误也回退查询，decision 为 null。取消、失权、总截止终止执行。Router 与 Step1.5 共用原 45 秒改写截止，不续时。改写使用冻结历史，改写容量不足按原输入兜底。[可见上下文](../persona-prompt-world-state/data.md#dialogue-shared-context)
+
 Step1.5共享模板保留13字段：InnerMonologue及四组 `CharacterGlobal/CharacterPrivate/CharacterKnowledge/UserProfile`的QueryQuestion、QueryKeywords、CandidateKeys。解析生成四路 `MemoryQuery(question,keywords,skipped,question_state,keywords_state,warnings)`；Question缺失/null/非法复用原输入，合法空/“无”跳过；无合法Keywords复用Question，确定性补齐零付费调用。CandidateKeys只是协议提示，非法告警，不能作为新链结构化过滤豁免。模板说明有据实体、事实主体/未知槽位、时间、否定、经历与共同计划，不补缺失年份/城市，不输出权重/稀疏向量；实际模型语义质量仍以评测证据为准。
 
 新目标 `new_lxm_memory_long_collection`，1024/FLOAT/DotProduct；dense写查统一严格L2，拒零/nonfinite/错维度，合法负分保留；BM25保原权重，空词项零查询，独立sparse请求仅协议alpha0使用零dense占位，剔零分填充而不影响dense。固定dashtext0.0.7与发布的 `memory-bm25-zh-v1:17dbc3fe3a4d2ed8dd70a72bef5bf8812abea09585a137e07cbd2fd76b4db194`；请求不fit/下载。Embedding新缓存v2含query/document语义profile和原value SHA256，命中仍验证L2。
@@ -172,6 +178,8 @@ Step1.5共享模板保留13字段：InnerMonologue及四组 `CharacterGlobal/Cha
 
 <a id="memory-prompt-selection"></a>
 ### 最终选入、官方计数与输入使用保护
+
+合法跳过时返回 skipped_by_router、rewrite_state=not_run 和四路完整空结果。Step3 采用冻结模块、空记忆及原有本地组装，省去改写与检索调用，继续执行最终官方计数与输入使用保护。回复提示词不追加“未查询记忆”提示。
 
 `build_prompt→PromptBuildResult`保留prompt/config_snapshot_id/counter/selected/initial_selected/removed/route_counts/module_charges/over_budget/modules及可选use_claim_id/use_deadline_at；SelectedEntry绑定可信candidate、rendered_text和选入序，正文/Prompt不进repr或日志。四路独立final_top_k，角色cg→cp→ck按名次轮转、user独立预算；整条连标题/标签/分隔计数，首条不合停止该路。总超限按原裁剪优先级及角色逆成功序删尾，保持前缀、不补位；最终失效项及同路后缀淘汰后重渲染/重计数。候选正文只是数据，控制字符/模块分隔转义，key:value标签取可信metadata，身份/归属留DTO。
 
@@ -203,7 +211,7 @@ pre-T0源unknown只fetch核原tag/gen/hash，use保护只按原transport交付/j
 <a id="memory-diagnostic-lifecycle"></a>
 ### 只读真实诊断与执行/保存分态
 
-诊断来源为 `main/openapi/step8`：前两者共享实际主文字只读装载和组装，step8共享实际Step8装载和组装；真实Step1.5→四路双召回→路内重排→同次Prompt选入/官方计数。诊断不调用reply/send/Step1、不触发Step6、不写聊天、关系、情绪或日记业务状态；诊断表、摘要审计及输入使用claim是自身控制记录。
+诊断来源为 `main/openapi/step8`：前两者共享实际主文字只读装载和组装，step8共享实际Step8装载和组装。默认 retrieval_only 强制跑实际检索和选入。main/openapi 可选 router_only 单测判定（包括显式测试关闭配置），无检索和 Step3；runtime_path 按真实开关及决定执行，合法 skip 可 completed。Step8 仅支持 retrieval_only 和 active。诊断不调用reply/send/Step1、不触发Step6、不写聊天、关系、情绪或日记业务状态；诊断表、摘要审计及输入使用claim是自身控制记录。
 
 外部调用前持久 `UNIQUE(admin_id,request_id)` 和输入摘要；规范小写UUIDv7首次时间窗过去120秒/未来30秒。已登记身份先复读，输入冲突20121；显式重执行新request_id，可带UUIDv4 parent_execution_id并重新装载上下文。run/execution_id为UUIDv4。环境fence/锁串行准入，用户/管理员/环境1/1/2；执行120秒、另30秒保存，lease15秒每5秒续租，不续原截止。
 
@@ -212,6 +220,8 @@ pre-T0源unknown只fetch核原tag/gen/hash，use保护只按原transport交付/j
 公共投影含 `id/execution_id/request_id/user_id/admin_id/source/parent_execution_id/execution_state/history_state/revision/snapshot_available/reason/stage/created_at/started_at/finished_at/observed_at/deadline_at/persist_deadline_at/status_url/can_delete/server_time`，必要时action_reason/use_protected；revision十进制字符串，时间UTC。
 
 详情默认另给 `input/frozen_versions/context_sources/selection_result/metrics/candidate_total/snapshot_semantics`；selection_result不旁路输出selected/initial_selected/removed大数组，仅给其count。candidates分页含可信原文、原分/名次、重排分/排序、渲染及初始/最终选入；仅淘汰提示行entry_kind、route/doc_id/identity/ordinal/stage/reason与选入false，不伪造正文。
+
+预算阻断时保留本轮已装载的公开配置版本、预算及可得上下文来源。固定模块单独超限时，selection_result.counter 以 scope=module 记录模块名、实计 token、模块上限和本轮总上限。
 
 历史保存原输入、四路改写、可信候选与同次选入/token、版本/上下文来源/调用耗时；不保存完整对话、完整Prompt或reply。费用不可得cost=null/cost_status=not_provided。服务凭据不进DTO、错误、日志、诊断或维护记录；合法业务input和候选原文保留，包括HTML，UI必须纯文本呈现。
 
@@ -241,11 +251,11 @@ retry资格由005后端只读判定，POST再锁验，旧代/源未知/已删/�
 
 `POST /api/admin/memory-diagnostics`；角色：S/A。
 
-输入：ExecuteBody：request_id规范UUIDv7、user_id严格正整数、source=main/openapi/step8、input非空1～2000（step8≤200）、parent_execution_id可选UUIDv4。
+输入：ExecuteBody：request_id规范UUIDv7、user_id严格正整数、source=main/openapi/step8、input非空，按 Unicode 码点计 1～2000（step8≤200）、parent_execution_id可选UUIDv4。可选 mode、router_config_source=active/draft、draft_digest 和 source_generation_id。选择 draft 必须提交当前草稿摘要，受理时冻结选定路由配置；从线上记录发起会创建独立诊断身份。
 
 响应与语义：原执行公共投影；新执行外部调用前登记。同身份同摘要复用；另有并发/期限/保存分态。
 
-信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:45`。
+信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:55`。
 
 <a id="diagnostic-history"></a>
 ### GET /api/admin/memory-diagnostics
@@ -256,7 +266,7 @@ retry资格由005后端只读判定，POST再锁验，旧代/源未知/已删/�
 
 响应与语义：完整历史列表+server_time；created_at/run_id降序。
 
-信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:55`。
+信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:65`。
 
 <a id="diagnostic-detail"></a>
 ### GET /api/admin/memory-diagnostics/{execution_id}
@@ -267,7 +277,12 @@ retry资格由005后端只读判定，POST再锁验，旧代/源未知/已删/�
 
 响应与语义：公共投影及默认小详情；section则候选完整分页，无快照20125。
 
-信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:64`。
+信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:91`。
+
+<a id="dialogue-router-runs"></a>
+### 线上聊天路由记录
+
+GET `/api/admin/memory-diagnostics/router-runs` 及 `/{generation_id}` 读取 generation 及可选 trace。默认最近 24 小时，最大 30 天，可按用户、generation、状态及路径、原因、配置版本筛选。覆盖率分母取基础时间/用户/generation/状态范围；路径等筛选后的合法模型 true/false 为 false 占比分母，成功且租约匹配的合法判定另计。没有合法判定时占比为 null。实际 Router 局部耗时按 100ms 分桶，缺失另计。详情区分当前/旧租约、缺证据、执行终态及后处理记录。正文按原用户对话读取权限及来源摘要复核，关系变更仅关联当轮记录。新诊断使用新的 request_id。列表条目同时返回 `id` 与 `generation_id`，两者均为本次 generation 的 UUID。当前输入按当时渲染版本核对摘要后，`source_reference.current.verified_text` 返回本轮使用的输入区间，`scope` 标记 `full/fragment`；`messages` 仅含该区间涉及的正文。新诊断使用该核验文本预填。缺少证据、来源无权、版本不可识别或摘要不符时，返回状态并省略正文。
 
 <a id="diagnostic-delete"></a>
 ### DELETE /api/admin/memory-diagnostics/{execution_id}
@@ -278,7 +293,7 @@ retry资格由005后端只读判定，POST再锁验，旧代/源未知/已删/�
 
 响应与语义：按终态/lease/use保护资格清历史并留锚点；can_delete及unknown收口遵从生命周期。
 
-信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:72`。
+信封沿用 `ApiResponse`；本域通用状态、字段、分页与错误见[诊断生命周期](#memory-diagnostic-lifecycle)、[分页与动作投影](#memory-admin-paging)，原来源自有回执另见[写入回执](#memory-write-receipts)或[配置发布](#memory-config-publication)。实现来源：`backend/routers/admin/memory_diagnostics.py:99`。
 
 <a id="maintenance-tasks"></a>
 ### GET /api/admin/memory-index-maintenance/tasks

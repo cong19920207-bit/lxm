@@ -28,6 +28,7 @@
 | 聊天、SSE、情绪 | [接口](contract/current/chat-emotion/api.md) · [数据](contract/current/chat-emotion/data.md) | [聊天与情绪](tech-debt/active/chat-emotion.md) |
 | 聊天输入后的省略号与回复展示优化 | [需求池索引](requirement-pool/README.md) · [RP-005](requirement-pool/active/chat-input-output-display/RP-005.md#rp-005)（已记录，待细化、待排期） | — |
 | 记忆、知识库、Step6、向量 | [接口](contract/current/memory-knowledge/api.md) · [数据](contract/current/memory-knowledge/data.md) · [后台](contract/current/memory-knowledge/admin-ui.md) | [记忆与知识](tech-debt/active/memory-knowledge.md) |
+| 对话记忆路由、共享历史与线上路由记录 | [配置](contract/current/persona-prompt-world-state/api.md#dialogue-router-config) · [共享上下文](contract/current/persona-prompt-world-state/data.md#dialogue-shared-context) · [诊断与记录](contract/current/memory-knowledge/api.md#dialogue-router-runs) | — |
 | DashVector Collection 库名统一配置与多环境发布 | [记忆接口](contract/current/memory-knowledge/api.md) · [后台配置](contract/current/memory-knowledge/admin-ui.md) | [TD-044（最高优先级 P0）](tech-debt/active/memory-knowledge.md#td-044) |
 | Step6 昵称、姓名、后续行动计划等非向量信息后台展示 | [需求池索引](requirement-pool/README.md) · [RP-006](requirement-pool/active/step6-non-vector-admin-display/RP-006.md#rp-006)（已记录，待细化、待排期） | — |
 | 轻量共同养宠 | [接口与客户端](contract/current/pet-system/api.md) · [数据](contract/current/pet-system/data.md) · [管理后台](contract/current/pet-system/admin-ui.md) | — |
@@ -39,7 +40,7 @@
 | 朋友圈、生活流 | [接口](contract/current/life-feed/api.md) · [数据](contract/current/life-feed/data.md) · [后台](contract/current/life-feed/admin-ui.md) | [生活流](tech-debt/active/life-feed.md) |
 | 管理账号、用户、操作日志 | [接口](contract/current/admin-security-accounts/api.md) · [数据](contract/current/admin-security-accounts/data.md) | [账号与认证](tech-debt/active/core-user-auth.md) |
 | 统计、系统监控、第三方 | [接口](contract/current/observability-third-party/api.md) · [后台](contract/current/observability-third-party/admin-ui.md) | [可观测性](tech-debt/active/observability-third-party.md) |
-| OpenAPI、API Key、resend、养宠外部互动 | [接口](contract/current/openapi/api.md) · [数据](contract/current/openapi/data.md) | [OpenAPI](tech-debt/active/openapi.md) · [跨功能](tech-debt/active/cross-cutting.md) |
+| OpenAPI、API Key、resend、养宠外部互动、日记、朋友圈、BGM 曲库、记忆星云 | [第三方接入指南](partner/林小梦-OpenAPI-宠物端接入指南.md) · [接口](contract/current/openapi/api.md) · [日记与朋友圈契约](contract/current/openapi/api.md#feed-diary-openapi) · [BGM 接入](contract/current/openapi/api.md#bgm-openapi) · [记忆星云接入](contract/current/openapi/api.md#memory-nebula-openapi) · [数据](contract/current/openapi/data.md) | [OpenAPI](tech-debt/active/openapi.md) · [跨功能](tech-debt/active/cross-cutting.md) |
 
 ## 路由 / 表名 / 代码路径 → 文档
 

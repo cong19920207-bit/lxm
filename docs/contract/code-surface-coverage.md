@@ -4,7 +4,7 @@
 - 权威状态：`canonical`
 - 功能范围：`routing`
 - 来源：当前代码路由装饰器、ORM模型、管理/H5页面与scheduler注册；2026-09-29原覆盖；2026-10-13仅补齐M3–M8实际新增与受影响位置；2026-10-16补齐代理自动发现与连接诊断登记；2026-10-19补齐BGM STEP-002～007的12条管理路由（5读/7写）与1条匿名目录路由、5模型与1管理页；2026-11-07补齐养宠Open的10条路由。
-- 已登记 HTTP 路由 375，模型 98，后台页面 47，H5 页面 9，调度 27；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
+- 已登记 HTTP 路由 401，模型 98，后台页面 47，H5 页面 9，调度 27；业务首连/重连及诊断共3条语音WebSocket，分别在[语音连接](current/realtime-voice/api.md#websocket)与[连接诊断](current/realtime-voice/api.md#master-quota)定义，不计入HTTP路由。
 - 本表只建立唯一归属，不表示所有全仓测试通过；未读取或重建迁移基线。
 
 | 类型 | 代码位置 | 功能范围 | 契约文档 ID |
@@ -68,7 +68,7 @@
 | 模型 | `backend/models/ai_diary.py:12` | `diary` | `contract-diary-data` |
 | 模型 | `backend/models/conversation_log.py:13` | `chat-emotion` | `contract-chat-emotion-data` |
 | 模型 | `backend/models/emotion_log.py:12` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/feed_comment.py:16` | `life-feed` | `contract-life-feed-data` |
+| 模型 | `backend/models/feed_comment.py:17` | `life-feed` | `contract-life-feed-data` |
 | 模型 | `backend/models/feed_like.py:14` | `life-feed` | `contract-life-feed-data` |
 | 模型 | `backend/models/feed_post.py:17` | `life-feed` | `contract-life-feed-data` |
 | 模型 | `backend/models/life_plan.py:12` | `life-feed` | `contract-life-feed-data` |
@@ -98,11 +98,11 @@
 | 模型 | `backend/models/world_state.py:12` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_event.py:16` | `persona-prompt-world-state` | `contract-persona-data` |
 | 模型 | `backend/models/worldview_snapshot.py:15` | `persona-prompt-world-state` | `contract-persona-data` |
-| HTTP路由 | `backend/main.py:260` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:265` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:271` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:276` | `shared-conventions` | `contract-shared-conventions` |
-| HTTP路由 | `backend/main.py:285` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:270` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:275` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:281` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:286` | `shared-conventions` | `contract-shared-conventions` |
+| HTTP路由 | `backend/main.py:295` | `shared-conventions` | `contract-shared-conventions` |
 | HTTP路由 | `backend/routers/admin/accounts.py:98` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/accounts.py:111` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/accounts.py:163` | `admin-security-accounts` | `contract-admin-security-api` |
@@ -250,10 +250,10 @@
 | HTTP路由 | `backend/routers/admin/users.py:852` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/users.py:911` | `admin-security-accounts` | `contract-admin-security-api` |
 | HTTP路由 | `backend/routers/admin/users.py:985` | `admin-security-accounts` | `contract-admin-security-api` |
-| HTTP路由 | `backend/routers/admin/vector_config.py:98` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/vector_config.py:103` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/vector_config.py:110` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/vector_config.py:115` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/vector_config.py:99` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/vector_config.py:104` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/vector_config.py:111` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/vector_config.py:116` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/voice_config.py:276` | `realtime-voice` | `contract-realtime-voice-api` |
 | HTTP路由 | `backend/routers/admin/voice_config.py:299` | `realtime-voice` | `contract-realtime-voice-api` |
 | HTTP路由 | `backend/routers/admin/voice_config.py:325` | `realtime-voice` | `contract-realtime-voice-api` |
@@ -324,22 +324,22 @@
 | HTTP路由 | `backend/routers/auth.py:151` | `core-user-auth` | `contract-core-user-auth-api` |
 | HTTP路由 | `backend/routers/auth.py:222` | `core-user-auth` | `contract-core-user-auth-api` |
 | HTTP路由 | `backend/routers/auth.py:249` | `core-user-auth` | `contract-core-user-auth-api` |
-| HTTP路由 | `backend/routers/chat.py:590` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/chat.py:613` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/chat.py:636` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/chat.py:680` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/diary.py:22` | `diary` | `contract-diary-api` |
-| HTTP路由 | `backend/routers/diary.py:71` | `diary` | `contract-diary-api` |
-| HTTP路由 | `backend/routers/feed.py:36` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:48` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:58` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:68` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:78` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:92` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:106` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:125` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:164` | `life-feed` | `contract-life-feed-api` |
-| HTTP路由 | `backend/routers/feed.py:178` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/chat.py:586` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/chat.py:609` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/chat.py:632` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/chat.py:676` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/diary.py:16` | `diary` | `contract-diary-api` |
+| HTTP路由 | `backend/routers/diary.py:28` | `diary` | `contract-diary-api` |
+| HTTP路由 | `backend/routers/feed.py:47` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:59` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:69` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:80` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:90` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:104` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:119` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:138` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:182` | `life-feed` | `contract-life-feed-api` |
+| HTTP路由 | `backend/routers/feed.py:196` | `life-feed` | `contract-life-feed-api` |
 | HTTP路由 | `backend/routers/memory.py:19` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/open/agent.py:19` | `openapi` | `contract-openapi-api` |
 | HTTP路由 | `backend/routers/open/agent.py:28` | `openapi` | `contract-openapi-api` |
@@ -392,17 +392,17 @@
 | 模型 | `backend/models/memory_diagnostic.py:8` | `memory-knowledge` | `contract-memory-knowledge-data` |
 | 模型 | `backend/models/chat_lifecycle.py:16` | `chat-emotion` | `contract-chat-emotion-data` |
 | 模型 | `backend/models/chat_lifecycle.py:23` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:56` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:79` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:89` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:102` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:113` | `chat-emotion` | `contract-chat-emotion-data` |
-| 模型 | `backend/models/chat_lifecycle.py:122` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:59` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:82` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:92` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:105` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:116` | `chat-emotion` | `contract-chat-emotion-data` |
+| 模型 | `backend/models/chat_lifecycle.py:125` | `chat-emotion` | `contract-chat-emotion-data` |
 | 模型 | `backend/models/future_consumption.py:9` | `agent-future` | `contract-agent-future-data` |
-| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:44` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:54` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:63` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:71` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:55` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:65` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:91` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:99` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/memory_index_maintenance.py:28` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/memory_index_maintenance.py:38` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/memory_index_maintenance.py:44` | `memory-knowledge` | `contract-memory-knowledge-api` |
@@ -411,10 +411,10 @@
 | HTTP路由 | `backend/routers/admin/memory_index_maintenance.py:69` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/memory_index_maintenance.py:74` | `memory-knowledge` | `contract-memory-knowledge-api` |
 | HTTP路由 | `backend/routers/admin/memory_write_operations.py:13` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/admin/vector_config.py:122` | `memory-knowledge` | `contract-memory-knowledge-api` |
-| HTTP路由 | `backend/routers/chat.py:578` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/chat.py:584` | `chat-emotion` | `contract-chat-emotion-api` |
-| HTTP路由 | `backend/routers/chat.py:701` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/admin/vector_config.py:123` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/chat.py:574` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/chat.py:580` | `chat-emotion` | `contract-chat-emotion-api` |
+| HTTP路由 | `backend/routers/chat.py:697` | `chat-emotion` | `contract-chat-emotion-api` |
 | HTTP路由 | `backend/routers/open/chat.py:47` | `openapi` | `contract-openapi-api` |
 | 后台页面 | `admin/pages/memory-diagnostics.html:1` | `memory-knowledge` | `contract-memory-knowledge-admin` |
 | 后台页面 | `admin/pages/memory-index-maintenance.html:1` | `memory-knowledge` | `contract-memory-knowledge-admin` |
@@ -439,7 +439,7 @@
 | HTTP路由 | `backend/routers/admin/bgm.py:92` | `bgm` | `contract-bgm-api` |
 | HTTP路由 | `backend/routers/admin/bgm.py:99` | `bgm` | `contract-bgm-api` |
 | HTTP路由 | `backend/routers/admin/bgm.py:105` | `bgm` | `contract-bgm-api` |
-| 路由 | `backend/routers/bgm.py:12` | `bgm` | `contract-bgm-api` |
+| 路由 | `backend/routers/bgm.py:13` | `bgm` | `contract-bgm-api` |
 
 ## AppShell 实现代码面（2026-10-23）
 
@@ -483,3 +483,26 @@
 | HTTP路由 | `backend/routers/open/pet.py:107` | `openapi` | `contract-openapi-api` |
 | HTTP路由 | `backend/routers/open/pet.py:112` | `openapi` | `contract-openapi-api` |
 | HTTP路由 | `backend/routers/open/pet.py:120` | `openapi` | `contract-openapi-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:74` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_diagnostics.py:85` | `memory-knowledge` | `contract-memory-knowledge-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:66` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:81` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:89` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:94` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:99` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:110` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:144` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:149` | `persona-prompt-world-state` | `contract-persona-api` |
+| HTTP路由 | `backend/routers/admin/memory_router_config.py:154` | `persona-prompt-world-state` | `contract-persona-api` |
+
+## 日记与朋友圈 Open API（2026-11-13）
+
+朋友圈 11 项与日记 2 项路由见[集成契约](current/openapi/api.md#feed-diary-openapi)。逐路由源码位置及归属登记于 [manifest](../llm-manifest.json) 的 `code_surface_coverage.entries`。
+
+## BGM Open API（2026-11-14）
+
+`backend/routers/open/bgm.py:18` 对应 [BGM 外部曲库](current/openapi/api.md#bgm-openapi)。
+
+## 记忆星云 Open API（2026-11-14）
+
+`backend/routers/open/memory.py:40` 对应[账号记忆星云列表](current/openapi/api.md#memory-nebula-openapi)。

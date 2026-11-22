@@ -19,12 +19,14 @@ from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from backend import constants as codes
 from backend.config import get_admin_jwt_secret
 from backend.models.admin_config import AdminConfig
 from backend.models.admin_operation_log import AdminOperationLog
 from backend.models.memory_config import MemoryConfigHead, MemoryConfigPublish
+from backend.services.memory_config_schema import ROUTER_KEY
 
-CONFIG_KEYS = frozenset({"vector_retrieval_config", "prompt_token_config", "vector_db_config",
+CONFIG_KEYS = frozenset({ROUTER_KEY, "vector_retrieval_config", "prompt_token_config", "vector_db_config",
                          "third_party:embedding", "third_party:rerank"})
 CONFIG_ALIASES = {"third_party:dashvector": "vector_db_config"}
 ACCEPT_WINDOW_MS = 120_000
@@ -58,16 +60,16 @@ def get_or_create_publish_id(value=None, *, now=None) -> str:
         if type(value) is not str or str(parsed) != value or parsed.version != 7:
             raise ValueError()
     except (ValueError, TypeError, AttributeError):
-        raise PublicationError(20120, "invalid_publish_id") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_publish_id") from None
     return value
 
 
 def canonicalize(key):
     if not isinstance(key, str):
-        raise PublicationError(20120, "invalid_config_key")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_config_key")
     key = CONFIG_ALIASES.get(key, key)
     if key not in CONFIG_KEYS:
-        raise PublicationError(20120, "invalid_config_key")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_config_key")
     return key
 
 
@@ -77,7 +79,7 @@ def _legacy_keys(key):
 
 def _actor(actor):
     if type(actor) is not int or actor <= 0:
-        raise PublicationError(20120, "invalid_publication_actor")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_publication_actor")
 
 
 def _encode(value):
@@ -88,7 +90,7 @@ def _fingerprint(value):
     try:
         return hmac.new(get_admin_jwt_secret().encode(), _encode(value).encode(), hashlib.sha256).digest()
     except (ValueError, TypeError, OverflowError):
-        raise PublicationError(20120, "invalid_publication_payload") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_publication_payload") from None
 
 
 def _decode(value):
@@ -99,7 +101,7 @@ def _decode(value):
         _encode(raw)
         return raw
     except (TypeError, ValueError, OverflowError):
-        raise PublicationError(20129, "config_record_unreadable") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_record_unreadable") from None
 
 
 def _project(row, *, now=None):
@@ -112,10 +114,13 @@ def _project(row, *, now=None):
             state = "pending"
     elif state in {"committed", "rejected"} and row.receipt_until and row.receipt_until <= now:
         state, reason = "expired", "publication_receipt_expired"
+    version = row.committed_version if state == "committed" else None
+    if row.canonical_key == ROUTER_KEY and version is not None:
+        version = str(version)
     return {
         "publish_id": row.publish_id, "canonical_key": row.canonical_key,
         "source_entry": row.source_entry, "commit_state": state,
-        "committed_version": row.committed_version if state == "committed" else None,
+        "committed_version": version,
         "observed_at": row.observed_at.isoformat(timespec="microseconds") + "Z",
         "reason": reason,
     }
@@ -133,7 +138,7 @@ async def get_receipt(db, actor, publish_id):
     except PublicationError:
         raise
     except Exception:
-        raise PublicationError(20129, "publication_receipt_unreadable") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "publication_receipt_unreadable") from None
 
 
 async def read_many(db, keys):
@@ -165,25 +170,25 @@ async def read_many(db, keys):
         for row in rows:
             key = row["key"]
             if key in result:
-                raise PublicationError(20129, "config_head_ambiguous")
+                raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_ambiguous")
             version, pointer = row["active_version"], row["active_admin_config_id"]
             if row["id"] is None:
                 if pointer is not None or version not in (None, 0):
-                    raise PublicationError(20129, "config_head_unreadable")
+                    raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_unreadable")
                 result[key] = {"raw": None, "version": 0, "source": "never_published", "revision": row["revision"] or 0}
                 continue
             if (row["row_key"] not in _legacy_keys(key) or not row["is_active"] or row["is_draft"]
                     or row["version"] is None or row["version"] < 1
                     or (pointer is None and version not in (None, 0))
                     or (pointer is not None and (version != row["version"] or pointer != row["id"]))):
-                raise PublicationError(20129, "config_head_unreadable")
+                raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_unreadable")
             result[key] = {"raw": _decode(row["config_value"]), "version": row["version"],
                            "source": "database", "revision": row["revision"] or 0}
         return result
     except PublicationError:
         raise
     except Exception:
-        raise PublicationError(20129, "config_dependency_unreadable") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_dependency_unreadable") from None
 
 
 async def read(db, key):
@@ -199,7 +204,7 @@ async def _insert_once(db, model, values, conflict_columns):
     elif dialect == "sqlite":
         statement = sqlite_insert(model).values(**values).on_conflict_do_nothing(index_elements=conflict_columns)
     else:
-        raise PublicationError(20129, "publication_database_unsupported")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "publication_database_unsupported")
     await db.execute(statement)
 
 
@@ -214,13 +219,13 @@ async def _locked_head(db, key):
         AdminConfig.config_key.in_(_legacy_keys(key)), AdminConfig.is_active.is_(True), AdminConfig.is_draft.is_(False),
     ).with_for_update().execution_options(populate_existing=True))).all())
     if len(active) > 1:
-        raise PublicationError(20129, "config_head_ambiguous")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_ambiguous")
     if head.active_admin_config_id is not None:
         if (not active or active[0].id != head.active_admin_config_id
                 or active[0].version != head.active_version):
-            raise PublicationError(20129, "config_head_unreadable")
+            raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_unreadable")
     elif head.active_version != 0:
-        raise PublicationError(20129, "config_head_unreadable")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "config_head_unreadable")
     elif active:
         head.active_admin_config_id, head.active_version = active[0].id, active[0].version
     return head, _decode(active[0].config_value) if active else None
@@ -234,7 +239,7 @@ def _merge(merge_validate, current, patch):
         _encode(candidate)
         return candidate
     except Exception:
-        raise PublicationError(20120, "config_validation_failed") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "config_validation_failed") from None
 
 
 async def _locked_receipt(db, actor, identity):
@@ -329,7 +334,7 @@ async def _cache_committed(cache, key, version, candidate):
 
 
 async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, source_entry=None,
-                  cache=None, verify=None, session_factory=None):
+                  cache=None, verify=None, session_factory=None, locked_candidate=None):
     """Accept once, optionally verify outside locks, then atomically publish.
 
     ``merge_validate(current_raw, patch)`` must be pure and return the entire
@@ -342,7 +347,7 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
     identity = get_or_create_publish_id(publish_id)
     entry = source_entry or original_key
     if not isinstance(entry, str) or not entry or len(entry) > 64 or not isinstance(patch, dict):
-        raise PublicationError(20120, "invalid_publication_payload")
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_INVALID, "invalid_publication_payload")
     digest = _fingerprint({"actor": admin_id, "key": key, "entry": entry, "patch": patch})
     owner = str(uuid4())
     accepted = False
@@ -352,12 +357,12 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
         ).execution_options(populate_existing=True))
         if existing:
             if not hmac.compare_digest(existing.request_digest, digest):
-                raise PublicationError(20121, "publication_identity_conflict")
+                raise PublicationError(codes.ADMIN_ERR_MEMORY_IDENTITY_CONFLICT, "publication_identity_conflict")
             return _project(existing)
         now = _now()
         age = int(now.replace(tzinfo=timezone.utc).timestamp() * 1000) - (UUID(identity).int >> 80)
         if age > ACCEPT_WINDOW_MS or age < -FUTURE_DRIFT_MS:
-            raise PublicationError(20123, "publication_id_outside_window")
+            raise PublicationError(codes.ADMIN_ERR_MEMORY_EXPIRED, "publication_id_outside_window")
         await _insert_once(db, MemoryConfigPublish, {
             "publish_id": identity, "admin_id": admin_id, "source_entry": entry, "canonical_key": key,
             "request_digest": digest, "commit_state": "validating" if verify else "accepted",
@@ -367,7 +372,7 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
         }, ["admin_id", "publish_id"])
         row = await _locked_receipt(db, admin_id, identity)
         if not hmac.compare_digest(row.request_digest, digest):
-            raise PublicationError(20121, "publication_identity_conflict")
+            raise PublicationError(codes.ADMIN_ERR_MEMORY_IDENTITY_CONFLICT, "publication_identity_conflict")
         if row.lease_owner != owner:
             result = _project(row)
             await _rollback(db)
@@ -404,7 +409,16 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
                 result = _project(row) if row else _unknown(identity, key, entry)
                 await _rollback(db)
                 return result
-            candidate = _merge(merge_validate, current, patch)
+            if locked_candidate is None:
+                candidate = _merge(merge_validate, current, patch)
+            else:
+                # Request identity is already durable. The head, draft and audit
+                # changes belong to this same transaction and roll back together.
+                try:
+                    candidate = await locked_candidate(db, head, current, patch)
+                except PublicationError as exc:
+                    return await _finish(db, admin_id, identity, owner, "rejected", exc.reason)
+                candidate = _merge(merge_validate, current, candidate)
             final_digest = _fingerprint(candidate)
             if verify and not hmac.compare_digest(verified_digest, final_digest):
                 await _rollback(db)
@@ -435,7 +449,7 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
             return result
     except PublicationError as error:
         await _rollback(db)
-        if accepted and error.code == 20120:
+        if accepted and error.code == codes.ADMIN_ERR_MEMORY_INVALID:
             try:
                 return await _finish(db, admin_id, identity, owner, "rejected", "config_validation_failed")
             except Exception:
@@ -451,4 +465,4 @@ async def publish(db, key, patch, admin_id, publish_id, merge_validate, *, sourc
         if accepted:
             return await _reconcile(db, session_factory, admin_id, identity, key, entry)
         await _rollback(db)
-        raise PublicationError(20129, "publication_acceptance_unavailable") from None
+        raise PublicationError(codes.ADMIN_ERR_MEMORY_UNAVAILABLE, "publication_acceptance_unavailable") from None

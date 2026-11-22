@@ -80,8 +80,19 @@
 
 内置SYSTEM_PROMPT_TEXT只增事实依据：缺细节未知、不为陪伴补个人事实、不将知识冒充亲历。原人格/身份/陪伴/业务函数和reply model/thinking用途不变；active/current/draft/合法显式override优先级保持，内置默认不强制覆盖已发布或测试草稿。隔离副本无active覆盖时进入实际Prompt，不能写成所有业务Prompt已启用该默认。M8质量残余及未齐对照仍风险/FAIL，见[环境边界](../memory-knowledge/api.md#memory-implementation-boundary)。
 
+<a id="dialogue-router-config"></a>
+### Router 配置、草稿、版本与回执
+
+`/api/admin/prompt/memory-router` 的 GET 返回生效配置、字符串 revision、有效模型、固定规则及结构约束。GET/PUT/DELETE `/draft` 读取、保存或丢弃草稿，写入核 expected_revision 和 draft_digest。GET `/history`、`/history/{version}` 查看版本。POST `/publish` 发布指定草稿，`/disable` 基于生效版本只改 enabled，`/rollback` 以历史版本内容发布新版本。发布动作绑定 actor、UUIDv7 publish_id 与 expected_revision，未确认时按原本人回执复查。[通用发布协议](../memory-knowledge/api.md#memory-config-publication)
+
+可编辑 prompt 最多 20,000 个字符，完整配置按关闭状态序列化上限为 65,535 个 UTF-8 字节，草稿与发布均校验。timeout_ms 为 1000～10000，model_profile_id 可选 `inherit_reply`（当前豆包主回复模型）或 `deepseek-flash`。thinking_enabled 为布尔值，缺省关闭。两个模型都显式发送思考模式，开启时使用低强度。模型与思考模式随路由版本一起冻结，仅用于判定。保存草稿后可单独诊断，启用配置发布时校验所选服务的密钥；超时或无有效布尔结果时走记忆查询。behavior_profile_id=router_boolean_v1、max_retries=0。默认说明把已有原文的改写、缩短或翻译判为无需查询，仍依赖未提供事实时进入查询。关闭与版本恢复独立于模型可用性。
+
+版本历史分页返回 `list/total/page/page_size`；条目 `id` 为配置记录主键的十进制字符串，`version` 保留版本号，兼容字段 `items` 与 `list` 相同。读取已存坏值或存储不可用返回 20129。首次发布 ID 过窗且未登记回执时，20123 附 `admission_state=not_admitted`、原 `publish_id` 和 `server_time`。页面据此结束本次操作、重新校时；提交结果未知时继续查询原 ID。单独查询得到 20125 不能证明原操作未受理。
+
 <a id="memory-readonly-previews"></a>
 ### 三个只读装载预览
+
+Step1.5 与 Step3 标明主文字使用冻结的完整历史及适用路由，Step8 沿原窗口、共用有效预算。预览展示代码模板与代码默认数值；运行中预算及版本从配置读取。[本轮冻结与裁剪](data.md#dialogue-shared-context)
 
 GET `/api/admin/chat-prompt-view/step15`沿实际Step1.5生成函数展示13字段/四路Question、Keywords和CandidateKeys协议；默认模板已含有据实体/主体/时间/否定/经历/共同计划规则，实际模型质量须另验，不用规则文字替代AC20。GET step3保原module_order/trim_priority/empathy/emotion/level/silence字段，另selection_rules/budget_note；GET step8保proactive_input_template并另selection_rules/budget_note。只读代码默认/结构不冒充当前EffectiveMemoryConfig值。
 

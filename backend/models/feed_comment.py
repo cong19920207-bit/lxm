@@ -7,7 +7,8 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, SmallInteger, String, Text
+from sqlalchemy.dialects.mysql import BINARY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
@@ -23,6 +24,8 @@ class FeedComment(Base):
         Index("idx_feed_comment_gen_status", "gen_status"),
         # due_at 上查询频繁（STEP-018 30s 轮询扫描），加索引
         Index("idx_feed_comment_due_at_gen_status", "due_at", "gen_status"),
+        Index("uq_feed_comment_user_key", "user_id", "idempotency_key_digest", unique=True),
+        Index("ix_feed_comment_owner_post_time", "user_id", "post_id", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -39,6 +42,11 @@ class FeedComment(Base):
         comment="评论用户 ID",
     )
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="用户评论内容")
+    # NULL for legacy/unkeyed comments. Request identity survives moderation edits.
+    idempotency_key_digest: Mapped[Optional[bytes]] = mapped_column(
+        LargeBinary(32).with_variant(BINARY(32), "mysql"), nullable=True)
+    request_digest: Mapped[Optional[bytes]] = mapped_column(
+        LargeBinary(32).with_variant(BINARY(32), "mysql"), nullable=True)
 
     # 用户点击「林小梦回复」后发出的连续互动标记；仅影响 H5 落款展示，LLM-05 仍按单条评论回复
     reply_to_lxm: Mapped[int] = mapped_column(

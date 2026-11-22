@@ -33,6 +33,17 @@ class CommentBody(BaseModel):
     reply_to_lxm: bool = False
 
 
+async def get_feed_write_db(db: AsyncSession = Depends(get_db)) -> AsyncSession:
+    """Keep precise owner/post row locks without locking vacant comment or like keys."""
+    if db.get_bind().dialect.name == "mysql":
+        # On Open requests get_db is shared with authentication. Its last-used
+        # write is already committed; end any remaining read-only snapshot.
+        if db.in_transaction():
+            await db.rollback()
+        await db.connection(execution_options={"isolation_level": "READ COMMITTED"})
+    return db
+
+
 @router.get("/list", response_model=ApiResponse)
 async def get_feed_list(
     cursor: str | None = Query(None, description="游标：上一页最后一条 scheduled_publish_time"),
@@ -62,6 +73,7 @@ async def enter_feed(
 ):
     """进入朋友圈页：写 last_feed_entered_at，返回未读回复锚点。"""
     data = await feed_service.enter_feed(db, user_id)
+    await db.commit()
     return ApiResponse.ok(data=data)
 
 
@@ -79,7 +91,7 @@ async def get_feed_badge(
 async def like_post(
     post_id: int,
     user_id: int = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_feed_write_db),
 ):
     """点赞（幂等）。"""
     try:
@@ -93,11 +105,12 @@ async def like_post(
 async def unlike_post(
     post_id: int,
     user_id: int = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_feed_write_db),
 ):
     """取消点赞（幂等，不撤回已触发的点赞 IM）。"""
     try:
         data = await feed_service.unlike_post(db, user_id, post_id)
+        await db.commit()
     except FeedError as e:
         return ApiResponse.fail(code=e.code)
     return ApiResponse.ok(data=data)
@@ -108,13 +121,13 @@ async def create_comment(
     post_id: int,
     body: CommentBody,
     user_id: int = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_feed_write_db),
 ):
     """发评（含长度/频控/内容安全三层校验 + 首次评论 30s override）。"""
     try:
         data = await feed_service.create_comment(
             db, user_id, post_id, body.content, reply_to_lxm=body.reply_to_lxm)
-
+        await db.commit()
     except FeedError as e:
         return ApiResponse.fail(code=e.code)
     return ApiResponse.ok(data=data)
@@ -133,6 +146,11 @@ async def feed_events(request: Request, token: str = Query(..., description="JWT
     except (ValueError, KeyError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token无效或已过期")
 
+    return feed_event_stream(request, user_id)
+
+
+def feed_event_stream(request: Request, user_id: int) -> StreamingResponse:
+    """两种入口完成各自鉴权后，共用同一订阅、心跳和断线清理。"""
     async def event_generator():
         q = feed_sse_service.register(user_id)
         try:

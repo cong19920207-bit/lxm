@@ -24,7 +24,7 @@
 
 #### POST /api/feed/enter
 
-- **写** `users.last_feed_entered_at=feed_now()`；`data`: `{ anchor_comment_id }`（最近未读 LXM 回复评论 ID，可 null）
+- **写** `users.last_feed_entered_at=feed_now()`；`data` 含 `anchor_comment_id`、`anchor_post_id`（最近一条本人可见的未读回复及其帖子，无则均为 null）。
 - **状态**：已实现
 
 #### GET /api/feed/badge
@@ -32,7 +32,7 @@
 - **`data`**：`{ has_new, new_post_count, unread_reply_count }`
 - **`has_new`**：存在已到点可见帖且（`scheduled_publish_time > last_feed_entered_at` 或从未进入）
 - **`new_post_count`**：同上口径条数；**从未 enter** 时固定 `0`（此时若有可见帖仍可 `has_new=true`）
-- **`unread_reply_count`**：当前用户未读 LXM 回复数
+- **`unread_reply_count`**：仅计当前用户未隐藏评论上的未读 LXM 回复，且该帖仍符合列表的四项可见条件。
 - **H5**：首页未读胶囊 / 底栏新动态；聊天角标 = `unread_reply_count + new_post_count`；有未读回复跳转 `?focus=unread_reply`
 - **状态**：已实现
 
@@ -80,12 +80,13 @@
 
 | code | 常量 | 说明 |
 |------|------|------|
-| 10500 | `ERR_FEED_POST_NOT_FOUND` | 不存在 / 未到点 / 隐藏 |
+| 10500 | `ERR_FEED_POST_NOT_FOUND` | 不存在、未到点、未就绪、隐藏或已超出历史窗口。点赞、撤赞、发评、帖子阅读和 Open 详情使用列表的可见条件。 |
 | 10501 | `ERR_FEED_POST_HIDDEN` | 管理员隐藏（预留） |
 | 10502 | `ERR_COMMENT_EMPTY` | 评论为空 |
 | 10503 | `ERR_COMMENT_TOO_LONG` | 超过 200 字 |
 | 10504 | `ERR_COMMENT_RATE_LIMIT` | 30s 内重复评论 |
 | 10506 | `ERR_FEED_COMMENT_FORBIDDEN` | 无权操作该评论 |
+| 10507 | `ERR_COMMENT_IDEMPOTENCY_CONFLICT` | Open 评论使用相同请求键提交了不同请求。接入见[日记和朋友圈 Open API](../openapi/api.md#feed-diary-openapi)。 |
 | — | `ERR_CONTENT_SAFETY_VIOLATION` | 内容安全（全局码） |
 
 #### 感知 IM 服务约定（非独立 HTTP）

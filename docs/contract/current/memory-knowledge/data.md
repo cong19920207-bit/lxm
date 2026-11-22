@@ -1833,6 +1833,8 @@ __table_args__ = (UniqueConstraint('run_id','item_seq',name='uq_memory_backfill_
 <a id="schema-memory_diagnostic_run"></a>
 ### 表名：memory_diagnostic_run
 
+v9y_dialogue_router_001 添加 mode，兼容原执行 retrieval_only。新快照的 frozen_versions、context_sources 和 metrics 带 schema_version=1，旧快照缺少字段表示未记录。执行和保存状态各自持久。
+
 | 字段 | 实际MySQL类型 | NULL | 应用default | ORM server_default | 实际SQL DEFAULT | PK/index/unique | 源声明位置 |
 |---|---|---|---|---|---|---|---|
 | run_id | CHAR(36) COLLATE "ascii_bin" | no | — | — | — | primary_key | backend/models/memory_diagnostic.py:17 |
@@ -1842,6 +1844,7 @@ __table_args__ = (UniqueConstraint('run_id','item_seq',name='uq_memory_backfill_
 | request_id | CHAR(36) COLLATE "ascii_bin" | no | — | — | — | — | backend/models/memory_diagnostic.py:21 |
 | request_digest | BINARY(32) | no | — | — | — | — | backend/models/memory_diagnostic.py:22 |
 | source | VARCHAR(8) COLLATE "ascii_bin" | yes | — | — | — | — | backend/models/memory_diagnostic.py:23 |
+| mode | VARCHAR(16) | no | retrieval_only | retrieval_only | retrieval_only | — | backend/models/memory_diagnostic.py |
 | parent_run_id | CHAR(36) COLLATE "ascii_bin" | yes | — | — | — | — | backend/models/memory_diagnostic.py:24 |
 | input_text | TEXT COLLATE "utf8mb4_unicode_ci" | yes | — | — | — | — | backend/models/memory_diagnostic.py:25 |
 | execution_state | VARCHAR(24) COLLATE "ascii_bin" | no | — | — | — | — | backend/models/memory_diagnostic.py:26 |
@@ -1956,6 +1959,7 @@ request_id: Mapped[str]=mapped_column(UUID)
 request_digest: Mapped[bytes]=mapped_column(DIGEST)
 # backend/models/memory_diagnostic.py:23
 source: Mapped[str|None]=mapped_column(ascii_string(8))
+mode: Mapped[str]=mapped_column(String(16),default='retrieval_only',server_default='retrieval_only')
 # backend/models/memory_diagnostic.py:24
 parent_run_id: Mapped[str|None]=mapped_column(UUID)
 # backend/models/memory_diagnostic.py:25
@@ -2031,7 +2035,7 @@ identity按环境/目标epoch/type/user/doc身份唯一、generation严格单调
 <a id="memory-runtime-structures"></a>
 ### 冻结配置、候选和Prompt DTO
 
-`EffectiveMemoryConfig`一次冻结snapshot_id、retrieval、prompt、providers/versions、reply_model、target_fingerprint/可选target_epoch、encoder_version与profiles；secret handle不用于公开响应。`Candidate`不可变绑定route/identity_id/partition/doc_id/generation/body_hash/value/type/owner/key、有效通道来源/原分/名次、route_rank/rerank_score/order_method/trust_state。`Removal`只受控reason/stage/identity；`RouteResult`分dense/bm25/rerank状态与空因；`RetrievalResult`含config_snapshot_id/queries/routes/rewrite_deadline/retrieval_deadline。
+`EffectiveMemoryConfig`一次冻结snapshot_id、retrieval、prompt、router、providers/versions、reply_model、target_fingerprint/可选target_epoch、encoder_version与profiles；secret handle不用于公开响应。`Candidate`不可变绑定route/identity_id/partition/doc_id/generation/body_hash/value/type/owner/key、有效通道来源/原分/名次、route_rank/rerank_score/order_method/trust_state。`Removal`只受控reason/stage/identity；`RouteResult`分dense/bm25/rerank状态与空因；`RetrievalResult`含config_snapshot_id/queries/routes/rewrite_deadline/retrieval_deadline。
 
 `PromptBuildResult/SelectedEntry`、官方counter与保留初始/最终选择见[Prompt选入](api.md#memory-prompt-selection)；MemoryUseClaim.request_hash BINARY(32)只绑定可信user/owner/epoch/fingerprint、原deadline和原序candidate身份/代/hash/route/ordinal，UseItem只存最终选中项，重复原请求恢复裁剪结果，不锁被剔除项。MemoryUseGuard reserve/begin_handoff/handoff与原owner停止见同一API定义，源在途排除、同代confirmed源的index在途可dense使用。
 

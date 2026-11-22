@@ -3,13 +3,63 @@
   var base='/api/admin/memory-index-maintenance',selection=null,sequence=0,itemPager=null,linkPager=null,retrying={},retryStorage='memory_maintenance_pending',feedback=document.getElementById('maintenance-feedback');
   try{retrying=JSON.parse(sessionStorage.getItem(retryStorage)||'{}');}catch(e){}
   function saveRetries(){sessionStorage.setItem(retryStorage,JSON.stringify(retrying));}
-  function taskRow(d){var row=M.el('article');var box=M.el('div');M.fields(box,{任务ID:d.task_id,类型与用户:d.type+' / '+M.text(d.user_id),记忆身份:d.doc_id,来源与操作:d.source+' / '+d.operation,源结果:d.source_state,索引结果:d.index_state,维护状态:d.maintenance_state,尝试次数:d.attempt_count,最近更新:d.updated_at,下次计划:d.next_attempt_at,人工原因:d.manual_reason,允许操作:d.can_retry?'可手动重试':d.action_reason});row.append(box,M.button('查看任务',function(){show('tasks',d.task_id);}));return row;}
+  // Use the same vocabulary for a record as for its filter.
+  function optionText(form, field, value){
+    const select=document.getElementById(form).elements[field];
+    const option=Array.from(select.options).find(o=>o.value===value);
+    return value && option ? option.textContent : M.text(value);
+  }
+  function openDetail(kind,id){
+    show(kind,id);
+    document.getElementById('maintenance-detail').scrollIntoView({block:'start'});
+  }
+  function taskRow(d){
+    const label=(field,v)=>optionText('tasks-filter',field,v);
+    const row=M.el('article',null,'ma-record'),info=M.el('div'),status=M.el('div',null,'ma-record-info');
+    const type=label('type',d.type),source=label('source',d.source),operation=label('operation',d.operation);
+    info.append(M.el('div',d.doc_id,'ma-record-title'),M.el('div',[type,d.user_id?'用户 '+d.user_id:'',source+' · '+operation].filter(Boolean).join(' · '),'ma-record-meta'));
+    status.append(M.badge(label('state',d.maintenance_state),d.maintenance_state),
+      M.el('span','尝试 '+M.text(d.attempt_count)+' 次','ma-record-meta'));
+    const more=M.el('details'),fields=M.el('div');
+    M.fields(fields,{任务ID:d.task_id,源结果:d.source_state,索引结果:d.index_state,最近更新:d.updated_at,
+      下次计划:d.next_attempt_at,人工原因:d.manual_reason,允许操作:d.can_retry?'可手动重试':d.action_reason});
+    more.append(M.el('summary','处理信息'),fields);
+    row.append(info,status,M.button('查看任务',()=>openDetail('tasks',d.task_id)),more);
+    return row;
+  }
   function complete(d){return d.execution_state==='completed'&&d.report_complete===true&&d.unresolved_count===0&&d.cutoff!=null;}
-  function backfillRow(d){var row=M.el('article');row.append(M.el('div',d.run_id+' · '+(d.progress_available===false?'历史已清理 / 进度暂不可用':complete(d)?'已完成（截至记录截止点）':d.execution_state+' / 未完成或需处理')),M.el('div','阶段 '+M.text(d.stage)+' · '+(d.total_known?'可信总量 '+M.text(d.total_source_ids):'已扫描 '+M.text(d.scanned_records)+'，总量未确定')),M.button('查看批次',function(){show('backfills',d.run_id);}));return row;}
+  function backfillRow(d){
+    const row=M.el('article',null,'ma-record'),info=M.el('div'),status=M.el('div',null,'ma-record-info');
+    const state=d.progress_available===false?'历史已清理 / 进度暂不可用':complete(d)?'已完成（截至记录截止点）':
+      d.execution_state==='completed'?'报告待核实':optionText('backfills-filter','state',d.execution_state);
+    info.append(M.el('div',d.run_id,'ma-record-title'),M.el('div','阶段 '+optionText('backfills-filter','stage',d.stage)+' · '+
+      (d.total_known?'可信总量 '+M.text(d.total_source_ids):'已扫描 '+M.text(d.scanned_records)+'，总量未确定'),'ma-record-meta'));
+    status.append(M.badge(state,complete(d)?'completed':(d.progress_available===false||d.execution_state==='completed')?'unknown':d.execution_state));
+    row.append(info,status,M.button('查看批次',()=>openDetail('backfills',d.run_id)));
+    return row;
+  }
   var tasks=M.pager(document.getElementById('tasks-list'),base+'/tasks',taskRow,function(){return M.formValues(document.getElementById('tasks-filter'));});
   var backfills=M.pager(document.getElementById('backfills-list'),base+'/backfills',backfillRow,function(){return M.formValues(document.getElementById('backfills-filter'));});
-  ['tasks','backfills'].forEach(function(kind){document.getElementById(kind+'-filter').onsubmit=function(e){e.preventDefault();sequence++;selection=null;if(itemPager)itemPager.invalidate();if(linkPager)linkPager.invalidate();document.getElementById('maintenance-detail').hidden=true;document.getElementById('maintenance-summary').replaceChildren();(kind==='tasks'?tasks:backfills).load(true);};document.getElementById(kind+'-tab').onclick=function(){document.getElementById('tasks-pane').hidden=kind!=='tasks';document.getElementById('backfills-pane').hidden=kind!=='backfills';(kind==='tasks'?tasks:backfills).load();};});
-  function eventRow(d){var originalSelection=selection;var row=M.el('article'),box=M.el('div');M.fields(box,{历史ID:d.record_id,尝试:d.attempt_number,开始:d.started_at,结束:d.ended_at,状态:d.maintenance_state,错误摘要:d.reason,详情:d.details,关联操作:d.operation_id});row.append(box);if(d.run_id){var link=M.el('a','查看回填批次');link.href='/admin/pages/memory-index-maintenance.html?run_id='+encodeURIComponent(d.run_id);row.append(link);}if(M.write()){var del=M.button('删除展示历史',async function(){if(!confirm('仅清理本条展示历史，不删除当前记忆或取消任务'))return;del.disabled=true;var res=await M.request('DELETE',base+'/history/'+encodeURIComponent(d.record_id));if(selection!==originalSelection)return;feedback.textContent=res&&res.code===0?'该展示历史已清理':(res&&res.code===20122?'删除结果待核实：':'删除失败：')+M.error(res);if(res&&res.code===0&&itemPager)itemPager.load();else del.disabled=!d.can_delete;},true);del.disabled=!d.can_delete;row.append(del,M.el('span',d.action_reason));}return row;}
+  function closeDetail(){
+    sequence++;selection=null;
+    if(itemPager)itemPager.invalidate();
+    if(linkPager)linkPager.invalidate();
+    document.getElementById('maintenance-detail').hidden=true;
+    feedback.textContent='';
+    const url=new URL(location.href);
+    url.searchParams.delete('task_id');url.searchParams.delete('run_id');
+    window.history.replaceState(null,'',url);
+  }
+  ['tasks','backfills'].forEach(kind=>{
+    document.getElementById(kind+'-filter').onsubmit=e=>{
+      e.preventDefault();closeDetail();(kind==='tasks'?tasks:backfills).load(true);
+    };
+  });
+  M.setupTabs(id=>{
+    closeDetail();
+    (id==='tasks-tab'?tasks:backfills).load();
+  });
+  function eventRow(d){var originalSelection=selection;var row=M.el('article'),box=M.el('div');M.fields(box,{历史ID:d.record_id,尝试:d.attempt_number,开始:d.started_at,结束:d.ended_at,状态:d.maintenance_state,错误摘要:d.reason,详情:d.details,关联操作:d.operation_id});row.append(box);if(d.run_id){var link=M.el('a','查看回填批次');link.href='/admin/pages/memory-index-maintenance.html?run_id='+encodeURIComponent(d.run_id);row.append(link);}if(M.write()){var del=M.button('删除展示历史',async function(){if(!confirm('仅清理本条展示历史，不删除当前记忆或取消任务'))return;del.disabled=true;var res=await M.request('DELETE',base+'/history/'+encodeURIComponent(d.record_id));if(selection!==originalSelection)return;feedback.textContent=res&&res.code===0?'该展示历史已清理':(res&&res.code===20122?'删除结果待核实：':'删除失败：')+M.error(res);if(res&&res.code===0&&itemPager)itemPager.load();else del.disabled=!d.can_delete;},true);del.classList.add('ma-destructive');del.disabled=!d.can_delete;row.append(del,M.el('span',d.action_reason));}return row;}
   function itemRow(d){var row=M.el('article'),box=M.el('div');M.fields(box,{稳定序号:d.item_seq,来源身份:d.source_identity,分类:d.source_class,当前代次:d.current_generation,正文摘要:d.content_digest,索引结果:d.index_result,对账结果:d.reconcile_state,尝试次数:d.attempt_count,原因:d.reason,核实时点:d.observed_at});row.append(box);if(d.task_id){var link=M.el('a','查看关联任务');link.href='/admin/pages/memory-index-maintenance.html?task_id='+encodeURIComponent(d.task_id);row.append(link);}return row;}
   ['item-class','item-state'].forEach(function(id){document.getElementById(id).onchange=function(){if(itemPager)itemPager.load(true);};});
   async function show(kind,id){selection={kind:kind,id:id};var context=selection,seq=++sequence;document.getElementById('maintenance-detail').hidden=false;document.getElementById('maintenance-title').textContent=kind==='tasks'?'索引任务详情':'回填批次详情';document.getElementById('maintenance-summary').textContent='加载中…';document.getElementById('maintenance-actions').replaceChildren();if(itemPager)itemPager.invalidate();if(linkPager)linkPager.invalidate();document.getElementById('maintenance-items').replaceChildren();document.getElementById('maintenance-links').replaceChildren();var r=await M.request('GET',base+'/'+kind+'/'+encodeURIComponent(id));if(seq!==sequence)return;if(!r||r.code!==0){document.getElementById('maintenance-summary').textContent='详情加载失败 / 进度暂不可用：'+M.error(r);return;}var d=r.data;var actions=document.getElementById('maintenance-actions');actions.append(M.button('刷新状态',function(){show(kind,id);}));document.getElementById('items-filter').hidden=kind!=='backfills';
@@ -27,5 +77,11 @@
     }
     itemPager.load();var url=new URL(location.href);url.searchParams.delete('task_id');url.searchParams.delete('run_id');url.searchParams.set(kind==='tasks'?'task_id':'run_id',id);window.history.replaceState(null,'',url);
   }
-  tasks.load();var params=new URLSearchParams(location.search);if(params.get('task_id'))show('tasks',params.get('task_id'));else if(params.get('run_id')){document.getElementById('backfills-tab').click();show('backfills',params.get('run_id'));}
+  const params=new URLSearchParams(location.search);
+  if(params.get('run_id')&&!params.get('task_id')){
+    document.getElementById('backfills-tab').click();show('backfills',params.get('run_id'));
+  }else{
+    tasks.load();
+    if(params.get('task_id'))show('tasks',params.get('task_id'));
+  }
 })();

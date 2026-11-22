@@ -12,7 +12,7 @@ from sqlalchemy import select, update
 
 from backend.database import async_session_maker
 from backend.models.feed_post import FeedPost
-from backend.services.feed_service import feed_now
+from backend.services.feed_service import feed_now, visible_post_condition
 from backend.services.feed_sse_service import feed_sse_service
 
 logger = logging.getLogger(__name__)
@@ -28,9 +28,7 @@ async def feed_new_broadcast_task() -> None:
         async with async_session_maker() as db:
             rows = (await db.execute(
                 select(FeedPost.id).where(
-                    FeedPost.generation_status == "ready",
-                    FeedPost.is_visible == 1,
-                    FeedPost.scheduled_publish_time <= now,
+                    await visible_post_condition(now),
                     FeedPost.sse_broadcasted == 0,
                 ).order_by(FeedPost.scheduled_publish_time.asc()).limit(_SCAN_LIMIT)
             )).scalars().all()

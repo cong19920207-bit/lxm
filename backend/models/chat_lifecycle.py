@@ -1,6 +1,6 @@
 """STEP014 SQL authority for admissions, ownership and terminal arbitration."""
 from datetime import datetime
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, ForeignKeyConstraint, Index, Integer, UniqueConstraint, LargeBinary, Date
+from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, ForeignKeyConstraint, Index, Integer, UniqueConstraint, LargeBinary, Date
 from sqlalchemy.dialects.mysql import VARBINARY
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.database import Base
@@ -29,6 +29,8 @@ class ChatGeneration(Dates, Base):
         CheckConstraint("commit_evidence_kind IS NULL OR commit_evidence_kind = 'atomic_decision'",name='ck_chat_evidence'),
         CheckConstraint("state != 'success' OR (round_id IS NOT NULL AND commit_marker IS NOT NULL AND decision_at IS NOT NULL AND decision_at < deadline_at AND commit_evidence_kind = 'atomic_decision')",name='ck_chat_success'),
         CheckConstraint("reason IS NULL OR reason IN ('llm_failed','content_blocked','prompt_budget_exceeded','prompt_budget_unverified','deadline_exceeded','generation_superseded','execution_lost','commit_unknown','deadline_unverified','storage_unavailable','legacy_record','legacy_pending','id_conflict','expired')",name="ck_chat_generation_reason"),
+        Index('ix_chat_accepted_generation','accepted_at','generation_id'),
+        Index('ix_chat_user_accepted_generation','user_id','accepted_at','generation_id'),
         Index('ix_chat_deadline','state','deadline_at'),Index('ix_chat_dispatch','dispatch_state','next_dispatch_at'),Index('ix_chat_reconcile','phase','reconcile_until'))
     generation_id: Mapped[str] = mapped_column(UUID,primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer,ForeignKey('users.id',ondelete='CASCADE'))
@@ -42,6 +44,7 @@ class ChatGeneration(Dates, Base):
     round_id: Mapped[str|None] = mapped_column(UUID,unique=True)
     commit_marker: Mapped[str|None] = mapped_column(UUID,unique=True)
     decision_at: Mapped[datetime|None] = mapped_column(INSTANT)
+    memory_router_trace: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
     commit_observed_at: Mapped[datetime|None] = mapped_column(INSTANT)
     commit_evidence_kind: Mapped[str|None] = mapped_column(ascii_string(24))
     lease_owner: Mapped[str|None] = mapped_column(UUID)

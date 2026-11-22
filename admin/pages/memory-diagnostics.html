@@ -1,1 +1,130 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>记忆检索诊断 - 林小梦管理后台</title><link rel="stylesheet" href="/admin/static/css/admin-common.css"><style>[hidden]{display:none!important}.ma-controls,.ma-filter{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.ma-filter input,.ma-filter select,.ma-controls select{padding:7px;border:1px solid var(--border);border-radius:4px}.ma-list>article{padding:12px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}.ma-field{display:flex;gap:4px;white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0}.ma-field strong{min-width:125px}.ma-field span{min-width:0}.ma-status{color:var(--text-secondary);white-space:pre-wrap}.ma-list pre,pre.ma-text{white-space:pre-wrap;overflow-wrap:anywhere;background:#fafafa;padding:10px;max-height:340px;overflow:auto}.ma-list .btn{margin:6px}.ma-card-title{margin-bottom:10px}textarea{width:100%;min-height:100px;padding:8px}</style></head><body><div id="sidebar-mount"></div><main class="admin-content"><div id="header-mount"></div><section class="page-card"><h2>记忆检索诊断</h2><p>诊断使用当前有效配置与上下文，仅执行检索和实际选入；外部调用可能产生费用。输入不进入聊天队列。</p><form id="diag-input"><div class="ma-filter" data-write-action><label>用户ID <input name="user_id" inputmode="numeric" required pattern="[1-9][0-9]*"></label><label>链路来源 <select name="source"><option value="main">主文字</option><option value="openapi">OpenAPI</option><option value="step8">Step8 / future_action</option></select></label></div><label data-write-action>输入文本<textarea name="input" required maxlength="2000"></textarea></label><p id="input-range">主文字/OpenAPI：1～2000字符；Step8：1～200字符，不消费Future槽。</p><button class="btn btn-primary" type="submit" data-write-action>执行诊断</button></form><p id="submission-state" class="ma-status" aria-live="polite"></p><button id="query-active" class="btn btn-default">核实本次执行</button></section><section class="page-card"><h3>诊断历史</h3><form id="diag-filter" class="ma-filter"><label>用户ID <input name="user_id" inputmode="numeric"></label><label>来源 <select name="source"><option value="">全部</option><option value="main">main</option><option value="openapi">openapi</option><option value="step8">step8</option></select></label><label>执行状态 <select name="state"><option value="">全部</option><option value="accepted">accepted</option><option value="running">running</option><option value="completed">completed</option><option value="degraded">degraded</option><option value="failed">failed</option><option value="budget_blocked">budget_blocked</option><option value="interrupted">interrupted</option><option value="manual_required">manual_required</option></select></label><label>开始日期 <input type="date" name="start_date"></label><label>结束日期 <input type="date" name="end_date"></label><button class="btn btn-default">查询</button></form><div id="diag-history"></div></section><section id="diag-detail" class="page-card" hidden><h3>历史诊断详情</h3><p>历史快照仅供查看，非当前有效记忆；不是恢复或补索引来源。</p><div id="diag-actions" class="ma-controls"></div><h4>① 用户与输入</h4><div id="diag-context"></div><h4>② 本次冻结版本与装载来源</h4><div id="diag-version"></div><h4>③ 四路输入与候选</h4><div id="diag-queries"></div><label>候选路 <select id="candidate-route"><option value="">全部</option><option>cg</option><option>cp</option><option>ck</option><option>user</option></select></label><div id="diag-candidates"></div><h4>④ 同次实际选入与Token</h4><div id="diag-selection"></div><h4>⑤ 阶段、调用与执行/保存状态</h4><div id="diag-status"></div></section></main><script src="/admin/static/js/admin-api.js?v=step018"></script><script src="/admin/static/js/memory-admin-common.js?v=step018"></script><script src="/admin/static/js/memory-diagnostics-admin.js?v=step018"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>记忆检索诊断 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css">
+  <link rel="stylesheet" href="/admin/static/css/memory-admin.css?v=desk-1">
+</head>
+<body class="memory-admin">
+<button class="ma-menu-toggle" type="button" aria-controls="sidebar-mount" aria-expanded="false" aria-label="打开导航">☰</button>
+<button class="ma-menu-shade" type="button" aria-label="关闭导航" tabindex="-1"></button>
+<div id="sidebar-mount"></div>
+<main class="admin-content">
+<div id="header-mount"></div>
+<div class="ma-workspace">
+<header class="ma-page-heading"><h1>记忆检索诊断</h1><p>测试一条输入的检索路径，或查看实际对话的路由记录。</p></header>
+<div class="ma-tabs" role="tablist" aria-label="页面视图">
+<button type="button" role="tab" id="tab-diagnostics" aria-controls="diagnostics-pane" aria-selected="true" tabindex="0">手动诊断</button>
+<button type="button" role="tab" id="tab-online" aria-controls="online-panel" aria-selected="false" tabindex="-1">线上路由记录</button>
+</div>
+<div id="diagnostics-pane" role="tabpanel" aria-labelledby="tab-diagnostics">
+<section class="ma-card" id="diag-create" data-write-action hidden>
+  <header class="ma-card-head"><h2>新建诊断</h2><p>使用真实链路，外部调用可能产生费用。输入不会进入聊天队列。</p></header>
+  <form id="diag-input">
+    <div class="ma-form-grid">
+      <label>用户ID<input name="user_id" inputmode="numeric" required pattern="[1-9][0-9]*" placeholder="输入用户 ID"></label>
+<label>链路来源<select name="source"><option value="main">主文字</option>
+<option value="openapi">OpenAPI</option>
+<option value="step8">Step8 主动对话</option></select></label>
+<label>诊断模式<select name="mode"><option value="retrieval_only">强制检索</option>
+<option value="router_only">仅测试路由判定</option>
+<option value="runtime_path">按配置执行实际路径</option></select></label>
+<label>路由配置<select name="router_config_source"><option value="active">当前有效版本</option>
+<option value="draft">已保存草稿</option></select></label>
+    </div>
+    <div id="diag-router-source" class="ma-config-source"></div>
+    <label class="ma-input-label">输入文本<textarea name="input" required aria-describedby="input-range" placeholder="输入要测试的用户消息"></textarea></label>
+    <div class="ma-form-foot"><span id="input-range"></span><button class="btn btn-primary" type="submit">执行诊断</button></div>
+  </form>
+</section>
+<div class="ma-observation"><p id="submission-state" class="ma-status" aria-live="polite"></p><button id="query-active" class="btn btn-default" type="button">核实本次执行</button></div>
+<section class="ma-card"><header class="ma-card-head"><h2>诊断历史</h2></header>
+<form id="diag-filter" class="ma-filter">
+<label>用户ID <input name="user_id" inputmode="numeric"></label>
+<label>来源 <select name="source"><option value="">全部</option>
+<option value="main">主文字</option>
+<option value="openapi">OpenAPI</option>
+<option value="step8">Step8 主动对话</option></select></label>
+<label>执行状态 <select name="state"><option value="">全部</option>
+<option value="accepted">已受理</option>
+<option value="running">执行中</option>
+<option value="completed">已完成</option>
+<option value="degraded">部分降级</option>
+<option value="failed">失败</option>
+<option value="budget_blocked">预算阻断</option>
+<option value="interrupted">已中断</option>
+<option value="manual_required">需人工处理</option></select></label>
+<label>开始日期 <input type="date" name="start_date"></label>
+<label>结束日期 <input type="date" name="end_date"></label>
+<button type="submit" class="btn btn-primary">查询</button>
+</form>
+<div id="diag-history"></div></section>
+<section id="diag-detail" class="ma-card" hidden>
+<header class="ma-card-head"><h2>历史诊断详情</h2><p>此处展示执行时的快照；恢复记忆或补建索引需另行操作。</p></header><div id="diag-actions" class="ma-controls"></div>
+<section class="ma-block"><h3>诊断结果</h3>
+<div id="diag-status"></div>
+</section>
+<section class="ma-block"><h3>用户与输入</h3>
+<div id="diag-context"></div>
+</section>
+<section class="ma-block"><h3>冻结版本与装载来源</h3>
+<div id="diag-version"></div>
+</section>
+<section class="ma-block"><h3>检索输入与候选</h3>
+<div id="diag-queries"></div>
+<label class="ma-inline-field">候选路 <select id="candidate-route"><option value="">全部</option>
+<option value="cg">角色公共记忆</option>
+<option value="cp">角色私有记忆</option>
+<option value="ck">角色知识</option>
+<option value="user">用户记忆</option></select></label>
+<div id="diag-candidates"></div>
+</section>
+<section class="ma-block"><h3>选入结果与 Token</h3>
+<div id="diag-selection"></div>
+</section>
+</section>
+</div>
+<div id="online-panel" role="tabpanel" aria-labelledby="tab-online" hidden>
+<section class="ma-card"><header class="ma-card-head"><h2>筛选路由记录</h2></header>
+<form id="online-filter" class="ma-filter">
+<label>起始时间 <input type="datetime-local" name="start"></label>
+<label>结束时间 <input type="datetime-local" name="end"></label>
+<label>用户 ID <input name="user_id" inputmode="numeric"></label>
+<label>对话执行 ID <input name="generation_id"></label>
+<label>执行状态 <select name="state"><option value="">全部</option>
+<option value="success">成功</option>
+<option value="pending">等待处理</option>
+<option value="failed">失败</option>
+<option value="superseded">已被替代</option></select></label>
+<label>路径 <select name="path"><option value="">全部</option>
+<option value="skip">跳过检索</option>
+<option value="retrieval">执行检索</option></select></label>
+<label>路由原因 <select name="reason"><option value="">全部</option>
+<option value="model_decision">模型判定</option>
+<option value="timeout">判定超时</option>
+<option value="disabled">路由已关闭</option>
+<option value="invalid_response">模型输出无效</option>
+<option value="provider_error">模型服务异常</option>
+<option value="current_input_truncated">输入已裁剪</option>
+<option value="router_input_over_budget">输入超出预算</option></select></label>
+<label>配置版本 <input name="version" inputmode="numeric"></label>
+<button type="submit" class="btn btn-primary">查询</button>
+</form>
+</section>
+<section class="ma-card"><header class="ma-card-head"><h2>路由统计</h2></header><div id="online-summary" class="ma-metrics"></div></section>
+<section class="ma-card"><header class="ma-card-head"><h2>执行记录</h2></header>
+<p id="online-state" class="ma-status" role="status"></p><div id="online-list" class="ma-list"></div>
+<div class="ma-controls ma-pagination"><button class="btn btn-default" id="online-prev" type="button">上一页</button><button class="btn btn-default" id="online-next" type="button">下一页</button></div>
+</section>
+<section id="online-detail" class="ma-card ma-online-detail"></section>
+</div>
+</div>
+</main>
+<script src="/admin/static/js/admin-api.js?v=desk-1"></script>
+<script src="/admin/static/js/memory-admin-common.js?v=desk-1"></script>
+<script src="/admin/static/js/memory-diagnostics-admin.js?v=desk-2"></script>
+<script src="/admin/static/js/memory-router-records.js?v=desk-2"></script>
+</body>
+</html>

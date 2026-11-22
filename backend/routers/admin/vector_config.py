@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import constants as codes
 from backend.constants import ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID
 from backend.database import get_db
 from backend.models.admin_user import AdminUser
@@ -85,10 +86,10 @@ async def _publish_config(body, request, db, admin, key, merge):
         result["server_time"] = _server_time()
         if result["commit_state"] == "committed":
             return ApiResponse.ok(data=result)
-        code = {"expired": 20123, "rejected": ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID}.get(result["commit_state"], 20122)
+        code = {"expired": codes.ADMIN_ERR_MEMORY_EXPIRED, "rejected": ADMIN_ERR_VECTOR_TOKEN_CONFIG_INVALID}.get(result["commit_state"], codes.ADMIN_ERR_MEMORY_COMMIT_UNKNOWN)
         if result.get("reason") == "publication_revision_conflict":
-            code = 20127
-        return ApiResponse.fail(code, data=result, message="配置发布未确认" if code == 20122 else "配置未发布")
+            code = codes.ADMIN_ERR_MEMORY_REVISION_CONFLICT
+        return ApiResponse.fail(code, data=result, message="配置发布未确认" if code == codes.ADMIN_ERR_MEMORY_COMMIT_UNKNOWN else "配置未发布")
     except publications.PublicationError as exc:
         return ApiResponse.fail(exc.code, message=exc.reason)
     except ValueError:
@@ -131,14 +132,14 @@ async def get_publication(publish_id: str, db: AsyncSession = Depends(get_db),
     except publications.PublicationError as exc:
         return ApiResponse.fail(exc.code, message=exc.reason)
     if result is None:
-        return ApiResponse.fail(20125, message="无可核实的本次发布记录", data={"publish_id": publish_id, "server_time": _server_time()})
+        return ApiResponse.fail(codes.ADMIN_ERR_MEMORY_NOT_FOUND, message="无可核实的本次发布记录", data={"publish_id": publish_id, "server_time": _server_time()})
     entry = result.get("source_entry", "")
     allowed = ("super_admin", "tech_ops", "observer") if "third-party" in entry else _READ_ROLES
     if admin_user.role not in allowed:
         raise HTTPException(403, detail="无原配置入口读取权限")
     result["server_time"] = _server_time()
     if result["commit_state"] == "expired":
-        return ApiResponse.fail(20123, message="本次发布回执已过保障期", data=result)
+        return ApiResponse.fail(codes.ADMIN_ERR_MEMORY_EXPIRED, message="本次发布回执已过保障期", data=result)
     if result["commit_state"] in {"pending", "unknown"}:
-        return ApiResponse.fail(20122, message="本次发布结果待核实", data=result)
+        return ApiResponse.fail(codes.ADMIN_ERR_MEMORY_COMMIT_UNKNOWN, message="本次发布结果待核实", data=result)
     return ApiResponse.ok(data=result)

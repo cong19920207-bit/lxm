@@ -5,21 +5,26 @@
 # 隐藏帖对用户完全不可见（PRD 5.8）。
 # scheduled_publish_time 与到点比较均为 Asia/Shanghai 墙钟（见 feed_now）。
 
+import hashlib
+import json
 import logging
 import random
+import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.constants import (
     ERR_COMMENT_EMPTY,
+    ERR_COMMENT_IDEMPOTENCY_CONFLICT,
     ERR_COMMENT_RATE_LIMIT,
     ERR_COMMENT_TOO_LONG,
     ERR_CONTENT_SAFETY_VIOLATION,
     ERR_FEED_COMMENT_FORBIDDEN,
     ERR_FEED_POST_NOT_FOUND,
+    ERR_PARAM_INVALID,
 )
 from backend.constants.life_feed_config import (
     CONFIG_FEED_HISTORY_VISIBLE_RANGE,
@@ -46,6 +51,7 @@ from backend.models.user import User
 from backend.services import content_safety_service
 from backend.services import like_aware_service
 from backend.services.life_feed_config_service import get_life_feed_config
+from backend.services.memory_business_guard import guard_business_write
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +85,57 @@ def _display_comments(post: FeedPost, real_count: int) -> int:
     return post.base_comments * post.comment_multiplier + max(0, int(real_count or 0))
 
 
-async def _get_visible_post(db: AsyncSession, post_id: int, now: datetime) -> FeedPost:
-    """取一条对用户可见（is_visible=1 且已到点）的帖子；否则抛 FeedError。"""
-    post = (await db.execute(
-        select(FeedPost).where(FeedPost.id == post_id)
-    )).scalars().first()
-    if post is None or post.is_visible != 1 or post.scheduled_publish_time > now:
+async def visible_post_condition(now: datetime):
+    range_cfg = await get_life_feed_config(
+        CONFIG_FEED_HISTORY_VISIBLE_RANGE, DEFAULT_FEED_HISTORY_VISIBLE_RANGE)
+    conditions = [FeedPost.is_visible == 1, FeedPost.generation_status == "ready",
+                  FeedPost.scheduled_publish_time <= now]
+    days = _RANGE_DAYS.get(str(range_cfg))
+    if days:
+        conditions.append(FeedPost.scheduled_publish_time >= now - timedelta(days=days))
+    return and_(*conditions)
+
+
+async def _get_visible_post(db: AsyncSession, post_id: int, now: datetime,
+                            *, writer_id: int | None = None) -> FeedPost:
+    # Resolve the configurable time window before starting the write lock chain.
+    stmt = select(FeedPost).where(FeedPost.id == post_id, await visible_post_condition(now))
+    if writer_id is not None:
+        await _lock_writer(db, writer_id)
+        stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    post = await db.scalar(stmt)
+    if post is None:
         raise FeedError(ERR_FEED_POST_NOT_FOUND)
     return post
+
+
+async def _lock_writer(db: AsyncSession, user_id: int) -> None:
+    # Both entry points serialize on the same persistent user. Taking the owner
+    # before the post also fixes the FK lock order for concurrent likes/comments.
+    # DML/flush acquires the S15 fence: take it first, as enter/lazy publish do.
+    await guard_business_write(db)
+    if db.get_bind().dialect.name == "sqlite":
+        # SQLite ignores SELECT FOR UPDATE; enter its writer transaction first.
+        await db.execute(update(User).where(User.id == user_id).values(id=User.id))
+    else:
+        await db.scalar(select(User.id).where(User.id == user_id).with_for_update())
+
+
+def _private_comments(user_id, visible):
+    return select(FeedComment.id, FeedComment.post_id).join(
+        FeedPost, FeedPost.id == FeedComment.post_id
+    ).where(visible, FeedComment.user_id == user_id, FeedComment.is_hidden == 0)
+
+
+def _unread_replies(user_id, visible):
+    return _private_comments(user_id, visible).where(
+        FeedComment.lxm_reply.is_not(None), FeedComment.lxm_reply_read_at.is_(None))
+
+
+def _comment_result(comment: FeedComment) -> dict:
+    # The create receipt is immutable even if LXM has since replied.
+    return {"comment_id": comment.id, "created_at": comment.created_at.isoformat(),
+            "gen_status": "pending", "reply_to_lxm": bool(comment.reply_to_lxm)}
 
 
 class FeedService:
@@ -111,34 +160,49 @@ class FeedService:
 
     # ---------- STEP-015 列表 ----------
     async def list_feed(self, db: AsyncSession, user_id: int | None,
-                        cursor: str | None, size: int) -> dict:
+                        cursor: str | None, size: int, *, stable_cursor: bool = False) -> dict:
         now = feed_now()
         size = max(1, min(size or _DEFAULT_PAGE_SIZE, _MAX_PAGE_SIZE))
 
-        stmt = select(FeedPost).where(
-            FeedPost.scheduled_publish_time <= now,
-            FeedPost.is_visible == 1,
-            FeedPost.generation_status == "ready",
-        )
-
-        # 可见范围过滤
-        range_cfg = await get_life_feed_config(
-            CONFIG_FEED_HISTORY_VISIBLE_RANGE, DEFAULT_FEED_HISTORY_VISIBLE_RANGE)
-        days = _RANGE_DAYS.get(str(range_cfg))
-        if days:
-            stmt = stmt.where(FeedPost.scheduled_publish_time >= now - timedelta(days=days))
-
-        # 游标分页
-        if cursor:
+        stmt = select(FeedPost).where(await visible_post_condition(now))
+        if cursor is not None and stable_cursor:
+            # Open cursor: descending (time, id); reject malformed cursors instead
+            # of silently returning page one. Legacy H5 accepts ISO time alone.
+            try:
+                time_part, id_part = cursor.split("~")
+                dt = datetime.fromisoformat(time_part)
+                pid = int(id_part)
+                if (dt.tzinfo is not None or dt.isoformat() != time_part or
+                        not 1 <= pid <= 2_147_483_647 or str(pid) != id_part):
+                    raise ValueError
+            except ValueError:
+                raise FeedError(ERR_PARAM_INVALID) from None
+            stmt = stmt.where(or_(FeedPost.scheduled_publish_time < dt,
+                                  and_(FeedPost.scheduled_publish_time == dt, FeedPost.id < pid)))
+        elif cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
                 stmt = stmt.where(FeedPost.scheduled_publish_time < cursor_dt)
             except ValueError:
                 logger.warning("[Feed] 非法 cursor=%s，忽略", cursor)
 
-        stmt = stmt.order_by(FeedPost.scheduled_publish_time.desc()).limit(size)
-        posts = (await db.execute(stmt)).scalars().all()
+        stmt = stmt.order_by(FeedPost.scheduled_publish_time.desc(), FeedPost.id.desc())
+        rows = (await db.scalars(stmt.limit(size + 1 if stable_cursor else size))).all()
+        posts = rows[:size]
+        next_cursor = None
+        if stable_cursor and len(rows) > size:
+            next_cursor = f"{posts[-1].scheduled_publish_time.isoformat()}~{posts[-1].id}"
+        elif not stable_cursor and len(posts) == size:
+            next_cursor = posts[-1].scheduled_publish_time.isoformat()
+        return {"posts": await self._post_items(db, user_id, posts, now), "next_cursor": next_cursor}
 
+    async def get_post(self, db: AsyncSession, user_id: int, post_id: int) -> dict:
+        now = feed_now()
+        post = await _get_visible_post(db, post_id, now)
+        return (await self._post_items(db, user_id, [post], now))[0]
+
+    async def _post_items(self, db: AsyncSession, user_id: int | None,
+                          posts, now: datetime) -> list[dict]:
         # actual_publish_time 懒惰写回（首次到点，幂等）
         null_ids = [p.id for p in posts if p.actual_publish_time is None]
         if null_ids:
@@ -158,7 +222,7 @@ class FeedService:
                 .where(FeedComment.post_id.in_(post_ids),
                        FeedComment.user_id == user_id,
                        FeedComment.is_hidden == 0)  # STEP-034：后台隐藏的评论不对用户展示
-                .order_by(FeedComment.created_at.asc())
+                .order_by(FeedComment.created_at.asc(), FeedComment.id.asc())
             )).scalars().all()
             for c in rows:
                 comments_by_post.setdefault(c.post_id, []).append({
@@ -200,26 +264,23 @@ class FeedService:
             for it in items:
                 it["user_liked"] = it["id"] in liked_ids
 
-        next_cursor = (
-            posts[-1].scheduled_publish_time.isoformat() if len(posts) == size else None)
-        return {"posts": items, "next_cursor": next_cursor}
+        return items
 
     # ---------- STEP-015 enter ----------
     async def enter_feed(self, db: AsyncSession, user_id: int) -> dict:
         # last_feed_entered_at 与 scheduled_publish_time 比较，须同为北京墙钟
         now = feed_now()
+        visible = await visible_post_condition(now)
         await db.execute(
             update(User).where(User.id == user_id).values(last_feed_entered_at=now))
         anchor = (await db.execute(
-            select(FeedComment.id)
-            .where(FeedComment.user_id == user_id,
-                   FeedComment.lxm_reply.is_not(None),
-                   FeedComment.lxm_reply_read_at.is_(None))
-            .order_by(FeedComment.lxm_reply_at.desc())
+            _unread_replies(user_id, visible)
+            .order_by(FeedComment.lxm_reply_at.desc(), FeedComment.id.desc())
             .limit(1)
-        )).scalars().first()
+        )).first()
         await db.flush()
-        return {"anchor_comment_id": anchor}
+        return {"anchor_comment_id": anchor.id if anchor else None,
+                "anchor_post_id": anchor.post_id if anchor else None}
 
     # ---------- STEP-015 badge ----------
     async def get_badge(self, db: AsyncSession, user_id: int) -> dict:
@@ -234,18 +295,8 @@ class FeedService:
             select(User.last_feed_entered_at).where(User.id == user_id)
         )).scalars().first()
 
-        new_stmt = select(func.count()).select_from(FeedPost).where(
-            FeedPost.scheduled_publish_time <= now,
-            FeedPost.is_visible == 1,
-            FeedPost.generation_status == "ready",
-        )
-        # 与 list_feed 对齐可见窗，避免 N 大于列表实际可刷到的帖
-        range_cfg = await get_life_feed_config(
-            CONFIG_FEED_HISTORY_VISIBLE_RANGE, DEFAULT_FEED_HISTORY_VISIBLE_RANGE)
-        days = _RANGE_DAYS.get(str(range_cfg))
-        if days:
-            new_stmt = new_stmt.where(
-                FeedPost.scheduled_publish_time >= now - timedelta(days=days))
+        visible = await visible_post_condition(now)
+        new_stmt = select(func.count()).select_from(FeedPost).where(visible)
         if last_entered is not None:
             new_stmt = new_stmt.where(FeedPost.scheduled_publish_time > last_entered)
         raw_new_count = int((await db.execute(new_stmt)).scalar() or 0)
@@ -253,13 +304,8 @@ class FeedService:
         # 从未进入：不暴露巨大 N，前端底栏走「快来看看」
         new_post_count = 0 if last_entered is None else raw_new_count
 
-        unread = (await db.execute(
-            select(func.count()).select_from(FeedComment).where(
-                FeedComment.user_id == user_id,
-                FeedComment.lxm_reply.is_not(None),
-                FeedComment.lxm_reply_read_at.is_(None),
-            )
-        )).scalar() or 0
+        unread = await db.scalar(select(func.count()).select_from(
+            _unread_replies(user_id, visible).subquery()))
         return {
             "has_new": has_new,
             "new_post_count": new_post_count,
@@ -268,11 +314,11 @@ class FeedService:
 
     # ---------- STEP-016 点赞 ----------
     async def like_post(self, db: AsyncSession, user_id: int, post_id: int) -> dict:
-        post = await _get_visible_post(db, post_id, feed_now())
+        post = await _get_visible_post(db, post_id, feed_now(), writer_id=user_id)
 
         exists = (await db.execute(
             select(FeedLike.id).where(
-                FeedLike.user_id == user_id, FeedLike.post_id == post_id)
+                FeedLike.user_id == user_id, FeedLike.post_id == post_id).with_for_update()
         )).scalars().first()
 
         if exists is None:
@@ -285,12 +331,14 @@ class FeedService:
             logger.info("[Feed] 重复点赞幂等 user_id=%s post_id=%s", user_id, post_id)
 
         # 先提交点赞事务，释放 feed_post 行锁，再入队感知 IM（避免 FK 校验 Lock wait）
+        result = {"user_liked": True, "display_likes": _display_likes(post)}
         await db.commit()
-        await like_aware_service.on_like_hook(user_id=user_id, post_id=post_id)
-        return {"user_liked": True, "display_likes": _display_likes(post)}
+        if exists is None:
+            await like_aware_service.on_like_hook(user_id=user_id, post_id=post_id)
+        return result
 
     async def unlike_post(self, db: AsyncSession, user_id: int, post_id: int) -> dict:
-        post = await _get_visible_post(db, post_id, feed_now())
+        post = await _get_visible_post(db, post_id, feed_now(), writer_id=user_id)
 
         res = await db.execute(
             delete(FeedLike).where(
@@ -313,28 +361,42 @@ class FeedService:
     # ---------- STEP-017 评论 ----------
     async def create_comment(self, db: AsyncSession, user_id: int,
                              post_id: int, content: str,
-                             reply_to_lxm: bool = False) -> dict:
-        # 到点校验用北京墙钟；created_at/due_at 仍用 UTC（与评论回复轮询对齐）
-        await _get_visible_post(db, post_id, feed_now())
-        now = datetime.utcnow()
+                             reply_to_lxm: bool = False, *, idempotency_key: str | None = None) -> dict:
+        await _get_visible_post(db, post_id, feed_now(), writer_id=user_id)
 
         content = content if content is not None else ""
-        if len(content.strip()) == 0:
+        # 仅作展示标记：1=点小梦回复发出；不影响 LLM-05
+        reply_flag = 1 if reply_to_lxm else 0
+        key_digest = request_digest = None
+        if idempotency_key is not None:
+            if not re.fullmatch(r"[!-~]{1,128}", idempotency_key):
+                raise FeedError(ERR_PARAM_INVALID)
+            key_digest = hashlib.sha256(idempotency_key.encode("ascii")).digest()
+            request_digest = hashlib.sha256(json.dumps(
+                [post_id, content, reply_flag], ensure_ascii=True, separators=(",", ":")
+            ).encode("ascii")).digest()
+            previous = await db.scalar(select(FeedComment).where(
+                FeedComment.user_id == user_id, FeedComment.idempotency_key_digest == key_digest
+            ).with_for_update().execution_options(populate_existing=True))
+            if previous is not None:
+                if previous.is_hidden:
+                    raise FeedError(ERR_FEED_COMMENT_FORBIDDEN)
+                if previous.request_digest != request_digest:
+                    raise FeedError(ERR_COMMENT_IDEMPOTENCY_CONFLICT)
+                return _comment_result(previous)
+
+        if not content.strip():
             raise FeedError(ERR_COMMENT_EMPTY)
         if len(content) > _MAX_COMMENT_LEN:
             raise FeedError(ERR_COMMENT_TOO_LONG)
-        # 仅作展示标记：1=点小梦回复发出；不影响 LLM-05
-        reply_flag = 1 if reply_to_lxm else 0
-
-        # 频控：30s 内同帖同用户
-        recent = (await db.execute(
-            select(func.count()).select_from(FeedComment).where(
-                FeedComment.user_id == user_id,
-                FeedComment.post_id == post_id,
-                FeedComment.created_at >= now - timedelta(seconds=_COMMENT_RATE_WINDOW_SEC),
-            )
-        )).scalar() or 0
-        if recent >= 1:
+        # Use a current read even if API Key authentication established an earlier
+        # InnoDB snapshot before the owner lock. H5 and Open share this 30s window.
+        now = datetime.utcnow()
+        recent = await db.scalar(select(FeedComment.id).where(
+            FeedComment.user_id == user_id, FeedComment.post_id == post_id,
+            FeedComment.created_at >= now - timedelta(seconds=_COMMENT_RATE_WINDOW_SEC)
+        ).limit(1).with_for_update())
+        if recent is not None:
             raise FeedError(ERR_COMMENT_RATE_LIMIT)
 
         # 内容安全
@@ -369,6 +431,7 @@ class FeedService:
         comment = FeedComment(
             post_id=post_id, user_id=user_id, content=content,
             reply_to_lxm=reply_flag,
+            idempotency_key_digest=key_digest, request_digest=request_digest,
             gen_status="pending", due_at=due_at, created_at=now)
         db.add(comment)
         await db.flush()
@@ -378,12 +441,7 @@ class FeedService:
             "[Feed] 用户评论 user_id=%s post_id=%s comment_id=%s is_first=%s "
             "reply_to_lxm=%s due_at=%s",
             user_id, post_id, comment.id, is_first, reply_flag, due_at)
-        return {
-            "comment_id": comment.id,
-            "created_at": comment.created_at.isoformat(),
-            "gen_status": "pending",
-            "reply_to_lxm": bool(reply_flag),
-        }
+        return _comment_result(comment)
 
     # ---------- STEP-029 已读上报 ----------
     async def mark_comment_reply_read(
@@ -393,14 +451,11 @@ class FeedService:
         单条评论回复已读上报：写 lxm_reply_read_at（幂等）。
         校验评论归属当前用户，防越权；仅对有 LXM 回复且未读的记录生效。
         """
-        comment = (await db.execute(
-            select(FeedComment).where(FeedComment.id == comment_id)
-        )).scalars().first()
+        visible = await visible_post_condition(feed_now())
+        await _lock_writer(db, user_id)
+        comment = (await db.execute(_private_comments(user_id, visible).where(
+            FeedComment.id == comment_id).with_for_update())).first()
         if comment is None:
-            raise FeedError(ERR_FEED_COMMENT_FORBIDDEN)
-        if comment.user_id != user_id:
-            logger.warning("[Feed] 越权已读上报 user_id=%s comment_id=%s owner=%s",
-                           user_id, comment_id, comment.user_id)
             raise FeedError(ERR_FEED_COMMENT_FORBIDDEN)
 
         res = await db.execute(
@@ -423,7 +478,7 @@ class FeedService:
         单帖已读上报：校验可见+到点后触发已读感知 IM 判定与入队（STEP-021）。
         """
         # 校验可见+到点（不可见/未到点抛 ERR_FEED_POST_NOT_FOUND）
-        _get = await _get_visible_post(db, post_id, feed_now())  # noqa: F841
+        await _get_visible_post(db, post_id, feed_now())
 
         from backend.services.read_aware_service import read_aware_service
         await read_aware_service.on_feed_read(user_id, post_id)

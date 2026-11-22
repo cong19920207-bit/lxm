@@ -116,6 +116,7 @@ MySQL实际类型及ORM默认；`created_at/updated_at`若列出即继承自Date
 | `updated_at` | DATETIME(6) | 否 | ORM datetime.utcnow | onupdate=datetime.utcnow |
 | `generation_id` | CHAR(36), ASCII/ascii_bin | 否 | — | PK |
 | `user_id` | INTEGER | 否 | — | ForeignKey('users.id',ondelete='CASCADE') |
+| `memory_router_trace` | JSON | 是 | NULL | 当前 generation 对应的可选路由观测 |
 | `timing_config_version` | VARCHAR(64) ASCII/ascii_bin | 否 | — | — |
 | `accepted_at` | DATETIME(6) | 否 | — | — |
 | `deadline_at` | DATETIME(6) | 否 | — | — |
@@ -149,6 +150,8 @@ MySQL实际类型及ORM默认；`created_at/updated_at`若列出即继承自Date
 | `ix_chat_deadline` | INDEX (state, deadline_at) |
 | `ix_chat_dispatch` | INDEX (dispatch_state, next_dispatch_at) |
 | `ix_chat_reconcile` | INDEX (phase, reconcile_until) |
+
+v9y_dialogue_router_001 添加组合索引 (accepted_at, generation_id) 及 (user_id, accepted_at, generation_id)。trace 按当前用户 generation、owner、lease_epoch、状态和有效期核验写入。记录路由、组装或中断阶段的配置版本、输入及历史的有序引用与摘要、受控原因、调用数、局部耗时及可得 usage。当前包成员标志反映入包时的选择。共享输入版本按拼接原文的 Unicode 字符偏移记录两端相同的半开区间，并记录回复模块是否带说明。查询历史 trace 时按其原渲染版本核验摘要。固定模块单独超限时，budget_measurement 记录该模块名、实计 token、模块上限及本轮总上限。部分记录只证明当时已发生的调用，未知最终值保留 null；合法跳过的查询次数可证为零。旧记录可为 SQL NULL，采集失败不影响聊天提交，最终状态取 generation。
 
 <a id="chat-submission"></a>
 ### 表名：chat_submission

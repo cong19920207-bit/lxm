@@ -110,6 +110,8 @@ POST/operations支持判别联合：音频原清单不变；action=upload_cover�
 
 `GET /api/bgm/catalog` 不解析用户/Admin Token，不依赖账号或个人偏好。无头、有效或无效Authorization均返回同一公开快照；客户端应显式无Authorization调用。现有私有接口与可选Bearer三接口的权限保持各自契约。
 
+外部客户端可使用现有账号 API Key 访问 `GET /api/open/v1/bgm/catalog`，与 H5 共用以下快照、缓存和错误语义。鉴权和媒体请求约定见 [Open BGM 契约](../openapi/api.md#bgm-openapi)。
+
 成功HTTP200、code=0，data为catalog_version、default_track_id、tracks有序数组。曲目字段仅id/name/media_version/audio_url/duration_seconds/cover_url/cover_version；URL为HTTPS、封面可空且独立版本。一个SQL读取目录头及enabled且ready成员和归属资产，默认必须在非空集合中，空集合默认null；内部不一致明确失败。没有源文件、内部Key、身份或偏好字段，也不下载或解码任何媒体。
 
 缓存沿用现有Redis连接池。`bgm:catalog:v1`保存完整版本和生成时间，最大新鲜期60秒；存储TTL扣除回源耗时，内存命中最多1秒且仍检查原生成时间。`bgm:catalog:version-floor:v1`为单个版本水位，Lua原子更新阻止旧回源覆盖更高版本，迟到旧失效也不删除新值。同进程失效同时清内存并废止旧在途任务的缓存写入。已开始读取可返回原完整快照；不同进程的1秒内存缓存及失效失败后的有限旧缓存不构成实时推送承诺。

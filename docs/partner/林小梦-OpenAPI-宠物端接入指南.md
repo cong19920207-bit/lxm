@@ -1,11 +1,11 @@
 # 林小梦 Open API — 宠物端接入指南
 
-> **文档版本**：v1.1  
+> **文档版本**：v1.4
 > **适用接口**：Open API v1（`/api/open/v1/*`）  
-> **最后更新**：2026-06-04（对照代码复核修订）  
+> **最后更新**：2026-11-14
 > **读者**：第三方桌面宠物 / 客户端开发同学  
 
-本文档说明如何在宠物端配置 **Base URL** 与 **API Key**，调用林小梦对话与主动消息接口，实现与 H5 聊天窗口等价的能力（同步 JSON，非 SSE）。
+外部客户端用同一账号的 **Base URL 与 API Key** 接入对话、主动消息、日记、朋友圈、BGM 和记忆星云（记忆星球）。本地 Docker 已验证，升级前签发的有效 Key 可直接使用这些能力，无需换 Key 或单独授权。生产环境的开放时间以运营通知为准。
 
 ---
 
@@ -17,7 +17,7 @@
 4. [鉴权](#4-鉴权)
 5. [通用约定](#5-通用约定)
 6. [推荐客户端流程](#6-推荐客户端流程)
-7. [接口说明](#7-接口说明)
+7. [接口说明](#7-接口说明) · [日记](#partner-diary) · [朋友圈](#partner-feed) · [BGM](#partner-bgm) · [记忆星云](#partner-memory)
 8. [时间线字段与状态](#8-时间线字段与状态)
 9. [错误码与处理](#9-错误码与处理)
 10. [安全要求](#10-安全要求)
@@ -29,7 +29,7 @@
 
 ## 1. 能力范围
 
-### 1.1 本接入包含（6 个接口）
+### 1.1 客户端可接入的能力
 
 | 能力 | 接口 |
 |------|------|
@@ -39,15 +39,19 @@
 | 未读主动消息列表 | `GET /api/open/v1/agent/messages` |
 | 未读数量（托盘角标） | `GET /api/open/v1/agent/unread-count` |
 | 标记主动消息已读 | `POST /api/open/v1/agent/messages/{message_id}/read` |
+| 阅读日记、翻页、月历和已读同步 | [日记的 2 个接口和分页规则](#partner-diary) |
+| 浏览动态与图片、点赞、评论与回复、角标和新帖通知 | [朋友圈的 11 个接口和交互规则](#partner-feed) |
+| 展示曲库、播放背景音乐 | [BGM 曲库与播放示例](#partner-bgm) |
+| 浏览账号的长期记忆、点开星体查看正文 | [记忆星云分页与字段](#partner-memory) |
 
-宠物端通过上述接口即可完成：**用户发消息 → 展示林小梦回复（可多气泡）→ 展示情绪 → 处理失败重试 → 托盘未读角标 → 林小梦主动搭讪**。
+客户端还可以[查询聊天请求的提交状态](../contract/current/openapi/api.md#submission-status)，或用同一 Key [与平台已领养的小狗互动](../contract/current/openapi/api.md#pet-openapi)。
 
 ### 1.2 本接入不包含
 
 以下能力 **不在 Open API v1**，请勿使用 H5 的 JWT 路由（`/api/chat/*`、`/api/auth/*` 等）：
 
 - 用户注册 / 登录 / Token 刷新  
-- 关系等级、亲密值、日记、长期记忆列表  
+- 独立查询当前关系等级、亲密值
 - SSE 流式对话  
 - 管理后台（`/api/admin/*`）  
 
@@ -56,7 +60,7 @@
 ### 1.3 数据同源说明
 
 - 每个 API Key 绑定 **一个** 林小梦 H5 用户账号。  
-- 宠物端发送的消息、AI 回复、主动消息与 **同一账号** 在 H5 端看到的数据 **完全一致**（同一数据库）。  
+- 两端共享同一账号的文字消息、主动消息、日记已读、点赞、评论和回复。朋友圈的 `comments` 只返回当前账号可见的本人评论及小梦的回复。
 - 用户在 H5 发的消息，宠物端拉 `timeline` 可见；反之亦然。
 
 ```mermaid
@@ -86,7 +90,7 @@ flowchart LR
 
 | 规则 | 说明 |
 |------|------|
-| 绑定关系 | **1 个宠物实例 / 1 个终端用户 ↔ 1 个林小梦用户 ↔ 1 个 API Key** |
+| 绑定关系 | Key 对应一个林小梦账号。日记、朋友圈和聊天都从 Bearer Key 识别用户，请求无需传用户 ID。 |
 | Key 签发 | 由林小梦运营在管理后台 **手动生成**，明文 **仅展示一次** |
 | Key 格式 | `sk-lxm-` + 随机串，例：`sk-lxm-a1b2c3d4...` |
 | 重新生成 | 在后台对该用户再次「生成/重新生成」会 **立即吊销** 旧 Key，宠物端须更新配置 |
@@ -132,7 +136,7 @@ Base URL:  http://cllxm.com
 说明：
 
 - 生产公网当前为 **HTTP**（非 HTTPS），见 [§10 安全要求](#10-安全要求)。若后续升级为 HTTPS，只需在宠物设置中把 Base URL 改为 `https://cllxm.com`，Key 不变。  
-- 本地 Docker 默认可能通过 `http://localhost`（Nginx 80）或 `http://localhost:8000`（直连 Backend）访问；**联调请以运营提供的 Base URL 为准**，不要自行猜测端口。  
+- 在运行本项目 Docker 的电脑上，已验证的 Base URL 为 `http://127.0.0.1:8000`（经 Nginx）。另一台设备联调时请用运营提供的可达地址，`127.0.0.1` 指向设备自身。
 - 文档 **不写死** 测试 Key；实际联调时向运营索取 **一对**「测试 Base URL + 测试 API Key」。
 
 ---
@@ -145,10 +149,9 @@ Base URL:  http://cllxm.com
 
 ```http
 Authorization: Bearer sk-lxm-你的APIKey
-Content-Type: application/json
 ```
 
-- 头名称与 H5 相同（`Authorization: Bearer`），但 **值必须是 API Key**，不是 JWT。  
+- 发送 JSON 请求体时附 `Content-Type: application/json`。订阅朋友圈新帖时可附 `Accept: text/event-stream`；图片直接使用返回的 URL 加载，不向图片域名转发 API Key。
 - 把 API Key 拿去调 `/api/chat/send` 等 H5 接口会 **401**；把 JWT 拿来调 Open 接口也会 **401**。
 
 ### 4.2 鉴权失败（HTTP 401）
@@ -171,7 +174,7 @@ Content-Type: application/json
 
 ### 5.1 业务响应信封
 
-除 **401** 外，成功与业务失败均为：
+普通接口的 HTTP 200 响应使用下列 JSON 信封。HTTP 401 和 422 返回 `detail`；朋友圈 `GET /feed/events` 成功后返回 SSE 流。
 
 ```json
 {
@@ -192,7 +195,8 @@ Content-Type: application/json
 | 接口类型 | 建议客户端超时 |
 |----------|----------------|
 | `POST .../chat/send`、`POST .../chat/resend` | **≥ 130 秒**（服务端等待 LLM 上限 120 秒） |
-| `GET` 类接口 | 10–30 秒 |
+| 普通 JSON 查询 | 10–30 秒 |
+| `GET /feed/events` | 长连接；空闲时约每 15 秒收到心跳，可据此设置读取超时。 |
 
 ### 5.3 参数校验失败（HTTP 422）
 
@@ -438,6 +442,115 @@ sequenceDiagram
 
 ---
 
+<a id="partner-diary"></a>
+### 7.7 日记
+
+| 请求（相对 `{base}`） | 参数与成功结果 |
+|---|---|
+| `GET /diary/list` | `page` 从 1 开始，`page_size` 默认 20，可取 1–50。返回 `items, total, page, page_size`。每篇自带全文。仅当账号总篇数为 0 时，另有 `empty_state: {kind, message}`，`kind` 为 `new` 或 `active`，可直接展示 `message`。 |
+| `POST /diary/{diary_id}/read` | 用 `items[].id`，无请求体。正文实际展示后调用，成功返回 `code=0, data=null`；重复上报成功。 |
+
+单篇 `items[]` 示例（示意数据）：
+
+```json
+{
+  "id": 42, "content": "雨停了。\n窗台上的叶子还挂着水。",
+  "created_at": "2026-11-13T08:10:00", "covers_beijing_date": "2026-11-12",
+  "relationship_level_at_creation": 2, "is_read": false
+}
+```
+
+打开日记时先展示第一页首篇，保留正文换行。列表按创建时间倒序，同一时间按 ID 倒序。七日栏与月历按 `covers_beijing_date` 归日；旧记录该值为 `null` 时用 `created_at` 的本地日期。同日多篇时选中日期先展示第一篇，前后翻篇可看其余记录。翻页按 ID 去重，直到已取完 `total` 或收到空页；日历中尚未加载的日期要先补分页，再判断当天是否有日记。预取与浏览月历不会标记正文已读。
+
+<a id="partner-feed"></a>
+### 7.8 朋友圈
+
+首页展示红点时取角标；用户打开朋友圈时再调用进入接口，加载页头和首屏。列表里的帖子已经包含正文、配图和评论，点开帖子或发评后只需刷新该帖详情。
+
+| 请求（相对 `{base}`） | 参数与成功结果 |
+|---|---|
+| `GET /feed/badge` | `has_new, new_post_count, unread_reply_count`。从未进入过朋友圈的账号可能有新帖但计数为 0；显示新帖提示用 `has_new`。 |
+| `POST /feed/enter` | 无请求体。更新进入时间，返回最近未读回复的 `anchor_post_id, anchor_comment_id`，两者为空时正常展示首屏。 |
+| `GET /feed/config/header` | `header_bg_url, header_avatar_url, display_nickname, signature, home_city`。封面和头像为绝对地址。 |
+| `GET /feed/list` | `size` 默认 20，可取 1–50。返回 `posts, next_cursor`。首页省略 `cursor`，下一页把 `next_cursor` 原样作为查询参数传回并做 URL 编码，值为 `null` 时结束。 |
+| `GET /feed/posts/{post_id}` | 返回一个与列表元素结构相同的帖子。 |
+| `POST /feed/{post_id}/like`、`DELETE /feed/{post_id}/like` | 无请求体。分别设为已点赞、未点赞，使用返回的 `user_liked, display_likes` 更新界面。重复发送相同操作不会重复计数。 |
+| `POST /feed/{post_id}/comments` | JSON 传 `content`（1–200 字，须有非空白内容）。普通评论可省略 `reply_to_lxm`；点小梦的回复再回她时传 `true`。返回 `comment_id, created_at, gen_status:"pending", reply_to_lxm`。 |
+| `POST /feed/{post_id}/read` | 无请求体。用户实际阅读帖子后上报，成功返回 `data={}`，可触发阅读感知。 |
+| `POST /feed/comments/{comment_id}/read` | 无请求体。用户读到小梦的回复后，用原评论的 `id` 上报。返回 `affected`；首次标记为 1，已经读过或回复尚未生成均为 0。 |
+| `GET /feed/events` | 保持带 Bearer 头的 SSE 连接。收到例如 `data: {"type":"feed_new","delta":1}` 时刷新新帖提示，忽略 `: heartbeat`。断线期间的事件不补发，恢复时重新拉列表和角标。 |
+
+**渲染帖子。** 用 `id` 定位帖子，`content_text, hashtags, scheduled_publish_time, emotion, city` 展示动态，`image_urls[]` 是按展示顺序排列的完整图片地址。点赞按钮取 `user_liked`，展示数取 `display_likes` 和 `display_comments`。后者是展示用评论数，与当前账号可见的 `comments[]` 长度可能不同。
+
+**读取回复。** 每条 `comments[]` 包含 `id, content, reply_to_lxm, lxm_reply, lxm_reply_at, lxm_reply_read_at`。发评成功只代表评论已收录；刷新单帖后按评论 ID 找到原评论，`lxm_reply` 有值时展示回复，`lxm_reply_read_at` 为空表示该回复未读。朋友圈 SSE 只通知新帖。
+
+**重试评论。** 每次新的发评动作可生成一个 `Idempotency-Key`（1–128 个非空格的可见 ASCII 字符，例如 UUID）。请求超时时，同账号用原键、原帖子、原正文和原回复标记重试，可取回原创建回执。同键改内容会返回 10507。未带键的请求丢失回执时，先刷新详情核对；同账号同帖的新评论间隔至少 30 秒。
+
+<a id="partner-bgm"></a>
+### 7.9 BGM 曲库与播放
+
+`GET {base}/bgm/catalog` 使用现有 Bearer Key，无需请求体或查询参数。成功时返回完整曲库，曲目顺序和默认曲与 H5 相同。曲名允许重复，选曲时使用曲目 ID。
+
+| 成功响应中的字段 | 客户端用法 |
+|---|---|
+| `data.catalog_version` | 整数，标识本次曲库快照的版本。 |
+| `data.default_track_id`、`data.tracks[]` | 按数组顺序显示曲目，在数组中按 ID 找到默认曲。空曲库返回 `tracks: []` 和 `default_track_id: null`，可显示“暂无背景音乐”。 |
+| `id`、`name`、`duration_seconds` | 分别是曲目标识、展示名和以秒计的时长。 |
+| `audio_url`、`media_version` | 将 HTTPS 地址原样交给播放器。缓存音频时以曲目 ID 和音频版本区分资源。 |
+| `cover_url`、`cover_version` | 封面单独更新。按 `cover_url` 判断能否显示，值为 `null` 时显示占位图。 |
+
+用户选择音乐后由客户端控制播放、暂停、切歌、音量与进度。请求曲库时携带 Key，读取音频和封面时直接访问返回的 URL，媒体请求不附加 Bearer 或 Cookie。桌面播放器可以用 HTTP Range 分段读取或跳转播放位置。
+
+沿用附录中的 `BASE` 和 `KEY`。以下示例使用 `jq` 找到默认曲并读取开头 64 字节，正常返回 HTTP 206。若曲库暂不可用，接口返回 HTTP 503、业务码 `20207` 和 `Retry-After: 2`。此时保留已有列表，按响应头稍后重试。
+
+```bash
+if catalog=$(curl -fsS "$BASE/api/open/v1/bgm/catalog" -H "Authorization: Bearer $KEY"); then
+  audio_url=$(jq -r '.data as $d | $d.tracks[] | select(.id == $d.default_track_id) | .audio_url' <<< "$catalog")
+  if [ -n "$audio_url" ]; then
+    curl -fsS --range 0-63 --output /dev/null --write-out 'HTTP %{http_code}\n' "$audio_url"
+  fi
+fi
+```
+
+<a id="partner-memory"></a>
+### 7.10 记忆星云（记忆星球）
+
+`GET {base}/memory/list` 返回当前 Key 所属账号在 H5「记忆星云」中可见的长期记忆。每条记录都带有完整正文，用户点开星体时可直接显示。记忆由对话流程整理，外部客户端可以分页浏览。
+
+沿用附录中的 `BASE` 与 `KEY`。首次请求从第 1 页开始，每页默认 20 条，可选 1–50 条。
+
+```bash
+curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
+  -H "Authorization: Bearer $KEY"
+```
+
+以下为示意响应。
+
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 1, "page": 1, "page_size": 50,
+    "list": [{
+      "doc_id": "mem_example",
+      "key": "",
+      "value": "喜欢在下雨时听音乐。",
+      "content": "喜欢在下雨时听音乐。"
+    }]
+  },
+  "message": "success"
+}
+```
+
+| 字段 | 客户端用法 |
+|---|---|
+| `total, page, page_size, list` | `total` 是当前可浏览条数，最多 500。按页码递增加载，按 `doc_id` 去重。取足 `total` 或收到空页即结束。无记忆时返回 `total=0, list=[]`，越过末页时仍返回当前总数。 |
+| `doc_id` | 星体的字符串标识，用于选中、去重和切换详情。列表按此字段升序返回。 |
+| `key` | 记忆分类键，例如 `偏好-饮品-茶`。按 H5 的展示规则取第一段作为分类依据，旧记忆的空键归到“其他”。 |
+| `value, content` | `value` 是展示正文，`content` 是原文。优先展示 `value`，为空时取 `content`。旧记忆可以只有原文。星体位置、连线和前后切换由客户端根据已加载列表生成。 |
+
+无效 Key 返回 HTTP 401，页码或每页条数越界返回 HTTP 422。记忆来源暂不可读时返回 HTTP 503、业务码 `20129` 和 `data=null`。此时保留已加载的星体，提示稍后重试；只有成功且 `total=0` 时展示空星云。
+
 ## 8. 时间线字段与状态
 
 ### 8.1 `items[]` 单条结构
@@ -501,6 +614,13 @@ sequenceDiagram
 | **10107** | 当前无可重发 | **展示 `message`**，检查 timeline |
 | **10108** | 等待中被新消息取代 | **展示 `message`**，**必须** `GET timeline` 对账 |
 | **10400** | 主动消息不存在 | **展示 `message`** |
+| **10001** | 朋友圈翻页游标无效 | 清除游标，从第一页重新加载 |
+| **10300** | 日记不存在或不属于当前账号 | 刷新日记列表 |
+| **10500** | 帖子不可见 | 刷新朋友圈列表，移除失效帖子 |
+| **10502 / 10503 / 10505** | 评论为空、超过 200 字或未通过内容安全检查 | 保留草稿，按 `message` 提示用户修改 |
+| **10504** | 同账号同帖 30 秒内再次发评 | 保留草稿，等频控窗口结束再提交 |
+| **10506** | 评论对当前账号不可用 | 刷新帖子详情 |
+| **10507** | 评论请求键已用于不同请求 | 重试原动作时恢复原参数；用户确认发送一条新评论时再生成新键 |
 
 完整中文 `message` 以服务端返回为准，常见默认值包括：
 
@@ -544,6 +664,11 @@ sequenceDiagram
 | 8 | unread-count → messages → read | 角标减少，已读不再出现在 messages |
 | 9 | 错误 Key | HTTP 401 |
 | 10 | 用 Key 调 `/api/chat/send` | HTTP 401（路径隔离） |
+| 11 | 用升级前已签发的有效 Key 拉日记，再展示一篇并上报已读 | 可直接读取；刷新列表后该篇 `is_read=true` |
+| 12 | 拉朋友圈、打开配图、以列表中的 ID 刷新单帖 | 图片可打开；正文、本人评论、小梦回复及点赞状态能对应到同一帖 |
+| 13 | 在联调账号发评，使用原键原内容重试，再刷新该帖 | 两次回执的 `comment_id` 一致，列表只有一条新评论；回复生成后在该条评论中可见 |
+| 14 | 用已有 Key 取 BGM 曲库，选中默认曲，加载音频和封面 | 已发布曲目与 H5 排序一致，音频可播放。封面为空时展示占位图。 |
+| 15 | 用已有 Key 分页加载记忆并点开星体，再用另一个联调账号重读 | 各自只能读取本人记忆；正文可直接展示，超过末页返回空数组。 |
 
 ---
 
@@ -558,8 +683,8 @@ A：技术上可以共用同一 Key，但多设备同时发消息会共享同一
 **Q：send 很慢是否正常？**  
 A：正常。同步等待 LLM + 记忆检索，通常数秒至数十秒，超时上限约 120 秒，客户端超时请设 ≥130 秒。
 
-**Q：H5 能看到的日记、等级，宠物能拉吗？**  
-A：不能，本接入仅对话与主动消息六接口。
+**Q：已有聊天 Key 可以看日记和朋友圈吗？**
+A：可以。在已部署这版接口的同一环境，沿用原 Base URL 和有效 Key，请求 `/api/open/v1/diary/list` 和 `/api/open/v1/feed/list` 即可。日记中的 `relationship_level_at_creation` 表示撰写时的等级。
 
 **Q：重新生成 Key 后旧客户端会怎样？**  
 A：旧 Key 立即 401，须让用户更新配置或联系运营重新粘贴。
@@ -571,11 +696,10 @@ A：Open 的 `GET timeline` **不会**像 H5 那样自动触发恢复。可再�
 
 ## 13. 附录：curl 示例
 
-将 `BASE` 和 `KEY` 替换为实际配置（生产示例）：
+以下命令适用于运行本地 Docker 的电脑。先将本地环境已签发的 API Key 放入环境变量 `KEY`。在其他环境联调时换成对应的根地址和 Key。
 
 ```bash
-export BASE="http://cllxm.com"
-export KEY="sk-lxm-你的Key"
+export BASE="http://127.0.0.1:8000"
 ```
 
 **发送消息：**
@@ -613,11 +737,32 @@ curl -sS -X POST "${BASE}/api/open/v1/chat/resend" \
 
 ---
 
+**读取日记、朋友圈和下一页。** 将 `CURSOR` 设为本次列表返回的非空 `data.next_cursor` 后再执行第三条。
+
+```bash
+curl -sS "$BASE/api/open/v1/diary/list?page=1&page_size=20" -H "Authorization: Bearer $KEY"
+curl -sS "$BASE/api/open/v1/feed/list?size=20" -H "Authorization: Bearer $KEY"
+curl -sSG "$BASE/api/open/v1/feed/list" -H "Authorization: Bearer $KEY" \
+  --data-urlencode "cursor=$CURSOR" --data-urlencode "size=20"
+```
+
+**发评并查看回复。** 将 `POST_ID` 设为列表返回的帖子 ID，`REQUEST_ID` 设为本次发评生成的 UUID。第一条命令会实际新增评论；之后可单独重复第二条查看小梦的回复。
+
+```bash
+curl -sS "$BASE/api/open/v1/feed/$POST_ID/comments" \
+  -H "Authorization: Bearer $KEY" -H "Idempotency-Key: $REQUEST_ID" \
+  -H 'Content-Type: application/json' -d '{"content":"这张照片是在哪里拍的？"}'
+curl -sS "$BASE/api/open/v1/feed/posts/$POST_ID" -H "Authorization: Bearer $KEY"
+```
+
 ## 文档变更
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4 | 2026-11-14 | 新增记忆星云只读接口、分页示例、旧记忆展示和读取失败处理。 |
+| v1.3 | 2026-11-14 | 新增 BGM 曲库、默认曲选择、媒体读取示例及空曲库和服务异常的处理。 |
+| v1.2 | 2026-11-13 | 增加日记、朋友圈接入与联调用例，说明既有 Key、分页、已读、图片、评论重试和 SSE。 |
 | v1.1 | 2026-06-04 | 对照代码复核：修正 timeline 无 `round_id`、内容安全双路径、Open timeline 不触发队列恢复、10104 后台补跑、验收用例与 `FUTURE` 触发类型 |
 | v1.0 | 2026-06-04 | 首版：宠物端接入说明 |
 
-内部技术摘要见：`docs/design/openapi/open-api-v1.md`；服务端契约见：`docs/contract.md`（Open API v1 章节）。
+参见[集成摘要](../design/openapi/open-api-v1.md)与[服务端 Open API 契约](../contract/current/openapi/api.md)。

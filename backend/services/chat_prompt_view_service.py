@@ -2,7 +2,9 @@
 # 对话流 Prompt 只读展示：从运行时同源常量/拼装函数生成后台预览数据（不做配置）
 
 from __future__ import annotations
+from types import SimpleNamespace
 
+from backend.services.memory_config_schema import PROMPT_DEFAULTS
 from backend.services.prompt_builder import (
     ACTIVE_TRIGGER_INSTRUCTIONS,
     AGENT_TASK_OUTPUT_SUFFIX,
@@ -53,7 +55,7 @@ def get_step15_prompt_view() -> dict:
         round_context=round_ctx,
         recent_conversations=recent,
         rewrite_input="{{rewrite_input}}",
-        source="main",
+        source="main", shared_history=SimpleNamespace(rendered_text="【最近对话】\n{{冻结的完整轮次，Asia/Shanghai}}"),
     )
     step8_tpl = _build_step1_5_prompt(
         persona_text="{{persona}}",
@@ -66,8 +68,11 @@ def get_step15_prompt_view() -> dict:
         "readonly": True,
         "title": "Step1.5 查询重写",
         "description": (
-            "对话前为四路记忆检索生成 Query。下方为与运行时同源的拼装模板；"
+            "H5/Open 路由选择查询时，四路改写沿用回复可见的人设与最多 30 个完成轮次；固定关系等级及行为由系统提供。关系变化历史须结合可见材料；缺少历史依据时进入查询。Step8 继续使用原历史窗口。下方为与运行时同源的拼装模板；"
             "{{…}} 为运行时注入，非固定文案。"
+            f"主文字代码默认预算：近期历史 {PROMPT_DEFAULTS['recent_chat']:,} token，"
+            f"本轮输入 {PROMPT_DEFAULTS['user_input']:,} token，"
+            f"回复输入总量 {PROMPT_DEFAULTS['max_total']:,} token。实际执行以本轮生效配置为准。"
         ),
         "source_file": "backend/services/query_rewrite_service.py",
         "variants": [
@@ -111,7 +116,7 @@ def get_step3_prompt_view() -> dict:
         "readonly": True,
         "title": "Step3 Prompt 拼装",
         "description": (
-            "将各模块拼成喂给 Step5 的完整 Prompt。"
+            "主文字与 Open 使用最多 30 个完成轮次，按实际生效预算整轮裁剪；合法 false 时记忆模块为空，冻结历史保持一致。官方计数含完整渲染及 64 token 预留。Step8 保持原窗口。以下为代码默认预算，已发布值以 Token 配置页为准。"
             "System / Persona 可在对应后台页配置；本页展示硬编码拼装规则与注入文案。"
         ),
         "source_file": "backend/services/prompt_builder.py",

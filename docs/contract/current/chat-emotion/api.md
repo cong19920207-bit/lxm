@@ -95,7 +95,7 @@ H5调用内部get_timeline时固定`include_calls=True`；**include_calls不是�
 
 本节登记已实现契约；2026-10-13本地Docker环境`local-docker:lxmfor`已完成S15清理/保留核验并开放epoch2，旧库及旧隔离分区已退役。实际版本、验证和保留风险见唯一STEP §3.39。
 
-主文字、OpenAPI 和 Step8 使用各自原执行身份及截止，从只读同源上下文完成四路真实改写、dense/BM25 双召回、重排及同次 Prompt 选入。`run_pipeline/execute_memory_retrieval` 消费单次冻结配置；`RetrievalResult` 保留 `config_snapshot_id/queries/routes/rewrite_deadline/retrieval_deadline`。改写及检索各45秒，截止取阶段起点+45与原D较早者；四路Step2共享截止并预留候选收口时间。单改写调用20秒、临时失败最多一次重试，250ms退避包含在预算内；鉴权、永久故障和非法输出不重试，迟到结果拒绝。正常、改写降级、单通道失败及 rerank 故障分别呈现，成功重排路保持有效门槛，有可信候选但重排未完成的路融合，无可信候选的路为空。
+H5 与 OpenAPI 在同一 generation/lease 冻结本轮包、配置与可见上下文，依路由决定跳过或进入检索。Step8 沿原窗口直接检索。需查询时按原身份和总截止完成改写、召回、重排及选入。`run_pipeline/execute_memory_retrieval` 消费单次冻结配置；`RetrievalResult` 保留 `config_snapshot_id/queries/routes/rewrite_deadline/retrieval_deadline`。改写及检索各45秒，截止取阶段起点+45与原D较早者；四路Step2共享截止并预留候选收口时间。单改写调用20秒、临时失败最多一次重试，250ms退避包含在预算内；鉴权、永久故障和非法输出不重试，迟到结果拒绝。正常、改写降级、单通道失败及 rerank 故障分别呈现，成功重排路保持有效门槛，有可信候选但重排未完成的路融合，无可信候选的路为空。
 
 内部入口须匹配有效 environment/epoch/target fence；`allow_isolated` 仅允许明确 isolated 环境。M4 单独实施时尚未接业务入口的历史边界，已由 M6 实际 `chat_memory_pipeline/step8_memory_pipeline` 接线取代；这不等于业务部署激活。声明运行 environment 时 HTTP/WS/scheduler 冻结同一上下文，SQL flush（含隐式 autoflush）与DML在同事务核 fence；旧 epoch、maintenance 或缺上下文拒写。未配置 environment 不自动开启部署级维护协议，新 writer 仍须显式 activation，具体来源/维护围栏见[记忆接口](../memory-knowledge/api.md)。
 
@@ -106,6 +106,8 @@ H5调用内部get_timeline时固定`include_calls=True`；**include_calls不是�
 `PromptBuilder.build_memory_prompt` 返回结构化结果。后台旧 Prompt Test 固定走 `build_legacy_mock_prompt -> str`，保留当前/草稿/override、原角色、原回复模型及 len 文本语义，不调用真实索引；三个只读预览不启用外部调用或业务写，不能由客户端借 mock 开关豁免真实候选身份。普通 Agent 保留原 helper/读取算法。
 
 Step6 在提取模型调用前冻结 writer；`upsert_step6_vectors` 返回 `{counts,items}`，源确认即计源成功，索引 pending 由独立 IndexWorker 恢复；BM25故障不能导致重新提取或重复关系副作用。原11字段、Step5原回复输入、成功后异步边界、标量写回和同 Key 覆盖保持，回执唯一结构见[记忆写入接口](../memory-knowledge/api.md)。
+
+成功历史轮含该 generation 实际入包的用户消息与本轮全部回复。旧记录按完整 round_id 或已闭合的连续段归轮，按 sort_seq/id 确定顺序，排除失败、未闭合及当前包。Step5.5、Step6 仍用原最近 10 条；公开入参、幂等、取消和成功后处理沿用各入口协议。[冻结上下文](../persona-prompt-world-state/data.md#dialogue-shared-context)
 
 <a id="chat-idempotency"></a>
 ### 准入身份与重复请求

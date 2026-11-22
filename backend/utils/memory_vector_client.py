@@ -11,6 +11,7 @@ import math
 import re
 
 from backend.services.memory_effective_config import ProviderConfig, TARGET_COLLECTION
+from backend.services.memory_router_trace import observe_call
 from backend.services.memory_provider_service import _client, _request as provider_request, ProviderError
 from backend.utils.memory_vector import normalize_dense, validate_sparse
 
@@ -177,6 +178,7 @@ class MemoryVectorClient:
             request["filter"] = filter
         try:
             async with _client(self._http) as client:
+                observe_call('bm25' if lexical else 'dense')
                 data = await provider_request(client, 'post', self._url + '/query',
                     headers={'Content-Type': 'application/json',
                              'dashvector-auth-token': self.config.credential.reveal()},

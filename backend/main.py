@@ -137,10 +137,18 @@ app.include_router(feed_router)
 from backend.routers.open.chat import router as open_chat_router  # noqa: E402
 from backend.routers.open.agent import router as open_agent_router  # noqa: E402
 from backend.routers.open.pet import router as open_pet_router  # noqa: E402
+from backend.routers.open.diary import router as open_diary_router  # noqa: E402
+from backend.routers.open.feed import router as open_feed_router  # noqa: E402
+from backend.routers.open.bgm import router as open_bgm_router  # noqa: E402
+from backend.routers.open.memory import router as open_memory_router  # noqa: E402
 
 app.include_router(open_chat_router)
 app.include_router(open_agent_router)
 app.include_router(open_pet_router)
+app.include_router(open_diary_router)
+app.include_router(open_feed_router)
+app.include_router(open_bgm_router)
+app.include_router(open_memory_router)
 
 # 管理后台路由
 from backend.routers.admin import auth as admin_auth  # noqa: E402
@@ -150,6 +158,7 @@ from backend.routers.admin import users as admin_users  # noqa: E402
 from backend.routers.admin import persona as admin_persona  # noqa: E402
 from backend.routers.admin import emotion_config as admin_emotion  # noqa: E402
 from backend.routers.admin import world_state_mgmt as admin_world  # noqa: E402
+from backend.routers.admin import memory_router_config as admin_router_config  # noqa: E402
 from backend.routers.admin import prompt_mgmt as admin_prompt  # noqa: E402
 from backend.routers.admin import chat_prompt_view as admin_chat_prompt_view  # noqa: E402
 from backend.routers.admin import safety_rules as admin_safety  # noqa: E402
@@ -189,6 +198,7 @@ app.include_router(admin_emotion.router,
     prefix="/api/admin", tags=["admin-emotion"])
 app.include_router(admin_world.router,
     prefix="/api/admin", tags=["admin-world"])
+app.include_router(admin_router_config.router, prefix="/api/admin", tags=["admin-memory-router"])
 app.include_router(admin_prompt.router,
     prefix="/api/admin", tags=["admin-prompt"])
 app.include_router(admin_chat_prompt_view.router,

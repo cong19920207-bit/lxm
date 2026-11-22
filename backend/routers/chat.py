@@ -64,15 +64,6 @@ router = APIRouter(prefix="/api/chat", tags=["对话"])
 _SSE_CHUNK_SIZE = 2
 _SSE_CHUNK_DELAY = 0.03
 
-# bundled 截断上限（C28/C29）：取尾部 4000 字符（约 1500~2000 Token，
-# 在阿里云 text-embedding-v3 安全范围内）。Step1.5 输入与降级 fallback_embedding 共用。
-BUNDLED_MAX_CHARS = 4000
-
-
-def _truncate_bundled(text: str) -> str:
-    """取尾部 BUNDLED_MAX_CHARS 字符；尾部语义更重要（最后几条消息，C29）。"""
-    return text[-BUNDLED_MAX_CHARS:] if len(text) > BUNDLED_MAX_CHARS else text
-
 # ============ 数据读取（独立 session 防 gather 冲突）============
 
 
@@ -348,35 +339,31 @@ async def _load_memory_context(user_id, db):
 async def _run_owned_bundle(handle) -> None:
     from backend.services import chat_lifecycle as life
     from backend.models.chat_lifecycle import ChatGenerationMessage
-    from backend.services.chat_memory_pipeline import build_main_prompt,call_main_model
+    from backend.services.chat_memory_pipeline import build_main_prompt,call_main_model,check_chat_owner,read_main_context
     user_id=handle.user_id
     async with async_session_maker() as db:
-            pack_rows=list((await db.execute(select(ConversationLog).join(ChatGenerationMessage,
-                ChatGenerationMessage.conversation_id==ConversationLog.id).where(
-                ChatGenerationMessage.user_id==user_id,ChatGenerationMessage.generation_id==handle.generation_id,
-                ChatGenerationMessage.in_prompt.is_(True),ConversationLog.user_id==user_id)
-                .order_by(ChatGenerationMessage.ordinal))).scalars())
+            members = (await db.execute(select(ConversationLog, ChatGenerationMessage.ordinal, ChatGenerationMessage.in_prompt)
+                .join(ChatGenerationMessage, ChatGenerationMessage.conversation_id == ConversationLog.id)
+                .where(ChatGenerationMessage.user_id == user_id, ChatGenerationMessage.generation_id == handle.generation_id,
+                       ConversationLog.user_id == user_id).order_by(ChatGenerationMessage.ordinal))).all()
+            pack_rows = [message for message, ordinal, included in members if included]
+            refs = tuple((message.id, ordinal, included) for message, ordinal, included in members)
+            member_ids = tuple(message.id for message, ordinal, included in members)
             if not pack_rows:return
-            # 整包拼接 + 截断（C24/C28/C29）：bundled 供 Step5（build_chat_prompt 的
-            # user_input）使用整包；bundled_truncated 供 Step1.5（rewrite_input）与
-            # 降级 fallback_embedding 共用同一截断结果。C39：删除原 last_user_text 死变量。
-            bundled = "\n".join(r.content for r in pack_rows)
-            bundled_truncated = _truncate_bundled(bundled)
+            current_messages = tuple(row.content for row in pack_rows)
+            bundled = "\n".join(current_messages)
 
-            context = await _load_memory_context(user_id, db)
-            recent_10 = context['recent_conversations']
-            relationship_info = context['relationship_info']
-            emotion_context = context['emotion_context']
-            round_context = context['round_context']
-            _persona_text = context['persona_text']
-
-            # Finish the context read transaction before inner guard/claim
-            # transactions; retaining runtime fence locks would self-deadlock.
+            # Step5.5 / Step6 retain the original last-ten-message window.
+            recent_10 = (await _get_recent_conversations(user_id, db=db, limit=20))[-10:]
             await db.commit()
-            if not await life.renew(handle,remote=True):raise life.LostOwnership()
-            prepared = await build_main_prompt(handle,bundled=bundled,rewrite_input=bundled_truncated,
-                persona_text=_persona_text,round_context=round_context,recent_conversations=recent_10,
-                relationship_info=relationship_info,emotion_context=emotion_context)
+            if not await life.renew(handle,remote=True):
+                raise life.LostOwnership()
+            raw_context = await read_main_context(handle,current_messages=current_messages,
+                                                  current_message_ids=member_ids,current_refs=refs)
+            round_context = raw_context.round_context
+            _persona_text = raw_context.persona.text
+            prepared = await build_main_prompt(handle,raw_context=raw_context)
+            await check_chat_owner(handle)
             step5_result=await call_main_model(prepared,handle.owner)
             # ── §9.1 内容安全：inner_monologue 检测（违规仅日志+替换空串，不拦截）──
             step5_result.inner_monologue = await _check_inner_monologue_safety(
@@ -403,7 +390,7 @@ async def _run_owned_bundle(handle) -> None:
 
             # ── Step5.5 响应润色（§2.7.1 双门闩 OR 触发）──
             # STEP-018：从 round_context 取关系等级名称，与 Step3/Step6 共用同一份
-            _level_name = round_context["level_name"]
+            _level_name = round_context.get("level_name", "")
 
             step5_5_result = await execute_step5_5(
                 step5_messages=step5_result.messages,
@@ -415,8 +402,8 @@ async def _run_owned_bundle(handle) -> None:
                 step5_future_action=step5_result.future.action,
                 step5_knowledge_expand=step5_result.knowledge_expand,
                 level_name=_level_name,
-                user_hobby_name=round_context["user_hobby_name"] or None,
-                user_real_name=round_context["user_real_name"] or None,
+                user_hobby_name=round_context.get("user_hobby_name"),
+                user_real_name=round_context.get("user_real_name"),
                 recent_conversations=recent_10,
             )
 
@@ -472,12 +459,12 @@ async def _run_owned_bundle(handle) -> None:
                         user_input=bundled,
                         persona_text=_persona_text,
                         level_name=_level_name,
-                        relation_description=round_context["relation_description"] or None,
-                        user_real_name=round_context["user_real_name"] or None,
-                        user_hobby_name=round_context["user_hobby_name"] or None,
-                        user_description=round_context["user_description"] or None,
-                        character_purpose=round_context["character_purpose"] or None,
-                        character_attitude=round_context["character_attitude"] or None,
+                        relation_description=round_context.get("relation_description"),
+                        user_real_name=round_context.get("user_real_name"),
+                        user_hobby_name=round_context.get("user_hobby_name"),
+                        user_description=round_context.get("user_description"),
+                        character_purpose=round_context.get("character_purpose"),
+                        character_attitude=round_context.get("character_attitude"),
                         recent_conversations=_recent_conv_snapshot,
                         future_time_natural=step5_result.future.time_natural,
                         future_action=step5_result.future.action,

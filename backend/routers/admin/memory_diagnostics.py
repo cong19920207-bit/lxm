@@ -2,6 +2,9 @@
 import asyncio
 import os
 from typing import Literal
+from datetime import datetime
+from backend.database import get_db
+from backend.services.memory_router_records import list_records,record_detail
 from fastapi import APIRouter,Depends,Query
 from pydantic import BaseModel,Field,field_validator,model_validator
 from backend.database import async_session_maker
@@ -23,15 +26,23 @@ class ExecuteBody(BaseModel):
     user_id:int=Field(gt=0,strict=True)
     source:Literal['main','openapi','step8']
     input:str=Field(min_length=1,max_length=2000)
+    mode:Literal["retrieval_only","router_only","runtime_path"]="retrieval_only"
+    router_config_source:Literal["active","draft"]="active"
+    draft_digest:str|None=Field(None,pattern=r"^[a-f0-9]{64}$")
+    source_generation_id:str|None=None
     parent_execution_id:str|None=None
     @field_validator('request_id')
     @classmethod
     def request_uuid(cls,value):return uuid_value(value,(7,))
-    @field_validator('parent_execution_id')
+    @field_validator('parent_execution_id','source_generation_id')
     @classmethod
     def parent_uuid(cls,value):return uuid_value(value,(4,)) if value else value
     @model_validator(mode='after')
     def valid_input(self):
+        if self.source=="step8" and (self.mode!="retrieval_only" or self.router_config_source!="active"):
+            raise ValueError("step8_requires_retrieval_only_active")
+        if (self.router_config_source=="draft") != (self.draft_digest is not None):
+            raise ValueError("draft_source_requires_digest")
         if not self.input.strip() or self.source=='step8' and len(self.input)>200:raise ValueError('input_invalid')
         return self
 
@@ -59,6 +70,23 @@ async def history(page:int=Query(1,ge=1),page_size:int=Query(20,ge=1,le=100),req
     if request_id:uuid_value(request_id,(7,))
     return await bounded(lambda:get_service().list(actor,page=page,page_size=page_size,request_id=request_id,
         user_id=user_id,source=source,state=state,start_date=start_date,end_date=end_date))
+
+@router.get("/memory-diagnostics/router-runs")
+async def online_runs(start:datetime|None=None,end:datetime|None=None,user_id:int|None=Query(None,gt=0),
+    generation_id:str|None=None,state:Literal["pending","success","failed","superseded"]|None=None,
+    path:Literal["skip","retrieval"]|None=None,reason:str|None=None,version:int|None=Query(None,ge=0),
+    page:int=Query(1,ge=1),page_size:int=Query(20,ge=1,le=100),
+    db=Depends(get_db),actor=require_role("super_admin","ai_trainer","observer")):
+    if generation_id:uuid_value(generation_id,(4,))
+    return await bounded(lambda:list_records(db,start=start,end=end,user_id=user_id,generation_id=generation_id,
+        state=state,path=path,reason=reason,version=version,page=page,page_size=page_size))
+
+
+@router.get("/memory-diagnostics/router-runs/{generation_id}")
+async def online_run_detail(generation_id:str,db=Depends(get_db),actor=require_role("super_admin","ai_trainer","observer")):
+    uuid_value(generation_id,(4,))
+    return await bounded(lambda:record_detail(db,generation_id,actor.role))
+
 
 @router.get('/memory-diagnostics/{execution_id}')
 async def detail(execution_id:str,section:Literal['candidates']|None=None,page:int=Query(1,ge=1),

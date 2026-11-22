@@ -13,7 +13,7 @@ from backend.services.memory_token_budget import OfficialTextCounter
 from backend.services.prompt_builder import PromptBuilder
 from backend.services.llm_service import parse_step5_output
 
-async def assemble_step8_prompt(handle,*,bundled,rewrite_input,persona_text,round_context,recent_conversations,relationship_info,emotion_context):
+async def assemble_step8_prompt(handle,*,bundled,rewrite_input,persona_text,round_context,recent_conversations,relationship_info,emotion_context,on_config=None):
     environment_id=os.getenv('MEMORY_RUNTIME_ENVIRONMENT_ID','').strip()
     if not environment_id:raise RuntimeError('runtime_not_active')
     isolated=environment_id.startswith('isolated:')
@@ -21,6 +21,8 @@ async def assemble_step8_prompt(handle,*,bundled,rewrite_input,persona_text,roun
     credential=Secret(environment.get_volc_api_key())
     async with async_session_maker() as db:
         config=await resolve_active_memory_config(db,environment_id,allow_isolated=isolated)
+    if on_config is not None:
+        on_config(config)
     counter=OfficialTextCounter.from_config(config,credential,deadline=deadline)
     retrieval=await execute_memory_retrieval(config=config,session_factory=async_session_maker,environment_id=environment_id,
         partition='default',user_id=handle.user_id,original_deadline=deadline,rewrite_input=rewrite_input,

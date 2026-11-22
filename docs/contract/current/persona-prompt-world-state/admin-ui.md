@@ -103,6 +103,10 @@
 <a id="memory-persona-test-and-preview"></a>
 ### 旧在线测试、只读预览与知识反馈
 
+Prompt 管理的记忆查询 Router 页签分别显示生效值、草稿、固定规则和版本历史。保存草稿与发布各有反馈，冲突保留本地输入，未知发布按同一回执查询。关闭只对生效版本操作，未保存的文本继续保留；恢复历史创建新版本。只读角色可以查看版本。Step1.5/3 页面标明主链冻结规则、窗口和代码默认预算，原模拟测试沿既有构建器。[配置接口](api.md#dialogue-router-config)
+
+路由页按生效概览、配置编辑、诊断测试和版本历史分区。概览展示生效模型、思考模式、启用状态、历史轮数和超时。在概览卡片可选择豆包 Lite 或 DeepSeek Flash，思考开关默认关闭。编辑后标明未保存或已保存草稿，发布后更新生效值。配置摘要、revision 与固定参数默认折叠。编辑区标注生效值／已保存草稿／未保存修改，并显示字符数；保存、发布和关闭生效路由分别布置。诊断区仅可选当前有效版本或已保存草稿，无草稿时禁选草稿。三个主页签统一为可键盘切换的按钮，切换同步页面标题、侧栏、URL 与对应历史；同页切回路由保留未保存编辑，显式刷新仍重新读取。窄屏下编辑和辅助卡片自动重排。版本详情展示当时的模型和思考模式。
+
 原在线测试仍使用当前/step5草稿及原mock文本、原回复模型；页面显示reply/persona/content_safety/full_prompt/token_estimate等旧反馈。后端改为build_legacy_mock_prompt，不能标“与真实召回主链相同”；无真实召回/chat/Step6副作用，原角色不增。默认System事实约束只在默认参与时适用，合法active/draft/override继续优先。
 
 Step1.5/3/8三个GET只读预览沿实际模板/装载规则，标清代码默认与有效版本区别；不提供启动真实召回或业务写的按钮。角色知识原CRUD保持key不可改、value-only；显示source/index分态、未知查询原回执，maintenance_task_id跳原维护页GET当前任务，原observer只读总闸保持。唯一API定义见[旧测试](api.md#memory-legacy-prompt-test)、[预览](api.md#memory-readonly-previews)、[知识CRUD](api.md#memory-character-crud)。

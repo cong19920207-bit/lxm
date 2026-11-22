@@ -4,6 +4,7 @@
 
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 
 import tiktoken
@@ -13,26 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.admin_config import AdminConfig
 from backend.redis_client import get_redis
 from backend.services.admin_config_service import admin_config_service
+from backend.services.memory_config_schema import PROMPT_DEFAULTS
 
 logger = logging.getLogger(__name__)
 
 # ============ 常量定义 ============
 
-# R-L1L3-19：基线 ×1.8，总池 7373
-MAX_TOTAL_TOKENS = 7373
-
-MODULE_TOKEN_LIMITS = {
-    "system": 720,
-    "persona": 1080,
-    "character_knowledge": 600,   # 模块 A：角色设定与知识
-    "relationship": 360,
-    "memory": 900,
-    "emotion": 270,
-    "time_activity": 80,          # 模块 B：时间与活动状态
-    "recent_chat": 1800,
-    "user_nickname": 50,          # 用户称呼，硬编码上限，绝不裁剪（C8/C30）
-    "user_input": 900,
-}
+MAX_TOTAL_TOKENS = PROMPT_DEFAULTS["max_total"]
+MODULE_TOKEN_LIMITS = {key: value for key, value in PROMPT_DEFAULTS.items() if key != "max_total"}
 
 # R-L1L3-19：裁剪优先级（从先裁到后裁），System/Persona 绝不裁
 TRIM_PRIORITY = [
@@ -297,9 +286,9 @@ def truncate_to_tokens(text: str, max_tokens: int) -> str:
 # ============ 时间描述生成 ============
 
 
-def _generate_time_description() -> str:
+def _generate_time_description(now: datetime | None = None) -> str:
     """根据系统时间生成自然语言时间描述，无外部依赖"""
-    now = datetime.now()
+    now = now if now is not None else datetime.now()
     weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
     weekday = weekdays[now.weekday()]
     hour = now.hour
@@ -323,7 +312,7 @@ def _generate_time_description() -> str:
     return f"现在是{weekday}{period}{hour}点{minute:02d}分"
 
 
-async def get_activity_description() -> str:
+async def get_activity_description(now: datetime | None = None, *, errors=None) -> str:
     """
     从 Redis active_config:activity_schedule 读取活动描述 JSON，
     按当前小时匹配对应时段的活动文案。
@@ -341,7 +330,7 @@ async def get_activity_description() -> str:
         if not isinstance(schedule, dict):
             return ""
 
-        current_hour = datetime.now().hour
+        current_hour = (now if now is not None else datetime.now()).hour
         for time_range, description in schedule.items():
             try:
                 parts = time_range.split("-")
@@ -354,6 +343,8 @@ async def get_activity_description() -> str:
 
         return ""
     except Exception:
+        if errors is not None:
+            errors.append("activity_read_error")
         logger.warning("读取活动描述失败", exc_info=True)
         return ""
 
@@ -361,20 +352,19 @@ async def get_activity_description() -> str:
 # ============ PromptBuilder 核心类 ============
 
 
+@dataclass(frozen=True)
+class ResolvedPersona:
+    text: str
+    source: str
+    version: int | None
+    errors: tuple[str, ...]
+
+
 class PromptBuilder:
     """
     Prompt 构建器：按 9 模块结构拼装对话 Prompt（R-L1L3-19）。
 
-    模块顺序与 Token 预算（默认值，可通过 admin_config 热配置覆盖）：
-    1. System Prompt       ≤  720 Token（绝不裁剪）
-    2. Persona Prompt      ≤ 1080 Token（绝不裁剪）
-    3. 模块 A：角色设定与知识 ≤  600 Token（可裁剪，按 score 逐条裁）
-    4. Relationship        ≤  360 Token（扩展部分可裁剪）
-    5. User Memory         ≤  900 Token（可裁剪，优先级 2）
-    6. Emotion             ≤  270 Token
-    7. 模块 B：时间与活动    ≤   80 Token（可裁剪，优先级 5）
-    8. Recent Chat         ≤ 1800 Token（可裁剪，优先级 1）
-    9. User Input          ≤  900 Token
+    默认预算取自 PROMPT_DEFAULTS，已发布的模块配置优先。
 
     裁剪优先级（从先裁到后裁）：
     recent_chat → memory → character_knowledge → relationship 扩展 → time_activity
@@ -389,7 +379,7 @@ class PromptBuilder:
         """
         从 admin_config:prompt_token_config 热加载 Token 上限。
 
-        期望 JSON: {"max_total": 7373, "system": 720, "persona": 1080, ...}
+        期望 JSON: {"max_total": 49152, "system": 2048, "persona": 3072, ...}
         无配置或解析失败时回退 MODULE_TOKEN_LIMITS 默认值。
         """
         try:
@@ -503,7 +493,7 @@ class PromptBuilder:
     async def build_memory_prompt(
         self, *, config, retrieval, counter, user_id, user_input,
         recent_conversations, relationship_info, emotion_context,
-        round_context, source="main",
+        round_context, source="main", prepared_context=None,
     ):
         """Opt-in structured M4 builder. M6 owns live business wiring.
 
@@ -511,7 +501,7 @@ class PromptBuilder:
         approximate clipping is disabled by a nonbinding local limit; every
         resulting module is measured by the request's official counter below.
         """
-        from backend.services.memory_prompt_builder import build_prompt, fit_context_text
+        from backend.services.memory_prompt_builder import build_prompt, check_fixed_module_budgets, fit_context_text
         from backend.services.memory_token_budget import validate_bound_counter
         validate_bound_counter(config, counter)
         if hasattr(retrieval, 'config_snapshot_id'):
@@ -520,6 +510,11 @@ class PromptBuilder:
             routes = retrieval.routes
         else:
             routes = retrieval
+        if prepared_context is not None:
+            if prepared_context.raw.config.config_snapshot_id != config.config_snapshot_id:
+                raise ValueError("prepared_config_changed")
+            return await build_prompt(config=config, routes=routes, modules=prepared_context.modules,
+                                      counter=counter, user_id=user_id, frozen_history=True)
         raw_limits = {key: 10**9 for key in MODULE_TOKEN_LIMITS}
         modules = {
             'system': await self._load_step5_system_template_raw(),
@@ -531,6 +526,7 @@ class PromptBuilder:
             'user_input': (self._build_proactive_input(user_input,raw_limits) if source == 'step8'
                            else self._build_user_input(user_input,raw_limits)),
         }
+        await check_fixed_module_budgets(modules, config.prompt, counter)
         recent = []
         for conv in recent_conversations:
             role = conv.get('role') if isinstance(conv,dict) else conv.role
@@ -705,7 +701,7 @@ class PromptBuilder:
         text = await self._load_step5_system_template_raw()
         return truncate_to_tokens(text, lim)
 
-    async def _load_step5_system_template_raw(self) -> str:
+    async def _load_step5_system_template_raw(self, *, errors=None) -> str:
         """读取 Step5 System 模板全文；无配置则内置 SYSTEM_PROMPT_TEXT。"""
         try:
             raw = await admin_config_service.get_active_config(_STEP5_SYSTEM_CONFIG_KEY)
@@ -716,6 +712,8 @@ class PromptBuilder:
             if isinstance(raw, str) and raw.strip():
                 return raw
         except Exception:
+            if errors is not None:
+                errors.append("system_read_error")
             logger.warning("读取 step5_system_prompt 失败，使用内置 System", exc_info=True)
         return SYSTEM_PROMPT_TEXT
 
@@ -1003,17 +1001,18 @@ class PromptBuilder:
             text = f"【当前时间】\n{time_desc}"
         return truncate_to_tokens(text, lim)
 
-    def _build_user_input(
-        self, user_input: str, limits: dict | None = None,
-    ) -> str:
-        """模块9：User Input；user_input 可为多段合并（换行分隔），模型须综合理解仍只输出一个 JSON。"""
-        lim = (limits or MODULE_TOKEN_LIMITS)["user_input"]
+    def _build_user_input(self, user_input: str, limits: dict | None = None) -> str:
+        limit = (limits or MODULE_TOKEN_LIMITS)["user_input"]
+        return truncate_to_tokens(self.render_user_input(user_input), limit)
+
+    @staticmethod
+    def render_user_input(user_input: str) -> str:
         hint = (
             "（说明：以下可能包含用户连续发送的多段内容，请综合理解其整体意图，"
             "输出仍为单一 JSON 对象，包含 inner_monologue、messages、"
             "relation_change、future、emotion、knowledge_expand。）\n"
         )
-        return truncate_to_tokens(f"【用户消息】\n{hint}{user_input}", lim)
+        return f"【用户消息】\n{hint}{user_input}"
 
     def _build_emotion_history_prompt(
         self, emotion_history: list, limits: dict | None = None,
@@ -1178,33 +1177,35 @@ class PromptBuilder:
         Returns:
             persona 文本内容，或 None（Redis 和 DB 均无配置时）
         """
+        persona = await self.resolve_persona()
+        return None if persona.source == "default" else persona.text
+
+    async def resolve_persona(self) -> ResolvedPersona:
+        errors = []
         try:
             r = await get_redis()
             cached = await r.get(REDIS_KEY_PERSONA)
-            if cached:
-                return cached
+            if isinstance(cached, str) and cached.strip():
+                return ResolvedPersona(cached, "redis", None, ())
         except Exception:
+            errors.append("persona_cache_read_error")
             logger.warning("Redis 读取 persona 失败，回退到数据库", exc_info=True)
 
-        # Redis 未命中，从 DB 读取
         try:
             stmt = select(AdminConfig).where(
-                AdminConfig.config_key == "persona",
-                AdminConfig.is_active == True,  # noqa: E712
-                AdminConfig.is_draft == False,  # noqa: E712
+                AdminConfig.config_key == "persona", AdminConfig.is_active.is_(True),
+                AdminConfig.is_draft.is_(False),
             )
-            result = await self.db.execute(stmt)
-            config = result.scalar_one_or_none()
-
-            if config and config.config_value:
-                # 写入 Redis 缓存
+            config = (await self.db.execute(stmt)).scalar_one_or_none()
+            if config and config.config_value and config.config_value.strip():
                 try:
                     r = await get_redis()
                     await r.set(REDIS_KEY_PERSONA, config.config_value, ex=REDIS_PERSONA_TTL)
                 except Exception:
+                    errors.append("persona_cache_write_error")
                     logger.warning("Redis 写入 persona 缓存失败", exc_info=True)
-                return config.config_value
+                return ResolvedPersona(config.config_value, "database", config.version, tuple(errors))
         except Exception:
+            errors.append("persona_db_read_error")
             logger.warning("数据库读取 persona 配置失败", exc_info=True)
-
-        return None
+        return ResolvedPersona(DEFAULT_PERSONA, "default", None, tuple(errors))

@@ -1,6 +1,6 @@
 """Permanent diagnostic history. Only explicit deletion removes snapshots."""
 from datetime import datetime
-from sqlalchemy import Boolean, CheckConstraint, Index, Integer, JSON, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.database import Base
 from backend.models.memory_control import U64, UUID, DIGEST, INSTANT, ascii_string
@@ -21,6 +21,7 @@ class MemoryDiagnosticRun(Base):
     request_id: Mapped[str]=mapped_column(UUID)
     request_digest: Mapped[bytes]=mapped_column(DIGEST)
     source: Mapped[str|None]=mapped_column(ascii_string(8))
+    mode: Mapped[str]=mapped_column(String(16),default="retrieval_only",server_default="retrieval_only")
     parent_run_id: Mapped[str|None]=mapped_column(UUID)
     input_text: Mapped[str|None]=mapped_column(Text)
     execution_state: Mapped[str]=mapped_column(ascii_string(24))

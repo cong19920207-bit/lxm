@@ -1,17 +1,81 @@
 """Validated memory configuration (M2 parameter dictionary, independent of providers)."""
 from copy import deepcopy
+import json
 import math
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ROUTES = ("cg", "cp", "ck", "user")
 ROUTE_DEFAULT = {"dense_top_k": 20, "bm25_top_k": 20, "final_top_k": 8, "rerank_min_score": 0.1}
-PROMPT_DEFAULTS = {"max_total": 7373, "system": 720, "persona": 1080,
-                   "character_knowledge": 600, "relationship": 360, "memory": 900,
-                   "emotion": 270, "time_activity": 80, "recent_chat": 1800,
-                   "user_nickname": 50, "user_input": 900}
+PROMPT_TOTAL_MAX = 49152
+RECENT_CHAT_MAX = 24576
+PROMPT_DEFAULTS = {"max_total": PROMPT_TOTAL_MAX, "system": 2048, "persona": 3072,
+                   "character_knowledge": 3072, "relationship": 1024, "memory": 4096,
+                   "emotion": 512, "time_activity": 256, "recent_chat": RECENT_CHAT_MAX,
+                   "user_nickname": 50, "user_input": 8192}
 PROMPT_KEYS = tuple(key for key in PROMPT_DEFAULTS if key != "user_nickname")
+ROUTER_KEY = "memory_query_router_config"
+FLASH_MODEL = "deepseek-flash"
+DEFAULT_ROUTER_PROMPT = (
+    "判断回答本轮用户消息是否需要查询已提供上下文之外的记忆。"
+    "问候、普通交流或当前上下文已足够时无需查询。"
+    "如果用户只要改写、缩短或翻译一句话，且在当前消息或最近对话中找得到原文，"
+    "已有材料就足够，判 false。只有还需要找回未提供的原文或其他专属事实时才查询。"
+    "依赖未提供的个人事实、过去事件、角色知识、专属约定，或无法可靠判断时需要查询。"
+)
+
+
+ROUTER_PROMPT_MAX_CHARS = 20000
+ROUTER_CONFIG_MAX_BYTES = 65535
+ROUTER_SIZE_MESSAGE = "完整配置序列化后最多 65535 个 UTF-8 字节，须同时能保存关闭状态，请缩短提示词"
+
+
+def router_storage_size(value):
+    return len(json.dumps({**value, "enabled": False}, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":")).encode("utf-8"))
+
+
+class MemoryQueryRouterConfig(BaseModel):
+    """A complete atomic publication. The editable prompt is literal text."""
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    enabled: bool
+    timeout_ms: int = Field(ge=1000, le=10000)
+    prompt: str = Field(min_length=1)
+    model_profile_id: Literal["inherit_reply", "deepseek-flash"]
+    thinking_enabled: bool = False
+    behavior_profile_id: Literal["router_boolean_v1"]
+    max_retries: int = Field(ge=0, le=0)
+
+    @field_validator("prompt")
+    @classmethod
+    def valid_instruction(cls, value):
+        if len(value) > ROUTER_PROMPT_MAX_CHARS:
+            raise ValueError("路由提示词最多 20000 个字符，请缩短后保存")
+        if not value.strip() or any(ord(c) < 32 and c not in "\r\n\t" for c in value):
+            raise ValueError("Router 任务说明须为有效文本")
+        return value
+
+    @model_validator(mode="after")
+    def fit_storage(self):
+        # JSON false needs one more byte than true. Every accepted version must
+        # be closable without changing its prompt, even at the TEXT boundary.
+        if router_storage_size(self.model_dump(exclude_unset=True)) > ROUTER_CONFIG_MAX_BYTES:
+            raise ValueError(ROUTER_SIZE_MESSAGE)
+        return self
+
+    def effective_model(self, reply_model: str) -> str:
+        return FLASH_MODEL if self.model_profile_id == FLASH_MODEL else reply_model
+
+    @property
+    def provider_name(self) -> str:
+        return "deepseek" if self.model_profile_id == FLASH_MODEL else "volcengine"
+
+
+DEFAULT_ROUTER = MemoryQueryRouterConfig(
+    enabled=False, timeout_ms=5000, prompt=DEFAULT_ROUTER_PROMPT,
+    model_profile_id="inherit_reply", thinking_enabled=False, behavior_profile_id="router_boolean_v1", max_retries=0,
+)
 
 
 class StrictPatch(BaseModel):
@@ -55,7 +119,7 @@ class VectorRetrievalPatch(StrictPatch):
 
 
 class PromptTokenPatch(StrictPatch):
-    max_total: Annotated[int, Field(ge=1024, le=32768)] | None = None
+    max_total: Annotated[int, Field(ge=1024, le=PROMPT_TOTAL_MAX)] | None = None
     system: Budget | None = None
     persona: Budget | None = None
     character_knowledge: Budget | None = None
@@ -63,7 +127,7 @@ class PromptTokenPatch(StrictPatch):
     memory: Budget | None = None
     emotion: Budget | None = None
     time_activity: Budget | None = None
-    recent_chat: Annotated[int, Field(ge=1, le=16384)] | None = None
+    recent_chat: Annotated[int, Field(ge=1, le=RECENT_CHAT_MAX)] | None = None
     user_input: Budget | None = None
 
 

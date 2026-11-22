@@ -263,14 +263,17 @@
       "keywords": [
         "chat-emotion",
         "chat-emotion-data",
-        "AppShell"
+        "AppShell",
+        "memory_router_trace"
       ],
       "code_paths": [
         "backend/routers/chat.py",
         "backend/services/chat_service.py",
         "backend/models/emotion_log.py",
         "frontend/static/js/pages/chat.js",
-        "frontend/static/js/chat-submissions.js"
+        "frontend/static/js/chat-submissions.js",
+        "backend/services/memory_router_trace.py",
+        "alembic/versions/v9y_dialogue_router.py"
       ],
       "route_prefixes": [
         "/api/chat"
@@ -384,12 +387,17 @@
       ],
       "keywords": [
         "memory-knowledge",
-        "memory-knowledge-api"
+        "memory-knowledge-api",
+        "router_only",
+        "runtime_path",
+        "router-runs"
       ],
       "code_paths": [
         "backend/routers/memory.py",
         "backend/services/memory_service.py",
-        "backend/services/step6_orchestrator.py"
+        "backend/services/step6_orchestrator.py",
+        "backend/services/memory_query_router.py",
+        "backend/services/memory_router_records.py"
       ],
       "route_prefixes": [
         "/api/memory",
@@ -425,12 +433,14 @@
       ],
       "keywords": [
         "memory-knowledge",
-        "memory-knowledge-admin"
+        "memory-knowledge-admin",
+        "线上路由记录"
       ],
       "code_paths": [
         "backend/routers/memory.py",
         "backend/services/memory_service.py",
-        "backend/services/step6_orchestrator.py"
+        "backend/services/step6_orchestrator.py",
+        "admin/static/js/memory-router-records.js"
       ],
       "route_prefixes": [
         "/api/memory",
@@ -501,7 +511,8 @@
       "code_paths": [
         "backend/routers/diary.py",
         "backend/services/diary_service.py",
-        "backend/tasks/ai_diary_task.py"
+        "backend/tasks/ai_diary_task.py",
+        "backend/services/diary_reader.py"
       ],
       "route_prefixes": [
         "/api/diary"
@@ -758,12 +769,14 @@
       ],
       "keywords": [
         "persona-prompt-world-state",
-        "persona-data"
+        "persona-data",
+        "共享上下文"
       ],
       "code_paths": [
         "backend/models/world_state.py",
         "backend/services/prompt_builder.py",
-        "backend/routers/admin/persona.py"
+        "backend/routers/admin/persona.py",
+        "backend/services/chat_execution_context.py"
       ],
       "route_prefixes": [
         "/api/admin/persona",
@@ -792,16 +805,20 @@
       ],
       "keywords": [
         "persona-prompt-world-state",
-        "persona-api"
+        "persona-api",
+        "memory_query_router_config"
       ],
       "code_paths": [
         "backend/models/world_state.py",
         "backend/services/prompt_builder.py",
-        "backend/routers/admin/persona.py"
+        "backend/routers/admin/persona.py",
+        "backend/routers/admin/memory_router_config.py",
+        "backend/services/memory_router_config.py"
       ],
       "route_prefixes": [
         "/api/admin/persona",
-        "/api/admin/prompts"
+        "/api/admin/prompts",
+        "/api/admin/prompt/memory-router"
       ],
       "depends_on": [
         "contract-shared-conventions"
@@ -826,16 +843,19 @@
       ],
       "keywords": [
         "persona-prompt-world-state",
-        "persona-admin"
+        "persona-admin",
+        "记忆查询路由"
       ],
       "code_paths": [
         "backend/models/world_state.py",
         "backend/services/prompt_builder.py",
-        "backend/routers/admin/persona.py"
+        "backend/routers/admin/persona.py",
+        "admin/static/js/memory-router-config.js"
       ],
       "route_prefixes": [
         "/api/admin/persona",
-        "/api/admin/prompts"
+        "/api/admin/prompts",
+        "/api/admin/prompt/memory-router"
       ],
       "depends_on": [
         "contract-shared-conventions"
@@ -908,7 +928,8 @@
         "backend/tasks/life_feed_task.py",
         "backend/utils/auth_middleware.py",
         "frontend/pages/feed.html",
-        "frontend/static/js/api.js"
+        "frontend/static/js/api.js",
+        "backend/tasks/feed_new_broadcast_task.py"
       ],
       "route_prefixes": [
         "/api/feed",
@@ -1115,14 +1136,22 @@
         "openapi",
         "openapi-data",
         "养宠对外API",
-        "程序互动"
+        "程序互动",
+        "朋友圈外部 API",
+        "日记外部 API",
+        "已签发 Key"
       ],
       "code_paths": [
         "backend/routers/open/chat.py",
         "backend/routers/open/agent.py",
         "backend/services/open_api_key_service.py",
         "backend/routers/open/pet.py",
-        "backend/services/pet_interactions.py"
+        "backend/services/pet_interactions.py",
+        "backend/routers/open/feed.py",
+        "backend/routers/open/diary.py",
+        "backend/services/feed_service.py",
+        "backend/services/diary_reader.py",
+        "alembic/versions/v9z_feed_comment_idem.py"
       ],
       "route_prefixes": [
         "/api/open/v1",
@@ -1135,7 +1164,9 @@
       ],
       "related_documents": [
         "contract-pet-system-api",
-        "contract-pet-system-data"
+        "contract-pet-system-data",
+        "contract-diary-data",
+        "contract-life-feed-data"
       ],
       "related_td": [
         "TD-030",
@@ -1156,14 +1187,26 @@
         "openapi",
         "openapi-api",
         "养宠对外API",
-        "程序互动"
+        "程序互动",
+        "朋友圈外部 API",
+        "日记外部 API",
+        "已签发 Key",
+        "BGM 外部 API",
+        "记忆星球",
+        "记忆星云外部 API"
       ],
       "code_paths": [
         "backend/routers/open/chat.py",
         "backend/routers/open/agent.py",
         "backend/services/open_api_key_service.py",
         "backend/routers/open/pet.py",
-        "backend/services/pet_interactions.py"
+        "backend/services/pet_interactions.py",
+        "backend/routers/open/feed.py",
+        "backend/routers/open/diary.py",
+        "backend/services/feed_service.py",
+        "backend/services/diary_reader.py",
+        "backend/routers/open/bgm.py",
+        "backend/routers/open/memory.py"
       ],
       "route_prefixes": [
         "/api/open/v1",
@@ -1179,7 +1222,11 @@
         "contract-realtime-voice-data",
         "contract-realtime-voice-admin-ui",
         "contract-pet-system-api",
-        "contract-pet-system-data"
+        "contract-pet-system-data",
+        "contract-diary-api",
+        "contract-life-feed-api",
+        "contract-bgm-api",
+        "contract-memory-knowledge-api"
       ],
       "related_td": [
         "TD-030",
@@ -3665,6 +3712,31 @@
       "from": "contract-bgm-api",
       "type": "related_to",
       "to": "contract-realtime-voice-api"
+    },
+    {
+      "from": "contract-openapi-api",
+      "type": "related_to",
+      "to": "contract-diary-api"
+    },
+    {
+      "from": "contract-openapi-api",
+      "type": "related_to",
+      "to": "contract-life-feed-api"
+    },
+    {
+      "from": "contract-openapi-api",
+      "type": "related_to",
+      "to": "contract-bgm-api"
+    },
+    {
+      "type": "related_to",
+      "from": "contract-openapi-api",
+      "to": "contract-memory-knowledge-api"
+    },
+    {
+      "from": "contract-openapi-data",
+      "type": "related_to",
+      "to": "contract-life-feed-data"
     }
   ],
   "coverage": {
@@ -5387,7 +5459,7 @@
       "admin-page": 47,
       "h5-page": 9,
       "model": 98,
-      "route": 375,
+      "route": 401,
       "scheduled-job": 27
     },
     "entries": [
@@ -6786,7 +6858,7 @@
       {
         "kind": "model",
         "path": "backend/models/feed_comment.py",
-        "line": 16,
+        "line": 17,
         "symbol": "FeedComment",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-data"
@@ -7026,7 +7098,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 260,
+        "line": 270,
         "symbol": "h5_index",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7034,7 +7106,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 265,
+        "line": 275,
         "symbol": "h5_page",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7042,7 +7114,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 271,
+        "line": 281,
         "symbol": "admin_index",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7050,7 +7122,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 276,
+        "line": 286,
         "symbol": "admin_page",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -7058,7 +7130,7 @@
       {
         "kind": "route",
         "path": "backend/main.py",
-        "line": 285,
+        "line": 295,
         "symbol": "avatar_image",
         "scope": "shared-conventions",
         "contract_document": "contract-shared-conventions"
@@ -8242,7 +8314,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/vector_config.py",
-        "line": 98,
+        "line": 99,
         "symbol": "get_vector_retrieval_config",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -8250,7 +8322,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/vector_config.py",
-        "line": 103,
+        "line": 104,
         "symbol": "put_vector_retrieval_config",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -8258,7 +8330,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/vector_config.py",
-        "line": 110,
+        "line": 111,
         "symbol": "get_prompt_token_config",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -8266,7 +8338,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/vector_config.py",
-        "line": 115,
+        "line": 116,
         "symbol": "put_prompt_token_config",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -8834,7 +8906,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 590,
+        "line": 586,
         "symbol": "chat_send",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -8842,7 +8914,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 613,
+        "line": 609,
         "symbol": "chat_resend",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -8850,7 +8922,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 636,
+        "line": 632,
         "symbol": "chat_history",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -8858,7 +8930,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 680,
+        "line": 676,
         "symbol": "chat_timeline",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -8866,7 +8938,7 @@
       {
         "kind": "route",
         "path": "backend/routers/diary.py",
-        "line": 22,
+        "line": 16,
         "symbol": "get_diary_list",
         "scope": "diary",
         "contract_document": "contract-diary-api"
@@ -8874,7 +8946,7 @@
       {
         "kind": "route",
         "path": "backend/routers/diary.py",
-        "line": 71,
+        "line": 28,
         "symbol": "mark_diary_read",
         "scope": "diary",
         "contract_document": "contract-diary-api"
@@ -8882,7 +8954,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 36,
+        "line": 47,
         "symbol": "get_feed_list",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8890,7 +8962,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 48,
+        "line": 59,
         "symbol": "get_feed_header_config",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8898,7 +8970,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 58,
+        "line": 69,
         "symbol": "enter_feed",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8906,7 +8978,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 68,
+        "line": 80,
         "symbol": "get_feed_badge",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8914,7 +8986,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 78,
+        "line": 90,
         "symbol": "like_post",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8922,7 +8994,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 92,
+        "line": 104,
         "symbol": "unlike_post",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8930,7 +9002,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 106,
+        "line": 119,
         "symbol": "create_comment",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8938,7 +9010,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 125,
+        "line": 138,
         "symbol": "feed_events",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8946,7 +9018,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 164,
+        "line": 182,
         "symbol": "read_comment_reply",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -8954,7 +9026,7 @@
       {
         "kind": "route",
         "path": "backend/routers/feed.py",
-        "line": 178,
+        "line": 196,
         "symbol": "read_feed_post",
         "scope": "life-feed",
         "contract_document": "contract-life-feed-api"
@@ -9378,7 +9450,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 56,
+        "line": 59,
         "symbol": "ChatSubmission",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9386,7 +9458,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 79,
+        "line": 82,
         "symbol": "ChatSubmissionMessage",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9394,7 +9466,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 89,
+        "line": 92,
         "symbol": "ChatMessageState",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9402,7 +9474,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 102,
+        "line": 105,
         "symbol": "ChatGenerationMessage",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9410,7 +9482,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 113,
+        "line": 116,
         "symbol": "ChatResendQuota",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9418,7 +9490,7 @@
       {
         "kind": "model",
         "path": "backend/models/chat_lifecycle.py",
-        "line": 122,
+        "line": 125,
         "symbol": "ChatLifecycleEffect",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-data"
@@ -9434,7 +9506,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/memory_diagnostics.py",
-        "line": 44,
+        "line": 55,
         "symbol": "execute",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -9442,7 +9514,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/memory_diagnostics.py",
-        "line": 54,
+        "line": 65,
         "symbol": "history",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -9450,7 +9522,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/memory_diagnostics.py",
-        "line": 63,
+        "line": 91,
         "symbol": "detail",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -9458,7 +9530,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/memory_diagnostics.py",
-        "line": 71,
+        "line": 99,
         "symbol": "delete",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -9530,7 +9602,7 @@
       {
         "kind": "route",
         "path": "backend/routers/admin/vector_config.py",
-        "line": 122,
+        "line": 123,
         "symbol": "get_publication",
         "scope": "memory-knowledge",
         "contract_document": "contract-memory-knowledge-api"
@@ -9538,7 +9610,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 578,
+        "line": 574,
         "symbol": "chat_resend_eligibility",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -9546,7 +9618,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 584,
+        "line": 580,
         "symbol": "chat_client_timing",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -9554,7 +9626,7 @@
       {
         "kind": "route",
         "path": "backend/routers/chat.py",
-        "line": 701,
+        "line": 697,
         "symbol": "chat_submission_status",
         "scope": "chat-emotion",
         "contract_document": "contract-chat-emotion-api"
@@ -9754,7 +9826,7 @@
       {
         "kind": "route",
         "path": "backend/routers/bgm.py",
-        "line": 12,
+        "line": 13,
         "symbol": "public_catalog",
         "scope": "bgm",
         "contract_document": "contract-bgm-api"
@@ -9836,6 +9908,214 @@
         "path": "backend/routers/open/pet.py",
         "line": 89,
         "symbol": "request_result_by_key",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_diagnostics.py",
+        "line": 74,
+        "symbol": "online_runs",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_diagnostics.py",
+        "line": 85,
+        "symbol": "online_run_detail",
+        "scope": "memory-knowledge",
+        "contract_document": "contract-memory-knowledge-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 66,
+        "symbol": "get_active",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 81,
+        "symbol": "get_draft",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 89,
+        "symbol": "save_draft",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 94,
+        "symbol": "discard_draft",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 99,
+        "symbol": "history",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 110,
+        "symbol": "version_detail",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 144,
+        "symbol": "publish_draft",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 149,
+        "symbol": "disable",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/admin/memory_router_config.py",
+        "line": 154,
+        "symbol": "rollback",
+        "scope": "persona-prompt-world-state",
+        "contract_document": "contract-persona-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 58,
+        "symbol": "get_header",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 75,
+        "symbol": "list_feed",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 88,
+        "symbol": "get_post",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 94,
+        "symbol": "enter",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 99,
+        "symbol": "get_badge",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 104,
+        "symbol": "feed_events",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 115,
+        "symbol": "like",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 120,
+        "symbol": "unlike",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 125,
+        "symbol": "comment",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 137,
+        "symbol": "read_post",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/feed.py",
+        "line": 142,
+        "symbol": "read_reply",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/diary.py",
+        "line": 20,
+        "symbol": "get_diary_list",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/diary.py",
+        "line": 35,
+        "symbol": "mark_diary_read",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/bgm.py",
+        "line": 18,
+        "symbol": "get_catalog",
+        "scope": "openapi",
+        "contract_document": "contract-openapi-api"
+      },
+      {
+        "kind": "route",
+        "path": "backend/routers/open/memory.py",
+        "line": 40,
+        "symbol": "list_memories",
         "scope": "openapi",
         "contract_document": "contract-openapi-api"
       }

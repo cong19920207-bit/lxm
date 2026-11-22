@@ -8,8 +8,9 @@ from types import MappingProxyType
 
 import httpx
 
+from backend.services.memory_router_trace import observe_call, observe_usage
 from backend.services.memory_provider_service import ProviderError, _request, _client
-from backend.services.query_rewrite_service import parse_memory_queries, _build_step1_5_prompt
+from backend.services.query_rewrite_service import MemoryQueries, MemoryQuery, ROUTE_PREFIXES, parse_memory_queries, _build_step1_5_prompt
 from backend.services.memory_hybrid_retrieval import RouteResult, retrieve_route, CandidateValidator
 from backend.services.memory_rerank import rerank_route
 
@@ -55,22 +56,44 @@ class RetrievalResult:
     queries: object
     routes: object
     rewrite_deadline: float
-    retrieval_deadline: float
+    retrieval_deadline: float | None
     call_counts: object = field(default_factory=dict)
+    retrieval_status: str = "executed"
+    rewrite_state: str = "executed"
+    original_deadline: float | None = None
+
+
+def empty_retrieval_result(config, *, rewrite_deadline, original_deadline):
+    queries = MappingProxyType({route: MemoryQuery("", "", True, "not_run", "not_run") for route in ROUTE_PREFIXES})
+    routes = MappingProxyType({route: RouteResult(route, "", reason="skipped_by_router") for route in ROUTE_PREFIXES})
+    counts = MappingProxyType(dict.fromkeys(("rewrite", "embedding", "vector_query", "dense", "bm25", "rerank"), 0))
+    return RetrievalResult(config.config_snapshot_id, MemoryQueries(queries, False), routes,
+                           rewrite_deadline, None, counts, "skipped_by_router", "not_run", original_deadline)
 
 
 async def run_pipeline(*, config, original_input, prompt, original_deadline,
-                       rewrite, retrieve, rank, clock=time.monotonic):
+                       rewrite, retrieve, rank, clock=time.monotonic, rewrite_deadline=None,
+                       rewrite_allowed=True, check_execution=None):
     counts = {}
     timeouts = config.profiles['timeouts_ms']
     limits = {'rewrite': timeouts['rewrite_call']/1000, 'embedding': timeouts['embedding_call']/1000,
               'vector_query': timeouts['vector_query']/1000, 'rerank': timeouts['rerank_call']/1000}
-    rewrite_end = min(clock() + timeouts['rewrite_stage']/1000, original_deadline)
+    rewrite_end = min(original_deadline, rewrite_deadline if rewrite_deadline is not None
+                      else clock() + timeouts['rewrite_stage']/1000)
     rewrite_budget = StageBudget(rewrite_end, limits, clock=clock, backoff=timeouts['retry_backoff']/1000, counts=counts)
-    try:
-        raw = await rewrite_budget.call('rewrite', lambda: rewrite(prompt))
-    except Exception:
-        raw = ''
+    if check_execution is not None:
+        await check_execution()
+    raw = ""
+    if rewrite_allowed:
+        from backend.services.chat_lifecycle import LostOwnership
+        try:
+            raw = await rewrite_budget.call('rewrite', lambda: rewrite(prompt))
+        except LostOwnership:
+            raise
+        except Exception:
+            raw = ""
+    if check_execution is not None:
+        await check_execution()
     queries = parse_memory_queries(raw, original_input)
     retrieval_end = min(clock() + timeouts['retrieval_stage']/1000, original_deadline)
     candidates_budget = StageBudget(retrieval_end, limits, reserve=timeouts['validation_reserve']/1000,
@@ -96,7 +119,8 @@ async def run_pipeline(*, config, original_input, prompt, original_deadline,
 
     results = await asyncio.gather(*(route_work(route, query) for route, query in queries.routes.items()))
     return RetrievalResult(config.config_snapshot_id, queries,
-                           MappingProxyType(dict(zip(queries.routes, results))), rewrite_end, retrieval_end, MappingProxyType(counts))
+                           MappingProxyType(dict(zip(queries.routes, results))), rewrite_end, retrieval_end, MappingProxyType(counts),
+                           rewrite_state="completed" if queries.parsed else "fallback", original_deadline=original_deadline)
 
 
 class RewriteProvider:
@@ -112,9 +136,11 @@ class RewriteProvider:
         if self.model == 'doubao-seed-2-0-lite-260428':
             body['thinking'] = {'type': 'disabled'}
         async with _client(self.client) as client:
+            observe_call('rewrite')
             result = await _request(client, 'post', self.endpoint + '/chat/completions',
                 headers={'Authorization': 'Bearer ' + self.credential.reveal()},
                 json=body)
+        observe_usage('rewrite',self.model,result)
         try:
             value = result['choices'][0]['message']['content']
             if not isinstance(value, str):
@@ -127,7 +153,8 @@ class RewriteProvider:
 async def execute_memory_retrieval(*, config, session_factory, environment_id, partition, user_id,
                                    original_deadline, rewrite_input, persona_text, round_context,
                                    recent_conversations, rewrite_provider, source='main', allow_isolated=False,
-                                   client=None, cache=None):
+                                   client=None, cache=None, shared_history=None, rewrite_deadline=None,
+                                   counter=None, check_execution=None):
     """Concrete provider/SQL composition for M6 and diagnostics; no hidden mocks."""
     from backend.services.memory_bm25 import get_encoder
     from backend.services.memory_embedding_cache import MemoryEmbeddingCache
@@ -147,6 +174,12 @@ async def execute_memory_retrieval(*, config, session_factory, environment_id, p
     async def rank(question, documents):
         return await rerank(config.providers['rerank'], question, documents, client=client)
     prompt = _build_step1_5_prompt(persona_text=persona_text, round_context=round_context,
-        recent_conversations=recent_conversations, rewrite_input=rewrite_input, source=source)
+        recent_conversations=recent_conversations, rewrite_input=rewrite_input, source=source, shared_history=shared_history)
+    rewrite_allowed = True
+    if shared_history is not None:
+        from backend.services.memory_token_budget import validate_bound_counter
+        validate_bound_counter(config, counter)
+        rewrite_allowed = await counter.count(prompt) <= config.profiles["counter"]["input_limit"]
     return await run_pipeline(config=config, original_input=rewrite_input, prompt=prompt,
-        original_deadline=original_deadline, rewrite=rewrite_provider, retrieve=retrieve, rank=rank)
+        original_deadline=original_deadline, rewrite=rewrite_provider, retrieve=retrieve, rank=rank,
+        rewrite_deadline=rewrite_deadline, rewrite_allowed=rewrite_allowed, check_execution=check_execution)
