@@ -111,9 +111,9 @@
 
 ### H5 可选鉴权例外（2026-08-13）
 
-H5 用户端默认仍为 `Authorization: Bearer`。以下三个可选鉴权 GET 允许完全缺少 `Authorization` 头时匿名访问；头存在但无效仍返回 HTTP `401`。细则见 `contract-h5-app-api` 与 `contract-life-feed-api`。
+H5 用户端默认仍为 `Authorization: Bearer`。以下可选鉴权 GET 允许完全缺少 `Authorization` 头时匿名访问；头存在但无效仍返回 HTTP `401`。细则见 `contract-h5-app-api` 与 `contract-life-feed-api`。
 
-- `GET /api/feed/list`
+- `GET /api/feed/list`、`GET /api/feed/pins`、`GET /api/feed/posts/{post_id}`
 - `GET /api/feed/config/header`
 - `GET /api/app/persona-background`
 
@@ -128,4 +128,4 @@ H5 用户端默认仍为 `Authorization: Bearer`。以下三个可选鉴权 GET 
 
 ### BGM 独立匿名读取（2026-10-19 STEP-007）
 
-`GET /api/bgm/catalog`为完全公开的同一音乐元数据快照，不调用用户/Admin鉴权，Authorization内容不影响结果；H5调用须显式不附Token。它不改变上方三个可选鉴权接口“无效头401”的规则，也不开放任何私有或管理接口。复用ApiResponse；目录基础不可用明确HTTP503/20207，合法空目录HTTP200/code=0。只返回完整版本、默认、有序成员和必要媒体字段，见[BGM接口](../bgm/api.md)。
+`GET /api/bgm/catalog`为完全公开的同一音乐元数据快照，不调用用户/Admin鉴权，Authorization内容不影响结果；H5调用须显式不附Token。上方 H5 可选鉴权接口收到无效 Authorization 头时仍返回 401。复用ApiResponse；目录基础不可用明确HTTP503/20207，合法空目录HTTP200/code=0。只返回完整版本、默认、有序成员和必要媒体字段，见[BGM接口](../bgm/api.md)。

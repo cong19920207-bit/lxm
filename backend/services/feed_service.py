@@ -46,6 +46,7 @@ from backend.constants.life_feed_config import (
 from backend.models.feed_comment import FeedComment
 from backend.models.feed_like import FeedLike
 from backend.models.feed_post import FeedPost
+from backend.models.feed_video import FeedPin, FeedPublication, FeedVideoAsset, FeedVideoEdit, FeedVideoSelection, FeedVideoTask
 from backend.models.relationship import Relationship
 from backend.models.user import User
 from backend.services import content_safety_service
@@ -85,10 +86,31 @@ def _display_comments(post: FeedPost, real_count: int) -> int:
     return post.base_comments * post.comment_multiplier + max(0, int(real_count or 0))
 
 
+def published_video_assets():
+    """Selected and CDN-verified outputs of the explicitly submitted edit."""
+    return (
+        select(FeedPublication.post_id, FeedVideoSelection.media_version, FeedVideoAsset)
+        .join(FeedVideoSelection, FeedVideoSelection.edit_id == FeedPublication.edit_id)
+        .join(FeedVideoTask, FeedVideoTask.media_version == FeedVideoSelection.media_version)
+        .join(FeedVideoAsset, FeedVideoAsset.media_version == FeedVideoSelection.media_version)
+        .where(FeedVideoTask.state == "ready", FeedVideoAsset.verified_at.is_not(None),
+               FeedVideoAsset.public_url.is_not(None),
+               or_(FeedVideoAsset.kind.in_(("video", "preview")),
+                   FeedVideoAsset.variant == FeedVideoSelection.cover_variant))
+    )
+
+
+def submitted_media_condition():
+    ready_video = (published_video_assets().with_only_columns(FeedPublication.post_id)
+                   .where(FeedPublication.post_id == FeedPost.id).correlate(FeedPost)
+                   .group_by(FeedPublication.post_id).having(func.count() == 4).exists())
+    return or_(FeedPost.media_kind == "image_text", and_(FeedPost.media_kind == "video", ready_video))
+
+
 async def visible_post_condition(now: datetime):
     range_cfg = await get_life_feed_config(
         CONFIG_FEED_HISTORY_VISIBLE_RANGE, DEFAULT_FEED_HISTORY_VISIBLE_RANGE)
-    conditions = [FeedPost.is_visible == 1, FeedPost.generation_status == "ready",
+    conditions = [submitted_media_condition(), FeedPost.is_visible == 1, FeedPost.generation_status == "ready",
                   FeedPost.scheduled_publish_time <= now]
     days = _RANGE_DAYS.get(str(range_cfg))
     if days:
@@ -196,7 +218,14 @@ class FeedService:
             next_cursor = posts[-1].scheduled_publish_time.isoformat()
         return {"posts": await self._post_items(db, user_id, posts, now), "next_cursor": next_cursor}
 
-    async def get_post(self, db: AsyncSession, user_id: int, post_id: int) -> dict:
+    async def list_pins(self, db: AsyncSession, user_id: int | None) -> dict:
+        now = feed_now()
+        posts = (await db.scalars(select(FeedPost).join(FeedPin, FeedPin.post_id == FeedPost.id)
+                    .where(await visible_post_condition(now)).order_by(FeedPin.position))).all()
+        items = await self._post_items(db, user_id, posts, now)
+        return {"posts": items, "total": len(items)}
+
+    async def get_post(self, db: AsyncSession, user_id: int | None, post_id: int) -> dict:
         now = feed_now()
         post = await _get_visible_post(db, post_id, now)
         return (await self._post_items(db, user_id, [post], now))[0]
@@ -235,10 +264,31 @@ class FeedService:
                         c.lxm_reply_read_at.isoformat() if c.lxm_reply_read_at else None),
                 })
 
+        ids = [p.id for p in posts]
+        pins = set(await db.scalars(select(FeedPin.post_id).where(FeedPin.post_id.in_(ids)))) if ids else set()
+        video_ids = [p.id for p in posts if p.media_kind == "video"]
+        videos = {}
+        if video_ids:
+            assets = await db.execute(
+                published_video_assets()
+                .join(FeedVideoEdit, FeedVideoEdit.id == FeedPublication.edit_id)
+                .add_columns(FeedVideoEdit.frame_mode, FeedVideoEdit.frame_position)
+                .where(FeedPublication.post_id.in_(video_ids))
+            )
+            for pid, version, asset, frame_mode, frame_position in assets:
+                video = videos.setdefault(pid, {"media_version": version, "frame_mode": frame_mode,
+                                                "frame_position": frame_position})
+                video[asset.kind + "_url"] = asset.public_url
+                if asset.kind == "video":
+                    video.update(duration_ms=asset.duration_ms, width=asset.width, height=asset.height)
+                    if asset.stream_info and "audio" in asset.stream_info:
+                        video["has_audio"] = bool(asset.stream_info["audio"])
         items = []
         for p in posts:
             item = {
                 "id": p.id,
+                "is_pinned": p.id in pins,
+                "media_kind": p.media_kind,
                 "content_text": p.content_text,
                 "hashtags": p.hashtags or [],
                 "image_urls": p.image_urls or [],
@@ -249,6 +299,8 @@ class FeedService:
                 "display_comments": _display_comments(
                     p, len(comments_by_post.get(p.id, []))),
             }
+            if p.media_kind == "video":
+                item["video"] = videos[p.id]
             if user_id is not None:
                 item["user_liked"] = False  # 由下方批量填充
                 item["comments"] = comments_by_post.get(p.id, [])

@@ -27,6 +27,9 @@ class FeedPost(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
+    media_kind: Mapped[str] = mapped_column(String(16), default="image_text", server_default="image_text")
+    post_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+
     scene_id: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True, comment="关联场景 ID"
     )

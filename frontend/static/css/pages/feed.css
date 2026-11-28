@@ -290,7 +290,10 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       /* alpha / blur 由 JS 按进度写入 CSS 变量 */
       --feed-boot-alpha: 0.88;
       --feed-boot-blur: 12px;
-      background: rgba(243, 237, 249, var(--feed-boot-alpha));
+      background: radial-gradient(ellipse at center,
+        rgba(233, 222, 249, var(--feed-boot-alpha)),
+        rgba(246, 240, 252, var(--feed-boot-alpha)) 46%,
+        rgba(252, 250, 255, var(--feed-boot-alpha)) 100%);
       -webkit-backdrop-filter: blur(var(--feed-boot-blur));
       backdrop-filter: blur(var(--feed-boot-blur));
       transition: opacity 0.3s ease;
@@ -300,25 +303,8 @@ html[data-app-route="feed"] body.h5-skin.feed-page {
       opacity: 0;
       pointer-events: none;
     }
-:where([data-app-page="feed"]) .feed-boot-spinner {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid rgba(139, 92, 246, 0.22);
-      border-top-color: var(--feed-purple-accent);
-      animation: feed-boot-spin 0.8s linear infinite;
-      margin-bottom: 14px;
-    }
-    @keyframes feed-boot-spin {
-      to { transform: rotate(360deg); }
-    }
-:where([data-app-page="feed"]) .feed-boot-text {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--feed-text-muted);
-    }
     @media (prefers-reduced-motion: reduce) {
-:where([data-app-page="feed"]) :is(.feed-boot-spinner, .sk-avatar, .sk-line, .sk-img, .comment-highlighted) { animation: none; }
+:where([data-app-page="feed"]) :is(.sk-avatar, .sk-line, .sk-img, .comment-highlighted) { animation: none; }
 :where([data-app-page="feed"]) .feed-boot-loading { transition: none; }
     }
 :where([data-app-page="feed"]) .feed-state { text-align: center; padding: 40px 20px; color: var(--feed-text-muted); font-size: 14px; }

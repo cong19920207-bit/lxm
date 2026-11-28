@@ -85,6 +85,13 @@ async def list_feed(
     )
 
 
+@router.get("/pins", response_model=ApiResponse)
+async def get_pins(request: Request, user_id: Account, db: Database):
+    base = str(request.base_url)
+    return await _respond(feed_service.list_pins(db, user_id),
+                          lambda pins: {**pins, "posts": [_post_images(base, p) for p in pins["posts"]]})
+
+
 @router.get("/posts/{post_id}", response_model=ApiResponse)
 async def get_post(request: Request, post_id: FeedId, user_id: Account, db: Database):
     return await _respond(feed_service.get_post(db, user_id, post_id),

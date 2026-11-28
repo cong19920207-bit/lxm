@@ -24,7 +24,10 @@
         <button type="button" class="diary-latest" data-diary-action="latest" aria-label="回到最新一篇" title="回到最新一篇"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/></svg></button>
         <button type="button" data-diary-action="next"><span class="diary-pagination-copy">下一篇<small id="diary-next-date"></small></span><span class="diary-page-arrow" aria-hidden="true">›</span></button>
       </nav>
-      <p class="diary-notice" id="diary-loading" role="status">正在翻开日记…</p>
+      <p class="diary-notice" id="diary-loading" role="status">
+        <span class="lxm-loading-character" aria-hidden="true"></span>
+        <span class="lxm-loading-caption">正在翻开日记<span class="lxm-loading-dots" aria-hidden="true">...</span></span>
+      </p>
       <div class="diary-notice" id="diary-load-error" hidden><p>日记加载失败，请稍后重试</p><button type="button" data-diary-action="retry-more">重新加载</button></div>
       <div class="diary-notice" id="empty-active" hidden><p>今天林小梦还没写新日记哦<br>多和我聊聊吧</p><button type="button" data-diary-action="chat">去聊天</button></div>
       <div class="diary-notice" id="empty-new" hidden><p>和我多聊聊天<br>我会把我们的故事都记下来</p></div>

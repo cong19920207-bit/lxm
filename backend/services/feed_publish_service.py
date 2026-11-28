@@ -13,6 +13,7 @@ from sqlalchemy import select
 from backend.config import get_feed_image_reference_public_url
 from backend.constants.life_feed_config import (
     CONFIG_FEED_AUTO_PUBLISH_ENABLED,
+    CONFIG_HOME_CITY,
     CONFIG_FEED_BASE_LIKES_MAX,
     CONFIG_FEED_BASE_LIKES_MIN,
     CONFIG_FEED_DAILY_POST_COUNT_2_WEIGHT,
@@ -24,6 +25,7 @@ from backend.constants.life_feed_config import (
     CONFIG_FEED_PUBLISH_WINDOW_3,
     CONFIG_SOUTHERN_HEMISPHERE_CITIES,
     DEFAULT_FEED_AUTO_PUBLISH_ENABLED,
+    DEFAULT_HOME_CITY,
     DEFAULT_FEED_BASE_LIKES_MAX,
     DEFAULT_FEED_BASE_LIKES_MIN,
     DEFAULT_FEED_DAILY_POST_COUNT_2_WEIGHT,
@@ -61,6 +63,27 @@ def _as_bool(value) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true", "yes", "on")
     return bool(value)
+
+
+async def manual_post_location(city: str | None, day: date) -> tuple[str, str]:
+    home_city = await get_life_feed_config(CONFIG_HOME_CITY, DEFAULT_HOME_CITY)
+    southern = await get_life_feed_config(CONFIG_SOUTHERN_HEMISPHERE_CITIES, DEFAULT_SOUTHERN_HEMISPHERE_CITIES)
+    city = (city or home_city).strip()
+    return city, compute_season(city, day, southern)
+
+
+async def draw_engagement_counts() -> dict[str, int]:
+    """Use one configuration snapshot for independent like and comment draws."""
+    base_min = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MIN, DEFAULT_FEED_BASE_LIKES_MIN))
+    base_max = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MAX, DEFAULT_FEED_BASE_LIKES_MAX))
+    mul_min = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MIN, DEFAULT_FEED_LIKE_MULTIPLIER_MIN))
+    mul_max = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MAX, DEFAULT_FEED_LIKE_MULTIPLIER_MAX))
+    return {
+        "base_likes": random.randint(base_min, base_max),
+        "like_multiplier": random.randint(mul_min, mul_max),
+        "base_comments": random.randint(base_min, base_max),
+        "comment_multiplier": random.randint(mul_min, mul_max),
+    }
 
 
 class FeedPublishService:
@@ -105,10 +128,7 @@ class FeedPublishService:
 
     async def _insert_post(self, scene: dict, draft: dict, sched: datetime,
                            season: str, plan_date: date) -> int:
-        base_min = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MIN, DEFAULT_FEED_BASE_LIKES_MIN))
-        base_max = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MAX, DEFAULT_FEED_BASE_LIKES_MAX))
-        mul_min = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MIN, DEFAULT_FEED_LIKE_MULTIPLIER_MIN))
-        mul_max = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MAX, DEFAULT_FEED_LIKE_MULTIPLIER_MAX))
+        counts = await draw_engagement_counts()
         async with async_session_maker() as db:
             post = FeedPost(
                 scene_id=scene.get("scene_id"),
@@ -123,12 +143,8 @@ class FeedPublishService:
                 emotion=draft["emotion"],
                 city=scene.get("city", ""),
                 season=season,
-                base_likes=random.randint(base_min, base_max),
-                like_multiplier=random.randint(mul_min, mul_max),
                 real_likes=0,
-                # 评论展示假数与点赞共用同一组 min/max 配置
-                base_comments=random.randint(base_min, base_max),
-                comment_multiplier=random.randint(mul_min, mul_max),
+                **counts,
                 is_visible=1,
                 dedup_hash=draft["dedup_hash"],
                 created_at=datetime.utcnow(),

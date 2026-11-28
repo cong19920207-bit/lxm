@@ -17,6 +17,42 @@
   --h5-font-display: ui-rounded, "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+.lxm-loading-character {
+  display: block;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 9px;
+  background: url("/static/images/loading/character-dance.gif") center / contain no-repeat;
+}
+
+.lxm-loading-caption {
+  color: var(--lxm-loading-caption-color, #594968);
+  font: 500 14px / 1.5 var(--h5-font-display);
+  letter-spacing: 0.06em;
+}
+
+.lxm-loading-dots {
+  display: inline-block;
+  /* Match one loop of the character animation while reserving space for all three dots. */
+  animation: lxm-loading-dots 1.5s step-end infinite;
+}
+
+@keyframes lxm-loading-dots {
+  0% { clip-path: inset(0 66.6667% 0 0); }
+  33.3333% { clip-path: inset(0 33.3333% 0 0); }
+  66.6667%, 100% { clip-path: inset(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lxm-loading-character {
+    background-image: url("/static/images/loading/character-dance.png");
+  }
+  .lxm-loading-dots {
+    animation: none;
+  }
+}
+
 /* ========== 全页渐变底（与各页 body.h5-skin 联用） ========== */
 
 /* 避免仅 body 着色时 overscroll 露白 */
@@ -975,3 +1011,11 @@ body.auth-modal-open {
     animation: none !important;
   }
 }
+
+/* Measure painted boxes independently of their normal touch behavior. */
+:root[data-chat-read-probe] *,
+:root[data-chat-read-probe] *::before,
+:root[data-chat-read-probe] *::after { pointer-events: auto !important; }
+:root[data-chat-read-probe] [data-chat-transparent~="self"],
+:root[data-chat-read-probe] [data-chat-transparent~="before"]::before,
+:root[data-chat-read-probe] [data-chat-transparent~="after"]::after { pointer-events: none !important; }

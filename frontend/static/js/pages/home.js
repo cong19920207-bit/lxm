@@ -8,7 +8,7 @@ export async function mount(context) {
   let feedBadge = { unread: 0, hasNew: false, newCount: 0 };
   const styles = ['css/home-scene.css', 'css/bgm.css', 'css/voice-entry.css'];
   await Promise.all(styles.map(key => context.scope.adopt(services.resources.style(key), release => release())));
-  for (const name of ['home-scene-core','home-scene','home-data','voice-playback','voice-audio-transport','voice-entry','bgm-page','bgm-record','bgm-home']) {
+  for (const name of ['home-scene-core','home-scene','chat-unread','home-data','voice-playback','voice-audio-transport','voice-entry','bgm-page','bgm-record','bgm-home']) {
     await services.shared.script('js/' + name + '.js'); if (!context.valid()) return { unmount() {} };
   }
 
@@ -572,19 +572,6 @@ export async function mount(context) {
       return '更新 · ' + mo + '月' + day + '日 ' + hm
     }
 
-    /** 从最近帖倒序抽出最多 2 张图 */
-    function collectFeedThumbUrls(posts) {
-      const urls = []
-      if (!posts) return urls
-      for (let i = 0; i < posts.length && urls.length < 2; i++) {
-        const imgs = posts[i].image_urls || []
-        for (let j = 0; j < imgs.length && urls.length < 2; j++) {
-          if (imgs[j]) urls.push(imgs[j])
-        }
-      }
-      return urls
-    }
-
     function renderFeedPreview(posts) {
       const textEl = byId('feed-preview-text')
       const updatedEl = byId('feed-updated')
@@ -602,16 +589,7 @@ export async function mount(context) {
       textEl.textContent = latest.content_text || ''
       updatedEl.textContent = formatFeedUpdateLabel(latest.scheduled_publish_time)
 
-      const urls = collectFeedThumbUrls(posts)
-      thumbsEl.innerHTML = ''
-      urls.forEach((src) => {
-        const img = document.createElement('img')
-        img.src = src
-        img.alt = ''
-        img.loading = 'lazy'
-        context.scope.listen(img, 'error', () => { img.style.display = 'none' })
-        thumbsEl.appendChild(img)
-      })
+      HomeData.renderFeedThumbs(thumbsEl, posts)
     }
 
     function renderFeedFooter(newPostCount) {
@@ -754,6 +732,7 @@ export async function mount(context) {
     if (action === 'relationship') goHomeRelationship();
     else if (action === 'diary') goHomeDiary();
     else if (action === 'feed') goFeed();
+    else if (action === 'chat') context.router.navigate(ChatUnread.chatURL(byId('unread-badge').style.display === 'block'));
     else if (action.startsWith('quick-')) handleHomeQuickAction(action.slice(6));
     else context.router.navigate('/pages/' + action + '.html');
   };

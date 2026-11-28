@@ -1,3 +1,4 @@
+import '../feed-media-view.js';
 import { createPageTimers } from '../app/page-timers.js';
 import { PageScope } from '../app/page-context.js';
 
@@ -12,11 +13,16 @@ export async function mount(context) {
   const showToast=(message,type)=>{if(context.valid())services.ui.toast(message,type)};
   const escapeHtml=value=>{const node=document.createElement('div');node.textContent=value==null?'':String(value);return node.innerHTML};
   await context.scope.adopt(services.resources.style('css/bgm.css'),release=>release());
-  for(const name of ['bgm-page','bgm-record','bgm-bubble']){await services.shared.script('js/'+name+'.js');if(!context.valid())return{unmount(){}}}
+  for(const name of ['chat-unread','bgm-page','bgm-record','bgm-bubble']){await services.shared.script('js/'+name+'.js');if(!context.valid())return{unmount(){}}}
   const audioPage=services.audio.attachPage(context,'content'),bubble=BgmBubble.mount(audioPage);if(bubble)context.cleanup(()=>bubble.destroy());
+  await context.scope.adopt(services.resources.style('css/feed-media.css'),release=>release());
+  const mediaView=window.FeedMediaView.mount({root,read:async path=>{const r=await request('GET',path);return r?.code===0?r.data:null},
+    registerDetail:(element,background)=>services.overlays.register({kind:'feed-detail',ownerId:context.scope.ownerId,element,background}),
+    article:(post)=>buildFeedItem(post,true),images:openPreview,audio:()=>audioPage,readTargets:observeReadTargets,resetReads:refreshReadTargets,resumeState:context.reason==='resume'?context.state?.mediaVisit:null});
+  context.cleanup(()=>mediaView.destroy());
   const posts=new Map(),expanded=new Set((context.state?.expandedIds||[]).map(String)),reportedComments=new Set(),reportedPosts=new Set(),dwell=new Map(),likePending=new Set();
   const loadWaiters=new Set();context.cleanup(()=>{for(const resolve of loadWaiters)resolve();loadWaiters.clear()});
-  let loading=false,noMore=false,nextCursor=null,loadedPages=0,lastLoadAt=0,restoring=true,interacted=false,anchorCommentId=null,enterStarted=false;
+  let loading=false,noMore=false,nextCursor=null,loadedPages=0,lastLoadAt=0,restoring=true,interacted=false,anchorPostId=null,anchorCommentId=null,enterStarted=false;
   let closeActivePreview=null,commentingPostId=null,commentingReplyToLxm=false,commentSending=false,commentGeneration=0;
   let feedEventSource=null,sseRetryTimer=null,sseRetryDelay=1000,pendingNewCount=0,sentinelEnabled=false,sentinelVisible=false,paginationTimer=null;
   const entryPageCount=Math.max(1,Number(context.state?.cursor?.pages)||1);
@@ -173,7 +179,7 @@ export async function mount(context) {
       return html
     }
 
-    function buildFeedItem(post) {
+    function buildFeedItem(post,inDetail=false) {
       var item = document.createElement('article')
       item.className = 'feed-item'
       item.dataset.id = post.id
@@ -192,9 +198,10 @@ export async function mount(context) {
       const city = (post.city || '').trim()
       const liked = item.dataset.liked === '1'
       const media = buildImagesHtml(post.image_urls)
-      const text =
-        '<div class="feed-text-block"><div class="feed-text collapsed" id="feed-text-' + escapeHtml(post.id) + '">' +
-          renderTextWithHashtags(post.content_text || '') + '</div>' +
+      const body = renderTextWithHashtags(post.content_text || '')
+      const text = inDetail
+        ? '<div class="feed-text-block"><div class="feed-text">' + body + '</div></div>'
+        : '<div class="feed-text-block"><div class="feed-text collapsed" id="feed-text-' + escapeHtml(post.id) + '">' + body + '</div>' +
           '<button type="button" class="feed-expand" hidden aria-expanded="false" aria-controls="feed-text-' + escapeHtml(post.id) + '">展开全文</button></div>'
       const actions =
         '<div class="feed-actions">' +
@@ -207,17 +214,17 @@ export async function mount(context) {
         '</div>'
       item.classList.toggle('feed-item--text', !media)
       item.innerHTML =
-        '<header class="feed-author"><img class="feed-author-avatar" src="' + avatar + '" alt="">' +
+        (inDetail ? '' : '<header class="feed-author"><img class="feed-author-avatar" src="' + avatar + '" alt="">' +
           '<div><div class="feed-author-name">' + author + '</div>' +
           (time || city ? '<div class="feed-meta-row">' +
             '<span class="feed-time">' + escapeHtml(time) + '</span>' +
             (city ? '<span class="feed-city">' + escapeHtml(city) + '</span>' : '') + '</div>' : '') +
-          '</div></header>' +
-        (media ? media + actions + text : text + actions) +
+          '</div></header>') +
+        (inDetail ? text + media + actions : media ? media + actions + text : text + actions) +
         buildCommentsHtml(post.comments)
 
-      setupTextExpand(item)
-      return item
+      if (!inDetail) setupTextExpand(item)
+      return mediaView.decorate(item,post,inDetail)
     }
 
     function showState(id) {
@@ -453,6 +460,7 @@ export async function mount(context) {
       updateCounter()
       overlay.appendChild(img); overlay.appendChild(closeBtn); overlay.appendChild(counter)
       root.appendChild(overlay)
+      mediaView.setImagePreviewOpen(true)
       overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');closeBtn.setAttribute('aria-label','关闭图片预览')
       const lease=services.overlays.register({kind:'image',ownerId:context.scope.ownerId,element:overlay,background:byId('feed-list')})
       lease.open(); closeBtn.focus()
@@ -493,6 +501,8 @@ export async function mount(context) {
         if (moved && Math.abs(dx) > 50) {
           if (dx < 0) show(idx + 1); else show(idx - 1)
         } else if (!moved) {
+          // The overlay disappears before the synthetic click; keep that click off the page underneath.
+          if (e.cancelable) e.preventDefault()
           closePreview()  // 单击关闭
         }
       }
@@ -504,12 +514,13 @@ export async function mount(context) {
       function closePreview(reason='user') {
         if(closed)return;closed=true;previewScope.dispose();lease.close({reason});lease.dispose();overlay.remove();
         document.body.style.overscrollBehaviorX=prevOverscroll;release();if(closeActivePreview===closePreview)closeActivePreview=null
+        mediaView.setImagePreviewOpen(false)
       }
       listen(overlay,'keydown',event=>{if(event.key==='Escape'){event.preventDefault();closePreview()}else if(event.key==='Tab'){event.preventDefault();closeBtn.focus()}else if(event.key==='ArrowRight')show(idx+1);else if(event.key==='ArrowLeft')show(idx-1)})
 
       listen(overlay,'touchstart', onTouchStart, { passive: true })
       listen(overlay,'touchmove', onTouchMove, { passive: false })
-      listen(overlay,'touchend', onTouchEnd, { passive: true })
+      listen(overlay,'touchend', onTouchEnd, { passive: false })
       listen(closeBtn,'click', function (e) { e.stopPropagation(); closePreview() })
     }
 
@@ -528,6 +539,7 @@ export async function mount(context) {
   }
   function renderPosts() {
     disconnectReads()
+    mediaView.clearCards()
     byId('feed-list').replaceChildren()
     let last = null
     for (const post of posts.values()) last = appendPost(post, last)
@@ -548,21 +560,24 @@ export async function mount(context) {
     location.innerHTML = city ? LOCATION_ICON + '<span>' + escapeHtml(city) + '</span>' : ''
     location.hidden = !city
   }
+  let badgeRequest = 0
   async function loadMsgBadge(){
     if(!isFeedAuthenticated())return;
-    const res=await request('GET','/api/agent/unread-count');if(!context.valid())return;
-    const count=res?.code===0&&res.data?.count||0;byId('msg-badge').textContent=count>99?'99+':String(count);byId('msg-badge').style.display=count?'':'none';
+    const version = ++badgeRequest
+    const res=await ChatUnread.getUnreadCount(request);if(!context.valid()||version!==badgeRequest||res?.code!==0)return;
+    const count=res.data?.count;if(!Number.isInteger(count)||count<0)return;
+    byId('msg-badge').textContent=count>99?'99+':String(count);byId('msg-badge').style.display=count?'':'none';
   }
   async function loadFeed(reset,{restore=false}={}){
     if(!context.valid()||loading||!reset&&(noMore||!restore&&bootLoadingPending&&!bootDismissed))return false;
     if(!reset&&!restore&&Date.now()-lastLoadAt<500){if(!paginationTimer)paginationTimer=setTimeout(()=>{paginationTimer=null;if(sentinelVisible)run(loadFeed(false))},500-(Date.now()-lastLoadAt));return false}
     lastLoadAt=Date.now();loading=true;const cursor=reset?null:nextCursor;
-    if(reset){showState(null);if(!bootLoadingPending)renderSkeleton(true)}
+    if(reset){void mediaView.refreshPins();showState(null);if(!bootLoadingPending)renderSkeleton(true)}
     try{
-      const res=await request('GET','/api/feed/list?size=20'+(cursor?'&cursor='+encodeURIComponent(cursor):''));if(!context.valid())return false;
+      const res=await request('GET','/api/feed/list?size=20&stable_cursor=true'+(cursor?'&cursor='+encodeURIComponent(cursor):''));if(!context.valid())return false;
       renderSkeleton(false);
       if(res?.code!==0||!res.data){if(reset){showState('error');byId('state-error-text').textContent=res?.message||'加载失败，请检查网络后重试'}else showToast(res?.message||'加载失败','error');return false}
-      if(reset){posts.clear();loadedPages=0;disconnectReads();byId('feed-list').replaceChildren()}
+      if(reset){mediaView.clearCards();posts.clear();loadedPages=0;disconnectReads();byId('feed-list').replaceChildren()}
       let last=byId('feed-list').lastElementChild?.dataset.dateKey||null;
       for(const post of res.data.posts||[]){const id=String(post.id);if(post.id==null)continue;if(posts.has(id))continue;remember(post);last=appendPost(posts.get(id),last)}
       loadedPages++;nextCursor=res.data.next_cursor||null;noMore=!nextCursor||nextCursor===cursor;
@@ -584,7 +599,8 @@ export async function mount(context) {
     visual(liked,Math.max(0,count+(liked?1:-1)));
     try{
       const res=await request(liked?'POST':'DELETE','/api/feed/'+encodeURIComponent(id)+'/like',null,{authPolicy:'interactive-modal'});if(!context.valid())return;
-      if(res?.code===0&&res.data){visual(!!res.data.user_liked,res.data.display_likes);Object.assign(posts.get(id),res.data)}
+      if(res?.code===0&&res.data){visual(!!res.data.user_liked,res.data.display_likes);for(const post of [posts.get(id),mediaView.detailPost(id)])if(post)Object.assign(post,res.data);
+        for(const el of root.querySelectorAll('.feed-item[data-id="'+id+'"]')){el.dataset.liked=res.data.user_liked?'1':'0';el.dataset.likes=res.data.display_likes;el.querySelector('.like-count').textContent=res.data.display_likes;setLikeVisual(el.querySelector('.like-act'),res.data.user_liked)}}
       else if(res?.code===-1){await refreshTruth();showToast('未收到操作结果，已重新读取列表，请确认后再操作','error')}
       else {visual(was,count);if(res?.code!==401)showToast(res?.message||'操作失败，请重试','error')}
     }finally{likePending.delete(id)}
@@ -606,7 +622,7 @@ export async function mount(context) {
     try{
       const res=await request('POST','/api/feed/'+encodeURIComponent(id)+'/comments',{content,...(reply?{reply_to_lxm:true}:{})},{authPolicy:'interactive-modal'});if(!context.valid())return;
       if(res?.code===0){
-        const post=posts.get(String(id));if(post&&res.data?.comment_id){post.comments||=[];if(!post.comments.some(c=>String(c.id)===String(res.data.comment_id))){post.comments.push({id:res.data.comment_id,content,reply_to_lxm:reply});post.display_comments=(Number(post.display_comments)||0)+1}renderPosts()}
+        for(const post of new Set([posts.get(String(id)),mediaView.detailPost(id)])){if(post&&res.data?.comment_id){post.comments||=[];if(!post.comments.some(c=>String(c.id)===String(res.data.comment_id))){post.comments.push({id:res.data.comment_id,content,reply_to_lxm:reply});post.display_comments=(Number(post.display_comments)||0)+1}}}renderPosts();mediaView.repaintDetail()
         if(generation===commentGeneration)closeCommentPanel();
       }else if(res?.code===-1){await refreshTruth();showToast('未收到发送结果，已重新读取列表，请确认后再操作','error')}
       else if(res?.code!==401)showToast(res?.code===10504?'你刚刚才评论过，等 30 秒吧~':res?.message||'发送失败','error');
@@ -615,8 +631,8 @@ export async function mount(context) {
   listen(root,'click',event=>{
     const action=event.target.closest('[data-feed-action]')?.dataset.feedAction;
     if(action==='back')return context.router.back();
-    if(action==='chat')return context.router.navigate('/pages/chat.html');
-    const item=event.target.closest('.feed-item');if(!item)return;const post=posts.get(item.dataset.id);if(!post)return;
+    if(action==='chat')return context.router.navigate(ChatUnread.chatURL(byId('msg-badge').style.display!=='none'));
+    const item=event.target.closest('.feed-item');if(!item)return;const post=posts.get(item.dataset.id)||mediaView.detailPost(item.dataset.id);if(!post)return;
     if(event.target.closest('.like-act'))return toggleLike(item);
     if(event.target.closest('.comment-act'))return openCommentPanel(post.id);
     if(event.target.closest('.comment-reply'))return openCommentPanel(post.id,true);
@@ -658,28 +674,43 @@ export async function mount(context) {
     }
   }, true)
   for(const type of ['pointerdown','wheel','touchstart','keydown'])listen(root,type,()=>{interacted=true},{passive:true});
-  let startY=0,pulling=false;
-  listen(window,'touchstart',event=>{pulling=!commentLease.isOpen()&&!closeActivePreview&&window.scrollY<=0&&event.touches.length===1;if(pulling)startY=event.touches[0].clientY},{passive:true});
-  listen(window,'touchmove',event=>{if(pulling&&event.touches[0]&&event.touches[0].clientY-startY>60)byId('pull-tip').classList.add('show')},{passive:true});
+  let startX=0,startY=0,pulling=false;
+  listen(window,'touchstart',event=>{
+    pulling=!commentLease.isOpen()&&!closeActivePreview&&!root.querySelector('.feed-detail,.feed-fullscreen')&&window.scrollY<=0&&event.touches.length===1;
+    if(pulling){startX=event.touches[0].clientX;startY=event.touches[0].clientY}
+  },{passive:true});
+  listen(window,'touchmove',event=>{
+    if(!pulling||!event.touches[0])return;
+    const dx=Math.abs(event.touches[0].clientX-startX),dy=event.touches[0].clientY-startY;
+    if(dx>10&&dx>Math.abs(dy)){pulling=false;byId('pull-tip').classList.remove('show');return}
+    if(dy>60)byId('pull-tip').classList.add('show')
+  },{passive:true});
+  listen(window,'touchcancel',()=>{pulling=false;byId('pull-tip').classList.remove('show')},{passive:true});
   listen(window,'touchend',()=>{if(!pulling)return;pulling=false;if(byId('pull-tip').classList.contains('show')){byId('pull-tip').classList.remove('show');return loadFeed(true)}},{passive:true});
   const sentinelObserver=new IntersectionObserver(context.scope.guard(entries=>{sentinelVisible=entries.some(e=>e.isIntersecting);if(sentinelEnabled&&!loading&&!noMore&&sentinelVisible)run(loadFeed(false))}));context.cleanup(()=>sentinelObserver.disconnect(),{kind:'observer'});
   function enableFeedInfiniteScroll(){if(!context.valid()||sentinelEnabled)return;sentinelEnabled=true;sentinelObserver.observe(byId('bottom-sentinel'))}
   const commentReplyObserver=new IntersectionObserver(context.scope.guard(entries=>{
     if(!isFeedAuthenticated())return;
-    for(const entry of entries){const id=entry.target.dataset.commentId;if(!entry.isIntersecting||entry.intersectionRatio<.6||!id||reportedComments.has(id))continue;reportedComments.add(id);commentReplyObserver.unobserve(entry.target);run(request('POST','/api/feed/comments/'+encodeURIComponent(id)+'/read'))}
+    for(const entry of entries){const id=entry.target.dataset.commentId;if(!mediaView.readingRoot()?.contains(entry.target)||!entry.isIntersecting||entry.intersectionRatio<.6||!id||reportedComments.has(id))continue;reportedComments.add(id);commentReplyObserver.unobserve(entry.target);run(request('POST','/api/feed/comments/'+encodeURIComponent(id)+'/read'))}
   }),{threshold:.6});
   const postDwellObserver=new IntersectionObserver(context.scope.guard(entries=>{
     if(!isFeedAuthenticated())return;
     for(const entry of entries){const id=entry.target.dataset.id;if(!id||reportedPosts.has(id))continue;
-      if(entry.isIntersecting&&entry.intersectionRatio>=.5){if(dwell.has(id))continue;dwell.set(id,setTimeout(()=>{dwell.delete(id);if(!isFeedAuthenticated()||!entry.target.isConnected)return;reportedPosts.add(id);postDwellObserver.unobserve(entry.target);run(request('POST','/api/feed/'+encodeURIComponent(id)+'/read'))},3000))}
+      if(entry.isIntersecting&&entry.intersectionRatio>=.5){if(dwell.has(id))continue;dwell.set(id,setTimeout(()=>{dwell.delete(id);if(!isFeedAuthenticated()||!mediaView.readingRoot()?.contains(entry.target))return;reportedPosts.add(id);postDwellObserver.unobserve(entry.target);run(request('POST','/api/feed/'+encodeURIComponent(id)+'/read'))},3000))}
       else if(dwell.has(id)){clearTimeout(dwell.get(id));dwell.delete(id)}
     }
   }),{threshold:.5});
   context.cleanup(disconnectReads,{kind:'observer'});
   function observeReadTargets(item){
-    if(!isFeedAuthenticated()||restoring)return;if(!reportedPosts.has(item.dataset.id))postDwellObserver.observe(item);
-    for(const reply of item.querySelectorAll('.comment-reply[data-comment-id]')){const id=reply.dataset.commentId,post=posts.get(item.dataset.id),comment=post?.comments?.find(c=>String(c.id)===id);if(!reportedComments.has(id)&&!comment?.lxm_reply_read_at)commentReplyObserver.observe(reply)}
+    if(!isFeedAuthenticated()||restoring||!mediaView.readingRoot()?.contains(item))return;if(!reportedPosts.has(item.dataset.id))postDwellObserver.observe(item);
+    for(const reply of item.querySelectorAll('.comment-reply[data-comment-id]')){const id=reply.dataset.commentId,post=mediaView.detailPost(item.dataset.id)||posts.get(item.dataset.id),comment=post?.comments?.find(c=>String(c.id)===id);if(!reportedComments.has(id)&&!comment?.lxm_reply_read_at)commentReplyObserver.observe(reply)}
   }
+  function refreshReadTargets(){
+    disconnectReads();
+    if(isFeedAuthenticated()&&!restoring)for(const item of mediaView.readingRoot()?.querySelectorAll('.feed-item')||[])observeReadTargets(item);
+  }
+  listen(window,'home-startup-change',refreshReadTargets);
+  listen(document,'visibilitychange',refreshReadTargets);
   function updateNewFeedBar(){byId('new-feed-count').textContent=String(pendingNewCount);byId('new-feed-bar').classList.toggle('is-visible',pendingNewCount>0)}
   function disconnectFeedSSE(){feedEventSource?.close();feedEventSource=null;if(sseRetryTimer)clearTimeout(sseRetryTimer);sseRetryTimer=null}
   function connectFeedSSE(){
@@ -694,21 +725,25 @@ export async function mount(context) {
   const refresh=()=>{pendingNewCount=0;updateNewFeedBar();return loadFeed(true)};
   listen(byId('btn-retry'),'click',refresh);listen(byId('new-feed-bar'),'click',()=>{window.scrollTo({top:0,behavior:'smooth'});return refresh()});
   listen(byId('new-feed-bar'),'keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();return refresh()}});
+  context.cleanup(ChatUnread.watch(loadMsgBadge));
   async function initialize(){
     startFeedBootProgress();
     for(const post of context.state?.items||[])remember(post);if(posts.size)renderPosts();
     const initialReads=Promise.allSettled([loadHeader(),isFeedAuthenticated()?loadMsgBadge():Promise.resolve()]);
-    if(isFeedAuthenticated()&&!enterStarted){enterStarted=true;const entered=await request('POST','/api/feed/enter');if(!context.valid())return;if(entered?.code===0&&context.params.get('focus')==='unread_reply')anchorCommentId=entered.data?.anchor_comment_id||null}
+    if(isFeedAuthenticated()&&!enterStarted){enterStarted=true;const entered=await request('POST','/api/feed/enter');if(!context.valid())return;if(entered?.code===0&&context.params.get('focus')==='unread_reply'){anchorCommentId=entered.data?.anchor_comment_id||null;anchorPostId=entered.data?.anchor_post_id||null}}
     await initialReads;if(!context.valid())return;
     const loaded=await loadFeed(true);if(!context.valid())return;
     if(loaded){
       for(let i=1;i<entryPageCount&&!noMore&&!interacted;i++)if(!await loadFeed(false,{restore:true}))break;
       if(!context.valid())return;
-      if(anchorCommentId){const anchor=[...root.querySelectorAll('[data-comment-id]')].find(n=>n.dataset.commentId===String(anchorCommentId));if(anchor&&!interacted){anchor.scrollIntoView({block:'center'});anchor.classList.add('comment-highlighted');setTimeout(()=>anchor.classList.remove('comment-highlighted'),1600)}}
+      if(anchorCommentId){const anchor=[...root.querySelectorAll('[data-comment-id]')].find(n=>n.dataset.commentId===String(anchorCommentId));if(!anchor&&!interacted&&anchorPostId)await mediaView.openDetail(anchorPostId,anchorCommentId);if(anchor&&!interacted){anchor.scrollIntoView({block:'center'});anchor.classList.add('comment-highlighted');setTimeout(()=>anchor.classList.remove('comment-highlighted'),1600)}}
       else if(!interacted&&context.state)services.history.restore(context.router.current);
     }
-    restoring=false;enableFeedInfiniteScroll();if(isFeedAuthenticated()){connectFeedSSE();for(const item of byId('feed-list').querySelectorAll('.feed-item'))observeReadTargets(item)}
+    restoring=false;enableFeedInfiniteScroll();if(isFeedAuthenticated()){connectFeedSSE();refreshReadTargets()}
   }
-  run(initialize());
-  return{unmount(){closeActivePreview?.('unmount');commentGeneration++},captureState:()=>({items:[...posts.values()],cursor:{value:nextCursor,pages:loadedPages},expandedIds:[...expanded]})};
+  if(context.reason==='resume'){
+    await initialize();
+    if(context.valid())await mediaView.restore();
+  }else run(initialize());
+  return{unmount(){closeActivePreview?.('unmount');commentGeneration++},captureState:()=>({mediaVisit:mediaView.capture(),items:[...posts.values()],cursor:{value:nextCursor,pages:loadedPages},expandedIds:[...expanded]})};
 }

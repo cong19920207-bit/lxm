@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
+from backend.routers.pet import private_response
 from backend.schemas.common import ApiResponse
 from backend.services.feed_service import FeedError, feed_service
 from backend.services.feed_sse_service import feed_sse_service
@@ -44,16 +45,34 @@ async def get_feed_write_db(db: AsyncSession = Depends(get_db)) -> AsyncSession:
     return db
 
 
-@router.get("/list", response_model=ApiResponse)
+@router.get("/list", response_model=ApiResponse, dependencies=[Depends(private_response)])
 async def get_feed_list(
     cursor: str | None = Query(None, description="游标：上一页最后一条 scheduled_publish_time"),
+    stable_cursor: bool = Query(False, description="按发布时间和帖子 ID 续页"),
     size: int = Query(20, ge=1, le=50, description="每页数量，默认 20 上限 50"),
     user_id: int | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Feed 列表（游标分页，仅返回已到点+可见+ready 的帖子，评论私有过滤）。"""
-    data = await feed_service.list_feed(db, user_id, cursor, size)
+    try:
+        data = await feed_service.list_feed(db, user_id, cursor, size, stable_cursor=stable_cursor)
+    except FeedError as exc:
+        return ApiResponse.fail(code=exc.code)
     return ApiResponse.ok(data=data)
+
+
+@router.get("/pins", response_model=ApiResponse, dependencies=[Depends(private_response)])
+async def get_pins(user_id: int | None = Depends(get_current_user_optional), db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(data=await feed_service.list_pins(db, user_id))
+
+
+@router.get("/posts/{post_id}", response_model=ApiResponse, dependencies=[Depends(private_response)])
+async def get_post(post_id: int, user_id: int | None = Depends(get_current_user_optional),
+                   db: AsyncSession = Depends(get_db)):
+    try:
+        return ApiResponse.ok(data=await feed_service.get_post(db, user_id, post_id))
+    except FeedError as exc:
+        return ApiResponse.fail(code=exc.code)
 
 
 @router.get("/config/header", response_model=ApiResponse)

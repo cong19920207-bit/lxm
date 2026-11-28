@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ from backend.constants import (
     ERR_LLM_FAILED,
 )
 from backend.services import chat_service
+from backend.routers.chat_unread import inbox_router
 from backend.services.chat_client_timing import CLIENT_TIMING
 from backend.services.timeline_read_service import get_timeline
 from backend.database import async_session_maker, get_db
@@ -60,6 +61,7 @@ from backend.utils.auth_middleware import get_current_user
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["对话"])
+router.include_router(inbox_router(get_current_user))
 
 _SSE_CHUNK_SIZE = 2
 _SSE_CHUNK_DELAY = 0.03
@@ -497,15 +499,17 @@ async def _sse_chat_wait_bundle(
     """§2.9.4 多气泡 SSE：meta(message_count) → delta(message_index) → done(messages+emotion)。"""
 
     from backend.services import chat_lifecycle as life
-    async def status_fields():
-        if admission is None:return {}
-        async with async_session_maker() as db:
-            status=await life.read_status(db,user_id,admission.operation,admission.request_id)
-        return {key:status[key] for key in ('operation','request_id','source_messages','accepted_generation_id',
-            'effective_generation_id','effective_deadline_at','reconcile_until','state_revision','can_resend')}
-    identity=await status_fields()
     payload = await chat_service.await_bundle_payload(generation_id,user_id)
-    identity=await status_fields()
+    identity = {}
+    result = payload.get("result") or {}
+    if admission is not None:
+        async with async_session_maker() as db:
+            status = await life.read_status(db, user_id, admission.operation, admission.request_id)
+        identity = {key: status[key] for key in ('operation','request_id','source_messages','accepted_generation_id',
+            'effective_generation_id','effective_deadline_at','reconcile_until','state_revision','can_resend')}
+        observed = status.get("result")
+        if observed and observed["round_id"] == result.get("round_id"):
+            result = observed
     if payload.get("error") and payload.get("code") == ERR_LLM_FAILED and payload.get("message") == "等待回复超时":
         meta = json.dumps({"type": "meta", "generation_id": generation_id, "message_count": 0, **identity}, ensure_ascii=False)
         yield f"data: {meta}\n\n"
@@ -550,19 +554,24 @@ async def _sse_chat_wait_bundle(
     yield f"data: {meta}\n\n"
 
     # 按条推送 delta：每条 message 按 chunk 拆分，携带 message_index
+    saved = result.get("messages", [])
     for msg_idx, msg in enumerate(messages_raw):
         content = msg.get("content") or ""
         for i in range(0, len(content), _SSE_CHUNK_SIZE):
             chunk = content[i : i + _SSE_CHUNK_SIZE]
-            event = json.dumps(
-                {"type": "delta", "content": chunk, "message_index": msg_idx,"generation_id":generation_id,"state_revision":payload.get("state_revision")},
-                ensure_ascii=False,
-            )
+            data = {"type": "delta", "content": chunk, "message_index": msg_idx,
+                    "generation_id": generation_id, "state_revision": payload.get("state_revision")}
+            if i + len(chunk) == len(content) and msg_idx < len(saved):
+                message = saved[msg_idx]
+                data["completed_message"] = {"id": message["id"], "sort_seq": str(message["sort_seq"])}
+                if "is_read" in message:
+                    data["completed_message"]["is_read"] = message["is_read"]
+            event = json.dumps(data, ensure_ascii=False)
             yield f"data: {event}\n\n"
             await asyncio.sleep(_SSE_CHUNK_DELAY)
 
     done_event = json.dumps(
-        {"type": "done", "messages": payload.get("result",{}).get("messages",done_messages), "emotion": emotion_data,"round_id":_round_id, **identity},
+        {"type": "done", "messages": saved or done_messages, "emotion": emotion_data,"round_id":_round_id, **identity},
         ensure_ascii=False,
     )
     yield f"data: {done_event}\n\n"
@@ -679,17 +688,21 @@ async def chat_timeline(
     request: Request,
     pending_reload: bool = Query(False, description="既有pending卡片的一次自动重拉标记"),
     cursor: int | None = Query(None, description="游标：上一页返回的 next_cursor（sort_seq 值），首屏不传"),
+    after: int | None = Query(None, ge=0, description="只拉取此序号之后的消息，按升序分页"),
     limit: int = Query(20, ge=1, le=50, description="每页数量"),
     user_id: int = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # 首屏拉取时若满队且全 pending_llm，后台补跑 bundle（刷新页可自愈死锁）
-    if cursor is None:
+    if cursor is not None and after is not None:
+        raise HTTPException(422, "请只指定一个翻页方向")
+    if cursor is None and after is None:
         await chat_service.trigger_recovery_if_queue_stuck(
             user_id, db, _execute_llm_bundle
         )
     response.headers['Cache-Control'] = 'no-store'
     data = await get_timeline(user_id, db, cursor=cursor, limit=limit, include_calls=True,
+        after=after,
         metrics=getattr(request.app.state, "voice_metrics", None), pending_reload=pending_reload)
     return ApiResponse.ok(data=data)
 

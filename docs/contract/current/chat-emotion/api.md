@@ -57,13 +57,22 @@
 - **关联表**：conversation_log
 - **状态**：已实现
 
+<a id="chat-unread"></a>
+#### 聊天未读与逐条回执
+
+登录后，`GET /api/chat/unread` 返回本人聊天的 `{count, first_unread, latest_unread}`。每个锚点为 `{source, id, sort_seq}`，其中 `source` 取 `assistant` 或 `agent`，序号使用十进制字符串。总数为零时两个锚点均为 `null`。每条主动消息计一条。H5 与 Open API 共用同一账号的未读状态。两端发送或重发后，每个新成功入库的普通回复气泡各计一条。接收发送结果、重放请求、查询状态和拉取历史都保留未读，只有显式单条回执更新该气泡。用户发言、通话卡片及失败回复均不计入。
+
+聊天页通过 `GET /api/chat/unread/status` 核对已加载气泡。查询参数 `assistant_id` 和 `agent_id` 可重复，合计 1 至 100 个正整数。返回 `{unread:[{source,id}]}`，只列出请求中当前用户仍未读的消息。查询不改变阅读状态。
+
+`POST /api/chat/messages/{source}/{id}/read` 仅确认当前用户的指定气泡，事务提交后返回 `{source, id, is_read:true}`。重复回执幂等。ID 不存在、角色不符或属于他人时返回业务码 `10111`。两张表可以有相同的数字 ID，因此所有定位、回执与去重都使用来源和 ID。主动消息与旧 `/api/agent` 接口共用同一个已读字段。[客户端阅读判定](../h5-app/api.md#chat-unread)
+
 #### GET /api/chat/timeline
 
 - **所属端**：H5
 - **鉴权**：Bearer
-- **Query**：`cursor` int 可选；`limit` int 1–50 默认 20；`pending_reload` bool 默认 false
+- **Query**：`cursor` 向前加载更早的消息，`after` 向后加载严格大于该序号的消息，两者互斥。`limit` 取 1–50，默认 20。`pending_reload` 默认 false。两种方向都按序号升序展示，序号超出 JavaScript 安全整数范围时，客户端使用额外的 `sort_seq_text`。
 - **响应**：`ApiResponse`；`data`: `{ items: [...], next_cursor, has_more }`
-- **`items[]`（conversation_log 来源）**：`source`, `sort_seq`, `id`, `content`, `created_at`, `emotion_label`, **`delivery_status`**, **`skipped_in_prompt`**, `is_read`, `trigger_type`（后两者对 agent 有值）；**`delivery_status` 取值**与 **`backend/constants.py`** 中单点常量一致（示例：`delivered`、`pending_llm`、`failed_timeout`、`failed_error`、`failed_blocked`），**不在**契约全文复制枚举表（J2）；**多气泡**：同一 `round_id` 下可有 **多条** `source=assistant` 行，按 `sort_seq` **升序**即为气泡展示顺序（与 SSE `done.messages` 下标一致，STEP-011）
+- **`items[]`（conversation_log 来源）**：`source`, `sort_seq`, `id`, `content`, `created_at`, `emotion_label`, **`delivery_status`**, **`skipped_in_prompt`**, `is_read`, `trigger_type`（H5 的 assistant 与 agent 行返回布尔 `is_read`，user 与 call 返回 null。仅 agent 有 `trigger_type`）；**`delivery_status` 取值**与 **`backend/constants.py`** 中单点常量一致（示例：`delivered`、`pending_llm`、`failed_timeout`、`failed_error`、`failed_blocked`），**不在**契约全文复制枚举表（J2）；**多气泡**：同一 `round_id` 下可有 **多条** `source=assistant` 行，按 `sort_seq` **升序**即为气泡展示顺序（与 SSE `done.messages` 下标一致，STEP-011）
 - **只读恢复投影**：timeline GET 不仲裁、恢复或修改聊天业务状态。持久 dispatch 的 startup/周期有限扫描见 [SQL lifecycle](data.md#chat-lifecycle)；原请求状态核实见 [SubmissionStatus](#submission-status)。
 - **assistant / agent 行**：`delivery_status`、`skipped_in_prompt` **键存在且值为 `null`**（A1）
 - **关联表**：conversation_log, agent_message
@@ -134,7 +143,7 @@ SQL 准入 accepted_at 冻结180秒及计时版本；最终成功决定、提交
 | accepted_at / original_deadline_at / effective_deadline_at | 原接受时间、原代D、当前有效代D，未知为null |
 | reconcile_until / dedupe_expires_at | 原核实截止与身份保留截止，未知为null |
 | source_messages | 原submission ordinal排序 `{source:'user',id,sort_seq:<十进制字符串>}[]` |
-| result | 确认成功为 `{round_id,messages:[{id,sort_seq:<字符串>,type:'text',content}],emotion:{label,confidence}}`，其它null |
+| result | 确认成功为 `{round_id,messages:[{id,sort_seq:<字符串>,type:'text',content,is_read:<布尔>}],emotion:{label,confidence}}`，其它null |
 | can_resend | 后端原窗口/额度/活动代判断；未知一律false |
 
 读存储失败输出 unverified/storage_unavailable/unavailable，空源/结果且不可重发；过D或lease未知也不伪造成功/失败终态。GET不仲裁、不恢复、不写业务状态。原记录墓碑为expired，与not_found及读取未知分开。
@@ -142,7 +151,7 @@ SQL 准入 accepted_at 冻结180秒及计时版本；最终成功决定、提交
 <a id="chat-sse-state"></a>
 ### SSE 与历史状态投影
 
-原 meta.message_count、delta.message_index、done.messages/emotion 及 failed/obsolete 保留。meta/done 增 `operation/request_id/source_messages/accepted_generation_id/effective_generation_id/effective_deadline_at/reconcile_until/state_revision/can_resend`；delta 增 generation_id/state_revision；done 增 round_id 与已保存 assistant id/sort_seq。成功 messages 仍以最终入库气泡为真相，不预铺空气泡；旧代/低修订不能覆盖新代。H5 的消息身份与有界等待消费见[客户端同步](../h5-app/api.md#chat-submission-sync)，Open 成功仍为 messages/emotion/round_id，原 timeline 十字段不扩展。
+H5 每个已保存气泡的最后一个 delta 带 `completed_message:{id,sort_seq}`，其中序号为十进制字符串。已取得提交状态时同时携带 `is_read`，即使重放同一个请求，已经确认的气泡也保持已读。H5 和 Open 提交状态查询的 `result.messages[]` 同时返回当前 `is_read`。原 meta.message_count、delta.message_index、done.messages/emotion 及 failed/obsolete 保留。meta/done 增 `operation/request_id/source_messages/accepted_generation_id/effective_generation_id/effective_deadline_at/reconcile_until/state_revision/can_resend`；delta 增 generation_id/state_revision；done 增 round_id 与已保存 assistant id/sort_seq。成功 messages 仍以最终入库气泡为真相，不预铺空气泡；旧代/低修订不能覆盖新代。H5 的消息身份与有界等待消费见[客户端同步](../h5-app/api.md#chat-submission-sync)，Open 成功仍为 messages/emotion/round_id，原 timeline 十字段不扩展。
 
 Admin既有历史先按原规则计数/分页，再按(conversation或agent,id)批量投影；仅user行增加 processing_state/status_reason/state_origin/state_revision/status_observed_at。origin 可 lifecycle/legacy/unavailable，assistant/普通agent不造user状态；原角色、日期、分页、sort_seq不变，GET只读。后台页面、权限及手动刷新唯一见[后台契约](../admin-security-accounts/api.md#memory-admin-history-state)。
 

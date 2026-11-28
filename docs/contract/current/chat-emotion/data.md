@@ -21,10 +21,13 @@
 | persona_risk_flag  | Boolean    | 是   | False  | 人格风险标记           |
 | persona_risk_type  | String(50) | 否   | NULL   |                  |
 | sort_seq           | BigInteger | 是   | 0      | 时间线排序（`index=True`） |
+| reply_is_read      | Boolean    | 否   | NULL   | H5 或 Open API 的每个新成功入库的 assistant 气泡写 false。同账号任一端提交该气泡的回执后写 true。历史 NULL 回复在两端均视为已读，user 行保持 NULL。 |
 | delivery_status    | String(32) | 否   | NULL   | user 行：送达/等待/失败等（与 `constants` 一致）；assistant 为 NULL |
 | skipped_in_prompt  | Boolean    | 是   | false  | Q14：未进入本轮 Prompt 的 user 行 |
 | round_id           | String(36) | 否   | NULL   | TD-016 / STEP-011：一轮内全部 user 行与**全部** assistant 行共用同一 UUID 文本（多气泡时为多行 assistant，每行独立 `sort_seq`）；旧数据可为 NULL |
 | created_at         | DateTime   | 是   | utcnow |                  |
+
+迁移 `v10g_chat_unread_001` 增加该可空列及两个未读查询索引：`conversation_log(user_id, reply_is_read, sort_seq)` 和 `agent_message(user_id, is_read, sort_seq)`。迁移保留既有主动消息的已读状态。
 
 ### 表名：emotion_log
 

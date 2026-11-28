@@ -1,7 +1,7 @@
 <!-- 进页全屏 loading：列表+首屏图就绪后关闭 -->
   <div class="feed-boot-loading is-visible" id="feed-boot-loading" role="status" aria-live="polite">
-    <div class="feed-boot-spinner" aria-hidden="true"></div>
-    <div class="feed-boot-text">正在进入她的生活…</div>
+    <span class="lxm-loading-character" aria-hidden="true"></span>
+    <div class="lxm-loading-caption">正在进入她的生活<span class="lxm-loading-dots" aria-hidden="true">...</span></div>
   </div>
   <div class="feed-wrap">
     <header class="feed-hero" id="feed-hero" role="banner">
@@ -43,6 +43,7 @@
         <span>林小梦更新了 <span id="new-feed-count">0</span> 条动态</span>
         <span class="new-feed-go">查看 &gt;</span>
       </div>
+      <section id="feed-pins" aria-label="置顶动态" hidden></section>
       <div id="feed-skeleton"></div>
       <div id="feed-list"></div>
       <div class="no-more-text" id="no-more" style="display:none">没有更多啦</div>

@@ -1,18 +1,11 @@
 # -*- coding: utf-8 -*-
 # Open API 对话 Facade（同步 JSON）
 
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.constants import (
-    ERR_CHAT_GENERATION_OBSOLETE,
-    ERR_CHAT_QUEUE_FULL,
-    ERR_CONTENT_EMPTY,
-    ERR_CONTENT_UNSAFE,
-    ERR_LLM_FAILED,
-)
+from backend.constants import ERR_CHAT_GENERATION_OBSOLETE, ERR_LLM_FAILED
 from backend.schemas.common import ApiResponse
 from backend.services import chat_service
 from backend.services.timeline_read_service import get_timeline
@@ -40,16 +33,10 @@ async def _payload_to_api_response(generation_id: str,user_id:int|None=None) -> 
     if payload.get("error"):
         code = payload.get("code", ERR_LLM_FAILED)
         return ApiResponse.fail(code)
-    messages, emotion, round_id = chat_service.build_done_messages_from_payload(payload)
-    if not round_id:
+    result = payload.get("result")
+    if not result or not result.get("messages") or not result.get("round_id"):
         return ApiResponse.fail(ERR_LLM_FAILED)
-    return ApiResponse.ok(
-        data={
-            "messages": messages,
-            "emotion": emotion,
-            "round_id": round_id,
-        }
-    )
+    return ApiResponse.ok(data=result)
 
 
 async def open_get_timeline(

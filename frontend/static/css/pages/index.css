@@ -579,6 +579,9 @@ html[data-app-route="index"] body.h5-skin .h5-home-page .home-hero .home-top-bar
       background: rgba(0, 0, 0, 0.25);
       display: block;
     }
+:where([data-app-page="index"]) .home-feed-video-thumb { position: relative; min-width: 0; }
+:where([data-app-page="index"]) .home-feed-video-thumb::after { content: "▶"; position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #171717aa; color: white; font-size: 11px; }
+:where([data-app-page="index"]) .home-feed-thumbs [hidden] { display: none; }
 :where([data-app-page="index"]) .home-feed-thumbs:empty {
       display: none;
     }

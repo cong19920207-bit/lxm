@@ -26,6 +26,8 @@ RUN pip install --upgrade pip && \
 
 # 复制项目代码（.env 由 docker-compose 通过 env_file 注入，不打包进镜像）
 COPY backend/ ./backend/
+COPY scripts/install_visitor_geo.py ./scripts/install_visitor_geo.py
+RUN python scripts/install_visitor_geo.py
 # 管理后台与用户端静态：与 main.py 中 FileResponse / StaticFiles 路径一致（供直连 :8000 或 nginx 反代 /admin）
 COPY admin/ ./admin/
 COPY frontend/ ./frontend/

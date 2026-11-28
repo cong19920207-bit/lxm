@@ -1,0 +1,101 @@
+.feed-toolbar, .feed-actions, .feed-views, .video-frame-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.feed-toolbar {
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #e8e8e8;
+}
+.feed-views { gap: 4px; padding: 3px; background: #f3f5f7; border-radius: 6px; }
+.feed-views button {
+  padding: 7px 15px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+.feed-views button[aria-pressed="true"] {
+  color: var(--text);
+  background: white;
+  font-weight: 600;
+  box-shadow: 0 1px 3px #15243c26;
+}
+#draft-count { font-variant-numeric: tabular-nums; }
+.draft-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(110px, .55fr) minmax(160px, .55fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 4px;
+  border-bottom: 1px solid #eee;
+}
+.draft-summary { min-width: 0; }
+.draft-caption { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.video-note, .draft-ref { display: block; color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
+.draft-ref, #video-time-hint { margin-top: 4px; }
+.draft-state { justify-self: start; overflow-wrap: anywhere; }
+.draft-date { font-variant-numeric: tabular-nums; }
+#video-editor [hidden] { display: none !important; }
+#video-editor .video-dialog {
+  width: min(860px, calc(100% - 24px));
+  min-width: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#video-editor .modal-body { overflow: auto; min-height: 0; }
+#video-editor .modal-header, #video-editor .modal-footer { flex-shrink: 0; }
+.video-dismiss { padding: 6px; }
+.video-columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 28px; }
+.video-columns section { min-width: 0; }
+.video-columns section + section { padding-left: 24px; border-left: 1px solid #eceff2; }
+.video-dialog h4 { font-size: 15px; margin: 0 0 14px; }
+.video-columns .form-item:last-child { margin-bottom: 0; }
+.video-upload-box {
+  padding: 22px 12px;
+  border: 1px dashed #b9c9d9;
+  border-radius: 6px;
+  background: #f8fafc;
+  text-align: center;
+}
+.video-file-label { cursor: pointer; display: inline-block; position: relative; }
+.video-file-label input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.video-file-label:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.video-upload-box small { margin-top: 8px; }
+#video-progress { width: 100%; accent-color: var(--primary); }
+#video-status { font-size: 14px; margin: 14px 0 6px; overflow-wrap: anywhere; }
+#video-spec { white-space: pre-line; }
+#video-expires { margin-top: 12px; }
+#video-framing { margin-top: 22px; padding-top: 18px; border-top: 1px solid #eee; }
+.feed-edit-frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.feed-edit-frames figure { margin: 0; }
+.feed-edit-frames figcaption, .video-frame-tools { font-size: 13px; color: var(--text-secondary); }
+.feed-edit-frames img, .feed-edit-frames video { display: block; width: 100%; }
+.feed-edit-frames figcaption { margin-bottom: 6px; }
+.feed-edit-frames button { margin-top: 6px; }
+#video-pin-cover { aspect-ratio: 4 / 3; object-fit: cover; }
+#video-list-frame { background: #151515; overflow: hidden; }
+#video-list-frame > * { width: 100%; height: 100%; }
+.video-frame-tools { margin-top: 16px; gap: 12px; }
+.video-frame-tools .form-control { width: auto; padding: 4px; }
+.video-frame-tools input[type="range"] { vertical-align: middle; width: 90px; }
+#video-abandon { margin-right: auto; color: var(--danger); }
+.video-feedback:not(:empty) { color: #a42e27; background: #fff4f2; padding: 8px 24px; font-size: 13px; }
+@media (max-width: 680px) {
+  .video-columns { grid-template-columns: 1fr; gap: 20px; }
+  .video-columns section + section { padding: 16px 0 0; border: 0; border-top: 1px solid #eee; }
+  .draft-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .draft-state { grid-column: 1; }
+  .draft-row button { grid-column: 2; grid-row: 1; }
+  .draft-date { grid-column: 1 / -1; }
+  .video-dialog .modal-body, .video-dialog .modal-footer, .video-dialog .modal-header { padding: 14px; }
+  .feed-edit-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

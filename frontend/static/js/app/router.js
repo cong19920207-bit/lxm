@@ -137,6 +137,10 @@ export class Router {
       previous.dispose('route-commit');
     }
     const entry = this.services.history?.commit?.(route, options) || null;
+    if (previous && !options.recovery && !options.safety &&
+        (!options.reason || ['pop', 'back', 'link', 'navigate'].includes(options.reason))) {
+      void this.win.LxmVisitor?.signal('navigate', undefined, Date.now(), 'main/' + route.name);
+    }
     if (!this.services.history && options.mode !== 'pop') {
       this.win.history[options.mode === 'replace' ? 'replaceState' : 'pushState'](this.win.history.state, '', route.url);
     }

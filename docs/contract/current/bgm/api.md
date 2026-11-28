@@ -220,6 +220,8 @@ VoiceEntry能力拒绝不改变BGM；获准用途说明、拒麦、取消及失�
 
 当前独立短TTS产品链不存在；本期只有接口模拟及实际Chrome AAC增益/降级能力验证，不能声明已新增TTS业务。重叠、同ID换代、取消/销毁/超时与优先级SIM通过；实际增益25%、改音量恢复、渐变与设备降级暂停通过。H5-M输出能力仍待验，采用比例的主观听感尚未用户确认。
 
+<a id="feed-video-audio"></a>
+
 ## 普通媒体与未知中断（STEP-018）
 
 `bgm-media.js`提供BgmMedia.create，每页BgmPage.mediaActivities可显式begin(id, {audible, kind})，kind为media或recording。无声media不占用；录音即使无输出仍暂停BGM。活动句柄end/cancel/destroy按当前归属释放，同ID重复开始幂等，旧句柄不解除重用ID。多路共用ordinary-media阻断，最后一路才解除；与call/short-audio/hidden等其他阻断分开。
@@ -228,7 +230,9 @@ VoiceEntry能力拒绝不改变BGM；获准用途说明、拒麦、取消及失�
 
 原生BGM media意外pause（非用户/程序已持有阻断、非自然ended）以及运行中的AudioContext非running，都保留用户意图但进入手动恢复。明确播放操作的context.resume尚未完成时，不把先到的playing或旧statechange判为失败；等待本次resume/play结果，晚到旧pause且元素实际已重新播放时忽略。真实拒绝仍保留手动入口；没有控制系统音频焦点的承诺。
 
-实际接入清单：八类H5及自有非vendor脚本未发现独立普通带声媒体/录音入口；真实VoiceEntry继续使用其独立生命周期，不重复包装。本期接口受控模拟及Chrome原生其他Audio、pause/context.suspend恢复通过；不冒领真实系统电话、其他App或H5-M中断验证。
+朋友圈列表的静音短预览及已知无音轨的正片允许 BGM 继续播放。打开有声正片时以 `feed-video-{帖子ID}` 登记普通媒体占用，退出时释放；只有进入前有播放意图且当前未被手动暂停、关闭或通话阻断，才可尝试续播。切到后台暂停正片，回到前台等待用户继续播放。
+
+2026-10-21 版接入清单中，八类 H5 及自有非 vendor 脚本当时未发现独立普通带声媒体/录音入口；真实VoiceEntry继续使用其独立生命周期，不重复包装。本期接口受控模拟及Chrome原生其他Audio、pause/context.suspend恢复通过；不冒领真实系统电话、其他App或H5-M中断验证。
 
 ## 单候选无声准备（STEP-019）
 

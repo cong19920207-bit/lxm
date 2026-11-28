@@ -733,6 +733,9 @@
       display: block;
     }
 
+    .home-feed-video-thumb { position: relative; min-width: 0; }
+    .home-feed-video-thumb::after { content: "▶"; position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #171717aa; color: white; font-size: 11px; }
+    .home-feed-thumbs [hidden] { display: none; }
     .home-feed-thumbs:empty {
       display: none;
     }
@@ -1561,13 +1564,13 @@
 
         <div class="action-section home-enter-item" style="--enter-delay: 0.6s">
           <div class="home-chat-btn-wrap">
-            <button class="btn-primary chat-btn home-cta-btn" type="button" onclick="location.href='/pages/chat.html'">
+            <button class="btn-primary chat-btn home-cta-btn" type="button" onclick="location.href=ChatUnread.chatURL(document.getElementById('unread-badge').style.display==='block')">
               <div class="home-cta-text">
                 <span>和她说说话吧</span>
                 <span class="home-cta-sub">她在等你哦</span>
               </div>
               <span class="home-cta-arrow">
-                <span id="unread-badge" class="unread-badge" style="display:none" aria-label="未读主动消息">0</span>
+                <span id="unread-badge" class="unread-badge" style="display:none" aria-label="未读聊天消息">0</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
@@ -1583,6 +1586,7 @@
   <script src="/static/js/home-scene-core.js"></script>
   <script src="/static/js/home-scene.js"></script>
   <script src="/static/js/api.js"></script>
+  <script src="/static/js/chat-unread.js"></script>
   <script src="/static/js/home-data.js"></script>
   <link rel="stylesheet" href="/static/css/voice-entry.css">
   <script src="/static/js/voice-playback.js"></script>
@@ -2135,19 +2139,6 @@
       return '更新 · ' + mo + '月' + day + '日 ' + hm
     }
 
-    /** 从最近帖倒序抽出最多 2 张图 */
-    function collectFeedThumbUrls(posts) {
-      const urls = []
-      if (!posts) return urls
-      for (let i = 0; i < posts.length && urls.length < 2; i++) {
-        const imgs = posts[i].image_urls || []
-        for (let j = 0; j < imgs.length && urls.length < 2; j++) {
-          if (imgs[j]) urls.push(imgs[j])
-        }
-      }
-      return urls
-    }
-
     function renderFeedPreview(posts) {
       const textEl = document.getElementById('feed-preview-text')
       const updatedEl = document.getElementById('feed-updated')
@@ -2165,16 +2156,7 @@
       textEl.textContent = latest.content_text || ''
       updatedEl.textContent = formatFeedUpdateLabel(latest.scheduled_publish_time)
 
-      const urls = collectFeedThumbUrls(posts)
-      thumbsEl.innerHTML = ''
-      urls.forEach((src) => {
-        const img = document.createElement('img')
-        img.src = src
-        img.alt = ''
-        img.loading = 'lazy'
-        img.onerror = function () { this.style.display = 'none' }
-        thumbsEl.appendChild(img)
-      })
+      HomeData.renderFeedThumbs(thumbsEl, posts)
     }
 
     function renderFeedFooter(newPostCount) {

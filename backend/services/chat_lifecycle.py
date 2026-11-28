@@ -284,7 +284,8 @@ async def commit_success(handle,marker,*,messages,emotion,round_id,sessions=None
             seqs=await allocate_sort_seq(handle.user_id,len(messages),db)
             for seq,msg in zip(seqs,messages):
                 db.add(ConversationLog(user_id=handle.user_id,role='assistant',content=msg.content if hasattr(msg,'content') else msg['content'],
-                    sort_seq=seq,round_id=round_id,delivery_status=None,skipped_in_prompt=False))
+                    sort_seq=seq,round_id=round_id,delivery_status=None,skipped_in_prompt=False,
+                    reply_is_read=False))
             db.add(EmotionLog(user_id=handle.user_id,conversation_id=gm[0].conversation_id,round_id=round_id,
                 emotion_label=emotion.get('label','平静'),confidence=emotion.get('confidence',1.0)))
             # Effect anchors prevent duplicate post-success dispatch after a lost receipt.
@@ -466,7 +467,9 @@ async def read_result(db,user_id,round_id):
         ConversationLog.round_id==round_id,ConversationLog.role=='assistant').order_by(ConversationLog.sort_seq))).scalars())
     emotion=(await db.execute(select(EmotionLog).where(EmotionLog.user_id==user_id,EmotionLog.round_id==round_id).limit(1))).scalar_one_or_none()
     if not rows or emotion is None:raise ValueError('chat_result_unavailable')
-    return dict(round_id=round_id,messages=[dict(id=r.id,sort_seq=str(r.sort_seq),type='text',content=r.content) for r in rows],
+    messages = [dict(id=r.id, sort_seq=str(r.sort_seq), type='text', content=r.content,
+                     is_read=r.reply_is_read is not False) for r in rows]
+    return dict(round_id=round_id,messages=messages,
         emotion=dict(label=emotion.emotion_label,confidence=emotion.confidence))
 
 async def project_chat_message_states(user_id,message_keys,db):

@@ -5,12 +5,11 @@
 # AI 生成复用 feed_content_service.generate_post_text（不新建 LLM 节点），管理员权威：跳过 dedup/similarity。
 
 import logging
-import random
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import get_feed_image_reference_public_url
@@ -23,23 +22,12 @@ from backend.constants import (
 )
 from backend.constants.life_feed_config import (
     CONFIG_FEED_AUTO_PUBLISH_ENABLED,
-    CONFIG_FEED_BASE_LIKES_MAX,
-    CONFIG_FEED_BASE_LIKES_MIN,
-    CONFIG_FEED_LIKE_MULTIPLIER_MAX,
-    CONFIG_FEED_LIKE_MULTIPLIER_MIN,
-    CONFIG_HOME_CITY,
-    CONFIG_SOUTHERN_HEMISPHERE_CITIES,
     DEFAULT_FEED_AUTO_PUBLISH_ENABLED,
-    DEFAULT_FEED_BASE_LIKES_MAX,
-    DEFAULT_FEED_BASE_LIKES_MIN,
-    DEFAULT_FEED_LIKE_MULTIPLIER_MAX,
-    DEFAULT_FEED_LIKE_MULTIPLIER_MIN,
-    DEFAULT_HOME_CITY,
-    DEFAULT_SOUTHERN_HEMISPHERE_CITIES,
 )
 from backend.database import get_db
 from backend.models.admin_user import AdminUser
 from backend.models.feed_post import FeedPost
+from backend.models.feed_video import FeedPin, FeedPublication
 from backend.schemas.common import ApiResponse
 from backend.services.admin_config_service import admin_config_service
 from backend.services.feed_content_service import (
@@ -48,10 +36,10 @@ from backend.services.feed_content_service import (
     feed_content_service,
 )
 from backend.services.feed_image_service import feed_image_service
+from backend.services.feed_publish_service import draw_engagement_counts, manual_post_location
 from backend.services.life_feed_config_service import get_life_feed_config
 from backend.utils.admin_auth import get_current_admin, log_operation, require_role
 from backend.utils.hash_utils import compute_dedup_hash
-from backend.utils.season_utils import compute_season
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +65,8 @@ def _parse_dt(s: str | None):
 def _post_to_dict(p: FeedPost, *, detail: bool = False) -> dict:
     data = {
         "id": p.id,
+        "post_version": p.post_version,
+        "media_kind": p.media_kind,
         "content_text": p.content_text,
         "hashtags": p.hashtags or [],
         "image_urls": p.image_urls or [],
@@ -131,7 +121,9 @@ async def list_posts(
     if status not in _VALID_STATUS:
         return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID,
                                 message=f"status 必须是 {'/'.join(_VALID_STATUS)}")
-    cond = []
+    # Unsubmitted and abandoned video shells belong outside the post list.
+    cond = [(FeedPost.media_kind != "video") | select(FeedPublication.post_id).where(
+        FeedPublication.post_id == FeedPost.id).exists()]
     if status == "visible":
         cond.append(FeedPost.is_visible == 1)
         cond.append(FeedPost.generation_status == "ready")
@@ -142,12 +134,12 @@ async def list_posts(
 
     total = (await db.execute(select(func.count(FeedPost.id)).where(*cond))).scalar() or 0
     rows = (await db.execute(
-        select(FeedPost).where(*cond)
-        .order_by(FeedPost.scheduled_publish_time.desc())
-        .offset((page - 1) * size).limit(size))).scalars().all()
+        select(FeedPost, FeedPin.post_id).outerjoin(FeedPin, FeedPin.post_id == FeedPost.id).where(*cond)
+        .order_by(FeedPost.scheduled_publish_time.desc(), FeedPost.id.desc())
+        .offset((page - 1) * size).limit(size))).all()
     return ApiResponse.ok(data={
         "total": total, "page": page, "size": size,
-        "list": [_post_to_dict(r) for r in rows],
+        "list": [{**_post_to_dict(post), "is_pinned": pinned is not None} for post, pinned in rows],
     })
 
 
@@ -166,7 +158,21 @@ async def get_post(
 
 # ─────────────────────────── 编辑 / 删除 / 可见性 ───────────────────────────
 
+async def writable_post(db, post_id, version=None):
+    from backend.services.feed_video_publish import CONFLICT
+    from backend.services.memory_business_guard import guard_business_write
+    await guard_business_write(db)
+    if db.get_bind().dialect.name=="sqlite":
+        await db.execute(update(FeedPost).where(FeedPost.id==post_id).values(post_version=FeedPost.post_version))
+    row = await db.scalar(select(FeedPost).where(FeedPost.id==post_id).with_for_update().execution_options(populate_existing=True))
+    if row and version is not None and row.post_version!=version:
+        raise HTTPException(409,CONFLICT)
+    return row
+
+
 class PostUpdateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    version: int = Field(ge=1)
     content_text: str | None = None
     hashtags: list[str] | None = None
     image_urls: list[str] | None = None
@@ -183,9 +189,16 @@ async def update_post(
     admin_user: AdminUser = Depends(get_current_admin),
 ):
     """编辑帖子（content_text/hashtags/image_urls/scheduled_publish_time/emotion）。"""
-    row = (await db.execute(select(FeedPost).where(FeedPost.id == post_id))).scalars().first()
+    row = await writable_post(db,post_id,body.version)
     if row is None:
         return ApiResponse.fail(ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN)
+    if row.media_kind == "video":
+        if body.image_urls:
+            raise HTTPException(422,"视频帖不能混排图片")
+        if body.content_text is not None and not body.content_text.strip():
+            raise HTTPException(422,"请先填写文案")
+    if body.scheduled_publish_time is not None and _parse_dt(body.scheduled_publish_time) is None:
+        raise HTTPException(422,"计划时间格式无效")
     if body.content_text is not None:
         row.content_text = body.content_text
     if body.hashtags is not None:
@@ -200,6 +213,7 @@ async def update_post(
             return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID,
                                     message="scheduled_publish_time 格式非法")
         row.scheduled_publish_time = dt
+    row.post_version += 1
     await log_operation(db, admin_user, "feed", "update_post",
                         f"编辑朋友圈 id={post_id}", request=request)
     await db.commit()
@@ -214,9 +228,11 @@ async def delete_post(
     admin_user: AdminUser = Depends(get_current_admin),
 ):
     """删除（客户端下架，DB 保留：置 is_visible=0）。"""
-    row = (await db.execute(select(FeedPost).where(FeedPost.id == post_id))).scalars().first()
+    row = await writable_post(db,post_id)
     if row is None:
         return ApiResponse.fail(ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN)
+    if row.is_visible:
+        row.post_version += 1
     row.is_visible = 0
     await log_operation(db, admin_user, "feed", "delete_post",
                         f"下架朋友圈 id={post_id}（DB 保留）", request=request)
@@ -225,6 +241,7 @@ async def delete_post(
 
 
 class VisibilityBody(BaseModel):
+    version: int | None = Field(default=None,ge=1)
     is_visible: int
 
 
@@ -239,9 +256,11 @@ async def patch_visibility(
     """隐藏/展示切换（历史点赞/评论完整保留，DB 层不删）。"""
     if body.is_visible not in (0, 1):
         return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID, message="is_visible 只能为 0 或 1")
-    row = (await db.execute(select(FeedPost).where(FeedPost.id == post_id))).scalars().first()
+    row = await writable_post(db,post_id,body.version)
     if row is None:
         return ApiResponse.fail(ADMIN_ERR_FEED_POST_NOT_FOUND_ADMIN)
+    if row.is_visible != body.is_visible:
+        row.post_version += 1
     row.is_visible = body.is_visible
     await log_operation(db, admin_user, "feed", "patch_visibility",
                         f"朋友圈 id={post_id} 可见性→{body.is_visible}", request=request)
@@ -252,6 +271,7 @@ async def patch_visibility(
 # ─────────────────────────── 手动新增 ───────────────────────────
 
 class PostCreateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     mode: str
     scheduled_publish_time: str | None = None
     # upload 模式
@@ -267,14 +287,6 @@ class PostCreateBody(BaseModel):
     city: str | None = None
 
 
-async def _draw_likes() -> tuple[int, int]:
-    base_min = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MIN, DEFAULT_FEED_BASE_LIKES_MIN))
-    base_max = int(await get_life_feed_config(CONFIG_FEED_BASE_LIKES_MAX, DEFAULT_FEED_BASE_LIKES_MAX))
-    mul_min = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MIN, DEFAULT_FEED_LIKE_MULTIPLIER_MIN))
-    mul_max = int(await get_life_feed_config(CONFIG_FEED_LIKE_MULTIPLIER_MAX, DEFAULT_FEED_LIKE_MULTIPLIER_MAX))
-    return random.randint(base_min, base_max), random.randint(mul_min, mul_max)
-
-
 @router.post("/feed/posts", dependencies=[require_role(*_ALLOWED_ROLES)])
 async def create_post(
     body: PostCreateBody,
@@ -286,20 +298,15 @@ async def create_post(
     if body.mode not in ("upload", "ai_generate"):
         return ApiResponse.fail(ADMIN_ERR_FEED_POST_MODE_INVALID)
 
-    home_city = await get_life_feed_config(CONFIG_HOME_CITY, DEFAULT_HOME_CITY)
-    southern = await get_life_feed_config(
-        CONFIG_SOUTHERN_HEMISPHERE_CITIES, DEFAULT_SOUTHERN_HEMISPHERE_CITIES)
     today = date.today()
+    city, season = await manual_post_location(body.city, today)
     sched = _parse_dt(body.scheduled_publish_time) or datetime.now()
-    base_likes, like_multiplier = await _draw_likes()
-    # 评论假数与点赞同抽签范围（独立一次随机，数值不必相同）
-    base_comments, comment_multiplier = await _draw_likes()
+    counts = await draw_engagement_counts()
 
     if body.mode == "upload":
         content_text = (body.content_text or "").strip()
         if not content_text:
             return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID, message="upload 模式 content_text 不能为空")
-        city = (body.city or home_city).strip()
         emotion = (body.emotion or "平静").strip()
         image_urls = body.image_urls or None
         post = FeedPost(
@@ -314,12 +321,9 @@ async def create_post(
             image_type=None,
             emotion=emotion,
             city=city,
-            season=compute_season(city, today, southern),
-            base_likes=base_likes,
-            like_multiplier=like_multiplier,
+            season=season,
             real_likes=0,
-            base_comments=base_comments,
-            comment_multiplier=comment_multiplier,
+            **counts,
             is_visible=1,
             dedup_hash=compute_dedup_hash("manual", "manual", content_text[:32]),
             created_at=datetime.utcnow(),
@@ -339,7 +343,6 @@ async def create_post(
         return ApiResponse.fail(ADMIN_ERR_LIFE_PARAM_INVALID,
                                 message=f"image_type 必须是 {'/'.join(_VALID_IMAGE_TYPES)}")
 
-    city = (body.city or home_city).strip()
     scene = {
         "scene_id": f"manual-{int(datetime.utcnow().timestamp())}",
         "venue_type": (body.venue_type or "日常"),
@@ -363,7 +366,6 @@ async def create_post(
         logger.warning("[后台][朋友圈] AI 生成被跳过/异常: %s", e)
         return ApiResponse.fail(ADMIN_ERR_LIFE_GENERATE_FAILED, message="生成命中去重/相似度，请调整描述")
 
-    season = compute_season(city, today, southern)
     post = FeedPost(
         scene_id=scene["scene_id"],
         scheduled_publish_time=sched,
@@ -377,11 +379,8 @@ async def create_post(
         emotion=draft["emotion"],
         city=city,
         season=season,
-        base_likes=base_likes,
-        like_multiplier=like_multiplier,
         real_likes=0,
-        base_comments=base_comments,
-        comment_multiplier=comment_multiplier,
+        **counts,
         is_visible=1,
         dedup_hash=draft["dedup_hash"],
         created_at=datetime.utcnow(),

@@ -7,6 +7,7 @@ import { AuthInteractions } from './auth-interactions.js';
 import { createAudioService } from './audio-service.js';
 import { DocumentLifecycle } from './lifecycle.js';
 import { EntryExperience } from './entry-experience.js';
+import '../visitor-client.js';
 
 // A document owns shared services. Individual routes receive them through PageContext.
 export async function start({ resources, root, overlayRoot, initialPage }) {
@@ -28,11 +29,15 @@ export async function start({ resources, root, overlayRoot, initialPage }) {
     const slot = shell.router?.current;
     if (slot) { slot.context.scope.dispose('identity-change'); slot.root.replaceChildren(); }
   }, onChange: change => {
+    if (change.principalChanged && (change.reason === 'login' || change.reason === 'logout')) {
+      void window.LxmVisitor?.signal('identity', auth.readToken());
+    }
     // A 401 owns its rollback/navigation policy and must not race an automatic remount.
     if (shell.lifecycle?.frozen || !shell.router?.current || change.reason === 'unauthorized' || change.reason === 'login' && shell.router.current.route.name === 'login') return;
     return shell.router.navigate(location.href, { replace: true, force: true, reason: 'auth', safety: true, state: loginInput });
   } });
   shell.services.auth = auth;
+  window.LxmVisitor?.start('main');
   const history = new AppHistory({ buildId: resources.buildId, auth });
   const overlays = new OverlayManager({ history }); history.overlays = overlays;
   Object.assign(shell.services, { history, overlays });

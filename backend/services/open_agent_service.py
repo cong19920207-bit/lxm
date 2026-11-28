@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.constants import ERR_AGENT_MSG_NOT_FOUND
 from backend.models.agent_message import AgentMessage
 from backend.schemas.common import ApiResponse
+from backend.services import chat_unread
 
 
 async def list_unread_messages(user_id: int, db: AsyncSession) -> list[dict]:
@@ -34,20 +35,10 @@ async def list_unread_messages(user_id: int, db: AsyncSession) -> list[dict]:
 
 
 async def mark_message_read(user_id: int, message_id: int, db: AsyncSession) -> ApiResponse:
-    stmt = select(AgentMessage).where(
-        and_(
-            AgentMessage.id == message_id,
-            AgentMessage.user_id == user_id,
-        )
-    )
-    msg = (await db.execute(stmt)).scalar_one_or_none()
-    if not msg:
+    outcome = await chat_unread.mark_message_read(db, user_id, "agent", message_id)
+    if outcome == "missing":
         return ApiResponse.fail(ERR_AGENT_MSG_NOT_FOUND)
-    if msg.is_read:
-        return ApiResponse.ok(message="消息已标记为已读")
-    msg.is_read = True
-    await db.flush()
-    return ApiResponse.ok(message="标记成功")
+    return ApiResponse.ok(message="消息已标记为已读" if outcome == "already_read" else "标记成功")
 
 
 async def get_unread_count(user_id: int, db: AsyncSession) -> int:

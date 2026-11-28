@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>朋友圈 · 内容 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/feed-posts.css?v=20261125">
   <style>
     .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .filter-row .form-control { width: 160px; }
@@ -48,6 +49,18 @@
       <a href="life-feed-system.html" id="auto-publish-link">去「发布 &amp; 系统参数」修改 →</a>
     </div>
 
+    <div class="feed-toolbar">
+      <nav class="feed-views" aria-label="朋友圈内容视图">
+        <button type="button" id="posts-view" aria-controls="feed-post-list" aria-pressed="true">帖子列表</button>
+        <button type="button" id="drafts-view" aria-controls="video-drafts" aria-pressed="false">视频草稿 <span id="draft-count"></span></button>
+      </nav>
+      <div class="feed-actions">
+        <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-text">文字发帖</button>
+        <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-ai">AI 生成</button>
+        <button type="button" class="btn btn-primary" id="add-video" data-edit-only data-write-action>视频发帖</button>
+      </div>
+    </div>
+    <section id="feed-post-list" aria-labelledby="posts-view">
     <div class="filter-row">
       <label>状态</label>
       <select class="form-control" id="filter-status">
@@ -58,8 +71,7 @@
       </select>
       <button type="button" class="btn btn-default" id="btn-search">查询</button>
       <span class="spacer"></span>
-      <button type="button" class="btn btn-default" data-edit-only data-write-action id="btn-add-text">+ 文字发帖</button>
-      <button type="button" class="btn btn-primary" data-edit-only data-write-action id="btn-add-ai">+ AI 生成</button>
+      <button type="button" class="btn btn-default" id="manage-pins">管理置顶</button>
     </div>
 
     <div class="table-wrap">
@@ -82,6 +94,90 @@
       </table>
     </div>
     <div id="posts-pagination"></div>
+    </section>
+    <section id="video-drafts" aria-labelledby="drafts-view" hidden>
+      <div id="video-draft-list"></div>
+    </section>
+  </div>
+</div>
+
+
+<div id="video-editor" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content video-dialog" role="dialog" aria-modal="true" aria-labelledby="video-title">
+    <div class="modal-header">
+      <div><h3 id="video-title">视频发帖</h3><span id="video-reference" class="video-note"></span></div>
+      <button type="button" class="btn btn-link video-dismiss" id="video-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="video-columns">
+        <section>
+          <h4>帖子内容</h4>
+          <div class="form-item"><label for="video-text" class="required">文案</label>
+            <textarea class="form-control" id="video-text" rows="4" required placeholder="写下这条朋友圈的内容"></textarea></div>
+          <div class="form-item"><label for="video-hashtags">话题（逗号分隔）</label>
+            <input class="form-control" id="video-hashtags" placeholder="如 日常,咖啡"></div>
+          <div class="form-item"><label for="video-emotion">情绪</label>
+            <input class="form-control" id="video-emotion" maxlength="20" placeholder="默认 平静"></div>
+          <div class="form-item"><label for="video-time">计划发布时间</label>
+            <input class="form-control" type="datetime-local" id="video-time" aria-describedby="video-time-hint">
+            <small class="video-note" id="video-time-hint">北京时间，留空立即发布</small></div>
+        </section>
+        <section>
+          <h4>视频素材</h4>
+          <div class="video-upload-box">
+            <label class="video-file-label" data-write-action>
+              <span class="btn btn-default" id="video-file-action">选择视频</span>
+              <input id="video-file" type="file" accept=".mp4,.mov,video/mp4,video/quicktime" aria-label="选择视频">
+            </label>
+            <small class="video-note">MP4、MOV · 最大 200 MiB · 最长 180 秒</small>
+          </div>
+          <p id="video-status" role="status"></p>
+          <progress id="video-progress" max="100" hidden></progress><span id="video-percent" class="video-note"></span>
+          <p id="video-spec" class="video-note"></p>
+          <button id="video-retry" type="button" class="btn btn-default btn-sm" data-write-action hidden>重试原任务</button>
+          <button id="video-keep-selected" type="button" class="btn btn-default btn-sm" data-write-action hidden>沿用原视频</button>
+          <p id="video-expires" class="video-note"></p>
+        </section>
+      </div>
+      <section id="video-framing" hidden>
+        <h4>封面与预览</h4>
+        <div class="feed-edit-frames">
+          <figure><figcaption>置顶封面 · 4:3</figcaption><img id="video-pin-cover" alt="置顶小封面"></figure>
+          <figure><figcaption>列表预览</figcaption><div id="video-list-frame"><img id="video-list-cover" alt="列表大封面"><video id="video-list-preview" playsinline muted controls preload="none" hidden></video></div>
+            <button type="button" class="btn btn-link" id="video-test-preview">播放短预览</button></figure>
+          <figure><figcaption>完整视频</figcaption><video id="video-full-preview" playsinline controls preload="none"></video>
+            <button type="button" class="btn btn-link" id="video-test-full">播放正片</button></figure>
+        </div>
+        <div class="video-frame-tools">
+          <label class="video-file-label" data-write-action><span class="btn btn-default btn-sm">更换封面</span>
+            <input type="file" id="video-cover-file" aria-label="更换封面" accept="image/png,image/webp,image/jpeg"></label>
+          <button id="video-default" class="btn btn-link btn-sm" type="button" data-write-action>恢复默认封面</button>
+          <label>竖屏列表取景 <select id="video-mode" class="form-control"><option value="crop">裁切填满</option><option value="contain">保留完整画面</option></select></label>
+          <label>上下位置 <input id="video-position" type="range" min="0" max="100" value="50"></label>
+        </div>
+      </section>
+    </div>
+    <div class="video-feedback" id="video-error" role="alert"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-link" id="video-abandon" data-write-action>放弃编辑</button>
+      <button type="button" class="btn btn-default" id="video-save" data-write-action>保存草稿</button>
+      <button type="button" class="btn btn-primary" id="video-submit" data-write-action>立即发布</button>
+    </div>
+  </div>
+</div>
+<div id="pins-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-content modal-wide" role="dialog" aria-labelledby="pins-title">
+    <div class="modal-header"><h3 id="pins-title">管理置顶</h3></div>
+    <div class="modal-body">
+      <p id="pin-status" role="status"></p>
+      <table class="admin-table"><thead><tr><th>顺序</th><th>摘要</th><th>类型</th><th>原发布日期</th><th>展示状态</th><th data-edit-only>调整</th></tr></thead>
+        <tbody id="pin-rows"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" onclick="closeModal('pins-modal')">关闭</button>
+      <button type="button" class="btn btn-primary" id="pin-save" data-edit-only data-write-action>保存排序</button>
+    </div>
   </div>
 </div>
 
@@ -128,6 +224,7 @@
       </div>
     </div>
     <div class="modal-footer">
+      <button type="button" class="btn btn-default" id="edit-video-media" data-write-action hidden>编辑视频与封面</button>
       <button type="button" class="btn btn-default" id="edit-modal-cancel">取消</button>
       <button type="button" class="btn btn-primary" id="edit-modal-submit" data-write-action>保存</button>
     </div>
@@ -142,7 +239,6 @@
       <button type="button" class="btn btn-link" id="upload-modal-close" aria-label="关闭">✕</button>
     </div>
     <div class="modal-body" data-write-action>
-      <p class="text-muted" style="margin-bottom:12px">本版仅支持纯文字；本地图片上传见技术债，后续补齐。</p>
       <div class="form-item">
         <label class="required">文案</label>
         <textarea class="form-control" id="up-content" rows="4"></textarea>
@@ -298,11 +394,11 @@
     loadPosts();
   };
 
-  window.toggleVisibility = function (id, visible) {
+  window.toggleVisibility = function (id, visible, version) {
     var action = visible ? '展示' : '隐藏（下架）';
     showConfirm('确认' + action + '帖子 #' + id + '？', async function () {
       var res = await adminRequest('PATCH', '/api/admin/feed/posts/' + id + '/visibility', {
-        is_visible: visible ? 1 : 0
+        version: version, is_visible: visible ? 1 : 0
       });
       if (res && res.code === 0) {
         showToast('已更新可见性', 'success');
@@ -355,13 +451,68 @@
     var res = await adminRequest('GET', '/api/admin/feed/posts/' + id);
     if (!res || res.code !== 0) return;
     var r = res.data || {};
+    document.getElementById('edit-video-media').hidden = r.media_kind !== 'video';
     document.getElementById('edit-id').value = r.id;
+    document.getElementById('edit-id').dataset.version = r.post_version;
     document.getElementById('edit-content').value = r.content_text || '';
     document.getElementById('edit-hashtags').value = (r.hashtags || []).join(',');
-    document.getElementById('edit-sched').value = toDatetimeLocal(r.scheduled_publish_time);
+    var schedule = document.getElementById('edit-sched');
+    schedule.value = toDatetimeLocal(r.scheduled_publish_time);
+    schedule.dataset.originalValue = schedule.value;
     document.getElementById('edit-emotion').value = r.emotion || '';
     openModal('edit-modal');
   };
+
+  var pinVersion = null;
+  var pinRows = [];
+  var pinRequestId = 0;
+
+  function renderPins() {
+    document.getElementById('pin-rows').innerHTML = pinRows.map(function (post, i) {
+      var buttons = isReadonly() ? '' : '<td>' +
+        '<button class="op-btn" data-write-action onclick="movePin(' + i + ',-1)" ' + (i === 0 ? 'disabled' : '') + '>上移</button>' +
+        '<button class="op-btn" data-write-action onclick="movePin(' + i + ',1)" ' + (i === pinRows.length - 1 ? 'disabled' : '') + '>下移</button></td>';
+      return '<tr data-pin-id="' + post.id + '"><td>' + (i + 1) + '</td><td>' + lfEscapeHtml(post.summary) +
+        '</td><td>' + lfEscapeHtml(post.type) + '</td><td>' + formatWallClock(post.scheduled_publish_time) +
+        '</td><td>' + lfEscapeHtml(post.status) + '</td>' + buttons + '</tr>';
+    }).join('');
+  }
+
+  function movePin(i, offset) {
+    if (pinVersion === null || isReadonly()) return;
+    var post = pinRows.splice(i, 1)[0];
+    pinRows.splice(i + offset, 0, post);
+    renderPins();
+  }
+
+  async function loadPins(message) {
+    var requestId = ++pinRequestId;
+    pinVersion = null;
+    document.getElementById('pin-save').disabled = true;
+    document.getElementById('pin-status').textContent = message || '读取中…';
+    var res = await adminRequest('GET', '/api/admin/feed/pins');
+    if (requestId !== pinRequestId) return;
+    pinRows = res && res.code === 0 ? res.data.posts : [];
+    if (res && res.code === 0) pinVersion = res.data.version;
+    renderPins();
+    document.getElementById('pin-save').disabled = pinVersion === null;
+    document.getElementById('pin-status').textContent = pinVersion === null ? '读取失败，请重新打开管理置顶' :
+      (message || (pinRows.length ? '' : '暂无置顶'));
+  }
+
+  async function changePin(id, add) {
+    await adminRequest(add ? 'PUT' : 'DELETE', '/api/admin/feed/pins/' + id);
+    await loadPosts();
+  }
+
+  async function savePins() {
+    if (pinVersion === null || isReadonly()) return;
+    var body = {version:pinVersion, post_ids:pinRows.map(function (post) { return post.id; })};
+    pinVersion = null;
+    document.getElementById('pin-save').disabled = true;
+    var res = await adminRequest('PUT', '/api/admin/feed/pins/order', body, false, {returnErrorResponse:true});
+    await loadPins(res && res.code === 0 ? '排序已保存' : ((res && res.message) || '保存失败，已重新读取'));
+  }
 
   async function loadPosts() {
     var status = document.getElementById('filter-status').value;
@@ -382,11 +533,15 @@
         var tags = Array.isArray(r.hashtags) ? r.hashtags.join(', ') : '';
         var ops = '<button class="op-btn op-btn-detail" onclick="showDetail(' + r.id + ')">详情</button>';
         if (!readonly) {
+          if (r.media_kind === 'video' && r.generation_status === 'ready')
+            ops += '<button class="op-btn" data-write-action onclick="feedVideoReplace(' + r.id + ',' + r.post_version + ')">更换视频</button>';
           ops += '<button class="op-btn op-btn-detail" data-write-action onclick="openEdit(' + r.id + ')">编辑</button>';
+          ops += '<button class="op-btn" data-write-action onclick="changePin(' + r.id + ',' + !r.is_pinned + ')">' +
+            (r.is_pinned ? '取消置顶' : '置顶') + '</button>';
           if (r.is_visible) {
-            ops += '<button class="op-btn op-btn-danger" data-write-action onclick="toggleVisibility(' + r.id + ',false)">隐藏</button>';
+            ops += '<button class="op-btn op-btn-danger" data-write-action onclick="toggleVisibility(' + r.id + ',false,' + r.post_version + ')">隐藏</button>';
           } else {
-            ops += '<button class="op-btn op-btn-detail" data-write-action onclick="toggleVisibility(' + r.id + ',true)">展示</button>';
+            ops += '<button class="op-btn op-btn-detail" data-write-action onclick="toggleVisibility(' + r.id + ',true,' + r.post_version + ')">展示</button>';
           }
         }
         return '<tr>' +
@@ -408,6 +563,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     if (!initLifeFeedPage(PAGE_KEY, '朋友圈 · 内容', ['super_admin', 'ai_trainer', 'ops_admin', 'observer'])) return;
 
+    document.getElementById('manage-pins').onclick = function () { openModal('pins-modal'); loadPins(); };
+    document.getElementById('pin-save').onclick = savePins;
     document.getElementById('btn-search').onclick = function () { currentPage = 1; loadPosts(); };
     document.getElementById('btn-add-text').onclick = function () {
       document.getElementById('up-content').value = '';
@@ -444,12 +601,16 @@
       if (!content) { showToast('文案不能为空', 'error'); return; }
       var body = {
         content_text: content,
+        version: Number(document.getElementById('edit-id').dataset.version),
         hashtags: parseHashtags(document.getElementById('edit-hashtags').value),
         emotion: document.getElementById('edit-emotion').value.trim() || null
       };
-      var sched = fromDatetimeLocal(document.getElementById('edit-sched').value);
-      if (sched) body.scheduled_publish_time = sched;
-      var res = await adminRequest('PUT', '/api/admin/feed/posts/' + id, body);
+      var schedule = document.getElementById('edit-sched');
+      if (schedule.value && schedule.value !== schedule.dataset.originalValue) {
+        body.scheduled_publish_time = fromDatetimeLocal(schedule.value);
+      }
+      var res = await adminRequest('PUT', '/api/admin/feed/posts/' + id, body, false, {returnErrorResponse:true, silentErrorToast:true});
+      if (!res || res.code !== 0) { showToast(res && (res.detail || res.message) || '保存失败，请刷新后重试', 'error'); return; }
       if (res && res.code === 0) {
         showToast('已保存', 'success');
         closeModal('edit-modal');
@@ -514,5 +675,6 @@
     loadPosts();
   });
 </script>
+<script src="/admin/static/js/feed-video-editor.js?v=20261127"></script>
 </body>
 </html>

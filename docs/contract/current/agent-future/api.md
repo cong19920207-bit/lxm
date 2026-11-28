@@ -30,7 +30,7 @@
 - **所属端**：H5
 - **鉴权**：Bearer
 - **响应**：`ApiResponse`；`data`: `{ count: int }`
-- **说明**：计入全部未读 `agent_message`（含生活流感知 **`LIKE_AWARE` / `READ_AWARE`**，与 P0–P4/FUTURE 同表）
+- **说明**：计入全部未读 `agent_message`（含生活流感知 **`LIKE_AWARE` / `READ_AWARE`**，与 P0–P4/FUTURE 同表）。首页、朋友圈与聊天入口展示的两类消息合计见[聊天未读](../chat-emotion/api.md#chat-unread)
 - **状态**：已实现
 
 ---

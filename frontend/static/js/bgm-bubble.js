@@ -4,7 +4,8 @@
   if (window.BgmBubble) return
   const sharedOverlays = '#auth-login-modal.is-open,.modal-overlay'
   const pages = Object.freeze({
-    feed: { top: '.feed-hero-bar', bottom: '', overlays: '.preview-overlay,#comment-mask.show,#comment-panel.show,#feed-boot-loading.is-visible' },
+    feed: { top: '.feed-hero-bar', bottom: '', avoid: '#feed-pins:not([hidden])', observe: '#feed-pins',
+      overlays: '.preview-overlay,.feed-detail,.feed-fullscreen,#comment-mask.show,#comment-panel.show,#feed-boot-loading.is-visible' },
     diary: { top: '.diary-hero-bar', bottom: '', overlays: '' },
     memory: { top: '.nebula-top-bar', bottom: '#nebula-bottom-bar', overlays: '#nebula-sheet.is-open,#nebula-sheet-mask.is-open' },
     relationship: { top: '.rel-hero-bar', bottom: '', overlays: '.levelup-overlay' },

@@ -81,9 +81,16 @@ async def lifespan(app: FastAPI):
     memory_index_runtime.start()
     from backend.services import bgm_runtime
     bgm_runtime.start()
+    import asyncio
+    from backend.database import async_session_maker
+    from backend.services.feed_video_pipeline import process as process_feed_video
+    from backend.services.feed_video_queue import run_loop as run_feed_video
+    feed_worker = asyncio.create_task(run_feed_video(async_session_maker, process_feed_video))
     try:
         yield
     finally:
+        feed_worker.cancel()
+        await asyncio.gather(feed_worker, return_exceptions=True)
         await bgm_runtime.stop()
         await memory_index_runtime.stop()
         await diagnostic_service().stop()
@@ -124,6 +131,7 @@ from backend.routers.agent import router as agent_router  # noqa: E402
 from backend.routers.relationship import router as relationship_router  # noqa: E402
 from backend.routers.app import router as app_router  # noqa: E402
 from backend.routers.feed import router as feed_router  # noqa: E402
+from backend.routers.visitors import router as visitor_router
 
 app.include_router(auth_router)
 app.include_router(chat_router)
@@ -133,6 +141,7 @@ app.include_router(relationship_router)
 app.include_router(agent_router)
 app.include_router(app_router)
 app.include_router(feed_router)
+app.include_router(visitor_router)
 
 from backend.routers.open.chat import router as open_chat_router  # noqa: E402
 from backend.routers.open.agent import router as open_agent_router  # noqa: E402
@@ -173,6 +182,8 @@ from backend.routers.admin import vector_config as admin_vector_config  # noqa: 
 from backend.routers.admin import knowledge_mgmt as admin_knowledge  # noqa: E402
 from backend.routers.admin import life_plan_mgmt as admin_life_plan  # noqa: E402
 from backend.routers.admin import worldview_mgmt as admin_worldview  # noqa: E402
+from backend.routers.admin import feed_video as admin_feed_video  # noqa: E402
+from backend.routers.admin import feed_pins as admin_feed_pins  # noqa: E402
 from backend.routers.admin import feed_mgmt as admin_feed_mgmt  # noqa: E402
 from backend.routers.admin import feed_comment_mgmt as admin_feed_comment  # noqa: E402
 from backend.routers.admin import agent_aware_mgmt as admin_agent_aware  # noqa: E402
@@ -226,6 +237,8 @@ app.include_router(admin_life_plan.router,
     prefix="/api/admin", tags=["admin-life-plan"])
 app.include_router(admin_worldview.router,
     prefix="/api/admin", tags=["admin-worldview"])
+app.include_router(admin_feed_video.router, prefix="/api/admin/feed/video", tags=["admin-feed-video"])
+app.include_router(admin_feed_pins.router, prefix="/api/admin", tags=["管理后台-朋友圈"])
 app.include_router(admin_feed_mgmt.router,
     prefix="/api/admin", tags=["admin-feed-mgmt"])
 app.include_router(admin_feed_comment.router,

@@ -382,7 +382,10 @@
       /* alpha / blur 由 JS 按进度写入 CSS 变量 */
       --feed-boot-alpha: 0.88;
       --feed-boot-blur: 12px;
-      background: rgba(248, 247, 252, var(--feed-boot-alpha));
+      background: radial-gradient(ellipse at center,
+        rgba(233, 222, 249, var(--feed-boot-alpha)),
+        rgba(246, 240, 252, var(--feed-boot-alpha)) 46%,
+        rgba(252, 250, 255, var(--feed-boot-alpha)) 100%);
       -webkit-backdrop-filter: blur(var(--feed-boot-blur));
       backdrop-filter: blur(var(--feed-boot-blur));
       transition: opacity 0.3s ease;
@@ -392,25 +395,7 @@
       opacity: 0;
       pointer-events: none;
     }
-    .feed-boot-spinner {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid rgba(139, 92, 246, 0.22);
-      border-top-color: var(--feed-purple-accent);
-      animation: feed-boot-spin 0.8s linear infinite;
-      margin-bottom: 14px;
-    }
-    @keyframes feed-boot-spin {
-      to { transform: rotate(360deg); }
-    }
-    .feed-boot-text {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--feed-text-muted);
-    }
     @media (prefers-reduced-motion: reduce) {
-      .feed-boot-spinner { animation: none; }
       .feed-boot-loading { transition: none; }
     }
 
@@ -483,12 +468,13 @@
     .comment-panel .counter { text-align: right; font-size: 11px; color: var(--feed-text-muted); margin-top: 4px; }
   </style>
   <link rel="stylesheet" href="/static/css/bgm.css">
+<link rel="stylesheet" href="/static/css/feed-media.css">
 </head>
 <body class="h5-skin feed-page">
   <!-- 进页全屏 loading：列表+首屏图就绪后关闭 -->
   <div class="feed-boot-loading is-visible" id="feed-boot-loading" role="status" aria-live="polite">
-    <div class="feed-boot-spinner" aria-hidden="true"></div>
-    <div class="feed-boot-text">正在进入她的生活…</div>
+    <span class="lxm-loading-character" aria-hidden="true"></span>
+    <div class="lxm-loading-caption">正在进入她的生活<span class="lxm-loading-dots" aria-hidden="true">...</span></div>
   </div>
   <div class="feed-wrap">
     <header class="feed-hero" id="feed-hero" role="banner">
@@ -498,7 +484,7 @@
             <path d="M14 7L9 12l5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button type="button" class="msg-btn" onclick="location.href='/pages/chat.html'" aria-label="消息">
+        <button type="button" class="msg-btn" onclick="location.href=ChatUnread.chatURL(document.getElementById('msg-badge').style.display!=='none')" aria-label="消息">
           <!-- 设计图同款线框气泡（无切图，内联 SVG） -->
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M6.5 17.2V8.6A2.6 2.6 0 0 1 9.1 6h7.8A2.6 2.6 0 0 1 19.5 8.6v5.2a2.6 2.6 0 0 1-2.6 2.6H10.2L6.5 19.2v-2z"
@@ -530,6 +516,7 @@
         <span>林小梦更新了 <span id="new-feed-count">0</span> 条动态</span>
         <span class="new-feed-go">查看 &gt;</span>
       </div>
+      <section id="feed-pins" aria-label="置顶动态" hidden></section>
       <div id="feed-skeleton"></div>
       <div id="feed-list"></div>
       <div class="no-more-text" id="no-more" style="display:none">没有更多啦</div>
@@ -553,6 +540,8 @@
     <div class="counter"><span id="comment-count">0</span> / 200</div>
   </div>
 
+  <script src="/static/js/chat-unread.js"></script>
+  <script src="/static/js/feed-media-view.js?v=20261127"></script>
   <script src="/static/js/api.js"></script>
   <script>
     var loading = false
@@ -586,6 +575,7 @@
     }
 
     function sanitizeFeedForVisitor() {
+      mediaView.resetIdentity()
       nextCursor = null
       noMore = false
       var list = document.getElementById('feed-list')
@@ -841,17 +831,15 @@
       el.style.display = 'none'
     }
 
+    let badgeRequest = 0
     async function loadMsgBadge(authOptions) {
+      const version = ++badgeRequest
       if (!isFeedAuthenticated()) {
         hideMsgBadge()
         return
       }
-      var res = await request(
-        'GET',
-        '/api/agent/unread-count',
-        null,
-        authOptions || feedSilentAuthOptions()
-      )
+      var res = await ChatUnread.getUnreadCount(request, authOptions || feedSilentAuthOptions())
+      if (version !== badgeRequest || !isFeedAuthenticated() || res?.code !== 0 || !Number.isInteger(res.data?.count)) return
       var el = document.getElementById('msg-badge')
       if (res && res.code === 0 && res.data && res.data.count > 0) {
         el.textContent = res.data.count > 99 ? '99+' : String(res.data.count)
@@ -885,7 +873,7 @@
           '<span class="comment-author">' + authorLabel + '</span>' +
           '<span class="comment-content">' + escapeHtml(c.content) + '</span></div>'
         if (c.lxm_reply) {
-          html += '<div class="comment-reply" data-comment-id="' + c.id + '">' +
+          html += '<div class="comment-reply" data-read="' + (c.lxm_reply_read_at ? '1' : '0') + '" data-comment-id="' + c.id + '">' +
             '<span class="comment-author">林小梦回复 我：</span>' +
             '<span class="comment-content lxm-reply-text">' + escapeHtml(c.lxm_reply) + '</span></div>'
         }
@@ -894,7 +882,7 @@
       return html
     }
 
-    function buildFeedItem(post, showDate) {
+    function buildFeedItem(post, showDate, inDetail) {
       var item = document.createElement('div')
       item.className = 'feed-item'
       item.dataset.id = post.id
@@ -908,16 +896,15 @@
       item.dataset.comments = commentCount
 
       item.innerHTML =
-        '<span class="timeline-node" aria-hidden="true"></span>' +
-        buildDateColHtml(post.scheduled_publish_time, post.city, showDate !== false) +
+        (inDetail ? '' : '<span class="timeline-node" aria-hidden="true"></span>' +
+        buildDateColHtml(post.scheduled_publish_time, post.city, showDate !== false)) +
         '<div class="content-col">' +
           '<div class="feed-text-block">' +
             '<div class="feed-text">' + renderTextWithHashtags(post.content_text || '') + '</div>' +
           '</div>' +
-          '<div class="feed-meta-row">' +
+          (inDetail ? '' : '<div class="feed-meta-row">' +
             '<span class="feed-time">' + escapeHtml(formatFeedTime(post.scheduled_publish_time)) + '</span>' +
-            '<button type="button" class="feed-expand">展开</button>' +
-          '</div>' +
+            '<button type="button" class="feed-expand">展开</button></div>') +
           buildImagesHtml(post.image_urls) +
           '<div class="feed-actions">' +
             '<div class="act like-act' + (isFeedAuthenticated() && post.user_liked ? ' liked' : '') + '" role="button" aria-label="点赞">' +
@@ -930,7 +917,7 @@
           buildCommentsHtml(post.comments) +
         '</div>'
 
-      setupTextExpand(item.querySelector('.content-col'))
+      if (!inDetail) setupTextExpand(item.querySelector('.content-col'))
 
       // 图片点击预览
       var imgs = item.querySelectorAll('.feed-images img')
@@ -949,7 +936,7 @@
         el.addEventListener('click', function () { openCommentPanel(post.id, true) })
       })
 
-      return item
+      return mediaView.decorate(item,post,!!inDetail)
     }
 
     function showState(id) {
@@ -1162,7 +1149,13 @@
       if (!reset && bootLoadingPending && !bootDismissed) return
       if (loading) return
       var nowTs = Date.now()
-      if (!reset && nowTs - lastLoadAt < 500) return  // 无限滚动限流 500ms
+      if (!reset && nowTs - lastLoadAt < 500) {
+        if (!paginationTimer) paginationTimer = setTimeout(function () {
+          paginationTimer = null
+          if (sentinelVisible && !loading && !noMore) loadFeed(false)
+        }, 500 - (nowTs - lastLoadAt))
+        return
+      }
       lastLoadAt = nowTs
       loading = true
       var isBootReset = !!(reset && bootLoadingPending && !bootDismissed)
@@ -1171,6 +1164,8 @@
 
       try {
         if (reset) {
+          mediaView.clearCards()
+          void mediaView.refreshPins()
           nextCursor = null
           noMore = false
           document.getElementById('feed-list').innerHTML = ''
@@ -1180,7 +1175,7 @@
           if (!isBootReset) renderSkeleton(true)
         }
 
-        var path = '/api/feed/list?size=20'
+        var path = '/api/feed/list?size=20&stable_cursor=true'
         if (nextCursor) path += '&cursor=' + encodeURIComponent(nextCursor)
         var res = await request('GET', path, null, feedTransitionAuthOptions())
         if (res && res.code === 401 && feedAuthMode === 'visitor') {
@@ -1256,6 +1251,7 @@
         var el = document.querySelector('.comment-reply[data-comment-id="' + id + '"]') ||
                  document.querySelector('.comment-reply-loading[data-comment-id="' + id + '"]') ||
                  document.querySelector('.comment-row[data-comment-id="' + id + '"]')
+        if (!el && window.__feedAnchorPostId__) mediaView.openDetail(window.__feedAnchorPostId__,id)
         if (el) {
           el.scrollIntoView({ block: 'center', behavior: 'smooth' })
           el.classList.add('comment-highlighted')
@@ -1310,7 +1306,11 @@
         item.dataset.liked = res.data.user_liked ? '1' : '0'
         item.dataset.likes = res.data.display_likes
         cntEl.textContent = res.data.display_likes
-        setLikeVisual(act, !!res.data.user_liked)
+        document.querySelectorAll('.feed-item[data-id="'+item.dataset.id+'"]').forEach(other=>{
+          other.dataset.liked=item.dataset.liked;other.dataset.likes=item.dataset.likes;
+          other.querySelector('.like-count').textContent=item.dataset.likes;
+          setLikeVisual(other.querySelector('.like-act'),!!res.data.user_liked)
+        })
       })
     }
 
@@ -1384,8 +1384,7 @@
     })
 
     function appendMyComment(postId, content, replyToLxm, commentId) {
-      var item = document.querySelector('.feed-item[data-id="' + postId + '"]')
-      if (!item) return
+      document.querySelectorAll('.feed-item[data-id="' + postId + '"]').forEach(function(item) {
       var col = item.querySelector('.content-col')
       var box = col.querySelector('.feed-comments')
       if (!box) {
@@ -1405,6 +1404,7 @@
       item.dataset.comments = n
       var cntEl = item.querySelector('.comment-count')
       if (cntEl) cntEl.textContent = String(n)
+      })
     }
 
     /* ===== 全屏预览（STEP-023 / UI 5.2 / TD-001） ===== */
@@ -1426,9 +1426,11 @@
       updateCounter()
       overlay.appendChild(img); overlay.appendChild(closeBtn); overlay.appendChild(counter)
       document.body.appendChild(overlay)
+      mediaView.setImagePreviewOpen(true)
 
       // TD-001：禁用浏览器边缘返回手势
       var prevOverscroll = document.body.style.overscrollBehaviorX
+      var prevOverflow = document.body.style.overflow
       document.body.style.overscrollBehaviorX = 'contain'
       document.body.style.overflow = 'hidden'
 
@@ -1461,6 +1463,7 @@
         if (moved && Math.abs(dx) > 50) {
           if (dx < 0) show(idx + 1); else show(idx - 1)
         } else if (!moved) {
+          if (e.cancelable) e.preventDefault()
           closePreview()  // 单击关闭
         }
       }
@@ -1472,28 +1475,33 @@
         overlay.removeEventListener('touchmove', onTouchMove)
         overlay.remove()
         document.body.style.overscrollBehaviorX = prevOverscroll
-        document.body.style.overflow = ''
+        document.body.style.overflow = prevOverflow
+        mediaView.setImagePreviewOpen(false)
       }
 
       overlay.addEventListener('touchstart', onTouchStart, { passive: true })
       overlay.addEventListener('touchmove', onTouchMove, { passive: false })
-      overlay.addEventListener('touchend', onTouchEnd, { passive: true })
+      overlay.addEventListener('touchend', onTouchEnd, { passive: false })
       closeBtn.addEventListener('click', function (e) { e.stopPropagation(); closePreview() })
     }
 
     /* ===== 下拉刷新 ===== */
     (function initPullRefresh() {
       var main = document.querySelector('.feed-main')
-      var startY = 0, pulling = false
+      var startX = 0, startY = 0, pulling = false
       var tip = document.getElementById('pull-tip')
       window.addEventListener('touchstart', function (e) {
-        if (window.scrollY <= 0 && e.touches.length === 1) { startY = e.touches[0].clientY; pulling = true }
+        pulling = !document.querySelector('.feed-detail,.feed-fullscreen,.preview-overlay') && window.scrollY <= 0 && e.touches.length === 1
+        if (pulling) { startX = e.touches[0].clientX; startY = e.touches[0].clientY }
       }, { passive: true })
       window.addEventListener('touchmove', function (e) {
         if (!pulling) return
         var dy = e.touches[0].clientY - startY
+        var dx = Math.abs(e.touches[0].clientX - startX)
+        if (dx > 10 && dx > Math.abs(dy)) { pulling = false; tip.classList.remove('show'); return }
         if (dy > 60) tip.classList.add('show')
       }, { passive: true })
+      window.addEventListener('touchcancel', function () { pulling = false; tip.classList.remove('show') }, { passive: true })
       window.addEventListener('touchend', function (e) {
         if (!pulling) return
         pulling = false
@@ -1505,10 +1513,11 @@
     })()
 
     /* ===== 无限滚动：首屏 boot 结束后再挂载，避免哨兵抢跑导致遮罩不关 ===== */
-    var sentinelEnabled = false
+    var sentinelEnabled = false, sentinelVisible = false, paginationTimer = null
     var sentinelObserver = new IntersectionObserver(function (entries) {
       if (!sentinelEnabled) return
-      if (entries[0].isIntersecting && !loading && !noMore) loadFeed(false)
+      sentinelVisible = entries[0].isIntersecting
+      if (sentinelVisible && !loading && !noMore) loadFeed(false)
     })
 
     function enableFeedInfiniteScroll() {
@@ -1603,7 +1612,7 @@
     // 评论回复曝光观察器：60% 进入视口即上报 lxm_reply 已读
     var commentReplyObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.6 || !mediaView.readingRoot()?.contains(entry.target)) return
         var id = entry.target.getAttribute('data-comment-id')
         if (!id || reportedComments[id]) return
         reportedComments[id] = true
@@ -1624,11 +1633,12 @@
       entries.forEach(function (entry) {
         var postId = entry.target.dataset.id
         if (!postId || reportedPosts[postId]) return
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
           if (postDwellTimers[postId]) return
           postDwellTimers[postId] = setTimeout(function () {
-            reportedPosts[postId] = true
             delete postDwellTimers[postId]
+            if (!mediaView.readingRoot()?.contains(entry.target) || !isFeedAuthenticated()) return
+            reportedPosts[postId] = true
             postDwellObserver.unobserve(entry.target)
             request(
               'POST',
@@ -1648,8 +1658,10 @@
     // 注意：loadFeed 传入的 rootEl 常为帖子节点本身；querySelectorAll 只匹配后代，须先 observe 自身
     function observeReadTargets(rootEl) {
       if (feedAuthMode !== 'authenticated') return
-      var scope = rootEl || document
-      if (rootEl && rootEl.classList && rootEl.classList.contains('feed-item') && rootEl.dataset.id) {
+      var visible = mediaView.readingRoot()
+      if (!visible) return
+      var scope = rootEl && visible.contains(rootEl) ? rootEl : visible
+      if (rootEl && visible.contains(rootEl) && rootEl.classList && rootEl.classList.contains('feed-item') && rootEl.dataset.id) {
         postDwellObserver.observe(rootEl)
       }
       scope.querySelectorAll('.feed-item[data-id]').forEach(function (el) {
@@ -1657,9 +1669,18 @@
       })
       scope.querySelectorAll('.comment-reply[data-comment-id]').forEach(function (el) {
         var id = el.getAttribute('data-comment-id')
-        if (id && !reportedComments[id]) commentReplyObserver.observe(el)
+        if (id && el.dataset.read !== '1' && !reportedComments[id]) commentReplyObserver.observe(el)
       })
     }
+
+    function refreshReadTargets() {
+      commentReplyObserver.disconnect()
+      postDwellObserver.disconnect()
+      Object.values(postDwellTimers).forEach(clearTimeout)
+      postDwellTimers = {}
+      observeReadTargets()
+    }
+    document.addEventListener('visibilitychange', refreshReadTargets)
 
     function teardownPrivateFeedResources() {
       disconnectFeedSSE()
@@ -1709,7 +1730,8 @@
       var params = new URLSearchParams(location.search)
       var focus = allowFocus !== false && params.get('focus') === 'unread_reply'
       if (enterRes && enterRes.code === 0 && enterRes.data && enterRes.data.anchor_comment_id) {
-        window.__feedAnchorCommentId__ = enterRes.data.anchor_comment_id
+        window.__feedAnchorPostId__ = enterRes.data.anchor_post_id
+        window.__feedAnchorCommentId__ = focus ? enterRes.data.anchor_comment_id : null
       } else if (focus) {
         window.__feedAnchorCommentId__ = null
       }
@@ -1749,10 +1771,18 @@
       }
     }
 
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && isFeedAuthenticated()) loadMsgBadge()
-    })
+    const stopUnreadBadge = ChatUnread.watch(() => loadMsgBadge(feedSilentAuthOptions()))
+    window.addEventListener('pagehide', event => { if (!event.persisted) stopUnreadBadge() })
 
+    var mediaView=FeedMediaView.mount({root:document.body,
+      read:async path=>{var r=await request('GET',path,null,feedTransitionAuthOptions());return r?.code===0?r.data:null},
+      article:p=>buildFeedItem(p,true,true),images:openPreview,audio:()=>window.BgmPage?.getCurrent(),
+      readTargets:observeReadTargets,resetReads:refreshReadTargets})
+    window.addEventListener('pagehide',event=>{
+      if(event.persisted) window.LxmVisitor?.prepareRestoreReload()
+      mediaView.resetIdentity()
+    })
+    window.addEventListener('pageshow',event=>{if(event.persisted){mediaView.destroy();location.reload()}})
     initFeed().catch(function (err) {
       console.error('[feed] initFeed 未捕获异常', err)
       dismissFeedBootLoading()

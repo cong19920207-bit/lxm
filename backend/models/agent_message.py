@@ -7,7 +7,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.database import Base
@@ -33,7 +33,10 @@ class AgentMessage(Base):
     """主动消息表"""
 
     __tablename__ = "agent_message"
-    __table_args__ = (UniqueConstraint("user_id", "id", name="uq_agent_message_user_id"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "id", name="uq_agent_message_user_id"),
+        Index("ix_agent_message_unread", "user_id", "is_read", "sort_seq"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

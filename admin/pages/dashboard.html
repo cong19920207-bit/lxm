@@ -5,13 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数据看板 - 林小梦管理后台</title>
   <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/visitor-analytics.css?v=device-table-3">
   <style>
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+    .admin-header { margin-left: 0; }
+    .visitor-summary {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding: 22px 24px;
       margin-bottom: 16px;
     }
+    .visitor-summary h2 { margin: 0; font-size: 19px; }
+    .visitor-summary p { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+    .visitor-summary a { white-space: nowrap; }
+    #visitorOverview { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #visitorOverview .visitor-error { grid-column: 1 / -1; }
+    .summary-metric { display: flex; align-items: center; gap: 12px; border-left: 1px solid #e9edf2; padding-left: clamp(10px, 1.6vw, 28px); }
+    .visitor-summary .summary-metric .stat-icon { margin: 0; flex: none; }
+    .summary-metric .stat-value { display: block; font-size: 28px; line-height: 1.25; margin: 3px 0 0; }
+    .summary-metric small { margin-left: 3px; font-size: 14px; }
+
+    .stat-grid {
+      --card-gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+      gap: var(--card-gap);
+      margin-bottom: 16px;
+    }
+
+    .visitor-summary ~ .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .visitor-summary ~ .stat-grid .stat-card { padding: 20px 24px; }
 
     .stat-card .stat-icon {
       width: 40px;
@@ -99,7 +122,16 @@
       margin-bottom: 16px;
     }
 
+    @media (max-width: 1150px) {
+      .visitor-summary { flex-wrap: wrap; gap: 14px; }
+      #visitorOverview { order: 1; flex-basis: 100%; }
+      .summary-metric:first-child { border: 0; padding-left: 0; }
+      .visitor-summary a { margin-left: auto; }
+    }
     @media (max-width: 768px) {
+      .visitor-summary { padding: 16px; }
+      .summary-metric .stat-icon { display: none; }
+      .visitor-summary ~ .stat-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .chart-row {
         grid-template-columns: 1fr;
       }
@@ -108,7 +140,7 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=visitor-dashboard-v1"></script>
 <script>checkAdminLogin();</script>
 
 <script>
@@ -118,10 +150,12 @@
     '<div class="admin-content" id="dashboardContent"></div>';
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script src="/admin/static/js/visitor-analytics.js?v=device-table-3"></script>
 
 <script>
 (function () {
+  VisitorAnalytics.initNavigation();
   var role = getAdminRole();
   var contentEl = document.getElementById('dashboardContent');
 
@@ -137,6 +171,12 @@
     { key: 'agent_open_rate',    label: '主动消息打开率',   icon: '📬', bg: '#fcffe6', color: '#a0d911', unit: '%', isPercent: true }
   ];
 
+  var VISITOR_CARDS = [
+    { key: 'visitors', label: '独立访客数', icon: '👥', bg: '#e6f7ff', color: '#1890ff', unit: '位' },
+    { key: 'visits',    label: '来访次数',   icon: '👣', bg: '#f6ffed', color: '#52c41a', unit: '次' },
+    { key: 'opens',     label: '打开次数',   icon: '📂', bg: '#fff7e6', color: '#fa8c16', unit: '次' }
+  ];
+
   /* 按角色过滤卡片 */
   var visibleCards = ALL_CARDS;
   if (role === 'ai_trainer') {
@@ -147,6 +187,7 @@
 
   var showCards = role !== 'tech_ops';
   var showCharts = role !== 'ai_trainer';
+  var showVisitors = ['super_admin', 'ops_admin', 'observer'].includes(role);
 
   /* 将接口嵌套 data 展平为卡片用字段（与 stats_service.get_dashboard_data 结构一致） */
   function flattenDashboard(raw) {
@@ -177,10 +218,10 @@
   }
 
   /* ─── 渲染骨架屏 ─── */
-  function renderSkeletonCards() {
+  function renderSkeletonCards(cards) {
     var html = '';
-    for (var i = 0; i < visibleCards.length; i++) {
-      var c = visibleCards[i];
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
       html +=
         '<div class="stat-card is-skeleton">' +
           '<div class="stat-icon" style="background:' + c.bg + '">' + c.icon + '</div>' +
@@ -193,10 +234,10 @@
   }
 
   /* ─── 渲染真实卡片 ─── */
-  function renderCards(data) {
+  function renderCards(cards, data) {
     var html = '';
-    for (var i = 0; i < visibleCards.length; i++) {
-      var c = visibleCards[i];
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
       var val = data[c.key];
       var display = val !== undefined && val !== null ? val : '--';
       if (c.isPercent && typeof val === 'number') {
@@ -205,7 +246,7 @@
       html +=
         '<div class="stat-card">' +
           '<div class="stat-icon" style="background:' + c.bg + '">' + c.icon + '</div>' +
-          '<div class="stat-value" style="color:' + c.color + '">' + display + '<span style="font-size:14px;margin-left:2px">' + c.unit + '</span></div>' +
+          '<div class="stat-value" style="color:' + c.color + '">' + escapeAdminHtml(display) + '<span style="font-size:14px;margin-left:2px">' + c.unit + '</span></div>' +
           '<div class="stat-label">' + c.label + '</div>' +
         '</div>';
     }
@@ -245,8 +286,16 @@
   function initLayout() {
     var html = '';
 
+    if (showVisitors) {
+      html += '<section class="visitor-summary stat-card" aria-labelledby="visitorOverviewTitle"><div>' +
+          '<h2 id="visitorOverviewTitle">访客统计</h2>' +
+          '<p>H5 主站和公开朋友圈<br>今日（北京时间）</p></div>' +
+          '<div id="visitorOverview">查询中…</div>' +
+          '<a href="visitor-devices.html">查看访客明细 ›</a></section>';
+    }
+
     if (showCards) {
-      html += '<div class="stat-grid" id="statCards">' + renderSkeletonCards() + '</div>';
+      html += '<div class="stat-grid" id="statCards">' + renderSkeletonCards(visibleCards) + '</div>';
     } else {
       html += '<div class="role-hint">当前角色为技术运维，统计卡片仅对运营和管理角色可见。请使用侧边栏的系统监控查看技术指标。</div>';
     }
@@ -275,7 +324,7 @@
   var chartActive = null;
 
   function initCharts() {
-    if (!showCharts) return;
+    if (!showCharts || typeof echarts === 'undefined') return;
     var newEl = document.getElementById('chartNewUsers');
     var activeEl = document.getElementById('chartActiveUsers');
     if (newEl) chartNew = echarts.init(newEl);
@@ -321,18 +370,27 @@
 
   /* ─── 数据加载 ─── */
   async function loadDashboard() {
+    if (showVisitors) VisitorAnalytics.overview(document.getElementById('visitorOverview'), function (data) {
+      return VISITOR_CARDS.map(function (c) {
+        return '<div class="summary-metric"><span class="stat-icon" aria-hidden="true" style="background:' + c.bg + '">' + c.icon + '</span>' +
+          '<div><div class="stat-label">' + c.label + '</div><strong class="stat-value" style="color:' + c.color + '">' +
+          escapeAdminHtml(data[c.key] ?? '--') + '<small>' + c.unit + '</small></strong></div></div>';
+      }).join('');
+    });
+
     /* 加载卡片数据 */
     if (showCards) {
       var res = await adminRequest('GET', '/api/admin/stats/dashboard');
       if (res && res.code === 0) {
         var flat = flattenDashboard(res.data || {});
-        document.getElementById('statCards').innerHTML = renderCards(flat);
+        document.getElementById('statCards').innerHTML = renderCards(visibleCards, flat);
         document.getElementById('alertArea').innerHTML = renderAlerts(flat);
       }
     }
 
     /* 加载趋势图表 */
     if (showCharts) {
+      await chartsReady;
       var resNew = await adminRequest('GET', '/api/admin/stats/trend?metric=new_users&days=7');
       if (resNew && resNew.code === 0) {
         var ax = trendListToAxes(resNew.data);
@@ -349,7 +407,12 @@
 
   /* ─── 启动 ─── */
   initLayout();
-  initCharts();
+  var chartsReady = new Promise(function (resolve) {
+    document.addEventListener('DOMContentLoaded', function () {
+      initCharts();
+      resolve();
+    }, { once: true });
+  });
   loadDashboard();
 
   setInterval(loadDashboard, 300000);

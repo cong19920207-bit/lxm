@@ -3,7 +3,7 @@
   'use strict'
   const paths = {
     relationship: '/api/relationship/status', days: '/api/relationship/detail',
-    diary: '/api/diary/list?page=1&page_size=1', unread: '/api/agent/unread-count',
+    diary: '/api/diary/list?page=1&page_size=1', unread: null,
     feedList: '/api/feed/list?size=8', feedBadge: '/api/feed/badge',
   }
   const validData = {
@@ -19,7 +19,7 @@
     if (instance) return instance
     const states = Object.fromEntries(Object.keys(paths).map(key => [key, { status:'pending', data:null, version:0 }]))
     const batches = new Set()
-    let snapshot, disposed = false, generation = 0
+    let snapshot, unreadRequest, disposed = false, generation = 0
     const same = (a,b) => a && b && a.known === b.known && a.token === b.token && a.authEpoch === b.authEpoch
     const startup = window.HomeStartup
     const auth = () => startup.auth()
@@ -78,10 +78,11 @@
       for (const key of keys) {
         const version = states[key].version
         const isViewCurrent = () => !disposed && (!context || context.valid()) && same(batch.auth,auth()) && states[key].version === version
-        request('GET',paths[key],null,{signal:batch.controller.signal,isCurrent:()=>valid(batch,key),
+        const options = {signal:batch.controller.signal,isCurrent:()=>valid(batch,key),
           authPolicy:AUTH_401_POLICIES.SILENT_VISITOR,onUnauthorized:changeAuth,
-          routeCurrent:context ? ()=>context.router.current?.context.routeEpoch===context.routeEpoch : undefined,routeEpoch:context?.routeEpoch})
-          .then(result=>{
+          routeCurrent:context ? ()=>context.router.current?.context.routeEpoch===context.routeEpoch : undefined,routeEpoch:context?.routeEpoch}
+        const resultPromise = key === 'unread' ? ChatUnread.getUnreadCount(request,options) : request('GET',paths[key],null,options)
+        const settled = resultPromise.then(result=>{
             if (!valid(batch,key)) return
             if (result.code === 0 && result.data != null && validData[key](result.data)) {
               states[key].data = result.data; states[key].status = 'success'
@@ -97,6 +98,7 @@
             if (!batch.pending.size) finish(batch)
             if (!same(snapshot,auth())) changeAuth()
           })
+        if (key === 'unread') unreadRequest = settled
       }
       return Promise.all([...waiting,batch.promise])
     }
@@ -108,9 +110,16 @@
       else start(snapshot.token ? ['feedList','feedBadge'] : ['feedList'])
     }
     const onShow = () => { for (const batch of [...batches]) deadline(batch); if(!same(snapshot,auth())) changeAuth() }
+    const stopUnread = ChatUnread.watch(async refreshAfterPending => {
+      const owner = auth()
+      if (!owner.token) return
+      // A receipt or a return to the foreground can supersede a pending snapshot.
+      if (refreshAfterPending) await unreadRequest
+      if (same(owner,auth())) await start(['unread'])
+    })
     function destroy() {
       if(disposed) return
-      disposed=true; instance=null; for(const batch of [...batches]) cancel(batch)
+      disposed=true; stopUnread(); instance=null; for(const batch of [...batches]) cancel(batch)
       window.removeEventListener('home-auth-change',changeAuth); window.removeEventListener('storage',onStorage)
       window.removeEventListener('pageshow',onShow); window.removeEventListener('pagehide',onHide)
       document.removeEventListener('visibilitychange',onVisible)
@@ -127,5 +136,27 @@
     changeAuth()
     return instance
   }
-  window.HomeData = {mount}
+  function renderFeedThumbs(container, posts) {
+    container.replaceChildren()
+    for (const post of posts) {
+      const cover = post.video?.cover_small_url
+      const sources = cover ? [cover] : (post.image_urls || [])
+      for (const src of sources) {
+        if (!src) continue
+        const img = document.createElement('img')
+        img.src = src
+        img.alt = ''
+        img.loading = 'lazy'
+        const tile = cover ? document.createElement('span') : img
+        if (cover) {
+          tile.className = 'home-feed-video-thumb'
+          tile.append(img)
+        }
+        img.onerror = () => { tile.hidden = true }
+        container.append(tile)
+        if (container.childElementCount === 2) return
+      }
+    }
+  }
+  window.HomeData = {mount, renderFeedThumbs}
 })()

@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,12 +15,17 @@ class ConversationLog(Base):
 
     __tablename__ = "conversation_log"
 
-    __table_args__ = (UniqueConstraint('user_id', 'id', name='uq_conversation_user_id'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'id', name='uq_conversation_user_id'),
+        Index('ix_conversation_reply_unread', 'user_id', 'reply_is_read', 'sort_seq'),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     role: Mapped[str] = mapped_column(String(20), nullable=False)  # user / assistant
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # New H5 and Open replies share this flag. Older NULL replies read as seen; user rows keep NULL.
+    reply_is_read: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
     # 用户消息才有
     emotion_label: Mapped[str | None] = mapped_column(String(50), nullable=True)

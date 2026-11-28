@@ -3,7 +3,7 @@
 
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -67,7 +67,10 @@ async def create_all_tables() -> None:
     from backend.models.chat_lifecycle import CHAT_LIFECYCLE_TABLE_NAMES
     from backend.models.bgm import BGM_TABLE_NAMES
     from backend.models import PET_MANAGED_TABLE_NAMES as PET_TABLE_NAMES
-    managed_tables = VOICE_TABLE_NAMES | memory_tables | CHAT_LIFECYCLE_TABLE_NAMES | BGM_TABLE_NAMES | PET_TABLE_NAMES
+    from backend.models.feed_video import FEED_VIDEO_TABLE_NAMES
+    from backend.models.feed_video_upload import UPLOAD_TABLE_NAMES
+    from backend.models.visitor import VISITOR_TABLE_NAMES, VisitorActivation
+    managed_tables = VISITOR_TABLE_NAMES | FEED_VIDEO_TABLE_NAMES | UPLOAD_TABLE_NAMES | VOICE_TABLE_NAMES | memory_tables | CHAT_LIFECYCLE_TABLE_NAMES | BGM_TABLE_NAMES | PET_TABLE_NAMES
 
     runtime_tables = [
         table
@@ -76,12 +79,22 @@ async def create_all_tables() -> None:
     ]
 
     async with engine.begin() as conn:
+        missing_visitor = await conn.run_sync(
+            lambda c: sorted(VISITOR_TABLE_NAMES - set(inspect(c).get_table_names())))
+        if missing_visitor:
+            raise RuntimeError("访客统计数据库迁移未完成，请执行 Alembic upgrade head: " + ", ".join(missing_visitor))
+        if await conn.scalar(select(VisitorActivation.enabled_at).where(VisitorActivation.id == 1)) is None:
+            raise RuntimeError("访客统计启用时点缺失，请完成 Alembic 迁移")
         await conn.run_sync(
             lambda sync_conn: Base.metadata.create_all(
                 sync_conn,
                 tables=runtime_tables,
             )
         )
+        missing_feed = await conn.run_sync(
+            lambda c: sorted((FEED_VIDEO_TABLE_NAMES | UPLOAD_TABLE_NAMES) - set(inspect(c).get_table_names())))
+        if missing_feed:
+            raise RuntimeError("朋友圈数据库迁移未完成，请执行 Alembic upgrade head: " + ", ".join(missing_feed))
         missing_pet = await conn.run_sync(
             lambda c: sorted(PET_TABLE_NAMES - set(inspect(c).get_table_names())))
         if missing_pet:

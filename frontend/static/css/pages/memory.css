@@ -126,28 +126,11 @@ html[data-app-route="memory"] body.h5-skin.memory-nebula-page {
       padding: 24px;
       text-align: center;
       pointer-events: none;
+      --lxm-loading-caption-color: #d6c9e7;
       background: rgba(5, 5, 15, 0.28);
     }
 :where([data-app-page="memory"]) .nebula-loading.is-visible {
       display: flex;
-    }
-:where([data-app-page="memory"]) .nebula-loading-spinner {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid rgba(167, 139, 250, 0.25);
-      border-top-color: var(--nebula-accent);
-      animation: nebula-spin 0.8s linear infinite;
-      margin-bottom: 14px;
-    }
-
-    @keyframes nebula-spin {
-      to { transform: rotate(360deg); }
-    }
-:where([data-app-page="memory"]) .nebula-loading-text {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--nebula-muted);
     }
 :where([data-app-page="memory"]) .nebula-empty {
       position: absolute;
@@ -414,7 +397,6 @@ html[data-app-route="memory"] body.h5-skin.memory-nebula-page {
     }
 
     @media (prefers-reduced-motion: reduce) {
-:where([data-app-page="memory"]) .nebula-loading-spinner { animation: none; }
 :where([data-app-page="memory"]) .nebula-sheet,
 :where([data-app-page="memory"]) .nebula-sheet-mask,
 :where([data-app-page="memory"]) .nebula-toast,

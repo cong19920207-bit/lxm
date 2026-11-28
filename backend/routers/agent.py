@@ -11,6 +11,7 @@ from backend.constants import ERR_AGENT_MSG_NOT_FOUND
 from backend.database import get_db
 from backend.models.agent_message import AgentMessage
 from backend.schemas.common import ApiResponse
+from backend.services import chat_unread
 from backend.utils.auth_middleware import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -64,25 +65,10 @@ async def mark_message_read(
     POST /api/agent/messages/{message_id}/read
     仅标记指定的单条消息为已读，严格只改这一条
     """
-    stmt = select(AgentMessage).where(
-        and_(
-            AgentMessage.id == message_id,
-            AgentMessage.user_id == user_id,
-        )
-    )
-    result = await db.execute(stmt)
-    msg = result.scalar_one_or_none()
-
-    if not msg:
+    outcome = await chat_unread.mark_message_read(db, user_id, "agent", message_id)
+    if outcome == "missing":
         return ApiResponse.fail(ERR_AGENT_MSG_NOT_FOUND)
-
-    if msg.is_read:
-        return ApiResponse.ok(message="消息已标记为已读")
-
-    msg.is_read = True
-    await db.flush()
-
-    return ApiResponse.ok(message="标记成功")
+    return ApiResponse.ok(message="消息已标记为已读" if outcome == "already_read" else "标记成功")
 
 
 @router.get("/unread-count")

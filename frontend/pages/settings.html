@@ -1071,6 +1071,7 @@
 
       await request('POST', '/api/auth/logout', undefined, settingsSilentAuthOptions())
       clearToken()
+      void window.LxmVisitor?.signal('identity', null)
       localStorage.removeItem('username')
       localStorage.removeItem('relationship_level')
       renderVisitorSettings()

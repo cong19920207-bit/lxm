@@ -5,20 +5,20 @@
 - 功能范围：`life-feed`
 - 必读依赖：`contract-shared-conventions`
 - 相关技术债：`TD-032`, `TD-033`, `TD-034`, `TD-035`, `TD-036`, `TD-037`
-- 最近同步：`2026-08-19`（DeepSeek 全局默认超时 45s→90s；Liblib 看板角色与代码对齐含 observer；未登录开放口径仍见文首 2026-08-13）
+- 最近同步：2026-11-27，朋友圈置顶、稳定分页、视频发布和恢复。
 
-> **当前口径（2026-08-13）**：`GET /api/feed/list` 与 `GET /api/feed/config/header` 为可选 Bearer。完全缺少 `Authorization` 头返回公共数据；有效 token 保留登录用户语义；头存在但无效均 HTTP `401`，不降级为匿名。匿名 list 必须省略 `user_liked` 和 `comments`；header 另含 `home_city`。其余 `/api/feed` 端点仍强鉴权。细则见「当前口径：Feed 可选鉴权与访客只读态」。下文「模块：H5 朋友圈 / 生活流」为 2026-07-19 迁移原文，其中“全部 JWT”和 list 必含用户字段已被当前口径取代。
+> 当前鉴权与响应以本文「Feed 可选鉴权与访客只读态」为准。列表、置顶、单帖详情和页头可匿名读取，互动和已读上报须登录。
 
 ### 模块：H5 朋友圈 / 生活流（`/api/feed`）
 
-> 全部 JWT；响应 `{"code":0,"data":{},"message":"success"}`。路由：`backend/routers/feed.py`。  
+> 鉴权见下方逐接口约定。响应 `{"code":0,"data":{},"message":"success"}`。路由：`backend/routers/feed.py`。
 > **与对话主链**：v1 **无** Feed/世界观注入 Prompt；感知 IM 与 P0–P4/Future **业务零耦合**，仅共用 `agent_message` + `sort_seq` + 未读角标 API。
 
 #### GET /api/feed/list
 
-- **Query**：`cursor`（可选，上一页最后一条 `scheduled_publish_time` ISO）、`size`（默认 20，上限 50）
-- **过滤**：`scheduled_publish_time<=feed_now()` · `is_visible=1` · `generation_status='ready'` · 历史窗 `feed_history_visible_range`（相对 `feed_now()`）
-- **响应 `data`**：`{ posts:[{ id, content_text, hashtags, image_urls, scheduled_publish_time, emotion, city, display_likes, user_liked, display_comments, comments:[{ id, content, reply_to_lxm, lxm_reply, lxm_reply_at, lxm_reply_read_at }] }], next_cursor }`
+- **Query**：`cursor`（可选，上一页返回的 `next_cursor`）、`size`（默认 20，上限 50）、`stable_cursor`（默认 false）。新版 H5 从首轮起传 true，按北京发布时间、ID 双倒序翻页。双字段游标为 `ISO时间~ID`，非法值返回业务码 10001，仅有下一条时返回续页游标。旧调用省略参数时继续使用纯时间游标，满页仍返回末帖时间。
+- **过滤**：`scheduled_publish_time<=feed_now()` · `is_visible=1` · `generation_status='ready'` · 历史窗 `feed_history_visible_range`（相对 `feed_now()`）。视频还须有明确提交的公开版本、就绪任务及已核验的四项媒体。详情、可见置顶、角标及新帖广播复用公开可见条件，置顶或替换不会重新计作新帖。
+- 响应为 `{posts, next_cursor}`。逐帖字段及访问身份见下方「公开帖子字段」。
 - **约定**：评论**仅当前用户**私有；`scheduled_publish_time` 为北京墙钟 ISO（无 `Z`）；`city` 来自 `feed_post.city`（可空串）；`display_comments` 为计算字段；命中且 `actual_publish_time IS NULL` 懒惰写回
 - **状态**：已实现
 
@@ -32,7 +32,7 @@
 - **`data`**：`{ has_new, new_post_count, unread_reply_count }`
 - **`has_new`**：存在已到点可见帖且（`scheduled_publish_time > last_feed_entered_at` 或从未进入）
 - **`new_post_count`**：同上口径条数；**从未 enter** 时固定 `0`（此时若有可见帖仍可 `has_new=true`）
-- **`unread_reply_count`**：仅计当前用户未隐藏评论上的未读 LXM 回复，且该帖仍符合列表的四项可见条件。
+- **`unread_reply_count`**：仅计当前用户未隐藏评论上的未读 LXM 回复，且该帖仍符合列表的公开可见条件。
 - **H5**：首页未读胶囊 / 底栏新动态；聊天角标 = `unread_reply_count + new_post_count`；有未读回复跳转 `?focus=unread_reply`
 - **状态**：已实现
 
@@ -141,7 +141,7 @@
 | 进页 boot | `#feed-boot-loading`；渐进 alpha/blur；8s 硬超时；哨兵延后挂载（TB-LF-010） |
 | SSE 提示条 | 「林小梦更新了 N 条动态」= **新帖** delta，**不是**评论回复未读 |
 | 已读 | 回复曝光 0.6 上报；卡片停留 3s；观察器须 observe **自身** `.feed-item` |
-| 列表 UI | 同日左列合并、meta 行左时间右展开、单图 4:3、评论无「正在回复」占位等（详见草案快照 / 《朋友圈页面展示逻辑规范》v1.6） |
+| 列表 UI | 同日左列合并、meta 行左时间右展开。竖向单图和竖视频共用 4:5 画框，横向内容沿用横向布局。置顶、预览与首页取图见[H5 展示契约](../h5-app/api.md#feed-pin-video-v8)。 |
 
 ---
 
@@ -154,6 +154,8 @@
 | 方法与路径 | 鉴权 | 说明 |
 |------|------|------|
 | `GET /api/feed/list` | 可选 Bearer 用户 JWT | 完全缺少 `Authorization` 时返回公共 Feed；有效 token 保留登录用户语义 |
+| `GET /api/feed/pins` | 可选 Bearer 用户 JWT | 按运营保存顺序过滤可见帖，返回 `{posts, total}`，空集合为 `[]` 和 0。独立于时间流分页。 |
+| `GET /api/feed/posts/{post_id}` | 可选 Bearer 用户 JWT | 返回同形单帖，可直读后页原帖。隐藏、未到点、超窗或未提交的版本不可读。 |
 | `GET /api/feed/config/header` | 可选 Bearer 用户 JWT | 完全缺少 `Authorization` 时返回公共 Header；有效 token 返回同一公共配置 |
 | `/api/feed` 其余端点 | 必填用户 JWT | 常规端点使用 Bearer，`events` 使用 Query `token`；包括 enter、badge、events、点赞、评论与已读接口，未登录不开放 |
 
@@ -161,9 +163,14 @@
 - 只要 `Authorization` 请求头存在，空值、非 Bearer scheme、空 Bearer、伪造/过期 token 或封禁用户均返回 HTTP `401`，不降级为匿名。
 - 该例外不改变共享鉴权约定，也不代表存在游客身份或游客会话。
 
-#### GET /api/feed/list 条件响应
+<a id="feed-public-post-v8"></a>
 
-- **通用响应 `data`**：`{ posts:[{ id, content_text, hashtags, image_urls, scheduled_publish_time, emotion, city, display_likes, display_comments }], next_cursor }`
+#### 公开帖子字段
+
+列表、置顶与详情共用一种帖子结构。三种响应均为 `Cache-Control: private, no-store`，并带 `Vary: Authorization`。
+
+- **列表响应 `data`**：`{ posts:[{ id, media_kind, is_pinned, content_text, hashtags, image_urls, scheduled_publish_time, emotion, city, display_likes, display_comments }], next_cursor }`
+- `media_kind` 为 `image_text` 或 `video`。视频帖另有 `video` 对象，含 `media_version, video_url, preview_url, cover_small_url, cover_large_url, duration_ms, width, height, frame_mode, frame_position`。已知音轨信息时另含 `has_audio`。这四个 URL 指向当前已提交版本的独立资源。
 - **登录用户条件字段**：每条 post 另含 `user_liked` 与 `comments:[{ id, content, reply_to_lxm, lxm_reply, lxm_reply_at, lxm_reply_read_at }]`。
 - **匿名条件字段**：post 必须完全省略 `user_liked` 和 `comments`，不得以 `false` 或空数组占位；服务层不查询按当前用户绑定的 `FeedLike` / `FeedComment`。
 - **约定**：`display_comments` 为基础展示数加当前登录用户可见评论数，匿名时只含基础展示数；公共可见性、分页、时间/城市口径和 `actual_publish_time IS NULL` 懒惰写回保持不变。
@@ -176,7 +183,7 @@
 
 | 项 | 约定 |
 |----|------|
-| 访客初始化 | 只请求公共 Header/List；不请求 enter/badge，不连接 SSE，不启动已读观察器，不处理私有 `focus` 定位 |
+| 访客初始化 | 读取公共页头、列表及置顶，点摘要时读取公开详情；不请求 enter/badge，不连接 SSE，不启动已读观察器，不处理私有 `focus` 定位 |
 | 访客交互 | 点赞和评论必须在任何临时 UI 变更或写请求前触发共享登录弹窗 |
 | 登录恢复 | 在当前页恢复 enter、badge、私有列表、SSE 与观察器各一次；不自动重放登录前的写操作 |
 | `401` 降级 | 背景读取清 token 并恢复访客态；主动写操作回滚本次临时 UI 后弹登录窗；不得在 DOM 保留私有评论 |
@@ -211,12 +218,39 @@
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/feed/posts` | status∈all/visible/hidden/failed |
-| GET/PUT | `/feed/posts/{id}` | 详情含 image_urls/hashtags/dedup_hash；**另含** base_comments/comment_multiplier/虚拟评论底 |
+| GET | `/feed/pins` | 四个可读角色均可查。返回整组 `{version, posts}`，每条含 `id, summary, type, scheduled_publish_time, status`，包含当前不可公开展示的成员。 |
+| PUT / DELETE | `/feed/pins/{post_id}` | 追加到末尾／取消成员，重复设置同一状态保持原排序。新追加的帖子须已提交且就绪。 |
+| PUT | `/feed/pins/order` | 提交 `{version, post_ids}`，须完整列出当前成员各一次。版本或成员不符返回业务码 20059。成功返回 `{version, post_ids}`。 |
+| GET | `/feed/posts` | status∈all/visible/hidden/failed。视频有已提交版本后才进入本列表和总数 |
+| GET/PUT | `/feed/posts/{id}` | 详情含 `post_version`、图片、话题、去重值和互动基数。普通编辑必须带当前 `version`，旧版本返回 HTTP 409，视频帖只能经替换编辑换片。 |
 | DELETE | `/feed/posts/{id}` | **现状=下架**（`is_visible=0`）；真删未实现（TD-035）；UI 不提供删除钮 |
-| PATCH | `/feed/posts/{id}/visibility` | `{is_visible:0/1}` |
+| PATCH | `/feed/posts/{id}/visibility` | `{is_visible:0/1, version?}`，提供版本时校验，显隐实际改变时递增帖子版本 |
+| POST | `/feed/video/edits/{id}/uploads/{operation_id}/keep-selected` | 编辑角色显式沿用原视频。请求含草稿 `version` 和原视频 `media_version`，路径指向本次失败的上传。版本或选择已变化返回 409。成功只保存选择，发布仍须单独提交。 |
 | POST | `/feed/posts` | mode∈upload/ai_generate；管理员跳过 dedup/similarity；新帖随机写评论假数底 |
 | GET/PUT | `/feed/config/auto-publish` | **不含** ops_admin；写入口在系统参数页 |
+
+`POST /feed/video/edits` 与 `PATCH /feed/video/edits/{id}` 支持 `hashtags: string[]` 和 `emotion: string`。新稿默认空话题和「平静」，情绪最多 20 字。PATCH 省略字段时保留原值，传空数组清空话题，传空白情绪恢复默认。草稿列表及详情回传两项。首次成功提交（含定时）按手动图文规则带入常驻城市及提交日季节，并按发帖配置分别抽取点赞和评论基数、倍率；幂等重试及后续替换沿用原帖计数。
+
+视频草稿列表和详情的 `upload` 指向已选媒体，`pending_upload` 表示正在接收的文件。选片被拒、收件中断或预留到期后，`failed_upload` 返回失败文件与操作 ID，`last_receive_error` 说明原因。即使原片已就绪，提交也返回 409，直至新文件就绪或运营明确沿用原片。申请上传时可带 `version` 校验草稿版本。
+
+<a id="feed-video-admin-api"></a>
+
+#### 视频编辑与提交
+
+下表路径均相对 `/api/admin/feed/video`。读取沿用内容页四角色，写入仅限 `super_admin` 和 `ai_trainer`。
+
+| 方法 | 路径 | 调用约定 |
+|---|---|---|
+| POST / GET | `/edits` | 用唯一 `request_id` 建新稿／列出可恢复草稿。重放同一建稿请求返回原编辑。 |
+| GET / PATCH / DELETE | `/edits/{eid}` | 读取／带草稿版本保存变更字段／放弃编辑。关闭页面可重开草稿。 |
+| POST | `/posts/{post_id}/edits` | 用 `request_id` 和当前帖子 `version` 建替换草稿，带入已发布内容及媒体。 |
+| POST | `/edits/{eid}/uploads` | 提交 `operation_id, filename, size_bytes` 预留空间，可带草稿版本。空间不足返回 507，格式或大小不合规返回 422。 |
+| PUT | `/uploads/{operation_id}/content` | 本次操作人发送原始二进制正文。以实收长度、容器、视频轨和时长校验入队，已受理操作重放返回原任务。 |
+| POST | `/edits/{eid}/uploads/{operation_id}/retry` | 从原编辑、原媒体版本重试处理。收件失败后的沿用操作见上表。 |
+| PUT / POST | `/edits/{eid}/uploads/{operation_id}/cover`、`/edits/{eid}/uploads/{operation_id}/cover/default` | PUT 上传封面原始字节，POST 恢复默认封面。两者均带查询参数 `version`。 |
+| POST | `/edits/{eid}/submit` | 显式提交 `{request_id, version}`，校验编辑、帖子及所选视频和封面就绪状态。同一成功请求重放原结果。 |
+
+提交返回 `post_id, edit_id, post_version, action, media_version, scheduled_publish_time`。`action` 为 `published`、`scheduled` 或 `replaced`。新稿需非空文案，空计划时间按立即发布处理，将来时间按到点公开，已过时间拒绝。替换时原子切换已提交指针，沿用原帖 ID、日期、互动与置顶位置。未就绪或版本冲突返回 409，草稿和原公开版本可重新读取。
 
 #### 评论管理（`feed_comment_mgmt`）
 

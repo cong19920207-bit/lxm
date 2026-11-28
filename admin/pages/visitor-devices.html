@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设备信息 - 林小梦管理后台</title>
+  <link rel="stylesheet" href="/admin/static/css/admin-common.css?v=observer-v1-20260716">
+  <link rel="stylesheet" href="/admin/static/css/visitor-analytics.css?v=device-table-3">
+</head>
+<body>
+  <script src="/admin/static/js/admin-api.js?v=visitor-dashboard-v1"></script>
+  <script src="/admin/static/js/visitor-analytics.js?v=device-table-3"></script>
+  <script>
+    if (checkAdminLogin()) {
+      if (['super_admin', 'ops_admin', 'observer'].includes(getAdminRole())) {
+        document.body.insertAdjacentHTML('afterbegin', renderSidebar('visitor-devices') + renderHeader('设备信息') +
+          '<main class="admin-content visitor-analytics" id="visitorDevices"></main>');
+        VisitorAnalytics.initNavigation();
+        VisitorAnalytics.devices(document.getElementById('visitorDevices'));
+      } else {
+        location.replace('/admin/pages/error.html?type=403');
+      }
+    }
+  </script>
+</body>
+</html>

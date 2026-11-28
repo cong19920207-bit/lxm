@@ -47,12 +47,21 @@
 
 ### `admin/pages/dashboard.html`（数据看板）
 
+- 看板顶部的「访客统计」通栏展示 H5 主站和公开朋友圈在北京时间当天的独立访客数、来访次数和打开次数，单位为「位」「次」「次」。超级管理员、运营管理员和观察者可见。桌面下方八项指标按四列两行排列。汇总随看板每五分钟刷新，查询失败可重试。「查看访客明细」打开「设备信息」当天的设备表。打开或刷新后台页面不会产生 H5 访问事件。
 - **实现状态**：已实现。`activeKey='dashboard'`，顶栏标题「数据看板」。`observer` 仅读并与 `super_admin` / `ops_admin` 一样获得完整看板数据；`tech_ops` 仅提示文案无统计卡片；`ai_trainer` 仅展示 LLM 成功率、人格偏离率等 AI 性能卡片。
 - **接口**：`GET /api/admin/stats/dashboard` 的 `data` 为**嵌套对象**（见上文「模块：数据统计」）；卡片脚本内 **`flattenDashboard`** 将 `user` / `retention` / `agent` / `ai_performance` 展平为卡片字段（如 `new_users_today`→`new_users`、`persona_deviation_rate`→`persona_risk_rate`）。
 - **趋势图**：`GET /api/admin/stats/trend?metric=...&days=7` 的 `data` 为 **`[{ date, value }]`**；脚本 **`trendListToAxes`** 拆出 `dates`/`values` 再喂 ECharts。
 - **告警**：人格偏离 / LLM 成功率 / 次日留存 等阈值判断使用 **`typeof === 'number'`**，避免将 `null` 当 0。
 
+### `admin/pages/visitor-devices.html`（设备信息）
+
+侧栏「📱 设备信息」、看板「查看访客明细」和旧版报表链接均进入 `visitor-devices.html`。页面只有一张设备表，默认选中北京今天。切换日期、来访次数排序或页码时更新同一张表。每个当日有记录的设备编号一行。「最近访问 IP」紧邻设备编号，地址下方显示归属地。表内另列最近身份、当日来访与打开、当日首次与最近来访，以及设备存续期内的累计次数。日总单列无编号打开。零访问显示「当日无访问」，仅有汇总时显示「逐次明细已过期」。查询失败可按当前条件重试。
+
+点击一行或设备编号打开设备详情，首先展示所选日期的分组来访，也可查看近 30 天逐次打开记录。弹窗展示首次／最近访问、当前存续期累计和设备资料。打开记录和身份变化纵向排列，长编号与网络信息可换行。屏幕与视口分别显示 CSS 像素，保留浏览器报告的像素比。缺项显示「未提供」，补报标注「补报时 IP」。访问沿用服务端报表读权限。[接口与保留规则](api.md#h5-visitor-reports)
+
 ### `admin/pages/data-report.html`（数据报表）
+
+原 `?tab=visitors` 链接转入设备信息的日期筛选表。常规报表提供用户、对话、功能使用和 AI 性能四个页签。
 
 - **实现状态**：已实现。`activeKey='report'`，顶栏标题「数据报表」。`super_admin` / `ops_admin` / `observer` 可访问，observer 不可导出；**`ai_trainer` / `tech_ops`** 跳转 `error.html?type=403`。
 - **聚合卡片**：`GET /api/admin/stats/dashboard`，按 **嵌套字段** 读取（`retention` / `conversation` / `ai_performance` 等）；字段为 `null` 时统一展示「—」；标注「(今日)」的指标与后端「当日」统计一致。

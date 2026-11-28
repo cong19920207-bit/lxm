@@ -5,6 +5,8 @@ import datetime
 import io
 import logging
 from typing import Optional
+from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -14,6 +16,7 @@ from backend.database import get_db
 from backend.models.admin_user import AdminUser
 from backend.schemas.common import ApiResponse
 from backend.services.stats_service import stats_service
+from backend.services import visitor_events, visitor_reports
 from backend.utils.admin_auth import (
     deny_observer_export,
     get_current_admin,
@@ -29,6 +32,35 @@ _VALID_DAYS = {7, 30}
 _VALID_REPORT_TYPES = {"user", "conversation", "feature", "ai_performance"}
 _REPORT_READ_ROLES = ("super_admin", "ops_admin", "observer")
 _LIBLIB_READ_ROLES = ("super_admin", "ai_trainer", "tech_ops", "observer")
+
+
+@router.get("/stats/visitors", dependencies=[require_role(*_REPORT_READ_ROLES)])
+async def visitor_report(day: datetime.date | None = None, order: Literal["asc", "desc"] = "desc",
+                         page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                         db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(await db.run_sync(visitor_reports.report, day, visitor_events.utc_now(), order, page, page_size))
+
+
+@router.get("/stats/visitors/summary", dependencies=[require_role(*_REPORT_READ_ROLES)])
+async def visitor_summary(db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(await db.run_sync(visitor_reports.daily_summary, None, visitor_events.utc_now()))
+
+
+@router.get("/stats/visitors/{visitor_id}", dependencies=[require_role(*_REPORT_READ_ROLES)])
+async def visitor_visits(visitor_id: UUID, day: datetime.date, db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(await db.run_sync(visitor_reports.visit_details, day, str(visitor_id), visitor_events.utc_now()))
+
+
+@router.get("/stats/devices", dependencies=[require_role(*_REPORT_READ_ROLES)])
+async def visitor_devices(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                          db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(await db.run_sync(visitor_reports.devices, visitor_events.utc_now(), page, page_size))
+
+
+@router.get("/stats/devices/{visitor_id}", dependencies=[require_role(*_REPORT_READ_ROLES)])
+async def visitor_device(visitor_id: UUID, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                         db: AsyncSession = Depends(get_db)):
+    return ApiResponse.ok(await db.run_sync(visitor_reports.device_details, str(visitor_id), visitor_events.utc_now(), page, page_size))
 
 # 报表类型 → Excel 表头映射
 _REPORT_HEADERS = {

@@ -5,7 +5,7 @@ No entry means the existing independent HTML pages remain active.
 """
 from pathlib import Path
 
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 H5_PAGES = frozenset(('index', 'chat', 'feed', 'diary', 'memory', 'relationship', 'settings', 'login', 'pet'))
@@ -33,4 +33,7 @@ def h5_response(page_name=None, *, frontend=Path('frontend')):
             html = html.replace('<head>', '<head><meta name="lxm-initial-page" content="login">', 1)
         return HTMLResponse(html, headers={'Cache-Control': 'no-cache'})
     page = frontend / 'pages' / ((page_name if page_name in H5_PAGES else 'login') + '.html')
-    return FileResponse(page, headers={'Cache-Control': 'no-cache'})
+    api_script = '<script src="/static/js/api.js"></script>'
+    visitor_script = '<script defer data-visitor-entry="main" src="/static/js/visitor-client.js"></script>'
+    html = page.read_text(encoding='utf-8').replace(api_script, visitor_script + api_script, 1)
+    return HTMLResponse(html, headers={'Cache-Control': 'no-cache'})

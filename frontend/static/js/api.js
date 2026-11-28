@@ -179,6 +179,7 @@ function saveToken(token) {
   if (typeof window !== 'undefined' && window.AppShell?.services.auth) return window.AppShell.services.auth.accept(token)
   if (typeof window !== 'undefined' && window.HomeStartup) window.HomeStartup.rememberAuth(token)
   authStorage('setItem', 'token', token)
+  if (typeof window !== 'undefined') void window.LxmVisitor?.signal('identity', token)
   if (typeof window !== 'undefined' && window.HomeStartup) window.dispatchEvent(new Event('home-auth-change'))
 }
 

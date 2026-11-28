@@ -11,6 +11,23 @@
 
 ### 模块：数据统计（`/api/admin/stats`）
 
+<a id="h5-visitor-reports"></a>
+#### H5 访客与设备
+
+以下 GET 共用已登录的 `super_admin`、`ops_admin`、`observer` 读权限。未登录返回 401，其余角色返回 403。列表使用 `list/total/page/page_size`，默认每页 20 条，最大 100 条。事件时间返回带 UTC 时区的 ISO 时间。
+
+| 完整路径 | 参数与返回结果 |
+|---|---|
+| `/api/admin/stats/visitors/summary` | 看板按北京时间读取今天的日汇总，返回 `day/first_day/today` 及与访客报表同源的 `visitors/visits/opens/unidentified_opens`。 |
+| `/api/admin/stats/visitors` | `day` 默认北京今天，`order=desc/asc` 按来访次数排序，相同次数按编号。`first_day` 是启用北京日和日总保留起点中较晚者。超界返回 400。三项为 `visitors/visits/opens`，无号差额为 `unidentified_opens`。`state=available/empty/expired`，每行包含编号、所选日次数和首次／最近来访开始时间。`device` 为保留期内最近的设备资料、身份、网络、首次／最近访问时间和存续期累计次数，与设备接口同口径，设备资料不可用时为 `null`。 |
+| `/api/admin/stats/visitors/{visitor_id}` | 必填 `day`。每次来访返回 `visit_id/start/changes/opens`。仅前台返回的来访可以有零次打开。 |
+| `/api/admin/stats/devices` | 按最近前台发生时间倒序。每个在保留期内的编号一行，包括最近身份、网络、设备资料、首次及最近时间、当前存续期累计。 |
+| `/api/admin/stats/devices/{visitor_id}` | `list` 为保留期内逐次打开，按发生时间倒序分页；另有按时间排列的身份变化 `changes`。设备不存在或连续 90 天未访问返回 404。 |
+
+每笔事件保留自己的 `event_id/visit_id/occurred_at/received_at/entry/identity/network/delayed`。身份为 `guest`、账号 ID 字符串或 `unknown`。网络快照含完整 IP 和当次归属地，来源不明时为 `{"ip":null,"region":"来源未知"}`。最近网络到期后为 `null`。首收时的网络用于补报，晚到记录按发生时间归入原日。每个北京日首次前台活动开始来访。再次打开或返回前台距上次前台活动满 30 分钟另起一次。站内操作更新活动时间，单独身份变化只更新身份与最近快照。
+
+启用时点由迁移 `v10f_visitor_analytics_001` 固定。明细和完整 IP 满 30 天到期，设备满 90 天无访问结束本次存续，日总保留至次年对应北京日。读取即时执行保留边界，调度每 10 分钟物理清理。主站与公开网关分别覆盖来源头，后端校验直连边缘节点。如需确认内网访客，可在 `VISITOR_VERIFIED_LAN_CLIENTS` 配置已核实直连端点，`VISITOR_INTERMEDIARIES` 指定应排除的中间节点，均为逗号分隔的完整地址。归属地使用构建时固定版本及 SHA-256 的 IPv4/IPv6 XDB，运行时离线查询，目录可由 `VISITOR_GEO_DIR` 指定。[H5 收件](../h5-app/api.md) · [本地库安装器](../../../../scripts/install_visitor_geo.py)
+
 - **GET** `/stats/dashboard` — `**ApiResponse`**，所有登录管理员可访问；`data` 为**嵌套对象**（按角色裁剪）：
   - `super_admin` / `ops_admin` / `observer`：`user`（`new_users_today` 等）、`retention`（`next_day_retention` / `day7_retention` / `day30_retention`，可 `null`）、`conversation`、`agent`、`ai_performance`
   - `ai_trainer`：仅 `ai_performance`

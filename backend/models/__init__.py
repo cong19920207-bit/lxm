@@ -19,6 +19,8 @@ from backend.models.emotion_log import EmotionLog
 from backend.models.feed_comment import FeedComment
 from backend.models.feed_like import FeedLike
 from backend.models.feed_post import FeedPost
+from backend.models import feed_video, feed_video_upload
+from backend.models import visitor
 from backend.models.life_plan import LifePlan
 from backend.models.life_plan_outline import LifePlanOutline
 from backend.models.login_log import LoginLog

@@ -10,17 +10,29 @@
 
 - 鉴权：`get_current_user_by_api_key`
 - Body：`OpenChatSendRequest` `{ "content": "1-2000" }`
-- 成功 `data`：`{ messages, emotion, round_id }`（与 H5 SSE `done` 同源提取）
+- 成功 `data`：`{ messages, emotion, round_id }`。每个 `messages[]` 含 `id, sort_seq, type, content, is_read`，序号为十进制字符串，来自已保存的气泡。在请求身份保留期内，重放同一成功请求会返回原气泡 ID 和当前已读状态。过期标识清理后，用原键再次提交可能生成新回复并增加未读。[请求身份与提交状态](#submission-status)
 - 业务码：10101/10102/10104/10108 等同 H5 规则
 
 ### POST `/api/open/v1/chat/resend`
 
-- **无 Body 参数**（空 POST）
+- **无 Body 参数**（空 POST），成功结果与 send 相同。
 - 10107/10105 等同 H5；`failed_blocked` 不可 resend（TD-030）
 
 ### GET `/api/open/v1/chat/timeline`
 
 - Query：`cursor`、`limit`；`data`沿用Open v1原十字段/三来源投影（`timeline_read_service`），不继承H5语音扩展，见下方兼容边界。
+
+### 聊天未读与逐条回执
+
+以下接口从 API Key 确定账号，和 H5 共用同一份未读。账号内任一端确认一个气泡后，另一端下次查询即反映该确认。调用方在用户看到具体气泡后提交回执，预取时间线、接收发送结果和后台程序获取回复均保留未读。
+
+| 接口 | 行为 |
+|---|---|
+| `GET /api/open/v1/chat/unread` | 返回 `{count,first_unread,latest_unread}`。总数包括普通回复和主动消息。 |
+| `GET /api/open/v1/chat/unread/status` | 通过可重复的 `assistant_id` 和 `agent_id` 核对 1 至 100 个气泡，返回 `{unread:[{source,id}]}`。 |
+| `POST /api/open/v1/chat/messages/{source}/{id}/read` | 按 `assistant` 或 `agent` 和消息 ID 确认一条，返回 `{source,id,is_read:true}`。重复提交成功，非本人、角色错误或不存在返回 10111。 |
+
+时间线中的普通回复和主动消息返回布尔 `is_read`，用户发言返回 null。历史普通回复中未记录的状态按已读展示。[统一计数与回执规则](../chat-emotion/api.md#chat-unread)
 
 ### GET `/api/open/v1/agent/messages` · GET `/api/open/v1/agent/unread-count` · POST `/api/open/v1/agent/messages/{message_id}/read`
 
@@ -117,7 +129,8 @@ curl "$LXM_BASE_URL/api/open/v1/pet/interactions/$ATTEMPT_ID/finish" \
 |---|---|
 | `GET /feed/config/header` | 封面、头像、昵称、签名和主场城市。封面和头像为绝对 HTTP(S) 地址。 |
 | `GET /feed/list` | `size` 默认 20、范围 1–50。首轮不传 `cursor`，后续原样回传上页 `next_cursor`，为 null 时结束。按北京发布时间及同时间的帖子 ID 倒序，非法游标返回 10001。返回 `{posts,next_cursor}`。 |
-| `GET /feed/posts/{id}` | 返回一条与列表同形的帖子。包括 `id,content_text,hashtags,image_urls,scheduled_publish_time,emotion,city,display_likes,user_liked,display_comments,comments`。图片地址按原顺序返回，可直接打开。 |
+| `GET /feed/pins` | 返回 `{posts,total}`。按后台置顶顺序过滤当前可见帖，使用绑定账号的点赞、评论投影，独立于列表分页。 |
+| `GET /feed/posts/{id}` | 返回一条与列表同形的可见原帖。列表、置顶和详情均含 `media_kind`、`is_pinned`，视频另含已提交版本的 `video` 对象。图片地址按原顺序返回，可直接打开。字段见[生活流公开帖子字段](../life-feed/api.md#feed-public-post-v8)。 |
 | `POST /feed/{id}/like`、`DELETE /feed/{id}/like` | 点赞或撤销，返回 `{user_liked,display_likes}`。重复设为同一状态不会重复计数。 |
 | `POST /feed/{id}/comments` | JSON `{content,reply_to_lxm?}`。内容 1–200 字，拒绝全空白，同账号同帖 30 秒频控，与 H5 共用内容安全检查。成功返回 `{comment_id,created_at,gen_status:"pending",reply_to_lxm}`。 |
 | `GET /feed/badge`、`POST /feed/enter` | 后台刷新用 badge，返回 `{has_new,new_post_count,unread_reply_count}`。真正进入页面才调用 enter，更新进入时间并返回最近未读可见回复的位置 `{anchor_post_id,anchor_comment_id}`，没有时两者均为 null。 |
@@ -128,7 +141,7 @@ curl "$LXM_BASE_URL/api/open/v1/pet/interactions/$ATTEMPT_ID/finish" \
 
 **发评论与读取回复。** 调用方可为一次发评提供 `Idempotency-Key`（1–128 个可见 ASCII 字符，不含空格）。同账号、同键、同帖、相同正文和回复标记，重放得到原创建回执，即使小梦已回复也不会创建新任务。更换帖子、正文或标记返回 10507。未提供请求键时，失去回执后先刷新详情核实。评论过快返回 10504。单帖查询中的 `comments[]` 仅有本账号未隐藏的评论，含 `id,content,reply_to_lxm,lxm_reply,lxm_reply_at,lxm_reply_read_at`。首次发评成功时回复可能为空，之后刷新单帖可见。点小梦的回复时，按同一帖再提交 `reply_to_lxm:true`。
 
-**可见性与日期。** 仅到点、已就绪、可见且在历史窗口内的帖子可读取或互动，失效的帖子 ID 返回 10500。不可见或不属于本人的评论已读请求返回 10506。日记按创建时间、ID 倒序，同一日期可翻多篇；优先按 `covers_beijing_date` 归日，旧数据为 null 时客户端以 `created_at` 的本地日期回退。月历和七日栏从分页结果构造，完整加载前不能把缺失日期当作空日。正文展示规则和信纸索引见[日记页面契约](../diary/api.md)。消息角标复用 `GET /api/open/v1/agent/unread-count`，音乐使用 [Open BGM 曲库](#bgm-openapi)。
+**可见性与日期。** 仅到点、已就绪、可见且在历史窗口内的帖子可读取或互动，失效的帖子 ID 返回 10500。不可见或不属于本人的评论已读请求返回 10506。日记按创建时间、ID 倒序，同一日期可翻多篇；优先按 `covers_beijing_date` 归日，旧数据为 null 时客户端以 `created_at` 的本地日期回退。月历和七日栏从分页结果构造，完整加载前不能把缺失日期当作空日。正文展示规则和信纸索引见[日记页面契约](../diary/api.md)。聊天消息角标使用 `GET /api/open/v1/chat/unread`，主动消息列表的角标使用 `GET /api/open/v1/agent/unread-count`，音乐使用 [Open BGM 曲库](#bgm-openapi)。
 
 外部客户端示例（`LXM_BASE_URL` 为可访问的站点地址）：
 
@@ -142,7 +155,7 @@ curl "$LXM_BASE_URL/api/open/v1/feed/$POST_ID/comments" \
   -H "Content-Type: application/json" -d '{"content":"这张照片在哪儿拍的？"}'
 ```
 
-发布时先运行数据库迁移 `v9z_feed_comment_idem_001`，再启用对应后端。账号与授权决定见[功能 PRD v1](../../../design/openapi/PRD-日记与朋友圈外部API-v1.md)，存储约定见[Open 数据契约](data.md)。
+2026-11-13 版本发布时先运行数据库迁移 `v9z_feed_comment_idem_001`，再启用对应后端。账号与授权决定见[功能 PRD v1](../../../design/openapi/PRD-日记与朋友圈外部API-v1.md)，存储约定见[Open 数据契约](data.md)。
 
 2026-11-13 本地 Docker 已完成上述迁移，后端镜像为 `lxm_for-backend:feed-diary-open-20261113`。通过 `http://127.0.0.1:8000` 使用升级前已签发的 Key，实测通过日记列表、已读日记重复上报，以及朋友圈页头、角标、列表翻页、单帖详情、评论与回复读取、已读回复重复上报、点赞与取消点赞的同状态重试和 SSE 心跳。抽取的帖子配图可匿名读取，空白评论返回 10502。此次实测未新增评论或触发新的阅读感知。
 

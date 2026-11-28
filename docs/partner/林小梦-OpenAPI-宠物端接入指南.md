@@ -1,8 +1,8 @@
 # 林小梦 Open API — 宠物端接入指南
 
-> **文档版本**：v1.4
+> **文档版本**：v1.5
 > **适用接口**：Open API v1（`/api/open/v1/*`）  
-> **最后更新**：2026-11-14
+> **最后更新**：2026-11-28
 > **读者**：第三方桌面宠物 / 客户端开发同学  
 
 外部客户端用同一账号的 **Base URL 与 API Key** 接入对话、主动消息、日记、朋友圈、BGM 和记忆星云（记忆星球）。本地 Docker 已验证，升级前签发的有效 Key 可直接使用这些能力，无需换 Key 或单独授权。生产环境的开放时间以运营通知为准。
@@ -11,13 +11,13 @@
 
 ## 目录
 
-1. [能力范围](#1-能力范围)
+1. [能力范围](#1-能力范围) · [我的应用要改吗？](#partner-chat-upgrade)
 2. [接入前准备](#2-接入前准备)
 3. [环境配置（Base URL）](#3-环境配置base-url)
 4. [鉴权](#4-鉴权)
 5. [通用约定](#5-通用约定)
 6. [推荐客户端流程](#6-推荐客户端流程)
-7. [接口说明](#7-接口说明) · [日记](#partner-diary) · [朋友圈](#partner-feed) · [BGM](#partner-bgm) · [记忆星云](#partner-memory)
+7. [接口说明](#7-接口说明) · [聊天未读](#partner-chat-unread) · [日记](#partner-diary) · [朋友圈](#partner-feed) · [BGM](#partner-bgm) · [记忆星云](#partner-memory)
 8. [时间线字段与状态](#8-时间线字段与状态)
 9. [错误码与处理](#9-错误码与处理)
 10. [安全要求](#10-安全要求)
@@ -36,8 +36,11 @@
 | 发送用户消息（同步等待 AI 回复） | `POST /api/open/v1/chat/send` |
 | 失败重发（叹号恢复） | `POST /api/open/v1/chat/resend` |
 | 拉取统一时间线（历史、对账、失败态） | `GET /api/open/v1/chat/timeline` |
+| 同一账号的聊天总未读（首页、托盘角标） | `GET /api/open/v1/chat/unread` |
+| 核对一批已加载气泡的未读状态 | `GET /api/open/v1/chat/unread/status` |
+| 确认用户看到的一条普通回复或主动消息 | `POST /api/open/v1/chat/messages/{source}/{id}/read` |
 | 未读主动消息列表 | `GET /api/open/v1/agent/messages` |
-| 未读数量（托盘角标） | `GET /api/open/v1/agent/unread-count` |
+| 仅主动消息的未读数量 | `GET /api/open/v1/agent/unread-count` |
 | 标记主动消息已读 | `POST /api/open/v1/agent/messages/{message_id}/read` |
 | 阅读日记、翻页、月历和已读同步 | [日记的 2 个接口和分页规则](#partner-diary) |
 | 浏览动态与图片、点赞、评论与回复、角标和新帖通知 | [朋友圈的 11 个接口和交互规则](#partner-feed) |
@@ -61,7 +64,7 @@
 
 - 每个 API Key 绑定 **一个** 林小梦 H5 用户账号。  
 - 两端共享同一账号的文字消息、主动消息、日记已读、点赞、评论和回复。朋友圈的 `comments` 只返回当前账号可见的本人评论及小梦的回复。
-- 用户在 H5 发的消息，宠物端拉 `timeline` 可见；反之亦然。
+- H5 和宠物端发起的聊天都进入同一条时间线。任一端发送或重发后，小梦每个成功保存的回复气泡各算一条未读，每条主动消息也各算一条。用户发言、失败请求和通话卡片不计数。任一端确认一条，另一端下次查询即可看到这条已读。
 
 ```mermaid
 flowchart LR
@@ -71,7 +74,7 @@ flowchart LR
   subgraph 林小梦服务端
     Open["/api/open/v1/*<br/>API Key 鉴权"]
     Core[对话主链<br/>记忆/关系/安全/LLM]
-    DB[(MySQL)]
+    DB[(聊天记录与逐条已读状态)]
   end
   subgraph 其它端
     H5[H5 聊天页<br/>JWT 鉴权]
@@ -81,6 +84,20 @@ flowchart LR
   Core --> DB
   H5 -->|Bearer JWT| Core
 ```
+
+<a id="partner-chat-upgrade"></a>
+### 1.4 我的应用要改吗？
+
+已有应用可沿用当前环境的 Base URL 和有效 Key。按应用实际提供的功能判断，多项适用时分别处理。
+
+| 应用现在怎么用 | 需要做什么 |
+|---|---|
+| 只调用发送、重发或获取文本，例如后台脚本 | 能容忍新增响应字段的应用可继续使用原请求。脚本收到文本后无需发回执，这些回复会保留在同账号的聊天未读中。 |
+| 用严格模型解析 JSON，例如遇到额外字段就报错 | 更新 `send`、`resend` 成功结果的气泡模型，接受 `id`、`sort_seq`、`is_read`。若也解析提交状态的 `result.messages[]`，同步更新。时间线的 `assistant.is_read` 接受布尔值，`user.is_read` 仍可为 `null`。 |
+| 在首页或托盘显示「所有聊天未读」 | 角标改读 `GET /chat/unread` 的 `data.count`，其中已包含主动消息。只展示「主动消息未读」的独立入口可继续使用 `/agent/unread-count`。 |
+| 有聊天阅读界面，希望在宠物端看过的气泡也从 H5 未读中消掉 | 展示时保留每条的 `source` 和 `id`，用户实际读到哪条就发哪条回执。返回前台时重新核对已加载气泡和角标。 |
+
+历史普通回复已有的已读或未读状态继续生效。历史上未记录阅读状态的普通回复按已读展示。完整请求和响应见[聊天未读接口](#partner-chat-unread)。
 
 ---
 
@@ -194,7 +211,7 @@ Authorization: Bearer sk-lxm-你的APIKey
 
 | 接口类型 | 建议客户端超时 |
 |----------|----------------|
-| `POST .../chat/send`、`POST .../chat/resend` | **≥ 130 秒**（服务端等待 LLM 上限 120 秒） |
+| `POST .../chat/send`、`POST .../chat/resend` | 按部署的等待时限预留网络时间。本版业务时限从服务端接收并登记请求起算 180 秒，默认配置下的 curl 示例设置为 210 秒 |
 | 普通 JSON 查询 | 10–30 秒 |
 | `GET /feed/events` | 长连接；空闲时约每 15 秒收到心跳，可据此设置读取超时。 |
 
@@ -213,19 +230,17 @@ sequenceDiagram
   participant Pet as 宠物端
   participant API as 林小梦 Open API
 
-  Pet->>API: GET /chat/timeline?limit=20
-  API-->>Pet: items[], has_more, next_cursor
-  Pet->>Pet: 按 sort_seq 升序渲染历史
-  Pet->>API: GET /agent/unread-count
-  API-->>Pet: { count }
-  Pet->>Pet: 更新托盘角标
+  Pet->>API: GET /chat/unread
+  API-->>Pet: count, first_unread, latest_unread
+  Pet->>Pet: 用 count 更新聊天总角标
+  opt 打开聊天窗口
+    Pet->>API: GET /chat/timeline?limit=20
+    API-->>Pet: items[], has_more, next_cursor
+    Pet->>Pet: 按时间顺序展示，保留每条的 source 和 id
+  end
 ```
 
-1. 读取本地保存的 Base URL、API Key。  
-2. 调用 `GET /chat/timeline` 拉最近消息并展示。  
-3. 调用 `GET /agent/unread-count` 更新角标（若 `count > 0`，可在用户打开聊天时再拉 `agent/messages`）。
-
-> **与 H5 的差异**：H5 首屏拉 `timeline` 时服务端会尝试后台恢复卡死的队列；**Open API 的 `GET /chat/timeline` 不会触发该恢复**。若长时间看到 `pending_llm`，可再次 `send`（若返回 **10104** 会触发后台补跑）或等待数秒后刷新 timeline，勿仅靠冷启动拉 timeline 自愈。
+应用启动或回到前台时，用当前账号的 Key 查询总未读。用户打开聊天时加载时间线，已有缓存的气泡可用 `GET /chat/unread/status` 核对。打开窗口、加载历史或在后台轮询都不会消除未读。[逐条确认流程](#partner-chat-flow)
 
 ### 6.2 用户发送消息
 
@@ -238,10 +253,14 @@ sequenceDiagram
   User->>Pet: 输入并发送
   Pet->>Pet: 乐观展示 user 气泡（可选）
   Pet->>API: POST /chat/send { content }
-  Note over Pet,API: 同步阻塞，最长约 120s
+  Note over Pet,API: 同步等待结果，用户可能已经离开聊天
   alt code = 0
     API-->>Pet: messages[], emotion, round_id
-    Pet->>Pet: 展示 AI 多气泡 + 情绪
+    alt 用户仍在聊天页
+      Pet->>Pet: 按 id 展示气泡，逐条判断正文是否可见
+    else 用户已离开
+      Pet->>Pet: 保留未读，刷新聊天总角标
+    end
   else code = 10108
     API-->>Pet: message 提示已作废
     Pet->>API: GET /chat/timeline
@@ -257,7 +276,7 @@ sequenceDiagram
 
 - `send` 为 **同步**：一次请求返回完整 AI 回复，无需再收 SSE。  
 - `data.messages` 为数组，**按顺序逐条展示**（与线上一致，可能 1–3 条短句）。  
-- 每条结构：`{ "type": "text", "content": "..." }`，正文读 **`content`**。  
+- 每个元素含 `id`、`sort_seq`、`type`、`content`、`is_read`。用 `content` 显示正文，用 `assistant` 和该元素的 `id` 提交回执。接收响应时保留服务端返回的阅读状态。
 - `data.emotion`：`{ "label": "开心", "confidence": 0.9 }`，可用于切换宠物表情/氛围（可选）。  
 - 用户 **连发** 时，较早的请求可能返回 **10108**，必须以 **timeline 对账** 为准，不要当作最终失败。
 
@@ -287,35 +306,40 @@ stateDiagram-v2
 1. 通过 `timeline` 查看 **user** 行的 `delivery_status`。  
 2. 仅当存在 **`failed_timeout`** 或 **`failed_error`** 时，可调用 `POST /chat/resend`（**无 Body**）。  
 3. **`failed_blocked` 不可 resend**（同步接口已是 10101）；须提示用户 **重新 `send` 新内容**（不必改原句，新一句即可）。  
-4. `resend` 同样为同步等待，规则与 `send` 相同（含 10105、10108）。
+4. `resend` 成功后按 `send` 的方式处理每个新回复气泡。用户已退出聊天时，新回复仍逐条计入未读。
 
-### 6.4 主动消息与托盘角标
+<a id="partner-chat-flow"></a>
+### 6.4 退出聊天再回来，看到哪条就消哪条
+
+假设同一账号原先没有未读。用户从 H5 发完消息就退回首页，小梦随后回复两条，示例 ID 为 41、42。通过 Open API 发起对话也遵循同一规则。下图特意先读第二条，便于验证第一条是否仍然未读。图中宠物端的请求路径相对 `/api/open/v1`。
 
 ```mermaid
 sequenceDiagram
+  participant H5 as 同账号 H5
+  participant API as 聊天服务
   participant Pet as 宠物端
-  participant API as 林小梦 Open API
-
-  loop 托盘驻留时（见推荐间隔）
-    Pet->>API: GET /agent/unread-count
-    API-->>Pet: { count }
-    Pet->>Pet: 更新角标
-  end
-  Note over Pet: 用户打开聊天
-  Pet->>API: GET /agent/messages
-  API-->>Pet: 未读消息数组
-  Pet->>Pet: 插入时间线或弹窗展示
-  Pet->>API: POST /agent/messages/{id}/read
-  Pet->>API: GET /agent/unread-count
+  H5->>API: 发送消息
+  Note over H5: 用户退回首页
+  Note over API: 保存普通回复 41、42，各增加一条未读
+  Pet->>API: GET /chat/unread
+  API-->>Pet: count = 2
+  Pet->>API: GET /chat/timeline
+  Note over Pet: 用户只看到第二条正文
+  Pet->>API: POST /chat/messages/assistant/42/read
+  API-->>Pet: id = 42, is_read = true
+  H5->>API: 查询聊天未读
+  API-->>H5: count = 1，剩余 41
+  Note over H5: 用户看到第一条正文
+  H5->>API: 提交 41 的单条回执
+  Pet->>API: GET /chat/unread
+  API-->>Pet: count = 0
 ```
 
-| 场景 | 推荐做法 |
-|------|----------|
-| 托盘角标轮询 | `GET /agent/unread-count`，间隔 **60 秒**（应用在前台且聊天窗打开时可 **停止** 轮询，改为发送/已读后立即刷新） |
-| 用户点开聊天 | `GET /agent/messages` 拉全文，展示后逐条 `POST .../read` |
-| 已读后再查角标 | 再调一次 `unread-count` 置 0 |
+- **判断用户看到哪条。** 只对处于未读状态、正文实际可见的气泡提交回执。宠物端可参考 H5 的可见判定：聊天在前台且有焦点，短消息完整显示，长消息至少连续两行完整显示，持续 650 毫秒。切页、失焦或遮挡会中断计时。该判定由展示端执行。
+- **更新角标。** 回执成功后重新查询 `GET /chat/unread`，显示最新 `data.count`。离开期间有新回复或另一端已读时，重新查询也能得到当前总数。只看到第一条就退出，第二条仍未读。
+- **处理回执超时。** 用同一账号、同一 `source` 和 `id` 重试，重复确认不会多扣。再次打开缓存页面时，用状态接口核对具体气泡。
 
-`trigger_type` 取值（展示用，不影响接口逻辑）：`P0` 情绪跟进、`P1` 长期沉默、`P2` 日常问候、`P3` 凌晨在线、`P4` 轻度沉默、`FUTURE`（对话中约定的 Future 槽到期）等。
+主动消息的 `trigger_type` 取值（展示用，不影响接口逻辑）：`P0` 情绪跟进、`P1` 长期沉默、`P2` 日常问候、`P3` 凌晨在线、`P4` 轻度沉默、`FUTURE`（对话中约定的 Future 槽到期）等。
 
 ---
 
@@ -344,7 +368,8 @@ sequenceDiagram
 ```json
 {
   "messages": [
-    { "type": "text", "content": "嗨，我在呢。" }
+    { "id": 41, "sort_seq": "106", "type": "text", "content": "嗨，我在呢。", "is_read": false },
+    { "id": 42, "sort_seq": "107", "type": "text", "content": "你今天过得怎么样？", "is_read": false }
   ],
   "emotion": {
     "label": "开心",
@@ -356,10 +381,14 @@ sequenceDiagram
 
 | 字段 | 说明 |
 |------|------|
-| `messages` | AI 回复气泡列表，按数组顺序展示 |
+| `messages` | 每个元素是一条已保存的普通回复，按数组顺序展示。`type` 为 `text`，`content` 为正文。 |
+| `messages[].id`、`sort_seq` | `id` 是整数，与 `source=assistant` 组合标识这条气泡。`sort_seq` 是十进制字符串，用于排序。 |
+| `messages[].is_read` | 布尔值。新回复初始为 `false`。在请求身份保留期内，用原幂等键重放同一成功请求，返回原气泡 ID 和当前已读状态。 |
 | `emotion.label` | 林小梦当前情绪标签，如：开心、担心、想念、平静 |
 | `emotion.confidence` | 0–1 置信度 |
-| `round_id` | 本轮对话 UUID；**仅出现在 `send`/`resend` 成功 `data` 中**，`timeline` 的 `items[]` **不返回**此字段 |
+| `round_id` | 本轮对话 UUID。时间线不返回此字段，逐条回执使用各气泡自己的 `id` |
+
+发送或重发丢失响应时，可用原请求标识[查询提交状态](../contract/current/openapi/api.md#submission-status)，`dedupe_expires_at` 是该身份的保留截止时间。状态为 `expired` 时，请刷新时间线核对结果。过期标识清理后，再用同一个键提交也可能生成新回复并增加未读。逐条已读回执始终按气泡的 `source` 和 `id` 重试。
 
 ---
 
@@ -384,19 +413,63 @@ sequenceDiagram
 | `cursor` | int，可选 | 上一页返回的 `next_cursor`（`sort_seq`） |
 | `limit` | int，可选 | 1–50，默认 20 |
 
-**成功 `data`：**
+**成功 `data` 示例。** 沿用上面的两条回复，宠物端已确认 42。查询 `GET /chat/timeline?limit=1` 返回最新一条。
 
 ```json
 {
-  "items": [ /* 见 §8 */ ],
-  "next_cursor": 12345,
+  "items": [{
+    "source": "assistant", "id": 42, "sort_seq": 107,
+    "content": "你今天过得怎么样？", "created_at": "2026-11-28T10:00:00",
+    "emotion_label": "开心", "delivery_status": null, "skipped_in_prompt": null,
+    "is_read": true, "trigger_type": null
+  }],
+  "next_cursor": 107,
   "has_more": true
 }
 ```
 
-- `items` 按 **时间正序** 返回（旧 → 新），适合直接 append 到聊天列表。  
-- 加载更多：用本次的 `next_cursor` 作为下次请求的 `cursor`（向更早历史翻页）。  
-- **只读接口**：不触发队列死锁恢复（见 [§6.1](#61-应用冷启动) 与 H5 的差异说明）。
+每页 `items` 按旧到新排列。向更早历史翻页时，传入本页 `next_cursor`，把返回的记录放在已有列表前面。查询时间线保留所有气泡的阅读状态。
+
+<a id="partner-chat-unread"></a>
+#### 7.3.1 聊天总未读、单条回执与状态核对
+
+下面的示例与 §6.4 使用同一组消息。请求均携带当前账号的 Bearer Key，成功响应取 `data`。
+
+**① 查总未读。** `GET {base}/chat/unread`。收到两条回复、尚未看到任何一条时，结果如下。
+
+```json
+{
+  "count": 2,
+  "first_unread":  { "source": "assistant", "id": 41, "sort_seq": "106" },
+  "latest_unread": { "source": "assistant", "id": 42, "sort_seq": "107" }
+}
+```
+
+`count` 是普通回复和主动消息的未读气泡总数。两个锚点分别定位最早、最新的未读气泡，`sort_seq` 是十进制字符串。只剩一条时两个锚点指向同一条。锚点之间可以包含已读消息。
+
+**② 只确认看到的那条。** `POST {base}/chat/messages/{source}/{id}/read`，无请求体。普通回复用 `assistant`，主动消息用 `agent`。例如只看到 42 时，向 `/chat/messages/assistant/42/read` 提交一次，得到：
+
+```json
+{ "source": "assistant", "id": 42, "is_read": true }
+```
+
+重复发送同一回执仍成功。回执响应只包含该条消息的状态。重新查总数，两端此时都得到 `count=1`，两个锚点都指向 41。
+
+**③ 核对已加载的气泡。** `GET {base}/chat/unread/status?assistant_id=41&assistant_id=42` 仅返回请求范围内、本账号仍未读的气泡。上一步之后，结果如下。
+
+```json
+{ "unread": [{ "source": "assistant", "id": 41 }] }
+```
+
+查询普通回复传 `assistant_id`，主动消息传 `agent_id`。两个参数均可重复、可混用，合计传 1–100 个 ID，每个取值为 1–2147483647。未命中返回 `{"unread":[]}`。查询保留原阅读状态，不能用来探测某 ID 是否存在或属于哪个账号。
+
+**④ 在 H5 读完 41 后，宠物端再次查总未读。** 若期间没有其他新消息，返回：
+
+```json
+{ "count": 0, "first_unread": null, "latest_unread": null }
+```
+
+回执指定的消息在当前账号和来源下找不到时，返回 HTTP 200、业务码 `10111`。不支持的 `source`（如 `user`）、状态查询漏传 ID 或超过数量与取值范围时，返回 HTTP 422。[可执行的 curl 示例](#partner-chat-curl)
 
 ---
 
@@ -420,7 +493,7 @@ sequenceDiagram
 
 ### 7.5 GET `{base}/agent/unread-count`
 
-**未读主动消息数量（轻量，供托盘轮询）。**
+**仅统计主动消息。** 适用于有独立「主动消息」入口的应用。聊天总角标直接使用 `GET /chat/unread` 的 `data.count`。
 
 **成功 `data`：**
 
@@ -438,7 +511,7 @@ sequenceDiagram
 
 - 路径参数 `message_id` 为整数，来自 `agent/messages` 或 timeline 中 `source=agent` 的 `id`。  
 - 成功 `code = 0`；消息不存在或不属于当前用户：**10400**，`message` 为「主动消息不存在」。  
-- 重复已读仍可能返回成功（`message` 可能为「消息已标记为已读」）。
+- 重复确认已读的主动消息返回成功。此处和统一聊天回执更新同一条主动消息，调用其中一个即可。
 
 ---
 
@@ -560,7 +633,7 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 | `source` | 含义 | 典型字段 |
 |----------|------|----------|
 | `user` | 用户发送 | `content`, `delivery_status`, `emotion_label` |
-| `assistant` | 林小梦回复 | `content`, `emotion_label`；`delivery_status` 为 `null` |
+| `assistant` | 林小梦回复 | `content`, `emotion_label`, `is_read`；`delivery_status` 为 `null` |
 | `agent` | 主动消息 | `content`, `is_read`, `trigger_type` |
 
 **公共字段：**
@@ -568,16 +641,16 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `sort_seq` | int | 全局排序序号，分页游标 |
-| `id` | int | 记录 ID |
+| `id` | int | 来源内的记录 ID。用 `(source, id)` 定位气泡。 |
 | `content` | string | 文本内容 |
 | `created_at` | string | ISO8601 时间 |
 | `emotion_label` | string \| null | 情绪标签 |
 | `delivery_status` | string \| null | 仅 **user** 行有意义，见下表 |
 | `skipped_in_prompt` | bool \| null | user 行：是否未进入本轮 Prompt |
-| `is_read` | bool \| null | agent 行：是否已读 |
+| `is_read` | bool \| null | assistant 和 agent 行：`false` 未读、`true` 已读。user 行为 `null` |
 | `trigger_type` | string \| null | agent 行：触发类型 P0–P4、`FUTURE` 等 |
 
-> **`round_id` 不在 timeline 中**：库内虽有该字段，但 `GET .../chat/timeline` 的 `items[]` **不包含** `round_id`。多气泡对账请用 `sort_seq` 与 `source=assistant` 的相邻行，或直接使用 `send`/`resend` 返回的 `messages[]`。
+发送结果中的每个 `messages[].id` 对应时间线上 `source=assistant` 且 `id` 相同的那一条。时间线的 `sort_seq` 为 JSON 整数，发送结果与未读锚点中的同名字段为十进制字符串。
 
 ### 8.2 `delivery_status`（user 行）
 
@@ -593,9 +666,9 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 
 ### 8.3 多气泡与 timeline 对齐
 
-- `send` / `resend` 成功时，优先用响应里的 **`messages[]` 按序展示**（1–3 条短句）。  
-- 与 timeline 对账时：同一轮成功回复在 timeline 中表现为 **多条连续的 `source=assistant` 行**，按 **`sort_seq` 升序** 与 `messages[i].content` 一一对应（**勿依赖 `round_id`**，timeline 未暴露该字段）。  
-- 若同步接口失败、返回 **10108** 或需刷新历史，**以 `timeline` 为准** 重绘界面，避免重复或漏展示。
+- `send` / `resend` 成功时，先按 `messages[]` 顺序显示，再用 `(assistant, id)` 与时间线合并。即使两条正文相同，也各有自己的 `id` 和阅读状态。
+- 主动消息使用 `(agent, id)`。两个来源的数字 ID 可能相同，列表去重、缓存和回执都须保留来源。
+- 同步接口失败或返回 **10108** 时，重新拉时间线。使用缓存恢复界面时，可按已加载气泡查询当前未读状态。
 
 ---
 
@@ -609,11 +682,12 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 | **10100** | 内容为空 | 本地校验，提示用户输入 |
 | **10101** | 内容安全不通过（**含**用户输入入队前拦截、**或** AI 输出拦截后同步失败） | **展示 `message`**；用户输入场景改措辞重发；AI 输出场景 timeline 可能为 `failed_blocked`，**重新 send** |
 | **10102** | LLM 失败/超时 | **展示 `message`**，拉 timeline 看是否 `failed_timeout`/`failed_error`，可 resend |
-| **10104** | 待处理消息过多（未闭环 ≥5 且无叹号） | **展示 `message`**；服务端可能已 **后台补跑** bundle，宜 **等待数秒后刷新 timeline**，勿立即连发 |
+| **10104** | 待处理消息过多（未闭环 ≥5 且无叹号） | 展示 `message`，等待后刷新时间线核对待处理消息 |
 | **10105** | 重发过于频繁 | **展示 `message`**，稍后重试 |
 | **10107** | 当前无可重发 | **展示 `message`**，检查 timeline |
 | **10108** | 等待中被新消息取代 | **展示 `message`**，**必须** `GET timeline` 对账 |
-| **10400** | 主动消息不存在 | **展示 `message`** |
+| **10111** | 统一聊天回执找不到当前账号、指定来源的消息 | 刷新时间线，核对 `source` 和 `id` |
+| **10400** | 专用主动消息回执找不到该消息 | **展示 `message`** |
 | **10001** | 朋友圈翻页游标无效 | 清除游标，从第一页重新加载 |
 | **10300** | 日记不存在或不属于当前账号 | 刷新日记列表 |
 | **10500** | 帖子不可见 | 刷新朋友圈列表，移除失效帖子 |
@@ -661,7 +735,7 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 | 5 | timeline 中 `failed_timeout` 后 resend | `code=0` 或合理失败码 |
 | 6 | `failed_blocked` 行点 resend | `code=10107`，须改内容后 send |
 | 7 | 快速连发两条 send | 至少一条可能 10108；timeline 最终一致 |
-| 8 | unread-count → messages → read | 角标减少，已读不再出现在 messages |
+| 8 | 用 `/agent/messages` 获取并确认一条主动消息 | `/agent/unread-count` 和聊天总未读均减少一条，普通回复状态保留 |
 | 9 | 错误 Key | HTTP 401 |
 | 10 | 用 Key 调 `/api/chat/send` | HTTP 401（路径隔离） |
 | 11 | 用升级前已签发的有效 Key 拉日记，再展示一篇并上报已读 | 可直接读取；刷新列表后该篇 `is_read=true` |
@@ -669,6 +743,9 @@ curl -fsS "$BASE/api/open/v1/memory/list?page=1&page_size=50" \
 | 13 | 在联调账号发评，使用原键原内容重试，再刷新该帖 | 两次回执的 `comment_id` 一致，列表只有一条新评论；回复生成后在该条评论中可见 |
 | 14 | 用已有 Key 取 BGM 曲库，选中默认曲，加载音频和封面 | 已发布曲目与 H5 排序一致，音频可播放。封面为空时展示占位图。 |
 | 15 | 用已有 Key 分页加载记忆并点开星体，再用另一个联调账号重读 | 各自只能读取本人记忆；正文可直接展示，超过末页返回空数组。 |
+| 16 | 初始总未读为 0，H5 发完即退回首页。等待两条回复，只看第一条后退出 | 总数先为 2，再为 1。宠物端核对两条 ID，只返回第二条未读。 |
+| 17 | 初始总未读为 0，通过 Open 发起对话并接收两条回复，只在宠物端确认第二条，再在 H5 读第一条 | 收到回复后为 2，确认第二条后两端为 1。重复确认第二条仍为 1。H5 确认第一条后，宠物端再查为 0。 |
+| 18 | 同时有一条未读普通回复和一条未读主动消息，后台查询总数、拉时间线、核对状态，再只确认主动消息 | 所有查询均保留两条未读。最后只剩普通回复，即使两条的数字 ID 碰巧相同也分别计数。 |
 
 ---
 
@@ -681,7 +758,7 @@ A：需要先有 H5 用户账号，再由运营绑定签发 Key；Open API **不
 A：技术上可以共用同一 Key，但多设备同时发消息会共享同一聊天队列与 10104/10108 规则，**建议一宠一端一 Key**（由运营为每端用户各建账号与 Key）。
 
 **Q：send 很慢是否正常？**  
-A：正常。同步等待 LLM + 记忆检索，通常数秒至数十秒，超时上限约 120 秒，客户端超时请设 ≥130 秒。
+A：`send` 同步等待本轮生成。客户端按 §5.2 配置超时；等待期间用户离开聊天，成功保存的回复仍会计入未读。
 
 **Q：已有聊天 Key 可以看日记和朋友圈吗？**
 A：可以。在已部署这版接口的同一环境，沿用原 Base URL 和有效 Key，请求 `/api/open/v1/diary/list` 和 `/api/open/v1/feed/list` 即可。日记中的 `relationship_level_at_creation` 表示撰写时的等级。
@@ -690,7 +767,7 @@ A：可以。在已部署这版接口的同一环境，沿用原 Base URL 和有
 A：旧 Key 立即 401，须让用户更新配置或联系运营重新粘贴。
 
 **Q：timeline 里一直 `pending_llm` 怎么办？**  
-A：Open 的 `GET timeline` **不会**像 H5 那样自动触发恢复。可再次 `send`（可能 10104 并触发后台补跑），或等待后刷新 timeline；仍异常请联系运营。
+A：先用原请求标识查询[提交状态](../contract/current/openapi/api.md#submission-status)，再刷新时间线。长时间仍未结束时联系运营，避免重复发送同一条用户消息。
 
 ---
 
@@ -709,7 +786,7 @@ curl -sS -X POST "${BASE}/api/open/v1/chat/send" \
   -H "Authorization: Bearer ${KEY}" \
   -H "Content-Type: application/json" \
   -d '{"content":"你好"}' \
-  --max-time 130
+  --max-time 210
 ```
 
 **时间线：**
@@ -719,11 +796,30 @@ curl -sS "${BASE}/api/open/v1/chat/timeline?limit=20" \
   -H "Authorization: Bearer ${KEY}"
 ```
 
-**未读数：**
+<a id="partner-chat-curl"></a>
+**查聊天总角标。** 以下步骤使用 §6.4 的场景。在联调账号收到两条普通回复后执行。
 
 ```bash
-curl -sS "${BASE}/api/open/v1/agent/unread-count" \
-  -H "Authorization: Bearer ${KEY}"
+curl -sS "$BASE/api/open/v1/chat/unread" -H "Authorization: Bearer $KEY"
+```
+
+**只确认实际看到的第二条。** 从 `send` 的 `data.messages[]` 或时间线 `source=assistant` 的行取真实 `id`，把第一条的 ID 赋给 `FIRST_ID`，第二条的 ID 赋给 `SEEN_ID`。先查询两条的状态，此步不会标为已读。
+
+```bash
+curl -sSG "$BASE/api/open/v1/chat/unread/status" -H "Authorization: Bearer $KEY" \
+  --data-urlencode "assistant_id=${FIRST_ID:?请设置第一条回复的 ID}" \
+  --data-urlencode "assistant_id=${SEEN_ID:?请设置实际看到的第二条回复的 ID}"
+```
+
+用户看到第二条后执行下面的空 POST，再核对状态和总数。假设期间无其他读写，状态查询只返回第一条，总数为 1。主动消息的回执同理，把路径中的 `assistant` 改成 `agent`，使用这条主动消息自己的 ID；核对状态时传 `agent_id`。
+
+```bash
+curl -sS -X POST "$BASE/api/open/v1/chat/messages/assistant/${SEEN_ID:?请设置实际看到的第二条回复的 ID}/read" \
+  -H "Authorization: Bearer $KEY"
+curl -sSG "$BASE/api/open/v1/chat/unread/status" -H "Authorization: Bearer $KEY" \
+  --data-urlencode "assistant_id=${FIRST_ID:?请设置第一条回复的 ID}" \
+  --data-urlencode "assistant_id=${SEEN_ID:?请设置实际看到的第二条回复的 ID}"
+curl -sS "$BASE/api/open/v1/chat/unread" -H "Authorization: Bearer $KEY"
 ```
 
 **重发（无 Body）：**
@@ -732,7 +828,7 @@ curl -sS "${BASE}/api/open/v1/agent/unread-count" \
 curl -sS -X POST "${BASE}/api/open/v1/chat/resend" \
   -H "Authorization: Bearer ${KEY}" \
   -H "Content-Type: application/json" \
-  --max-time 130
+  --max-time 210
 ```
 
 ---
@@ -759,6 +855,7 @@ curl -sS "$BASE/api/open/v1/feed/posts/$POST_ID" -H "Authorization: Bearer $KEY"
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.5 | 2026-11-28 | 增加 H5 与宠物端共享聊天未读的升级说明、总角标、批量状态查询和逐条回执。同步流程图、气泡字段、curl 示例及跨端验收用例。 |
 | v1.4 | 2026-11-14 | 新增记忆星云只读接口、分页示例、旧记忆展示和读取失败处理。 |
 | v1.3 | 2026-11-14 | 新增 BGM 曲库、默认曲选择、媒体读取示例及空曲库和服务异常的处理。 |
 | v1.2 | 2026-11-13 | 增加日记、朋友圈接入与联调用例，说明既有 Key、分页、已读、图片、评论重试和 SSE。 |

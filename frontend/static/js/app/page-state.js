@@ -1,7 +1,7 @@
 const fields = Object.freeze({
   index: ['scroll', 'focus', 'loaderDone', 'loaderStartedAt', 'deviceSelection'],
   chat: ['scroll', 'focus', 'draft', 'anchor', 'submissionKeys'],
-  feed: ['scroll', 'focus', 'items', 'cursor', 'expandedIds'],
+  feed: ['scroll', 'focus', 'items', 'cursor', 'expandedIds', 'mediaVisit'],
   diary: ['scroll', 'focus', 'selectedId', 'selectedDate', 'calendarMonth', 'cursor', 'readIds'],
   memory: ['scroll', 'focus', 'view', 'selectedId'],
   relationship: ['scroll', 'focus', 'rightsCollapsed', 'cursor'],

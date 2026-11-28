@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from sqlalchemy import desc, select, func
+from sqlalchemy import asc, desc, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.agent_message import AgentMessage
@@ -25,7 +25,7 @@ def _timeline_conv_item(row: ConversationLog) -> dict[str, Any]:
         "content": row.content,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "emotion_label": row.emotion_label,
-        "is_read": None,
+        "is_read": row.reply_is_read is not False if row.role == "assistant" else None,
         "trigger_type": None,
         "delivery_status": ds,
         "skipped_in_prompt": sk,
@@ -39,30 +39,33 @@ async def get_timeline(
     limit: int = 20,
     *,
     include_calls: bool = False,
+    after: int | None = None,
     metrics=None,
     pending_reload: bool = False,
 ) -> dict[str, Any]:
     """与 GET /api/chat/timeline 响应 data 结构一致。"""
     fetch_limit = limit + 1
+    order = asc if after is not None else desc
+
+    def window(scope, seq):
+        if after is not None:
+            return scope & (seq > after)
+        return scope & (seq < cursor) if cursor is not None else scope
 
     conv_filter = ConversationLog.user_id == user_id
-    if cursor is not None:
-        conv_filter = conv_filter & (ConversationLog.sort_seq < cursor)
     conv_stmt = (
         select(ConversationLog)
-        .where(conv_filter)
-        .order_by(desc(ConversationLog.sort_seq))
+        .where(window(conv_filter, ConversationLog.sort_seq))
+        .order_by(order(ConversationLog.sort_seq))
         .limit(fetch_limit)
     )
     conv_rows = list((await db.execute(conv_stmt)).scalars().all())
 
     agent_filter = AgentMessage.user_id == user_id
-    if cursor is not None:
-        agent_filter = agent_filter & (AgentMessage.sort_seq < cursor)
     agent_stmt = (
         select(AgentMessage)
-        .where(agent_filter)
-        .order_by(desc(AgentMessage.sort_seq))
+        .where(window(agent_filter, AgentMessage.sort_seq))
+        .order_by(order(AgentMessage.sort_seq))
         .limit(fetch_limit)
     )
     agent_rows = list((await db.execute(agent_stmt)).scalars().all())
@@ -94,10 +97,8 @@ async def get_timeline(
         call_filter = (VoiceCall.user_id == user_id) & VoiceCall.sort_seq.is_not(None) & (
             VoiceCall.status.in_(['ended','missed'])) & VoiceCall.deletion_fence_at.is_(None) & VoiceCall.cleared_run_id.is_(None) & VoiceCall.deleted_at.is_(None)
         call_scope = call_filter
-        if cursor is not None:
-            call_filter = call_filter & (VoiceCall.sort_seq < cursor)
-        calls = (await db.scalars(select(VoiceCall).where(call_filter)
-            .order_by(desc(VoiceCall.sort_seq)).limit(fetch_limit))).all()
+        calls = (await db.scalars(select(VoiceCall).where(window(call_filter, VoiceCall.sort_seq))
+            .order_by(order(VoiceCall.sort_seq)).limit(fetch_limit))).all()
         from backend.services.realtime_voice_crisis_presentation_service import crisis_presentations
         resources = await crisis_presentations(db, calls)
         for row in calls:
@@ -122,11 +123,16 @@ async def get_timeline(
             elif anchors>1:events.append(('voice.timeline.cursor_duplicate',{'scope':'anchor'},1))
         await metrics.emit_many(events)
 
-    merged.sort(key=lambda x: x["sort_seq"], reverse=True)
+    merged.sort(key=lambda x: x["sort_seq"], reverse=after is None)
     has_more = len(merged) > limit
     page_items = merged[:limit]
-    page_items.reverse()
-    next_cursor = page_items[0]["sort_seq"] if page_items and has_more else None
+    next_cursor = page_items[-1]["sort_seq"] if page_items and has_more else None
+    if after is None:
+        page_items.reverse()
+    if include_calls:
+        for item in page_items:
+            if item["sort_seq"] > 2**53 - 1:
+                item["sort_seq_text"] = str(item["sort_seq"])
 
     return {
         "items": page_items,

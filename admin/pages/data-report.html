@@ -57,13 +57,17 @@
 </head>
 <body>
 
-<script src="/admin/static/js/admin-api.js?v=cfccc672bff7"></script>
+<script src="/admin/static/js/admin-api.js?v=visitor-dashboard-v1"></script>
 <script>
-  checkAdminLogin();
   (function () {
+    if (!checkAdminLogin()) return;
     var role = getAdminRole();
     if (role !== 'super_admin' && role !== 'ops_admin' && role !== 'observer') {
       window.location.href = '/admin/pages/error.html?type=403';
+      return;
+    }
+    if (new URLSearchParams(location.search).get('tab') === 'visitors') {
+      location.replace('visitor-devices.html');
       return;
     }
     document.body.innerHTML =
@@ -73,15 +77,18 @@
   })();
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 
 <script>
 (function () {
   var chartInstances = {};
+  var chartsReady = new Promise(function (resolve) {
+    document.addEventListener('DOMContentLoaded', resolve, { once: true });
+  });
 
   function getChart(domId) {
     var el = document.getElementById(domId);
-    if (!el) return null;
+    if (!el || typeof echarts === 'undefined') return null;
     if (!chartInstances[domId]) {
       chartInstances[domId] = echarts.init(el);
     }
@@ -396,6 +403,7 @@
     var list = (res.data && res.data.list) ? res.data.list : [];
     var extra = (res.data && res.data.extra) ? res.data.extra : {};
 
+    await chartsReady;
     if (t === 'user') {
       renderUserCharts(list, extra.level_distribution || []);
     } else if (t === 'conversation') {
@@ -420,7 +428,7 @@
 
   function buildPageHtml() {
     return (
-      '<div class="page-card" style="margin-bottom:16px">' +
+      '<div id="legacy-report-filter" class="page-card" style="margin-bottom:16px">' +
         '<div class="report-filter-row">' +
           '<label style="color:#666;font-size:13px">开始日期</label>' +
           '<input type="date" class="form-control date-input" id="start-date">' +

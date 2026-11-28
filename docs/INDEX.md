@@ -19,6 +19,7 @@
 | 用户、登录、设置、密码 | [接口](contract/current/core-user-auth/api.md) · [数据](contract/current/core-user-auth/data.md) | [账号与认证](tech-debt/active/core-user-auth.md) |
 | 未登录开放、登录弹窗、访客态 | [H5 页面策略](contract/current/h5-app/api.md) · [Feed 可选鉴权](contract/current/life-feed/api.md) | [总索引](tech-debt.md) |
 | BGM 背景音乐、管理库与处理操作 | [接口与播放器](contract/current/bgm/api.md) · [数据](contract/current/bgm/data.md) · [后台](contract/current/bgm/admin-ui.md)；[V1.3 版本完结与保留项](design/bgm_music/steps-verified.md#bgm-v13-closure) | — |
+| 聊天未读与单条回执 | [接口](contract/current/chat-emotion/api.md#chat-unread) · [阅读判定](contract/current/h5-app/api.md#chat-unread) | — |
 | H5 应用入口 | [接口](contract/current/h5-app/api.md) | [总索引](tech-debt.md) |
 | 实时语音、结束、占用残留、异常结算恢复 | [接口](contract/current/realtime-voice/api.md) · [数据](contract/current/realtime-voice/data.md) · [后台](contract/current/realtime-voice/admin-ui.md) | [实时语音 TD-038](tech-debt/active/realtime-voice.md#td-038) |
 | 实时语音配置发布、测试能力与后台音色筛选的 P1 延期问题 | [后台契约](contract/current/realtime-voice/admin-ui.md)；原 P1 延期目标保留 | [TD-041](tech-debt/active/realtime-voice.md#td-041) · [TD-042](tech-debt/active/realtime-voice.md#td-042) · [TD-043](tech-debt/active/realtime-voice.md#td-043) |
@@ -37,7 +38,7 @@
 | 关系成长 | [接口](contract/current/relationship/api.md) · [数据](contract/current/relationship/data.md) · [后台](contract/current/relationship/admin-ui.md) | [关系](tech-debt/active/relationship.md) |
 | Agent、Future、主动消息 | [接口](contract/current/agent-future/api.md) · [数据](contract/current/agent-future/data.md) · [后台](contract/current/agent-future/admin-ui.md) | [Agent](tech-debt/active/agent-future.md) |
 | 人格、Prompt、世界状态、安全 | [接口](contract/current/persona-prompt-world-state/api.md) · [数据](contract/current/persona-prompt-world-state/data.md) · [后台](contract/current/persona-prompt-world-state/admin-ui.md) | [人格与 Prompt](tech-debt/active/persona-prompt-world-state.md) |
-| 朋友圈、生活流 | [接口](contract/current/life-feed/api.md) · [数据](contract/current/life-feed/data.md) · [后台](contract/current/life-feed/admin-ui.md) | [生活流](tech-debt/active/life-feed.md) |
+| 朋友圈、生活流、置顶与视频 | [接口](contract/current/life-feed/api.md) · [数据](contract/current/life-feed/data.md) · [后台](contract/current/life-feed/admin-ui.md) | [生活流](tech-debt/active/life-feed.md) |
 | 管理账号、用户、操作日志 | [接口](contract/current/admin-security-accounts/api.md) · [数据](contract/current/admin-security-accounts/data.md) | [账号与认证](tech-debt/active/core-user-auth.md) |
 | 统计、系统监控、第三方 | [接口](contract/current/observability-third-party/api.md) · [后台](contract/current/observability-third-party/admin-ui.md) | [可观测性](tech-debt/active/observability-third-party.md) |
 | OpenAPI、API Key、resend、养宠外部互动、日记、朋友圈、BGM 曲库、记忆星云 | [第三方接入指南](partner/林小梦-OpenAPI-宠物端接入指南.md) · [接口](contract/current/openapi/api.md) · [日记与朋友圈契约](contract/current/openapi/api.md#feed-diary-openapi) · [BGM 接入](contract/current/openapi/api.md#bgm-openapi) · [记忆星云接入](contract/current/openapi/api.md#memory-nebula-openapi) · [数据](contract/current/openapi/data.md) | [OpenAPI](tech-debt/active/openapi.md) · [跨功能](tech-debt/active/cross-cutting.md) |

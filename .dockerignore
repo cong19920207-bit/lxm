@@ -13,6 +13,7 @@
 !alembic.ini
 !scripts/
 !scripts/pet_photo_maintenance.py
+!scripts/install_visitor_geo.py
 **/__pycache__
 **/*.pyc
 **/._*

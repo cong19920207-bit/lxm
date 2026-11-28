@@ -54,10 +54,13 @@ services:
       PYTHONUNBUFFERED: "1"
       MYSQL_HOST: mysql
       REDIS_HOST: redis
+      # Preserve pending video uploads and worker input across container replacement.
+      FEED_VIDEO_RUNTIME_ROOT: /var/lib/lxm-feed-video-runtime
       # Keep owner-lock receipts across container replacement. Every local
       # backend replica must use the same POSIX-lock-capable runtime volume.
       BGM_TEMP_ROOT: /var/lib/lxm-bgm-runtime
     volumes:
+      - feed_video_runtime:/var/lib/lxm-feed-video-runtime
       - bgm_runtime:/var/lib/lxm-bgm-runtime
       # 管理后台静态与页面：本地改 admin/ 无需每次 rebuild（API 仍在 backend/ 镜像内）
       - ./admin:/app/admin:ro
@@ -87,3 +90,4 @@ volumes:
   mysql_data:
   redis_data:
   bgm_runtime:
+  feed_video_runtime:

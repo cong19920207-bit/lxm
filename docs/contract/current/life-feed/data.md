@@ -63,7 +63,7 @@
 |--------|------|------|------|------|
 | id | Integer PK | 是 | 自增 | |
 | scene_id | String(64) | 否 | NULL | |
-| scheduled_publish_time | DateTime | 是 | - | **北京墙钟 naive**；可见条件：`<=feed_now() AND is_visible=1 AND generation_status='ready'` |
+| scheduled_publish_time | DateTime | 是 | - | 北京墙钟 naive。公开读取限已到点、可见、生成就绪且在配置历史范围内的帖子；视频另须满足[已提交媒体条件](api.md#feed-public-post-v8)。 |
 | actual_publish_time | DateTime | 否 | NULL | STEP-013 落 NULL；列表首次命中懒惰写 `feed_now()` |
 | generation_status | String(16) | 是 | - | `generating` / `ready` / `failed` |
 | content_text | Text | 是 | - | |
@@ -83,6 +83,29 @@
 | created_at / updated_at | DateTime | 是 | | |
 
 **计算字段（非 DB 列）**：`display_likes = base_likes × like_multiplier + real_likes`；`display_comments = base_comments × comment_multiplier + 当前用户可见评论条数`。
+
+视频编辑自迁移 `v10e_feed_video_fields_001` 起在 `feed_video_edit` 保存 `hashtags`（JSON）和 `emotion`（最长 20 字）。升级时，已有草稿继承关联帖的话题和情绪。提交草稿与切换发布版本在同一事务写入帖子字段。新视频首次提交时生成两组互动展示基数和倍率，历史已提交帖沿用已有数值。
+
+换片通过收件校验并写入草稿媒体选择时，更新 `last_edited_at`，草稿媒体从此次有效编辑起保留 7 天。旧草稿有接收记录时，同一草稿所选文件的 `received_at` 是到期计算的下限。重新处理任务或查看草稿均沿用原到期时间。
+
+<a id="feed-video-storage"></a>
+
+#### 置顶、草稿和公开视频版本
+
+| 数据对象 | 所有权和写入时机 |
+|---|---|
+| `feed_post.media_kind / post_version` | 旧帖升级为 `image_text`、版本 1。普通编辑与视频提交按帖版本校验。点赞、评论和已读继续按原帖 ID 关联。 |
+| `feed_pin / feed_pin_order` | 成员关联原帖，位置唯一。整组写入锁定单例版本并原子变更顺序。隐藏或移出时间窗仍保留后台成员和位置。 |
+| `feed_video_edit / feed_video_selection / feed_publication` | 编辑保存基准帖版本、草稿版本和最后有效编辑时间。每份编辑选一个媒体版本与封面变体，公开指针只选本帖已明确提交的编辑。 |
+| `feed_video_upload / feed_video_admission` | 记录接收操作、容量预留、实收完成时刻和全局序号。有效 MP4/MOV 不超过 200 MiB、180 秒，含边界。按接收完成顺序排队，全局同时处理一条。 |
+| `feed_video_task / feed_video_asset` | 任务记录接收、处理、首次失败及持久成片校验信息。产物按媒体版本、类型和变体唯一，保存对象键、URL、规格、字节、摘要及校验时间。 |
+| `feed_video_draft_request / feed_video_submission` | 建稿和显式提交各保留幂等回执，绑定操作人、编辑及请求内容或版本。 |
+
+正片为索引前置的 H.264 SDR MP4，最高 720p、30 fps，保留较小尺寸及较低帧率。有声源保留音频，无声源保持无音轨。支持的 PQ／HLG 转单份 SDR，无法可靠转换时提示转为 SDR 后重传。成片持久校验后可清原片，重启或派生失败时按同一版本恢复。短预览取开头最多 5 秒，独立无声 MP4，最高 360p、整文件至多 200 KiB。
+
+默认封面从开头最多 3 秒选取可用画面，无可用帧时可补传。自定义封面支持静态 JPEG、PNG、WebP，最大 5 MiB、最长边 4096。每个封面变体生成独立小／大 WebP，小档 240×180，大档按比例宽至多 720 像素。换封面沿用正片和短预览。四项产物均通过分发校验才可就绪，包括匿名读取、来源许可、字节校验及正片 Range 206。
+
+失败且无持久成片的原片从首次失败起保留 24 小时。草稿到期解除媒体引用，保留编辑字段；正常放弃、替换后从失去最后有效引用起保留 24 小时。清理逐项复核引用和活跃任务，失败项可再次回收。已提交的定时帖、隐藏帖仍保留当前媒体。迁移顺序为 v10a 帖子及版本、v10b 接收及队列、v10c 提交回执、v10d 到期状态、v10e 草稿字段。
 
 #### 表名：feed_like
 

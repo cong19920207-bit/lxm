@@ -165,6 +165,15 @@ async def _run_inactive_reset() -> None:
         logger.error("[定时任务] 30 天无活动清零任务异常: %s", str(e), exc_info=True)
 
 
+@fenced_scheduler
+async def _run_visitor_retention():
+    from backend.database import async_session_maker
+    from backend.services.visitor_events import utc_now
+    from backend.services.visitor_reports import clean
+    async with async_session_maker.begin() as db:
+        await db.run_sync(clean, utc_now())
+
+
 def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
     """注册并启动所有定时任务。日记 Cron 使用 Asia/Shanghai，时刻由 diary_rules 在启动时解析后传入。"""
     scheduler.add_job(
@@ -358,6 +367,9 @@ def start_scheduler(diary_hour: int = 0, diary_minute: int = 15) -> None:
         id='pet_birthday_scan_task', name='养宠生日纪念扫描', replace_existing=True,
         max_instances=1, coalesce=True,
     )
+    scheduler.add_job(_run_visitor_retention, trigger=IntervalTrigger(minutes=10),
+                      id="h5_visitor_retention", name="访客数据分期清理",
+                      replace_existing=True, max_instances=1, coalesce=True)
     scheduler.start()
     jobs = scheduler.get_jobs()
     logger.info("[定时任务] 调度器已启动，已注册 %d 个任务", len(jobs))

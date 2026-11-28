@@ -95,6 +95,7 @@
 .pet-feature .event-row p{font-size:12px;color:#92766c;margin:0;line-height:1.7}
 .pet-feature .event-participant{font-size:10px;color:#9e8074;margin-top:8px}
 .pet-feature .empty-state{padding:54px 12px;text-align:center}
+.pet-feature[data-route="loading"] .empty-state{--lxm-loading-caption-color:#dec4b5}
 .pet-feature .empty-state .mark{font-size:36px;opacity:.6;color:#b1977f}
 .pet-feature .empty-state h2{font-weight:400;font-size:19px;margin-top:20px}
 .pet-feature .empty-state p{font-size:13px;line-height:1.9;color:#9b8378}

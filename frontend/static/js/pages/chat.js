@@ -7,7 +7,7 @@ export async function mount(pageContext) {
   },options);
   const {setTimeout,clearTimeout,setInterval,clearInterval,requestAnimationFrame}=createPageTimers(pageContext);
   await Promise.all(['css/voice-call-cards.css','css/bgm.css'].map(key=>pageContext.scope.adopt(services.resources.style(key),release=>release())));
-  for(const name of ['chat-time','voice-call-cards','chat-submissions','bgm-page','bgm-record','bgm-bubble']){
+  for(const name of ['chat-time','voice-call-cards','chat-submissions','chat-unread','chat-unread-view','bgm-page','bgm-record','bgm-bubble']){
     await services.shared.script('js/'+name+'.js');if(!pageContext.valid())return{unmount(){}};
   }
   const routeCurrent=()=>pageContext.router.current?.context.routeEpoch===pageContext.routeEpoch;
@@ -54,7 +54,8 @@ export async function mount(pageContext) {
     let loadingTimeline = false
     let noMoreTimeline = false
     let timelinePages = 0
-    let agentTipMessageId = null
+    let unreadView = null
+    let timelineRequest = null
     let chatFeedBadge = {unread:0,newCount:0}
     let chatAuthMode = services.auth.readToken() ? 'authenticated' : 'visitor'
     let chatResumePromise = null
@@ -105,11 +106,7 @@ export async function mount(pageContext) {
       if (!bar || !msgs) return
       const atBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 48
       msgs.style.paddingBottom = (bar.offsetHeight + 8) + 'px'
-      if (atBottom) {
-        requestAnimationFrame(() => {
-          msgs.scrollTop = msgs.scrollHeight
-        })
-      }
+      if (atBottom) msgs.scrollTop = msgs.scrollHeight
     }
 
     function setupInputAreaBottomSync() {
@@ -239,7 +236,9 @@ export async function mount(pageContext) {
     function insertTimelineBatch(container, items, insertBeforeNode) {
       const nodes = []
       const seen=new Set()
-      let prevTs = null
+      let previous = insertBeforeNode ? insertBeforeNode.previousElementSibling : container.lastElementChild
+      while (previous && !previous.classList.contains('msg-row')) previous = previous.previousElementSibling
+      let prevTs = previous ? getRowTimestamp(previous) : null
       items.forEach(function (item) {
         const id=item.source==='call'?item.call_id:item.id,key=item.source+':'+id
         if(seen.has(key))return
@@ -321,25 +320,6 @@ export async function mount(pageContext) {
       return 'failed_error'
     }
 
-    function appendAIBubble(content, isAgent, isUnread) {
-      const container = byId('chat-messages')
-      const ts = Date.now()
-      const row = document.createElement('div')
-      row.className = 'msg-row ai' + (isAgent ? ' agent' : '')
-      row.setAttribute('data-created-at', String(ts))
-      row.innerHTML = `
-        <img class="msg-avatar" src="/static/images/avatar/default.png" alt="">
-        <div class="msg-body">
-          <div class="msg-bubble">
-            ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
-            ${escapeHtml(content)}
-          </div>
-        </div>
-      `
-      appendChatRow(container, row, ts)
-      return row
-    }
-
     /**
      * 多气泡流式渲染器：支持 message_count + message_index 按条填槽。
      * 初始仅展示一个 thinking 气泡；收到 meta.message_count 后不预铺空气泡（§2.7.5）。
@@ -412,10 +392,16 @@ export async function mount(pageContext) {
           bubbleSlots.forEach(s => { if (s.row.parentNode) s.row.remove() })
           bubbleSlots = []
         },
-        appendTextAt(index, text) {
+        appendTextAt(index, text, completed) {
           removeThinking()
           const slot = ensureSlot(index)
-          slot.contentEl.innerHTML += escapeHtml(text)
+          slot.contentEl.append(document.createTextNode(text))
+          if (completed?.id != null) {
+            slot.row.dataset.messageSource = 'assistant'
+            slot.row.dataset.messageId = String(completed.id)
+            slot.row.dataset.sortSeq = completed.sort_seq
+            unreadView?.flag(slot.row,completed.is_read !== true)
+          }
         },
         /** done 到达：以 messages 数组为真相源，纠偏所有气泡内容 */
         finalize(messages, emotion) {
@@ -461,9 +447,7 @@ export async function mount(pageContext) {
 
     function scrollToBottom() {
       const container = byId('chat-messages')
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight
-      })
+      container.scrollTop = container.scrollHeight
     }
 
     /* ====== 发送消息（TD-015：Abort 打断、meta.generation_id、幂等键、队列满） ====== */
@@ -482,7 +466,7 @@ export async function mount(pageContext) {
     function findChatMessageRow(source, id) {
       if (id == null) return null
       return [...root.querySelectorAll('#chat-messages .msg-row')].find(row =>
-        row.dataset.messageSource === source && row.dataset.messageId === String(id)) || null
+        row.dataset.messageSource === source && (row.dataset.messageId || row.dataset.callId) === String(id)) || null
     }
     function markChatUnverified(record) {
       record.observationUnknown=true
@@ -540,10 +524,12 @@ export async function mount(pageContext) {
         status.result.messages.forEach(message => {
           if (message.id == null) return
           const existing=findChatMessageRow('assistant',message.id)
-          const row=existing || appendAIBubble(message.content,false,false)
+          const row=existing || unreadView?.insertItem({...message,source:'assistant',is_read:message.is_read ?? false})
+          if (!row) return
           row.dataset.messageSource='assistant';row.dataset.messageId=String(message.id);row.dataset.sortSeq=message.sort_seq
           row.dataset.roundId=status.result.round_id || '';row.dataset.stateRevision=revision || ''
-          row.querySelector('.msg-bubble').textContent=message.content || ''
+          row.querySelector('.msg-content').textContent=message.content || ''
+          if (!existing || typeof message.is_read === 'boolean') unreadView?.flag(row,message.is_read !== true)
         })
         if (status.result.emotion && status.result.emotion.label) updateChatBackgroundEmotion(status.result.emotion.label)
       }
@@ -675,8 +661,10 @@ export async function mount(pageContext) {
               })
             if (stale) continue
             if (data.type==='delta') {
-              aiBubble.appendTextAt(Number.isInteger(data.message_index)?data.message_index:0,data.content || '')
-              scrollToBottom()
+              const list = byId('chat-messages')
+              const follow = list.scrollHeight-list.scrollTop-list.clientHeight < 48
+              aiBubble.appendTextAt(Number.isInteger(data.message_index)?data.message_index:0,data.content || '',data.completed_message)
+              if (follow) scrollToBottom()
             } else if (data.type==='done') {
               aiBubble.removeRow()
               terminal=chatSubmissions.apply(record,{...identity,...data,admission_state:'accepted',processing_state:'success',
@@ -744,6 +732,7 @@ export async function mount(pageContext) {
       } finally {
         if (sessionAtStart===chatSendSession) {
           clearTimeout(chatTransportTimer);chatTransportTimer=null;chatSendAbort=null
+          unreadView?.refresh().catch(() => {})
         }
         if (isCurrentChatSubmission(context)) chatSubmissions.wake()
       }
@@ -792,7 +781,16 @@ export async function mount(pageContext) {
         })
       }
     })
-    async function loadTimeline(isFirstPage) {
+    function loadTimeline(isFirstPage) {
+      if (timelineRequest) return timelineRequest
+      const task = loadTimelinePage(isFirstPage)
+      timelineRequest = task
+      return task.finally(() => {
+        if (timelineRequest === task) { timelineRequest = null; loadingTimeline = false }
+      })
+    }
+
+    async function loadTimelinePage(isFirstPage) {
       if (!isChatAuthenticated() || loadingTimeline || noMoreTimeline) return
       loadingTimeline = true
       const epoch=chatUiEpoch,user=currentChatUser()
@@ -802,10 +800,11 @@ export async function mount(pageContext) {
         url += '&cursor=' + timelineCursor
       }
 
-      const res = await request('GET', url, undefined, chatSilentAuthOptions())
+      const res = await ChatUnread.getTimelinePage(request, url, {...chatSilentAuthOptions(),signal:pageContext.signal})
       if (!isChatAuthenticated() || epoch!==chatUiEpoch || user!==currentChatUser()) return
       if (res.code === 0 && res.data) {
         const items = res.data.items || []
+        unreadView?.notePage(items)
         timelinePages++
         if (items.length === 0) {
           noMoreTimeline = true
@@ -818,7 +817,7 @@ export async function mount(pageContext) {
         }
 
         if (res.data.next_cursor !== null && res.data.next_cursor !== undefined) {
-          timelineCursor = res.data.next_cursor
+          timelineCursor = items[0]?.sort_seq_text || res.data.next_cursor
         }
 
         const container = byId('chat-messages')
@@ -830,13 +829,14 @@ export async function mount(pageContext) {
           insertTimelineBatch(container, items, before)
         } else {
           const oldScrollHeight = container.scrollHeight
+          const oldScrollTop = container.scrollTop
           let firstMsgNode = sentinel.nextElementSibling
           while (firstMsgNode && firstMsgNode.classList &&
                  firstMsgNode.classList.contains('msg-time-divider')) {
             firstMsgNode = firstMsgNode.nextElementSibling
           }
           insertTimelineBatch(container, items, firstMsgNode || null)
-          container.scrollTop = container.scrollHeight - oldScrollHeight
+          container.scrollTop = oldScrollTop + container.scrollHeight - oldScrollHeight
         }
         chatSubmissions.records.forEach(r=>{ if (r.lastStatus) applyChatStatus(r,r.lastStatus) })
         refreshChatResendEligibility()
@@ -875,11 +875,11 @@ export async function mount(pageContext) {
       const createdTs = ts != null ? ts : parseMessageTimestamp(item.created_at)
       if (item.source === 'call') {
         const row=VoiceCallCards.render(item,createdTs,parseMessageTimestamp(item.created_at,null))
-        row.dataset.messageSource='call';row.dataset.messageId=String(item.call_id);row.dataset.sortSeq=item.sort_seq||'';return row
+        row.dataset.messageSource='call';row.dataset.messageId=String(item.call_id);row.dataset.sortSeq=item.sort_seq_text || item.sort_seq || '';return row
       }
       const row = document.createElement('div')
       row.setAttribute('data-created-at', String(createdTs))
-      row.dataset.messageSource=item.source;row.dataset.messageId=String(item.id);row.dataset.sortSeq=item.sort_seq || ''
+      row.dataset.messageSource=item.source;row.dataset.messageId=String(item.id);row.dataset.sortSeq=item.sort_seq_text || item.sort_seq || ''
       if (item.source === 'user') {
         row.className = 'msg-row user'
         const ds = item.delivery_status || ''
@@ -900,17 +900,17 @@ export async function mount(pageContext) {
         `
       } else {
         const isAgent = item.source === 'agent'
-        const isUnread = isAgent && item.is_read === false
+        const isUnread = item.is_read === false
         row.className = 'msg-row ai' + (isAgent ? ' agent' : '')
         row.innerHTML = `
           <img class="msg-avatar" src="/static/images/avatar/default.png" alt="">
           <div class="msg-body">
             <div class="msg-bubble">
-              ${isUnread ? '<span class="msg-unread-tag">未读</span>' : ''}
-              ${escapeHtml(item.content)}
+              <div class="msg-content">${escapeHtml(item.content)}</div>
             </div>
           </div>
         `
+        unreadView?.flag(row,isUnread)
         if (item.emotion_label) {
           row.setAttribute('data-emotion', item.emotion_label)
         }
@@ -918,70 +918,20 @@ export async function mount(pageContext) {
       return row
     }
 
-    /* ====== 加载未读主动消息提示条 ====== */
-    async function loadAgentTip() {
-      if (!isChatAuthenticated()) return
-      const epoch=chatUiEpoch,user=currentChatUser()
-      const res = await request(
-        'GET',
-        '/api/agent/messages',
-        undefined,
-        chatSilentAuthOptions()
-      )
-      if (!isChatAuthenticated() || epoch!==chatUiEpoch || user!==currentChatUser() || res.code !== 0 || !res.data) return
-
-      const messages = res.data.messages || res.data || []
-      if (messages.length === 0) return
-
-      const unreadMessages = messages.filter(m => !m.is_read)
-      if (unreadMessages.length > 0) {
-        const latest = unreadMessages[unreadMessages.length - 1]
-        agentTipMessageId = latest.id
-        const tipEl = byId('agent-tip')
-        const tipContent = byId('tip-content')
-        let text = latest.content || ''
-        if (text.length > 30) text = text.substring(0, 30) + '...'
-        tipContent.textContent = text
-        tipEl.classList.remove('hidden')
-
-        const chatMessages = byId('chat-messages')
-        chatMessages.classList.add('has-tip')
-      }
-    }
-
-    /* ====== 提示条交互 ====== */
-    listen(byId('agent-tip'),'click', async function (e) {
-      if (e.target.id === 'tip-close' || e.target.closest('#tip-close')) {
-        return
-      }
-
-      if (!isChatAuthenticated()) {
-        openChatLoginModal()
-        return
-      }
-
-      if (agentTipMessageId) {
-        const res = await request(
-          'POST',
-          '/api/agent/messages/' + agentTipMessageId + '/read',
-          undefined,
-          chatInteractiveAuthOptions()
-        )
-        if (res.code === 401) return
-      }
-      hideAgentTip()
-      scrollToBottom()
-    })
-
-    listen(byId('tip-close'),'click', function (e) {
-      e.stopPropagation()
-      hideAgentTip()
-    })
-
-    function hideAgentTip() {
-      const tipEl = byId('agent-tip')
-      tipEl.classList.add('hidden')
-      byId('chat-messages').classList.remove('has-tip')
+    function mountUnreadView(epoch,user) {
+      return ChatUnreadView.mount({
+        root, user, request, options: chatSilentAuthOptions,
+        observePage: callCardRefresh.observe,
+        active: () => isChatAuthenticated() && chatUiEpoch===epoch && currentChatUser()===user,
+        findRow: findChatMessageRow, streaming: () => Boolean(chatSendAbort),
+        insertItems: (items,before) => insertTimelineBatch(byId('chat-messages'),items,before),
+        older: async () => {
+          if (noMoreTimeline) return false
+          const cursor=timelineCursor
+          await loadTimeline(false)
+          return cursor!==timelineCursor || noMoreTimeline
+        },
+      })
     }
 
     /* ====== 上滑加载更多 ====== */
@@ -1003,7 +953,6 @@ export async function mount(pageContext) {
         const bottomBar = root.querySelector('.input-area')
         bottomBar.style.bottom = (window.innerHeight - window.visualViewport.height) + 'px'
         syncChatBottomPadding()
-        scrollToBottom()
       })
     }
 
@@ -1099,7 +1048,8 @@ export async function mount(pageContext) {
       loadingTimeline = false
       noMoreTimeline = false
       timelinePages = 0
-      agentTipMessageId = null
+      timelineRequest = null
+      unreadView?.dispose(); unreadView = null
 
       if (chatScrollObserver) {
         chatScrollObserver.disconnect()
@@ -1108,7 +1058,8 @@ export async function mount(pageContext) {
 
       root.querySelectorAll('#chat-messages .msg-row, #chat-messages .msg-time-divider')
         .forEach(function (node) { node.remove() })
-      hideAgentTip()
+      byId('agent-tip').classList.add('hidden')
+      byId('chat-messages').classList.remove('has-tip')
 
       chatFeedBadge = { unread: 0, newCount: 0 }
       const badge = byId('feed-badge')
@@ -1163,28 +1114,37 @@ export async function mount(pageContext) {
         if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch || timingResponse.code!==0 || !timingResponse.data) return
         chatTiming=Object.freeze(timingResponse.data);chatTimingReady=true
         chatSubmissions.configure(chatTiming)
+        unreadView = mountUnreadView(epoch,user)
         chatSubmissions.restore(currentChatUser())
 
-        await Promise.all([loadChatFeedBadge(), loadTimeline(true)])
+        const focusUnread = pageContext.params.get('focus') === 'unread'
+        const savedWindow = pageContext.state?.anchor
+        if (!focusUnread && /^[1-9]\d*$/.test(savedWindow?.cursor)) timelineCursor = savedWindow.cursor
+        void loadChatFeedBadge()
+        void unreadView.refresh().catch(() => {})
+        await loadTimeline(true)
         if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch) return
 
         // Re-read only as many historical pages as this entry previously displayed.
         // A deleted anchor falls back safely without walking the entire conversation.
-        const savedPages=pageContext.state?.anchor?.pages
+        const savedPages=savedWindow?.pages
         const anchor=pageContext.state?.scroll?.anchor
-        while(Number.isSafeInteger(savedPages)&&timelinePages<savedPages&&!noMoreTimeline&&!restoreSuppressed&&pageContext.valid()) {
+        while(!focusUnread&&Number.isSafeInteger(savedPages)&&timelinePages<savedPages&&!noMoreTimeline&&!restoreSuppressed&&pageContext.valid()) {
           if(anchor&&findChatMessageRow(anchor.source,anchor.id))break
           const before=timelineCursor
           await loadTimeline(false)
           if(timelineCursor===before)break
         }
-        if(!pageContext.valid())return
-
-        await loadAgentTip()
         if (!isChatAuthenticated() || currentChatUser()!==user || epoch!==chatUiEpoch) return
 
         syncChatBottomPadding()
-        if(!pageContext.state?.scroll)scrollToBottom()
+        if (!focusUnread) {
+          if (!pageContext.state?.scroll) scrollToBottom()
+          else if (!restoreSuppressed) await services.history.restore(pageContext.router.current)
+        }
+        const consumeFocus = () => {
+          if (pageContext.router.consumeParam('focus','unread')) pageContext.params.delete('focus')
+        }
 
         // 用最新 AI 消息的情绪初始化头像
         const aiMessages = root.querySelectorAll('.msg-row.ai')
@@ -1196,8 +1156,8 @@ export async function mount(pageContext) {
           updateChatBackgroundEmotion('平静')
         }
 
+        await unreadView?.start({onFocus:focusUnread ? consumeFocus : null, restoring:Boolean(pageContext.state?.scroll)})
         setupScrollObserver()
-        if(pageContext.valid()&&!restoreSuppressed&&pageContext.state?.scroll)await services.history.restore(pageContext.router.current)
       })()
 
       chatResumePromise=promise
@@ -1244,8 +1204,8 @@ export async function mount(pageContext) {
     image.dataset.fallbackDone='1';const fallback=image.closest('.user')?USER_AVATAR_FALLBACK:'/static/images/avatar/default.png';
     if(new URL(image.src,location.href).pathname!==fallback)image.src=fallback;
   },true);
-  pageContext.cleanup(()=>{stopChatObservation();chatUiEpoch++;chatSubmissions.detach();callCardRefresh.reset();chatScrollObserver?.disconnect();VoiceCallCards.destroy()},{priority:100});
+  pageContext.cleanup(()=>{unreadView?.dispose();stopChatObservation();chatUiEpoch++;chatSubmissions.detach();callCardRefresh.reset();chatScrollObserver?.disconnect();VoiceCallCards.destroy()},{priority:100});
   const audioPage=services.audio.attachPage(pageContext,'content');const bubble=BgmBubble.mount(audioPage);if(bubble)pageContext.cleanup(()=>bubble.destroy());
   run(initChat());autoResize(input);updateSendBtn();
-  return{unmount(){},captureState:()=>({draft:input.value,anchor:{pages:timelinePages},submissionKeys:[...chatSubmissions.records.keys()]})};
+  return{unmount(){},captureState:()=>({draft:input.value,anchor:{pages:timelinePages,cursor:ChatUnreadView.historyCursor(byId('chat-messages'))},submissionKeys:[...chatSubmissions.records.keys()]})};
 }
